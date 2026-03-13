@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<?xaml-comp compile="true" ?>
+<ResourceDictionary xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         RAW PALETTE — do not reference these directly in UI XAML.
+         Use the semantic tokens below instead.
+         ═══════════════════════════════════════════════════════════════ -->
+
+    <!-- Neutral / Slate scale (cool grays, Apple-adjacent) -->
+    <Color x:Key="Slate50">#F8FAFC</Color>
+    <Color x:Key="Slate100">#F1F5F9</Color>
+    <Color x:Key="Slate200">#E2E8F0</Color>
+    <Color x:Key="Slate300">#CBD5E1</Color>
+    <Color x:Key="Slate400">#94A3B8</Color>
+    <Color x:Key="Slate500">#64748B</Color>
+    <Color x:Key="Slate600">#475569</Color>
+    <Color x:Key="Slate700">#334155</Color>
+    <Color x:Key="Slate800">#1E293B</Color>
+    <Color x:Key="Slate900">#0F172A</Color>
+    <Color x:Key="Slate950">#020617</Color>
+
+    <!-- True neutrals (for surfaces and text) -->
+    <Color x:Key="Neutral0">#FFFFFF</Color>
+    <Color x:Key="Neutral50">#F9F9F9</Color>
+    <Color x:Key="Neutral100">#F2F2F7</Color>
+    <Color x:Key="Neutral200">#E5E5EA</Color>
+    <Color x:Key="Neutral300">#D1D1D6</Color>
+    <Color x:Key="Neutral400">#C7C7CC</Color>
+    <Color x:Key="Neutral500">#AEAEB2</Color>
+    <Color x:Key="Neutral600">#8E8E93</Color>
+    <Color x:Key="Neutral700">#636366</Color>
+    <Color x:Key="Neutral800">#3A3A3C</Color>
+    <Color x:Key="Neutral850">#2C2C2E</Color>
+    <Color x:Key="Neutral900">#1C1C1E</Color>
+    <Color x:Key="Neutral950">#000000</Color>
+
+    <!-- Blue / Accent scale (Apple HIG blue) -->
+    <Color x:Key="Blue50">#EAF3FF</Color>
+    <Color x:Key="Blue100">#CCE4FF</Color>
+    <Color x:Key="Blue200">#99C9FF</Color>
+    <Color x:Key="Blue300">#66AEFF</Color>
+    <Color x:Key="Blue400">#3393FF</Color>
+    <Color x:Key="Blue500">#007AFF</Color>
+    <Color x:Key="Blue600">#0062CC</Color>
+    <Color x:Key="Blue700">#004999</Color>
+    <Color x:Key="Blue800">#003166</Color>
+    <Color x:Key="Blue900">#001833</Color>
+
+    <!-- Dark-mode accent (slightly lighter for contrast on dark surfaces) -->
+    <Color x:Key="BlueDark400">#0A84FF</Color>
+    <Color x:Key="BlueDark50">#1C3A5A</Color>
+
+    <!-- Teal / Secondary accent -->
+    <Color x:Key="Teal400">#32ADE6</Color>
+    <Color x:Key="Teal500">#5AC8FA</Color>
+    <Color x:Key="TealDark400">#64D2FF</Color>
+
+    <!-- Semantic status — Green (Success) -->
+    <Color x:Key="Green500">#34C759</Color>
+    <Color x:Key="GreenDark500">#30D158</Color>
+    <Color x:Key="Green50">#E8F8ED</Color>
+    <Color x:Key="GreenDark50">#1A3D24</Color>
+
+    <!-- Semantic status — Amber (Warning) -->
+    <Color x:Key="Amber500">#FF9F0A</Color>
+    <Color x:Key="AmberDark500">#FFD60A</Color>
+    <Color x:Key="Amber50">#FFF4E0</Color>
+    <Color x:Key="AmberDark50">#3D2E00</Color>
+
+    <!-- Semantic status — Red (Error / Destructive) -->
+    <Color x:Key="Red500">#FF3B30</Color>
+    <Color x:Key="RedDark500">#FF453A</Color>
+    <Color x:Key="Red50">#FFECEB</Color>
+    <Color x:Key="RedDark50">#3D1210</Color>
+
+    <!-- Semantic status — Indigo (Info) -->
+    <Color x:Key="Indigo500">#5856D6</Color>
+    <Color x:Key="IndigoDark500">#5E5CE6</Color>
+    <Color x:Key="Indigo50">#EEEEFF</Color>
+    <Color x:Key="IndigoDark50">#1E1D3D</Color>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         SEMANTIC TOKENS — always use these in UI XAML.
+         Each token resolves to the correct raw palette value for the
+         current app theme (Light / Dark) via AppThemeBinding.
+         ═══════════════════════════════════════════════════════════════ -->
+
+    <!-- Page & scaffold backgrounds -->
+    <AppThemeBinding x:Key="ColorBackground" Light="{StaticResource Neutral100}" Dark="{StaticResource Neutral950}" />
+    <AppThemeBinding x:Key="ColorBackgroundSecondary" Light="{StaticResource Neutral50}" Dark="{StaticResource Slate900}" />
+
+    <!-- Card / sheet surfaces -->
+    <AppThemeBinding x:Key="ColorSurface" Light="{StaticResource Neutral0}" Dark="{StaticResource Neutral900}" />
+    <AppThemeBinding x:Key="ColorSurfaceSecondary" Light="{StaticResource Neutral100}" Dark="{StaticResource Neutral850}" />
+    <AppThemeBinding x:Key="ColorSurfaceTertiary" Light="{StaticResource Neutral200}" Dark="{StaticResource Neutral800}" />
+
+    <!-- Text on background -->
+    <AppThemeBinding x:Key="ColorOnBackground" Light="{StaticResource Neutral950}" Dark="{StaticResource Neutral0}" />
+    <AppThemeBinding x:Key="ColorOnBackgroundSecondary" Light="{StaticResource Neutral700}" Dark="{StaticResource Neutral500}" />
+    <AppThemeBinding x:Key="ColorOnBackgroundTertiary" Light="{StaticResource Neutral600}" Dark="{StaticResource Neutral600}" />
+
+    <!-- Text on surface -->
+    <AppThemeBinding x:Key="ColorOnSurface" Light="{StaticResource Neutral900}" Dark="{StaticResource Neutral100}" />
+    <AppThemeBinding x:Key="ColorOnSurfaceSecondary" Light="{StaticResource Neutral600}" Dark="{StaticResource Neutral500}" />
+    <AppThemeBinding x:Key="ColorOnSurfaceTertiary" Light="{StaticResource Neutral500}" Dark="{StaticResource Neutral600}" />
+
+    <!-- Accent / Primary interactive -->
+    <AppThemeBinding x:Key="ColorPrimary" Light="{StaticResource Blue500}" Dark="{StaticResource BlueDark400}" />
+    <AppThemeBinding x:Key="ColorPrimaryContainer" Light="{StaticResource Blue50}" Dark="{StaticResource BlueDark50}" />
+    <AppThemeBinding x:Key="ColorOnPrimary" Light="{StaticResource Neutral0}" Dark="{StaticResource Neutral0}" />
+    <AppThemeBinding x:Key="ColorOnPrimaryContainer" Light="{StaticResource Blue700}" Dark="{StaticResource Blue300}" />
+
+    <!-- Secondary interactive -->
+    <AppThemeBinding x:Key="ColorSecondary" Light="{StaticResource Teal400}" Dark="{StaticResource TealDark400}" />
+    <AppThemeBinding x:Key="ColorOnSecondary" Light="{StaticResource Neutral0}" Dark="{StaticResource Neutral950}" />
+
+    <!-- Tertiary (muted / supporting) -->
+    <AppThemeBinding x:Key="ColorTertiary" Light="{StaticResource Slate500}" Dark="{StaticResource Slate400}" />
+    <AppThemeBinding x:Key="ColorOnTertiary" Light="{StaticResource Neutral0}" Dark="{StaticResource Neutral950}" />
+
+    <!-- Borders, separators, outlines -->
+    <AppThemeBinding x:Key="ColorOutline" Light="{StaticResource Neutral200}" Dark="{StaticResource Neutral800}" />
+    <AppThemeBinding x:Key="ColorOutlineVariant" Light="{StaticResource Neutral300}" Dark="{StaticResource Neutral700}" />
+    <AppThemeBinding x:Key="ColorSeparator" Light="{StaticResource Neutral300}" Dark="{StaticResource Neutral800}" />
+
+    <!-- Disabled states -->
+    <AppThemeBinding x:Key="ColorDisabled" Light="{StaticResource Neutral400}" Dark="{StaticResource Neutral700}" />
+    <AppThemeBinding x:Key="ColorOnDisabled" Light="{StaticResource Neutral0}" Dark="{StaticResource Neutral900}" />
+    <AppThemeBinding x:Key="ColorDisabledSurface" Light="{StaticResource Neutral200}" Dark="{StaticResource Neutral850}" />
+
+    <!-- Semantic status — Error / Destructive -->
+    <AppThemeBinding x:Key="ColorError" Light="{StaticResource Red500}" Dark="{StaticResource RedDark500}" />
+    <AppThemeBinding x:Key="ColorErrorContainer" Light="{StaticResource Red50}" Dark="{StaticResource RedDark50}" />
+    <AppThemeBinding x:Key="ColorOnError" Light="{StaticResource Neutral0}" Dark="{StaticResource Neutral0}" />
+    <AppThemeBinding x:Key="ColorOnErrorContainer" Light="{StaticResource Red500}" Dark="{StaticResource RedDark500}" />
+
+    <!-- Semantic status — Success -->
+    <AppThemeBinding x:Key="ColorSuccess" Light="{StaticResource Green500}" Dark="{StaticResource GreenDark500}" />
+    <AppThemeBinding x:Key="ColorSuccessContainer" Light="{StaticResource Green50}" Dark="{StaticResource GreenDark50}" />
+    <AppThemeBinding x:Key="ColorOnSuccess" Light="{StaticResource Neutral0}" Dark="{StaticResource Neutral0}" />
+    <AppThemeBinding x:Key="ColorOnSuccessContainer" Light="{StaticResource Green500}" Dark="{StaticResource GreenDark500}" />
+
+    <!-- Semantic status — Warning -->
+    <AppThemeBinding x:Key="ColorWarning" Light="{StaticResource Amber500}" Dark="{StaticResource AmberDark500}" />
+    <AppThemeBinding x:Key="ColorWarningContainer" Light="{StaticResource Amber50}" Dark="{StaticResource AmberDark50}" />
+    <AppThemeBinding x:Key="ColorOnWarning" Light="{StaticResource Neutral0}" Dark="{StaticResource Neutral950}" />
+    <AppThemeBinding x:Key="ColorOnWarningContainer" Light="{StaticResource Amber500}" Dark="{StaticResource AmberDark500}" />
+
+    <!-- Semantic status — Info -->
+    <AppThemeBinding x:Key="ColorInfo" Light="{StaticResource Indigo500}" Dark="{StaticResource IndigoDark500}" />
+    <AppThemeBinding x:Key="ColorInfoContainer" Light="{StaticResource Indigo50}" Dark="{StaticResource IndigoDark50}" />
+    <AppThemeBinding x:Key="ColorOnInfo" Light="{StaticResource Neutral0}" Dark="{StaticResource Neutral0}" />
+    <AppThemeBinding x:Key="ColorOnInfoContainer" Light="{StaticResource Indigo500}" Dark="{StaticResource IndigoDark500}" />
+
+    <!-- Shell / navigation chrome -->
+    <AppThemeBinding x:Key="ColorNavigationBar" Light="{StaticResource Neutral0}" Dark="{StaticResource Neutral900}" />
+    <AppThemeBinding x:Key="ColorTabBar" Light="{StaticResource Neutral0}" Dark="{StaticResource Neutral900}" />
+    <AppThemeBinding x:Key="ColorTabBarSelected" Light="{StaticResource Blue500}" Dark="{StaticResource BlueDark400}" />
+    <AppThemeBinding x:Key="ColorTabBarUnselected" Light="{StaticResource Neutral500}" Dark="{StaticResource Neutral600}" />
+
+    <!-- Scrim / overlay (for modals, bottom sheets) -->
+    <AppThemeBinding x:Key="ColorScrim" Light="#80000000" Dark="#99000000" />
+
+    <!-- Inverse (for snackbars, toasts on dark surfaces) -->
+    <AppThemeBinding x:Key="ColorInverseSurface" Light="{StaticResource Neutral900}" Dark="{StaticResource Neutral100}" />
+    <AppThemeBinding x:Key="ColorInverseOnSurface" Light="{StaticResource Neutral100}" Dark="{StaticResource Neutral900}" />
+
+</ResourceDictionary>

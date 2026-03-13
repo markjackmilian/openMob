@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/openMob.Core/openMob.Core.csproj" />
+    <Project Path="src/openMob/openMob.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/openMob.Tests/openMob.Tests.csproj" />
+  </Folder>
+</Solution>

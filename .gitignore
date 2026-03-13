@@ -432,3 +432,4 @@ TestResults/
 *.dSYM.zip
 *.dSYM
 nul
+.idea

@@ -416,3 +416,18 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# .NET / MAUI
+bin/
+obj/
+*.user
+_ReSharper*/
+*.DotSettings.user
+TestResults/
+# Android
+*.apk
+*.aab
+# iOS
+*.ipa
+*.dSYM.zip
+*.dSYM

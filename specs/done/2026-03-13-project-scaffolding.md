@@ -2,12 +2,15 @@
 
 ## Metadata
 
-| Field   | Value                        |
-|---------|------------------------------|
-| Date    | 2026-03-13                   |
-| Status  | **In Progress**              |
-| Version | 1.0                          |
-| Author  | om-orchestrator              |
+| Field       | Value                              |
+|-------------|------------------------------------|
+| Date        | 2026-03-13                         |
+| Status      | **Completed**                      |
+| Version     | 1.0                                |
+| Author      | om-orchestrator                    |
+| Completed   | 2026-03-13                         |
+| Branch      | feature/project-scaffolding (merged) |
+| Merged into | develop                            |
 
 ---
 
@@ -254,13 +257,13 @@ All new `.cs` files have file-scoped namespaces.
 ### Definition of Done
 
 - [x] All open questions resolved (no Tizen, no Windows)
-- [ ] REQ-001 through REQ-011 implemented
-- [ ] AC-001: `dotnet build openMob.sln` exits 0
-- [ ] AC-002: `dotnet test` exits 0
-- [ ] AC-003: no `Microsoft.Maui.*` in `openMob.Core`
-- [ ] AC-004: `IAppDataPathProvider` pattern in place
-- [ ] AC-005: file-scoped namespaces everywhere
-- [ ] AC-006: `AddOpenMobCore()` called in `MauiProgram.cs`
-- [ ] `om-reviewer` verdict: ✅ Approved or ⚠️ Approved with remarks
-- [ ] Git Flow branch finished and deleted
-- [ ] Spec moved to `specs/done/` with Completed status
+- [x] REQ-001 through REQ-011 implemented
+- [x] AC-001: `dotnet build openMob.sln` exits 0
+- [x] AC-002: `dotnet test` exits 0
+- [x] AC-003: no `Microsoft.Maui.*` in `openMob.Core`
+- [x] AC-004: `IAppDataPathProvider` pattern in place
+- [x] AC-005: file-scoped namespaces everywhere
+- [x] AC-006: `AddOpenMobCore()` called in `MauiProgram.cs`
+- [x] `om-reviewer` verdict: ⚠️ Approved with remarks (zero Critical, zero Major)
+- [x] Git Flow branch finished and deleted
+- [x] Spec moved to `specs/done/` with Completed status

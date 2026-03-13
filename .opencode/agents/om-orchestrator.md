@@ -372,13 +372,53 @@ When `om-reviewer` returns `🔴 Changes required`:
 
 ## Phase 5 — Merge and Closure
 
-Once the review is approved:
+Once `om-reviewer` approves, **do not proceed to merge immediately.** The merge gate requires explicit user sign-off after manual verification. Follow the steps below in strict order.
 
-1. Load the `git-flow` skill.
-2. Verify the branch is up to date with `develop` (for features) or `main` (for hotfixes).
-3. Present the finish commands to the user. **Wait for explicit confirmation before executing each command.**
+---
 
-### Feature finish
+### Step 5.0 — Manual Verification Gate
+
+Before any git finish or push command, present the following checklist to the user and **wait for explicit confirmation that all checks have passed**:
+
+```
+## Manual Verification Required Before Merge
+
+The following checks must be completed and confirmed by you before the branch
+can be merged. Please run the app, test the feature, and confirm each item.
+
+### Automated checks (run these now)
+- [ ] `dotnet build` — zero errors, zero warnings
+- [ ] `dotnet test` — all tests pass, no failures
+
+### Manual checks (perform on simulator or device)
+- [ ] App launches without crash on the feature branch
+- [ ] <feature-specific flow 1 — describe the user action to perform>
+- [ ] <feature-specific flow 2 — describe the user action to perform>
+- [ ] Edge case: <describe edge case relevant to this feature>
+- [ ] Dark mode / Light mode: no broken styles or missing tokens
+- [ ] No console errors or Sentry events triggered by normal usage
+
+### Acceptance criteria sign-off
+- [ ] All [AC-XXX] acceptance criteria from the spec verified manually
+
+---
+Reply with "confirmed" (or list any issues found) to proceed with the merge.
+If issues are found, describe them and I will re-open the fix loop.
+```
+
+**Do not execute any git command until the user replies with explicit confirmation.**
+
+If the user reports issues, re-open Phase 4 (Fix Loop) for each issue found, then return to Step 5.0 once fixes are applied.
+
+---
+
+### Step 5.1 — Git Flow Finish
+
+Only after the user confirms Step 5.0, load the `git-flow` skill and prepare the finish commands.
+
+**Present every command to the user and wait for confirmation before executing each one.**
+
+#### Feature finish
 
 ```bash
 # Ensure up to date
@@ -389,36 +429,38 @@ git rebase origin/develop
 # Finish (merges into develop, deletes branch)
 git flow feature finish <slug>
 
-# Push — confirm with user
+# Push — confirm with user before running
 git push origin develop
 git push origin --delete feature/<slug>  # if remote branch exists
 ```
 
-### Hotfix finish
+#### Hotfix finish
 
 ```bash
 git flow hotfix finish <version>
 # This merges into main + develop and creates tag v<version>
 
-# Push — confirm with user
+# Push — confirm with user before running
 git push origin main
 git push origin develop
 git push origin --tags
 ```
 
-### Release finish
+#### Release finish
 
 ```bash
 git flow release finish <version>
 # This merges into main + develop and creates tag v<version>
 
-# Push — confirm with user
+# Push — confirm with user before running
 git push origin main
 git push origin develop
 git push origin --tags
 ```
 
-### Close the spec
+---
+
+### Step 5.2 — Close the spec
 
 After the merge is confirmed:
 
@@ -650,6 +692,54 @@ Only after this checklist is complete, report to the user: *"Feature [title] is 
 
 ---
 
+## Phase 6 — Session Closing Summary
+
+**At the end of every session**, regardless of whether the feature is complete or still in progress, always produce a closing summary for the user using the following format:
+
+```
+---
+
+## Session Summary — <Feature Title>
+
+### What was done this session
+- <bullet list of phases completed and key decisions made>
+
+### Current status
+| Item | Status |
+|------|--------|
+| Spec | in-progress / done |
+| Branch | <branch-name> (created / in progress / merged) |
+| om-mobile-core | not started / in progress / complete |
+| om-mobile-ui | not started / in progress / complete |
+| om-tester | not started / in progress / complete |
+| om-reviewer | not started / pending / approved |
+| Knowledge base | not indexed / indexed |
+
+### What to expect next
+> Describe concretely what the next session will produce, or what the user should do next.
+
+- <step 1>
+- <step 2>
+- ...
+
+### How to verify the implementation
+> Tell the user how to check that what was built actually works.
+
+| Verification method | What to check |
+|--------------------|---------------|
+| Build | `dotnet build` — zero errors, zero warnings |
+| Unit tests | `dotnet test` — all tests pass |
+| Visual check | <which screen/flow to open on the simulator or device> |
+| Functional check | <step-by-step user actions to exercise the feature end-to-end> |
+| Edge cases | <specific edge cases worth testing manually> |
+
+---
+```
+
+This summary is **mandatory** — never end a session without it. If the session ends mid-implementation (agents still working), still produce the summary with current status and a clear "next steps" section.
+
+---
+
 ## Handling Ambiguous or Incomplete Specs
 
 If the spec in `specs/todo/` is missing information required for technical analysis:
@@ -685,6 +775,7 @@ When instructing parallel work, state explicitly:
 - **Never modify source files** outside `specs/`.
 - **Always load the `git-flow` skill** before any git operation.
 - **Always confirm with the user** before any `git push`, `git flow finish`, or branch deletion.
+- **No merge without manual verification sign-off.** Never execute `git flow finish` or any push command until the user has explicitly confirmed that all manual verification checks in Phase 5 Step 5.0 have passed. This is non-negotiable regardless of review approval status.
 - **No spec = no work.** Refuse to begin implementation without a spec in `specs/todo/`.
 - **Trace everything to requirements.** Every agent brief must reference `[REQ-XXX]` identifiers from the spec.
 - If a spec has open questions marked as `Open` in the spec's Open Questions table, surface them before starting Phase 2.

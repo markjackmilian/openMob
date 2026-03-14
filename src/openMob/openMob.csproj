@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net10.0-android;net10.0-ios</TargetFrameworks>
+    <TargetFrameworks>net10.0-android</TargetFrameworks>
+    <TargetFrameworks Condition="!$([MSBuild]::IsOSPlatform('linux'))">$(TargetFrameworks);net10.0-ios</TargetFrameworks>
     <OutputType>Exe</OutputType>
     <RootNamespace>openMob</RootNamespace>
     <UseMaui>true</UseMaui>
@@ -9,20 +10,37 @@
     <Nullable>enable</Nullable>
     <LangVersion>preview</LangVersion>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <MauiXamlInflator>SourceGen</MauiXamlInflator>
+    <ApplicationTitle>openMob</ApplicationTitle>
     <ApplicationId>com.openmob.app</ApplicationId>
     <ApplicationVersion>1</ApplicationVersion>
     <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
+    <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">15.0</SupportedOSPlatformVersion>
+    <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">21.0</SupportedOSPlatformVersion>
   </PropertyGroup>
 
   <ItemGroup>
-    <MauiImage Include="Resources/Images/*" Exclude="Resources/Images/.gitkeep" />
-    <MauiFont Include="Resources/Fonts/*" Exclude="Resources/Fonts/.gitkeep" />
+    <!-- App Icon -->
+    <MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#512BD4" />
+
+    <!-- Splash Screen -->
+    <MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#512BD4" BaseSize="128,128" />
+
+    <!-- Images -->
+    <MauiImage Include="Resources\Images\*" Exclude="Resources\Images\.gitkeep" />
+
+    <!-- Custom Fonts -->
+    <MauiFont Include="Resources\Fonts\*" Exclude="Resources\Fonts\.gitkeep" />
+
+    <!-- Raw Assets -->
+    <MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Maui" Version="*" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="*" />
     <PackageReference Include="Microsoft.Maui.Controls" Version="*" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="*" />
     <PackageReference Include="Sentry.Maui" Version="*" />
   </ItemGroup>
 

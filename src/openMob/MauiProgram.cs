@@ -1,8 +1,8 @@
 using CommunityToolkit.Maui;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using openMob.Core.Data;
 using openMob.Infrastructure;
-using Sentry;
 
 namespace openMob;
 
@@ -17,19 +17,23 @@ public static class MauiProgram
         builder
             .UseMauiApp<App>()
             .UseMauiCommunityToolkit()
-            .UseSentry(options =>
-            {
-                // DSN will be configured via app settings feature (user-secrets / SecureStorage).
-                // Never hardcode the DSN here — this is a public repository.
-                options.Dsn = string.Empty;
-                options.Debug = false;
-                options.TracesSampleRate = 1.0;
-            })
+            // .UseSentry(options =>
+            // {
+            //     // DSN will be configured via app settings feature (user-secrets / SecureStorage).
+            //     // Never hardcode the DSN here — this is a public repository.
+            //     options.Dsn = string.Empty;
+            //     options.Debug = false;
+            //     options.TracesSampleRate = 1.0;
+            // })
             .ConfigureFonts(fonts =>
             {
                 fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
                 fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
             });
+
+#if DEBUG
+        builder.Logging.AddDebug();
+#endif
 
         // Register platform-specific path provider
         builder.Services.AddSingleton<IAppDataPathProvider, MauiAppDataPathProvider>();
@@ -39,10 +43,18 @@ public static class MauiProgram
 
         var app = builder.Build();
 
-        // Apply EF Core migrations on startup
-        using var scope = app.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        db.Database.Migrate();
+        // Apply EF Core migrations on startup.
+        // Wrapped in try-catch to prevent startup crash if migrations fail.
+        try
+        {
+            using var scope = app.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            db.Database.Migrate();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[openMob] EF Core migration failed: {ex.Message}");
+        }
 
         return app;
     }

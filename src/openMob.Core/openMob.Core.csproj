@@ -9,6 +9,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="openMob.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="*" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="*" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.*" />

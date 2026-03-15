@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="openMob.Views.Controls.FlyoutHeaderView">
+
+  <Grid
+      ColumnDefinitions="*,Auto"
+      Padding="{StaticResource SpacingLg}"
+      BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceLight}, Dark={StaticResource ColorSurfaceDark}}">
+
+    <!-- App name -->
+    <Label
+        Grid.Column="0"
+        Text="openMob"
+        Style="{StaticResource Title3Label}"
+        VerticalOptions="Center" />
+
+    <!-- New chat button -->
+    <Border
+        Grid.Column="1"
+        StrokeThickness="0"
+        BackgroundColor="Transparent"
+        MinimumHeightRequest="{StaticResource MinTouchTarget}"
+        MinimumWidthRequest="{StaticResource MinTouchTarget}">
+      <Border.GestureRecognizers>
+        <TapGestureRecognizer Tapped="OnNewChatTapped" />
+      </Border.GestureRecognizers>
+      <Label
+          Text="&#x270F;"
+          FontSize="20"
+          TextColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}"
+          HorizontalOptions="Center"
+          VerticalOptions="Center"
+          SemanticProperties.Description="Start a new chat session" />
+    </Border>
+
+  </Grid>
+
+</ContentView>

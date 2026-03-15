@@ -2,12 +2,44 @@
 <Shell xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
        xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
        xmlns:pages="clr-namespace:openMob.Views.Pages"
+       xmlns:controls="clr-namespace:openMob.Views.Controls"
        x:Class="openMob.AppShell"
-       Title="openMob">
+       Title="openMob"
+       FlyoutBehavior="Flyout">
 
+  <!-- Custom Flyout Header -->
+  <Shell.FlyoutHeader>
+    <controls:FlyoutHeaderView />
+  </Shell.FlyoutHeader>
+
+  <!-- Custom Flyout Content (session list) -->
+  <Shell.FlyoutContent>
+    <controls:FlyoutContentView />
+  </Shell.FlyoutContent>
+
+  <!-- Custom Flyout Footer -->
+  <Shell.FlyoutFooter>
+    <controls:FlyoutFooterView />
+  </Shell.FlyoutFooter>
+
+  <!-- Splash — not visible in flyout, no nav bar -->
   <ShellContent
-      Title="Home"
-      ContentTemplate="{DataTemplate pages:MainPage}"
-      Route="MainPage" />
+      Route="splash"
+      ContentTemplate="{DataTemplate pages:SplashPage}"
+      FlyoutItemIsVisible="False"
+      Shell.NavBarIsVisible="False" />
+
+  <!-- Onboarding — not visible in flyout, no nav bar -->
+  <ShellContent
+      Route="onboarding"
+      ContentTemplate="{DataTemplate pages:OnboardingPage}"
+      FlyoutItemIsVisible="False"
+      Shell.NavBarIsVisible="False" />
+
+  <!-- Chat — root page, visible in flyout but hidden (custom flyout handles it) -->
+  <ShellContent
+      Route="chat"
+      ContentTemplate="{DataTemplate pages:ChatPage}"
+      FlyoutItemIsVisible="False" />
 
 </Shell>

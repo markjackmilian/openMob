@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:openMob.Core.ViewModels;assembly=openMob.Core"
+             xmlns:controls="clr-namespace:openMob.Views.Controls"
+             xmlns:converters="clr-namespace:openMob.Converters"
+             x:Class="openMob.Views.Pages.OnboardingPage"
+             x:DataType="vm:OnboardingViewModel"
+             Shell.NavBarIsVisible="False"
+             Shell.FlyoutBehavior="Disabled">
+
+  <Grid RowDefinitions="Auto,*,Auto">
+
+    <!-- Progress bar -->
+    <ProgressBar
+        Grid.Row="0"
+        Progress="{Binding Progress}"
+        ProgressColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}"
+        Margin="{StaticResource SpacingLg},{StaticResource SpacingXl},{StaticResource SpacingLg},0" />
+
+    <!-- Step content area -->
+    <ScrollView Grid.Row="1">
+      <Grid>
+        <!-- Step 1: Welcome -->
+        <controls:OnboardingWelcomeView
+            BindingContext="{Binding}"
+            IsVisible="{Binding CurrentStep, Converter={StaticResource StepToVisibilityConverter}, ConverterParameter=1}" />
+
+        <!-- Step 2: Connect Server -->
+        <controls:OnboardingConnectServerView
+            BindingContext="{Binding}"
+            IsVisible="{Binding CurrentStep, Converter={StaticResource StepToVisibilityConverter}, ConverterParameter=2}" />
+
+        <!-- Step 3: Provider Setup -->
+        <controls:OnboardingProviderSetupView
+            BindingContext="{Binding}"
+            IsVisible="{Binding CurrentStep, Converter={StaticResource StepToVisibilityConverter}, ConverterParameter=3}" />
+
+        <!-- Step 4: Permissions -->
+        <controls:OnboardingPermissionsView
+            BindingContext="{Binding}"
+            IsVisible="{Binding CurrentStep, Converter={StaticResource StepToVisibilityConverter}, ConverterParameter=4}" />
+
+        <!-- Step 5: Completion -->
+        <controls:OnboardingCompletionView
+            BindingContext="{Binding}"
+            IsVisible="{Binding CurrentStep, Converter={StaticResource StepToVisibilityConverter}, ConverterParameter=5}" />
+      </Grid>
+    </ScrollView>
+
+    <!-- Button bar -->
+    <Grid
+        Grid.Row="2"
+        ColumnDefinitions="Auto,*,Auto"
+        Padding="{StaticResource SpacingLg}"
+        ColumnSpacing="{StaticResource SpacingSm}">
+
+      <!-- Back button -->
+      <Button
+          Grid.Column="0"
+          Text="Back"
+          Command="{Binding PreviousStepCommand}"
+          Style="{StaticResource TertiaryButton}"
+          IsVisible="{Binding CanGoBack}"
+          AutomationId="OnboardingBackButton"
+          MinimumWidthRequest="80" />
+
+      <!-- Skip button (visible only on optional steps) -->
+      <Button
+          Grid.Column="1"
+          Text="Skip"
+          Command="{Binding SkipStepCommand}"
+          Style="{StaticResource TertiaryButton}"
+          IsVisible="{Binding IsStepOptional}"
+          HorizontalOptions="Center"
+          AutomationId="OnboardingSkipButton" />
+
+      <!-- Next / Complete button -->
+      <Button
+          Grid.Column="2"
+          Command="{Binding NextStepCommand}"
+          IsEnabled="{Binding CanGoNext}"
+          AutomationId="OnboardingNextButton"
+          MinimumWidthRequest="120">
+        <Button.Triggers>
+          <DataTrigger TargetType="Button"
+                       Binding="{Binding CurrentStep}"
+                       Value="1">
+            <Setter Property="Text" Value="Get Started" />
+          </DataTrigger>
+          <DataTrigger TargetType="Button"
+                       Binding="{Binding CurrentStep}"
+                       Value="5">
+            <Setter Property="Text" Value="Start Chatting" />
+          </DataTrigger>
+        </Button.Triggers>
+        <!-- Default text for steps 2-4 -->
+        <Button.Text>Next</Button.Text>
+      </Button>
+
+    </Grid>
+
+  </Grid>
+
+</ContentPage>

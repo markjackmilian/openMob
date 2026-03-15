@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:openMob.Core.ViewModels;assembly=openMob.Core"
+             x:Class="openMob.Views.Controls.OnboardingCompletionView"
+             x:DataType="vm:OnboardingViewModel">
+
+  <VerticalStackLayout
+      Spacing="{StaticResource SpacingLg}"
+      VerticalOptions="Center"
+      Padding="{StaticResource SpacingXl}">
+
+    <!-- Success icon -->
+    <Border
+        WidthRequest="96"
+        HeightRequest="96"
+        StrokeShape="RoundRectangle 48"
+        StrokeThickness="0"
+        BackgroundColor="{AppThemeBinding Light={StaticResource ColorSuccessContainerLight}, Dark={StaticResource ColorSuccessContainerDark}}"
+        HorizontalOptions="Center">
+      <Label
+          Text="&#x2713;"
+          FontSize="{StaticResource FontSizeLargeTitle}"
+          FontAttributes="Bold"
+          TextColor="{AppThemeBinding Light={StaticResource ColorSuccessLight}, Dark={StaticResource ColorSuccessDark}}"
+          HorizontalOptions="Center"
+          VerticalOptions="Center" />
+    </Border>
+
+    <!-- Title -->
+    <Label
+        Text="All set!"
+        Style="{StaticResource LargeTitleLabel}"
+        HorizontalTextAlignment="Center" />
+
+    <!-- Subtitle -->
+    <Label
+        Text="Start chatting with your AI agent. You can always adjust settings later."
+        Style="{StaticResource CalloutLabel}"
+        HorizontalTextAlignment="Center"
+        Margin="0,0,0,{StaticResource SpacingLg}" />
+
+  </VerticalStackLayout>
+
+</ContentView>

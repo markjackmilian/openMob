@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="openMob.Views.Pages.ChatPage"
+             Shell.NavBarIsVisible="False">
+
+  <Grid RowDefinitions="Auto,Auto,*">
+
+    <!-- Custom header bar: [Hamburger] [ProjectName . SessionName] [NewChat] [MoreMenu] -->
+    <Grid
+        Grid.Row="0"
+        ColumnDefinitions="Auto,*,Auto,Auto"
+        Padding="{StaticResource SpacingSm},{StaticResource SpacingSm}"
+        BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceLight}, Dark={StaticResource ColorSurfaceDark}}"
+        ColumnSpacing="{StaticResource SpacingXs}">
+
+      <!-- Hamburger -->
+      <ImageButton
+          Grid.Column="0"
+          x:Name="HamburgerButton"
+          Clicked="OnHamburgerClicked"
+          MinimumHeightRequest="{StaticResource MinTouchTarget}"
+          MinimumWidthRequest="{StaticResource MinTouchTarget}"
+          BackgroundColor="Transparent"
+          AutomationId="ChatHamburgerButton"
+          SemanticProperties.Description="Open navigation menu">
+        <ImageButton.Source>
+          <FontImageSource
+              Glyph="&#x2630;"
+              Size="22"
+              Color="{AppThemeBinding Light={StaticResource ColorOnSurfaceLight}, Dark={StaticResource ColorOnSurfaceDark}}" />
+        </ImageButton.Source>
+      </ImageButton>
+
+      <!-- Project name + Session name (tappable) -->
+      <HorizontalStackLayout
+          Grid.Column="1"
+          Spacing="{StaticResource SpacingXs}"
+          VerticalOptions="Center"
+          HorizontalOptions="Start">
+        <HorizontalStackLayout.GestureRecognizers>
+          <TapGestureRecognizer Tapped="OnProjectNameTapped" />
+        </HorizontalStackLayout.GestureRecognizers>
+
+        <Label
+            x:Name="ProjectNameLabel"
+            Text="No project"
+            FontSize="{StaticResource FontSizeSubheadline}"
+            FontAttributes="Bold"
+            TextColor="{AppThemeBinding Light={StaticResource ColorOnSurfaceLight}, Dark={StaticResource ColorOnSurfaceDark}}"
+            VerticalOptions="Center"
+            LineBreakMode="TailTruncation"
+            MaximumWidthRequest="140" />
+
+        <Label
+            Text="&#x00B7;"
+            FontSize="{StaticResource FontSizeSubheadline}"
+            TextColor="{AppThemeBinding Light={StaticResource ColorOnSurfaceTertiaryLight}, Dark={StaticResource ColorOnSurfaceTertiaryDark}}"
+            VerticalOptions="Center" />
+
+        <Label
+            x:Name="SessionNameLabel"
+            Text="New chat"
+            FontSize="{StaticResource FontSizeSubheadline}"
+            TextColor="{AppThemeBinding Light={StaticResource ColorOnSurfaceSecondaryLight}, Dark={StaticResource ColorOnSurfaceSecondaryDark}}"
+            VerticalOptions="Center"
+            LineBreakMode="TailTruncation"
+            MaximumWidthRequest="120" />
+      </HorizontalStackLayout>
+
+      <!-- New Chat button -->
+      <ImageButton
+          Grid.Column="2"
+          x:Name="NewChatButton"
+          Clicked="OnNewChatClicked"
+          MinimumHeightRequest="{StaticResource MinTouchTarget}"
+          MinimumWidthRequest="{StaticResource MinTouchTarget}"
+          BackgroundColor="Transparent"
+          AutomationId="ChatNewChatButton"
+          SemanticProperties.Description="Start a new chat">
+        <ImageButton.Source>
+          <FontImageSource
+              Glyph="&#x270F;"
+              Size="20"
+              Color="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}" />
+        </ImageButton.Source>
+      </ImageButton>
+
+      <!-- More Menu button -->
+      <ImageButton
+          Grid.Column="3"
+          x:Name="MoreMenuButton"
+          Clicked="OnMoreMenuClicked"
+          MinimumHeightRequest="{StaticResource MinTouchTarget}"
+          MinimumWidthRequest="{StaticResource MinTouchTarget}"
+          BackgroundColor="Transparent"
+          AutomationId="ChatMoreMenuButton"
+          SemanticProperties.Description="More options">
+        <ImageButton.Source>
+          <FontImageSource
+              Glyph="&#x22EE;"
+              Size="22"
+              Color="{AppThemeBinding Light={StaticResource ColorOnSurfaceLight}, Dark={StaticResource ColorOnSurfaceDark}}" />
+        </ImageButton.Source>
+      </ImageButton>
+
+    </Grid>
+
+    <!-- Separator -->
+    <BoxView
+        Grid.Row="1"
+        HeightRequest="0.5"
+        Color="{AppThemeBinding Light={StaticResource ColorSeparatorLight}, Dark={StaticResource ColorSeparatorDark}}" />
+
+    <!-- Body: empty state placeholder (chat UI will be added by chat-ui-design-guidelines feature) -->
+    <VerticalStackLayout
+        Grid.Row="2"
+        VerticalOptions="Center"
+        HorizontalOptions="Center"
+        Spacing="{StaticResource SpacingLg}"
+        Padding="{StaticResource SpacingXxl}">
+
+      <Border
+          WidthRequest="72"
+          HeightRequest="72"
+          StrokeShape="RoundRectangle 36"
+          StrokeThickness="0"
+          BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceSecondaryLight}, Dark={StaticResource ColorSurfaceSecondaryDark}}"
+          HorizontalOptions="Center">
+        <Label
+            Text="&#x1F4AC;"
+            FontSize="{StaticResource FontSizeTitle1}"
+            HorizontalOptions="Center"
+            VerticalOptions="Center" />
+      </Border>
+
+      <Label
+          Text="Start a conversation"
+          Style="{StaticResource Title3Label}"
+          HorizontalTextAlignment="Center" />
+
+      <Label
+          Text="Send a message to begin chatting with your AI agent."
+          Style="{StaticResource CalloutLabel}"
+          HorizontalTextAlignment="Center" />
+
+    </VerticalStackLayout>
+
+  </Grid>
+
+</ContentPage>

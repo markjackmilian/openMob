@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:openMob.Core.ViewModels;assembly=openMob.Core"
+             xmlns:models="clr-namespace:openMob.Core.Models;assembly=openMob.Core"
+             x:Class="openMob.Views.Popups.AgentPickerSheet"
+             x:DataType="vm:AgentPickerViewModel"
+             Title="Select Agent"
+             Shell.PresentationMode="ModalAnimated">
+
+  <VerticalStackLayout
+      Spacing="{StaticResource SpacingLg}"
+      Padding="{StaticResource SpacingLg}">
+
+    <!-- Handle bar -->
+    <BoxView
+        WidthRequest="36"
+        HeightRequest="4"
+        CornerRadius="2"
+        Color="{AppThemeBinding Light={StaticResource ColorOnSurfaceTertiaryLight}, Dark={StaticResource ColorOnSurfaceTertiaryDark}}"
+        HorizontalOptions="Center"
+        Margin="0,{StaticResource SpacingSm},0,0" />
+
+    <!-- Title -->
+    <Label
+        Text="Select Agent"
+        Style="{StaticResource Title3Label}" />
+
+    <!-- Loading indicator -->
+    <ActivityIndicator
+        IsRunning="{Binding IsLoading}"
+        IsVisible="{Binding IsLoading}"
+        HorizontalOptions="Center" />
+
+    <!-- Agent list -->
+    <CollectionView
+        ItemsSource="{Binding Agents}"
+        SelectionMode="None"
+        IsVisible="{Binding IsLoading, Converter={StaticResource InvertedBoolConverter}}">
+      <CollectionView.ItemTemplate>
+        <DataTemplate x:DataType="models:AgentItem">
+          <Grid
+              ColumnDefinitions="*,Auto"
+              Padding="{StaticResource SpacingMd}"
+              MinimumHeightRequest="{StaticResource MinTouchTarget}">
+            <Grid.GestureRecognizers>
+              <TapGestureRecognizer
+                  Command="{Binding SelectAgentCommand, Source={RelativeSource AncestorType={x:Type vm:AgentPickerViewModel}}}"
+                  CommandParameter="{Binding Name}" />
+            </Grid.GestureRecognizers>
+
+            <VerticalStackLayout
+                Grid.Column="0"
+                Spacing="{StaticResource SpacingXs}"
+                VerticalOptions="Center">
+              <Label
+                  Text="{Binding Name, FallbackValue='Agent'}"
+                  Style="{StaticResource HeadlineLabel}" />
+              <Label
+                  Text="{Binding Description, FallbackValue='', TargetNullValue=''}"
+                  Style="{StaticResource FootnoteLabel}"
+                  IsVisible="{Binding Description, Converter={StaticResource NullToVisibilityConverter}}" />
+            </VerticalStackLayout>
+
+            <!-- Checkmark for selected agent -->
+            <Label
+                Grid.Column="1"
+                Text="&#x2713;"
+                FontSize="{StaticResource FontSizeBody}"
+                TextColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}"
+                IsVisible="{Binding IsSelected}"
+                VerticalOptions="Center" />
+          </Grid>
+        </DataTemplate>
+      </CollectionView.ItemTemplate>
+      <CollectionView.EmptyView>
+        <Label
+            Text="No agents available"
+            Style="{StaticResource CalloutLabel}"
+            HorizontalTextAlignment="Center"
+            Margin="0,{StaticResource SpacingLg}" />
+      </CollectionView.EmptyView>
+    </CollectionView>
+
+  </VerticalStackLayout>
+
+</ContentPage>

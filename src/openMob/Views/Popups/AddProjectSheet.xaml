@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:openMob.Core.ViewModels;assembly=openMob.Core"
+             x:Class="openMob.Views.Popups.AddProjectSheet"
+             x:DataType="vm:AddProjectViewModel"
+             Title="New Project"
+             Shell.PresentationMode="ModalAnimated">
+
+  <VerticalStackLayout
+      Spacing="{StaticResource SpacingLg}"
+      Padding="{StaticResource SpacingLg}">
+
+    <!-- Handle bar -->
+    <BoxView
+        WidthRequest="36"
+        HeightRequest="4"
+        CornerRadius="2"
+        Color="{AppThemeBinding Light={StaticResource ColorOnSurfaceTertiaryLight}, Dark={StaticResource ColorOnSurfaceTertiaryDark}}"
+        HorizontalOptions="Center"
+        Margin="0,{StaticResource SpacingSm},0,0" />
+
+    <!-- Title -->
+    <Label
+        Text="New Project"
+        Style="{StaticResource Title3Label}" />
+
+    <!-- Project Name -->
+    <VerticalStackLayout Spacing="{StaticResource SpacingXs}">
+      <Label
+          Text="Project Name"
+          Style="{StaticResource SubtitleLabel}" />
+      <Entry
+          Text="{Binding ProjectName, Mode=TwoWay}"
+          Placeholder="My Project"
+          Style="{StaticResource OutlinedEntry}"
+          AutomationId="AddProjectNameEntry"
+          SemanticProperties.Hint="Enter the project name" />
+    </VerticalStackLayout>
+
+    <!-- Project Path -->
+    <VerticalStackLayout Spacing="{StaticResource SpacingXs}">
+      <Label
+          Text="Project Path"
+          Style="{StaticResource SubtitleLabel}" />
+      <Entry
+          Text="{Binding ProjectPath, Mode=TwoWay}"
+          Placeholder="/path/to/project"
+          Style="{StaticResource OutlinedEntry}"
+          AutomationId="AddProjectPathEntry"
+          SemanticProperties.Hint="Enter the project directory path" />
+    </VerticalStackLayout>
+
+    <!-- Buttons -->
+    <Grid
+        ColumnDefinitions="*,*"
+        ColumnSpacing="{StaticResource SpacingSm}">
+      <Button
+          Grid.Column="0"
+          Text="Cancel"
+          Command="{Binding CancelCommand}"
+          Style="{StaticResource SecondaryButton}"
+          AutomationId="AddProjectCancelButton" />
+      <Button
+          Grid.Column="1"
+          Text="Add"
+          Command="{Binding AddProjectCommand}"
+          IsEnabled="{Binding CanAdd}"
+          AutomationId="AddProjectAddButton" />
+    </Grid>
+
+  </VerticalStackLayout>
+
+</ContentPage>

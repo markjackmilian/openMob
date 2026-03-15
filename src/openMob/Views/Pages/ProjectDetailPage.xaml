@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:openMob.Core.ViewModels;assembly=openMob.Core"
+             xmlns:models="clr-namespace:openMob.Core.Models;assembly=openMob.Core"
+             x:Class="openMob.Views.Pages.ProjectDetailPage"
+             x:DataType="vm:ProjectDetailViewModel"
+             Title="{Binding ProjectName, FallbackValue='Project'}">
+
+  <Grid>
+    <!-- Loading indicator -->
+    <ActivityIndicator
+        IsRunning="{Binding IsLoading}"
+        IsVisible="{Binding IsLoading}"
+        VerticalOptions="Center"
+        HorizontalOptions="Center" />
+
+    <ScrollView IsVisible="{Binding IsLoading, Converter={StaticResource InvertedBoolConverter}}">
+      <VerticalStackLayout
+          Spacing="{StaticResource SpacingLg}"
+          Padding="{StaticResource SpacingLg}">
+
+        <!-- Section: Information -->
+        <Label
+            Text="INFORMATION"
+            Style="{StaticResource CaptionLabel}"
+            TextTransform="Uppercase"
+            TextColor="{AppThemeBinding Light={StaticResource ColorOnSurfaceTertiaryLight}, Dark={StaticResource ColorOnSurfaceTertiaryDark}}" />
+
+        <Border Style="{StaticResource CardBorder}">
+          <VerticalStackLayout Spacing="{StaticResource SpacingMd}">
+            <!-- Path -->
+            <VerticalStackLayout Spacing="{StaticResource SpacingXs}">
+              <Label
+                  Text="Path"
+                  Style="{StaticResource FootnoteLabel}" />
+              <Label
+                  Text="{Binding ProjectPath, FallbackValue='', TargetNullValue=''}"
+                  Style="{StaticResource BodyLabel}"
+                  LineBreakMode="MiddleTruncation" />
+            </VerticalStackLayout>
+
+            <!-- Description -->
+            <VerticalStackLayout
+                Spacing="{StaticResource SpacingXs}"
+                IsVisible="{Binding ProjectDescription, Converter={StaticResource NullToVisibilityConverter}}">
+              <Label
+                  Text="Description"
+                  Style="{StaticResource FootnoteLabel}" />
+              <Label
+                  Text="{Binding ProjectDescription, FallbackValue='', TargetNullValue=''}"
+                  Style="{StaticResource BodyLabel}" />
+            </VerticalStackLayout>
+
+            <!-- Set Active button -->
+            <Button
+                Text="Set as Active Project"
+                Command="{Binding SetActiveCommand}"
+                IsVisible="{Binding IsActiveProject, Converter={StaticResource InvertedBoolConverter}}"
+                AutomationId="ProjectDetailSetActiveButton"
+                Margin="0,{StaticResource SpacingSm},0,0" />
+
+            <!-- Already active indicator -->
+            <HorizontalStackLayout
+                Spacing="{StaticResource SpacingSm}"
+                IsVisible="{Binding IsActiveProject}">
+              <Label
+                  Text="&#x2713;"
+                  TextColor="{AppThemeBinding Light={StaticResource ColorSuccessLight}, Dark={StaticResource ColorSuccessDark}}"
+                  VerticalOptions="Center" />
+              <Label
+                  Text="Active project"
+                  Style="{StaticResource CalloutLabel}"
+                  TextColor="{AppThemeBinding Light={StaticResource ColorSuccessLight}, Dark={StaticResource ColorSuccessDark}}"
+                  VerticalOptions="Center" />
+            </HorizontalStackLayout>
+          </VerticalStackLayout>
+        </Border>
+
+        <!-- Section: Recent Sessions -->
+        <Label
+            Text="RECENT SESSIONS"
+            Style="{StaticResource CaptionLabel}"
+            TextTransform="Uppercase"
+            TextColor="{AppThemeBinding Light={StaticResource ColorOnSurfaceTertiaryLight}, Dark={StaticResource ColorOnSurfaceTertiaryDark}}" />
+
+        <Border Style="{StaticResource CardBorder}">
+          <VerticalStackLayout Spacing="{StaticResource SpacingSm}">
+            <CollectionView
+                ItemsSource="{Binding RecentSessions}"
+                SelectionMode="None"
+                HeightRequest="200">
+              <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="models:SessionItem">
+                  <Grid
+                      ColumnDefinitions="*,Auto"
+                      Padding="0,{StaticResource SpacingSm}">
+                    <Label
+                        Grid.Column="0"
+                        Text="{Binding Title, FallbackValue='Untitled'}"
+                        Style="{StaticResource BodyLabel}"
+                        LineBreakMode="TailTruncation" />
+                    <Label
+                        Grid.Column="1"
+                        Text="{Binding UpdatedAt, StringFormat='{0:MMM dd}'}"
+                        Style="{StaticResource FootnoteLabel}"
+                        VerticalOptions="Center" />
+                  </Grid>
+                </DataTemplate>
+              </CollectionView.ItemTemplate>
+              <CollectionView.EmptyView>
+                <Label
+                    Text="No sessions yet"
+                    Style="{StaticResource CalloutLabel}"
+                    HorizontalTextAlignment="Center"
+                    Margin="0,{StaticResource SpacingLg}" />
+              </CollectionView.EmptyView>
+            </CollectionView>
+
+            <Button
+                Text="New Session"
+                Command="{Binding NewSessionCommand}"
+                Style="{StaticResource SecondaryButton}"
+                AutomationId="ProjectDetailNewSessionButton"
+                HorizontalOptions="Start" />
+          </VerticalStackLayout>
+        </Border>
+
+        <!-- Section: Agent & Model Defaults -->
+        <Label
+            Text="DEFAULTS"
+            Style="{StaticResource CaptionLabel}"
+            TextTransform="Uppercase"
+            TextColor="{AppThemeBinding Light={StaticResource ColorOnSurfaceTertiaryLight}, Dark={StaticResource ColorOnSurfaceTertiaryDark}}" />
+
+        <Border Style="{StaticResource CardBorder}">
+          <VerticalStackLayout Spacing="0">
+            <!-- Agent -->
+            <Grid
+                ColumnDefinitions="*,Auto"
+                Padding="0,{StaticResource SpacingMd}">
+              <Grid.GestureRecognizers>
+                <TapGestureRecognizer Command="{Binding ChangeAgentCommand}" />
+              </Grid.GestureRecognizers>
+              <VerticalStackLayout Grid.Column="0" Spacing="{StaticResource SpacingXs}">
+                <Label Text="Agent" Style="{StaticResource FootnoteLabel}" />
+                <Label
+                    Text="{Binding DefaultAgentName, FallbackValue='Default', TargetNullValue='Default'}"
+                    Style="{StaticResource BodyLabel}" />
+              </VerticalStackLayout>
+              <Label
+                  Grid.Column="1"
+                  Text="&#x203A;"
+                  FontSize="{StaticResource FontSizeTitle2}"
+                  TextColor="{AppThemeBinding Light={StaticResource ColorOnSurfaceTertiaryLight}, Dark={StaticResource ColorOnSurfaceTertiaryDark}}"
+                  VerticalOptions="Center" />
+            </Grid>
+
+            <!-- Separator -->
+            <BoxView
+                HeightRequest="0.5"
+                Color="{AppThemeBinding Light={StaticResource ColorSeparatorLight}, Dark={StaticResource ColorSeparatorDark}}" />
+
+            <!-- Model -->
+            <Grid
+                ColumnDefinitions="*,Auto"
+                Padding="0,{StaticResource SpacingMd}">
+              <Grid.GestureRecognizers>
+                <TapGestureRecognizer Command="{Binding ChangeModelCommand}" />
+              </Grid.GestureRecognizers>
+              <VerticalStackLayout Grid.Column="0" Spacing="{StaticResource SpacingXs}">
+                <Label Text="Model" Style="{StaticResource FootnoteLabel}" />
+                <Label
+                    Text="{Binding DefaultModelName, FallbackValue='Default', TargetNullValue='Default'}"
+                    Style="{StaticResource BodyLabel}" />
+              </VerticalStackLayout>
+              <Label
+                  Grid.Column="1"
+                  Text="&#x203A;"
+                  FontSize="{StaticResource FontSizeTitle2}"
+                  TextColor="{AppThemeBinding Light={StaticResource ColorOnSurfaceTertiaryLight}, Dark={StaticResource ColorOnSurfaceTertiaryDark}}"
+                  VerticalOptions="Center" />
+            </Grid>
+          </VerticalStackLayout>
+        </Border>
+
+        <!-- Section: Project Settings (stub) -->
+        <Label
+            Text="SETTINGS"
+            Style="{StaticResource CaptionLabel}"
+            TextTransform="Uppercase"
+            TextColor="{AppThemeBinding Light={StaticResource ColorOnSurfaceTertiaryLight}, Dark={StaticResource ColorOnSurfaceTertiaryDark}}" />
+
+        <Border Style="{StaticResource CardBorder}">
+          <VerticalStackLayout Spacing="0">
+            <Grid
+                ColumnDefinitions="*,Auto"
+                Padding="0,{StaticResource SpacingMd}"
+                Opacity="0.5">
+              <Label Grid.Column="0" Text="MCP Plugins" Style="{StaticResource BodyLabel}" />
+              <Label
+                  Grid.Column="1"
+                  Text="Coming soon"
+                  Style="{StaticResource FootnoteLabel}"
+                  VerticalOptions="Center" />
+            </Grid>
+
+            <BoxView
+                HeightRequest="0.5"
+                Color="{AppThemeBinding Light={StaticResource ColorSeparatorLight}, Dark={StaticResource ColorSeparatorDark}}" />
+
+            <Grid
+                ColumnDefinitions="*,Auto"
+                Padding="0,{StaticResource SpacingMd}"
+                Opacity="0.5">
+              <Label Grid.Column="0" Text="Rules / Instructions" Style="{StaticResource BodyLabel}" />
+              <Label
+                  Grid.Column="1"
+                  Text="Coming soon"
+                  Style="{StaticResource FootnoteLabel}"
+                  VerticalOptions="Center" />
+            </Grid>
+          </VerticalStackLayout>
+        </Border>
+
+        <!-- Delete project -->
+        <Button
+            Text="Delete Project"
+            Command="{Binding DeleteProjectCommand}"
+            Style="{StaticResource DestructiveOutlinedButton}"
+            HorizontalOptions="Center"
+            AutomationId="ProjectDetailDeleteButton"
+            Margin="0,{StaticResource SpacingLg}" />
+
+      </VerticalStackLayout>
+    </ScrollView>
+  </Grid>
+
+</ContentPage>

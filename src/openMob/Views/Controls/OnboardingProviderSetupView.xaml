@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:openMob.Core.ViewModels;assembly=openMob.Core"
+             xmlns:dtos="clr-namespace:openMob.Core.Infrastructure.Http.Dtos.Opencode;assembly=openMob.Core"
+             x:Class="openMob.Views.Controls.OnboardingProviderSetupView"
+             x:DataType="vm:OnboardingViewModel">
+
+  <VerticalStackLayout
+      Spacing="{StaticResource SpacingLg}"
+      Padding="{StaticResource SpacingXl}">
+
+    <!-- Title -->
+    <Label
+        Text="Configure an AI Provider"
+        Style="{StaticResource Title2Label}" />
+
+    <!-- Subtitle -->
+    <Label
+        Text="You can also do this later from Settings."
+        Style="{StaticResource CalloutLabel}"
+        Margin="0,0,0,{StaticResource SpacingSm}" />
+
+    <!-- Provider list -->
+    <CollectionView
+        ItemsSource="{Binding Providers}"
+        SelectionMode="Single"
+        HeightRequest="300">
+      <CollectionView.ItemTemplate>
+        <DataTemplate x:DataType="dtos:ProviderDto">
+          <Border
+              Style="{StaticResource CardBorder}"
+              Margin="0,0,0,{StaticResource SpacingSm}"
+              Padding="{StaticResource SpacingMd}">
+            <VerticalStackLayout Spacing="{StaticResource SpacingSm}">
+              <Label
+                  Text="{Binding Name, FallbackValue='Provider'}"
+                  Style="{StaticResource HeadlineLabel}" />
+              <Label
+                  Text="{Binding Id, FallbackValue='', TargetNullValue=''}"
+                  Style="{StaticResource FootnoteLabel}" />
+            </VerticalStackLayout>
+          </Border>
+        </DataTemplate>
+      </CollectionView.ItemTemplate>
+      <CollectionView.EmptyView>
+        <VerticalStackLayout
+            VerticalOptions="Center"
+            HorizontalOptions="Center"
+            Spacing="{StaticResource SpacingSm}">
+          <Label
+              Text="No providers available"
+              Style="{StaticResource CalloutLabel}"
+              HorizontalTextAlignment="Center" />
+        </VerticalStackLayout>
+      </CollectionView.EmptyView>
+    </CollectionView>
+
+    <!-- API Key entry -->
+    <VerticalStackLayout
+        Spacing="{StaticResource SpacingXs}"
+        IsVisible="{Binding SelectedProviderId, Converter={StaticResource NullToVisibilityConverter}}">
+      <Label
+          Text="API Key"
+          Style="{StaticResource SubtitleLabel}" />
+      <Entry
+          Text="{Binding ProviderApiKey, Mode=TwoWay}"
+          Placeholder="Enter API key"
+          IsPassword="True"
+          Style="{StaticResource OutlinedEntry}"
+          AutomationId="OnboardingProviderApiKeyEntry"
+          SemanticProperties.Hint="Enter the API key for the selected provider" />
+    </VerticalStackLayout>
+
+  </VerticalStackLayout>
+
+</ContentView>

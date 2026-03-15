@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="openMob.Views.Pages.SettingsPage"
+             Title="Settings">
+
+  <VerticalStackLayout
+      VerticalOptions="Center"
+      HorizontalOptions="Center"
+      Spacing="{StaticResource SpacingLg}"
+      Padding="{StaticResource SpacingXxl}">
+
+    <Border
+        WidthRequest="72"
+        HeightRequest="72"
+        StrokeShape="RoundRectangle 36"
+        StrokeThickness="0"
+        BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceSecondaryLight}, Dark={StaticResource ColorSurfaceSecondaryDark}}"
+        HorizontalOptions="Center">
+      <Label
+          Text="&#x2699;"
+          FontSize="{StaticResource FontSizeTitle1}"
+          HorizontalOptions="Center"
+          VerticalOptions="Center" />
+    </Border>
+
+    <Label
+        Text="Settings"
+        Style="{StaticResource Title3Label}"
+        HorizontalTextAlignment="Center" />
+
+    <Label
+        Text="Coming soon. Server configuration, provider management, and app preferences will be available here."
+        Style="{StaticResource CalloutLabel}"
+        HorizontalTextAlignment="Center" />
+
+  </VerticalStackLayout>
+
+</ContentPage>

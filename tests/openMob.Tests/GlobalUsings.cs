@@ -8,3 +8,4 @@ global using openMob.Core.Infrastructure.Dtos;
 global using openMob.Core.Infrastructure.Http;
 global using openMob.Core.Infrastructure.Http.Dtos;
 global using openMob.Core.Infrastructure.Security;
+global using openMob.Core.Infrastructure.Discovery;

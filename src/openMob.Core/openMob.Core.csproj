@@ -22,5 +22,6 @@
     </PackageReference>
     <PackageReference Include="Sentry" Version="*" />
     <PackageReference Include="Ulid" Version="*" />
+    <PackageReference Include="Zeroconf" Version="3.*" />
   </ItemGroup>
 </Project>

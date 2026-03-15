@@ -140,11 +140,13 @@ public sealed class OnboardingViewModelTests
 
     // ─── IsStepOptional ───────────────────────────────────────────────────────
 
-    [Fact]
-    public void IsStepOptional_Step3_IsTrue()
+    [Theory]
+    [InlineData(2)]
+    [InlineData(3)]
+    public void IsStepOptional_Step2And3_IsTrue(int step)
     {
         // Arrange
-        _sut.CurrentStep = 3;
+        _sut.CurrentStep = step;
 
         // Assert
         _sut.IsStepOptional.Should().BeTrue();
@@ -152,10 +154,9 @@ public sealed class OnboardingViewModelTests
 
     [Theory]
     [InlineData(1)]
-    [InlineData(2)]
     [InlineData(4)]
     [InlineData(5)]
-    public void IsStepOptional_NonStep3_IsFalse(int step)
+    public void IsStepOptional_NonStep2Or3_IsFalse(int step)
     {
         // Arrange
         _sut.CurrentStep = step;

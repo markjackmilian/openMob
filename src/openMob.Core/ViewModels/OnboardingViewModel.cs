@@ -96,7 +96,8 @@ public sealed partial class OnboardingViewModel : ObservableObject
     public bool CanGoBack => CurrentStep > 1;
 
     /// <summary>Gets whether the current step is optional (can be skipped).</summary>
-    public bool IsStepOptional => CurrentStep == 3;
+    /// <remarks>Steps 2 (server connection) and 3 (provider setup) are skippable.</remarks>
+    public bool IsStepOptional => CurrentStep is 2 or 3;
 
     // ─── Step 2: Server connection ────────────────────────────────────────────
 

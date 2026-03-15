@@ -1,0 +1,29 @@
+using openMob.Core.ViewModels;
+
+namespace openMob.Views.Popups;
+
+/// <summary>Model picker bottom sheet — displays AI models grouped by provider for selection.</summary>
+public partial class ModelPickerSheet : ContentPage
+{
+    private readonly ModelPickerViewModel _viewModel;
+
+    /// <summary>Initialises the model picker sheet with its ViewModel.</summary>
+    /// <param name="viewModel">The model picker ViewModel.</param>
+    public ModelPickerSheet(ModelPickerViewModel viewModel)
+    {
+        InitializeComponent();
+        _viewModel = viewModel;
+        BindingContext = _viewModel;
+    }
+
+    /// <inheritdoc />
+    protected override async void OnAppearing()
+    {
+        base.OnAppearing();
+
+        if (_viewModel.LoadModelsCommand.CanExecute(null))
+        {
+            await _viewModel.LoadModelsCommand.ExecuteAsync(null);
+        }
+    }
+}

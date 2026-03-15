@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:openMob.Core.ViewModels;assembly=openMob.Core"
+             xmlns:models="clr-namespace:openMob.Core.Models;assembly=openMob.Core"
+             x:Class="openMob.Views.Pages.ProjectsPage"
+             x:DataType="vm:ProjectsViewModel"
+             Title="Projects">
+
+  <Shell.TitleView>
+    <Grid ColumnDefinitions="*,Auto" Padding="0,0,8,0">
+      <Label
+          Grid.Column="0"
+          Text="Projects"
+          Style="{StaticResource HeadlineLabel}"
+          VerticalOptions="Center" />
+      <ImageButton
+          Grid.Column="1"
+          Clicked="OnAddProjectClicked"
+          MinimumHeightRequest="{StaticResource MinTouchTarget}"
+          MinimumWidthRequest="{StaticResource MinTouchTarget}"
+          BackgroundColor="Transparent"
+          AutomationId="ProjectsAddButton"
+          SemanticProperties.Description="Add a new project">
+        <ImageButton.Source>
+          <FontImageSource
+              Glyph="+"
+              Size="24"
+              Color="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}" />
+        </ImageButton.Source>
+      </ImageButton>
+    </Grid>
+  </Shell.TitleView>
+
+  <Grid>
+    <!-- Loading indicator -->
+    <ActivityIndicator
+        IsRunning="{Binding IsLoading}"
+        IsVisible="{Binding IsLoading}"
+        VerticalOptions="Center"
+        HorizontalOptions="Center" />
+
+    <!-- Project list -->
+    <CollectionView
+        ItemsSource="{Binding Projects}"
+        SelectionMode="None"
+        IsVisible="{Binding IsLoading, Converter={StaticResource InvertedBoolConverter}}">
+
+      <CollectionView.ItemTemplate>
+        <DataTemplate x:DataType="models:ProjectItem">
+          <SwipeView>
+            <SwipeView.RightItems>
+              <SwipeItems>
+                <SwipeItem
+                    Text="Delete"
+                    BackgroundColor="{AppThemeBinding Light={StaticResource ColorErrorLight}, Dark={StaticResource ColorErrorDark}}"
+                    Command="{Binding DeleteProjectCommand, Source={RelativeSource AncestorType={x:Type vm:ProjectsViewModel}}}"
+                    CommandParameter="{Binding Id}"
+                    AutomationId="ProjectDeleteSwipe" />
+              </SwipeItems>
+            </SwipeView.RightItems>
+
+            <Grid
+                ColumnDefinitions="*,Auto"
+                Padding="{StaticResource SpacingLg}"
+                BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceLight}, Dark={StaticResource ColorSurfaceDark}}">
+              <Grid.GestureRecognizers>
+                <TapGestureRecognizer
+                    Command="{Binding SelectProjectCommand, Source={RelativeSource AncestorType={x:Type vm:ProjectsViewModel}}}"
+                    CommandParameter="{Binding Id}" />
+              </Grid.GestureRecognizers>
+
+              <VerticalStackLayout
+                  Grid.Column="0"
+                  Spacing="{StaticResource SpacingXs}">
+                <Label
+                    Text="{Binding Name, FallbackValue='Untitled'}"
+                    Style="{StaticResource HeadlineLabel}" />
+                <Label
+                    Text="{Binding Path, FallbackValue='', TargetNullValue=''}"
+                    Style="{StaticResource FootnoteLabel}"
+                    LineBreakMode="MiddleTruncation" />
+              </VerticalStackLayout>
+
+              <!-- Active badge -->
+              <Border
+                  Grid.Column="1"
+                  IsVisible="{Binding IsActive}"
+                  StrokeShape="RoundRectangle 8"
+                  StrokeThickness="0"
+                  BackgroundColor="{AppThemeBinding Light={StaticResource ColorPrimaryContainerLight}, Dark={StaticResource ColorPrimaryContainerDark}}"
+                  Padding="8,4"
+                  VerticalOptions="Center">
+                <Label
+                    Text="Active"
+                    FontSize="{StaticResource FontSizeCaption1}"
+                    TextColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}" />
+              </Border>
+            </Grid>
+          </SwipeView>
+        </DataTemplate>
+      </CollectionView.ItemTemplate>
+
+      <CollectionView.ItemsLayout>
+        <LinearItemsLayout Orientation="Vertical" ItemSpacing="1" />
+      </CollectionView.ItemsLayout>
+
+      <!-- Empty state -->
+      <CollectionView.EmptyView>
+        <VerticalStackLayout
+            VerticalOptions="Center"
+            HorizontalOptions="Center"
+            Spacing="{StaticResource SpacingLg}"
+            Padding="{StaticResource SpacingXxl}">
+          <Label
+              Text="No projects"
+              Style="{StaticResource Title3Label}"
+              HorizontalTextAlignment="Center" />
+          <Label
+              Text="Add your first project to get started."
+              Style="{StaticResource CalloutLabel}"
+              HorizontalTextAlignment="Center" />
+          <Button
+              Text="Add Project"
+              Clicked="OnAddProjectClicked"
+              HorizontalOptions="Center"
+              AutomationId="ProjectsEmptyAddButton" />
+        </VerticalStackLayout>
+      </CollectionView.EmptyView>
+
+    </CollectionView>
+  </Grid>
+
+</ContentPage>

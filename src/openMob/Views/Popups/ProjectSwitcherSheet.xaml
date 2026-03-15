@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:openMob.Core.ViewModels;assembly=openMob.Core"
+             xmlns:models="clr-namespace:openMob.Core.Models;assembly=openMob.Core"
+             x:Class="openMob.Views.Popups.ProjectSwitcherSheet"
+             x:DataType="vm:ProjectSwitcherViewModel"
+             Title="Switch Project"
+             Shell.PresentationMode="ModalAnimated">
+
+  <VerticalStackLayout
+      Spacing="{StaticResource SpacingLg}"
+      Padding="{StaticResource SpacingLg}">
+
+    <!-- Handle bar -->
+    <BoxView
+        WidthRequest="36"
+        HeightRequest="4"
+        CornerRadius="2"
+        Color="{AppThemeBinding Light={StaticResource ColorOnSurfaceTertiaryLight}, Dark={StaticResource ColorOnSurfaceTertiaryDark}}"
+        HorizontalOptions="Center"
+        Margin="0,8,0,0" />
+
+    <!-- Title -->
+    <Label
+        Text="Switch Project"
+        Style="{StaticResource Title3Label}" />
+
+    <!-- Loading indicator -->
+    <ActivityIndicator
+        IsRunning="{Binding IsLoading}"
+        IsVisible="{Binding IsLoading}"
+        HorizontalOptions="Center" />
+
+    <!-- Project list -->
+    <CollectionView
+        ItemsSource="{Binding Projects}"
+        SelectionMode="None"
+        IsVisible="{Binding IsLoading, Converter={StaticResource InvertedBoolConverter}}">
+      <CollectionView.ItemTemplate>
+        <DataTemplate x:DataType="models:ProjectItem">
+          <Grid
+              ColumnDefinitions="*,Auto"
+              Padding="{StaticResource SpacingMd}"
+              MinimumHeightRequest="{StaticResource MinTouchTarget}">
+            <Grid.GestureRecognizers>
+              <TapGestureRecognizer
+                  Command="{Binding SelectProjectCommand, Source={RelativeSource AncestorType={x:Type vm:ProjectSwitcherViewModel}}}"
+                  CommandParameter="{Binding Id}" />
+            </Grid.GestureRecognizers>
+
+            <VerticalStackLayout
+                Grid.Column="0"
+                Spacing="{StaticResource SpacingXs}"
+                VerticalOptions="Center">
+              <Label
+                  Text="{Binding Name, FallbackValue='Untitled'}"
+                  Style="{StaticResource HeadlineLabel}" />
+              <Label
+                  Text="{Binding Path, FallbackValue='', TargetNullValue=''}"
+                  Style="{StaticResource FootnoteLabel}"
+                  LineBreakMode="MiddleTruncation" />
+            </VerticalStackLayout>
+
+            <!-- Checkmark for active project -->
+            <Label
+                Grid.Column="1"
+                Text="&#x2713;"
+                FontSize="{StaticResource FontSizeBody}"
+                TextColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}"
+                IsVisible="{Binding IsActive}"
+                VerticalOptions="Center" />
+          </Grid>
+        </DataTemplate>
+      </CollectionView.ItemTemplate>
+      <CollectionView.EmptyView>
+        <Label
+            Text="No projects available"
+            Style="{StaticResource CalloutLabel}"
+            HorizontalTextAlignment="Center"
+            Margin="0,16" />
+      </CollectionView.EmptyView>
+    </CollectionView>
+
+    <!-- Manage projects link -->
+    <Button
+        Text="Manage Projects"
+        Command="{Binding ManageProjectsCommand}"
+        Style="{StaticResource TertiaryButton}"
+        HorizontalOptions="Center"
+        AutomationId="ProjectSwitcherManageButton" />
+
+  </VerticalStackLayout>
+
+</ContentPage>

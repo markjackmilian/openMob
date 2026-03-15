@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:openMob.Core.ViewModels;assembly=openMob.Core"
+             xmlns:models="clr-namespace:openMob.Core.Models;assembly=openMob.Core"
+             x:Class="openMob.Views.Popups.ModelPickerSheet"
+             x:DataType="vm:ModelPickerViewModel"
+             Title="Select Model"
+             Shell.PresentationMode="ModalAnimated">
+
+  <VerticalStackLayout
+      Spacing="{StaticResource SpacingLg}"
+      Padding="{StaticResource SpacingLg}">
+
+    <!-- Handle bar -->
+    <BoxView
+        WidthRequest="36"
+        HeightRequest="4"
+        CornerRadius="2"
+        Color="{AppThemeBinding Light={StaticResource ColorOnSurfaceTertiaryLight}, Dark={StaticResource ColorOnSurfaceTertiaryDark}}"
+        HorizontalOptions="Center"
+        Margin="0,8,0,0" />
+
+    <!-- Title -->
+    <Label
+        Text="Select Model"
+        Style="{StaticResource Title3Label}" />
+
+    <!-- Loading indicator -->
+    <ActivityIndicator
+        IsRunning="{Binding IsLoading}"
+        IsVisible="{Binding IsLoading}"
+        HorizontalOptions="Center" />
+
+    <!-- Model list grouped by provider -->
+    <CollectionView
+        ItemsSource="{Binding ProviderGroups}"
+        SelectionMode="None"
+        IsVisible="{Binding IsLoading, Converter={StaticResource InvertedBoolConverter}}">
+      <CollectionView.ItemTemplate>
+        <DataTemplate x:DataType="models:ProviderModelGroup">
+          <VerticalStackLayout Spacing="{StaticResource SpacingXs}">
+            <!-- Provider header -->
+            <Label
+                Text="{Binding ProviderName, FallbackValue='Provider'}"
+                Style="{StaticResource CaptionLabel}"
+                TextTransform="Uppercase"
+                TextColor="{AppThemeBinding Light={StaticResource ColorOnSurfaceTertiaryLight}, Dark={StaticResource ColorOnSurfaceTertiaryDark}}"
+                Margin="0,12,0,4" />
+
+            <!-- Models in this provider -->
+            <CollectionView
+                ItemsSource="{Binding Models}"
+                SelectionMode="None">
+              <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="models:ModelItem">
+                  <Grid
+                      ColumnDefinitions="*,Auto"
+                      Padding="{StaticResource SpacingMd}"
+                      MinimumHeightRequest="{StaticResource MinTouchTarget}">
+                    <Grid.GestureRecognizers>
+                      <TapGestureRecognizer
+                          Command="{Binding SelectModelCommand, Source={RelativeSource AncestorType={x:Type vm:ModelPickerViewModel}}}"
+                          CommandParameter="{Binding Id}" />
+                    </Grid.GestureRecognizers>
+
+                    <VerticalStackLayout
+                        Grid.Column="0"
+                        Spacing="{StaticResource SpacingXs}"
+                        VerticalOptions="Center">
+                      <Label
+                          Text="{Binding Name, FallbackValue='Model'}"
+                          Style="{StaticResource HeadlineLabel}" />
+                      <Label
+                          Text="{Binding ContextSize, FallbackValue='', TargetNullValue=''}"
+                          Style="{StaticResource FootnoteLabel}"
+                          IsVisible="{Binding ContextSize, Converter={StaticResource NullToVisibilityConverter}}" />
+                    </VerticalStackLayout>
+
+                    <!-- Checkmark for selected model -->
+                    <Label
+                        Grid.Column="1"
+                        Text="&#x2713;"
+                        FontSize="{StaticResource FontSizeBody}"
+                        TextColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}"
+                        IsVisible="{Binding IsSelected}"
+                        VerticalOptions="Center" />
+                  </Grid>
+                </DataTemplate>
+              </CollectionView.ItemTemplate>
+            </CollectionView>
+          </VerticalStackLayout>
+        </DataTemplate>
+      </CollectionView.ItemTemplate>
+
+      <!-- Empty state: no providers configured -->
+      <CollectionView.EmptyView>
+        <VerticalStackLayout
+            VerticalOptions="Center"
+            HorizontalOptions="Center"
+            Spacing="{StaticResource SpacingMd}"
+            Padding="{StaticResource SpacingXl}">
+          <Label
+              Text="No providers configured"
+              Style="{StaticResource CalloutLabel}"
+              HorizontalTextAlignment="Center" />
+          <Button
+              Text="Configure Providers"
+              Command="{Binding ConfigureProvidersCommand}"
+              Style="{StaticResource SecondaryButton}"
+              HorizontalOptions="Center"
+              AutomationId="ModelPickerConfigureButton" />
+        </VerticalStackLayout>
+      </CollectionView.EmptyView>
+    </CollectionView>
+
+  </VerticalStackLayout>
+
+</ContentPage>

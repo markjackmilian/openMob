@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:openMob.Core.ViewModels;assembly=openMob.Core"
+             x:Class="openMob.Views.Controls.OnboardingWelcomeView"
+             x:DataType="vm:OnboardingViewModel">
+
+  <VerticalStackLayout
+      Spacing="{StaticResource SpacingLg}"
+      VerticalOptions="Center"
+      Padding="{StaticResource SpacingXl}">
+
+    <!-- App icon placeholder -->
+    <Border
+        WidthRequest="96"
+        HeightRequest="96"
+        StrokeShape="RoundRectangle 24"
+        StrokeThickness="0"
+        BackgroundColor="{AppThemeBinding Light={StaticResource ColorPrimaryContainerLight}, Dark={StaticResource ColorPrimaryContainerDark}}"
+        HorizontalOptions="Center">
+      <Label
+          Text="oM"
+          FontSize="{StaticResource FontSizeLargeTitle}"
+          FontAttributes="Bold"
+          TextColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}"
+          HorizontalOptions="Center"
+          VerticalOptions="Center" />
+    </Border>
+
+    <!-- Title -->
+    <Label
+        Text="Welcome to openMob"
+        Style="{StaticResource LargeTitleLabel}"
+        HorizontalTextAlignment="Center" />
+
+    <!-- Subtitle -->
+    <Label
+        Text="Your mobile companion for AI-powered coding. Connect to your opencode server and start building with intelligent assistance."
+        Style="{StaticResource CalloutLabel}"
+        HorizontalTextAlignment="Center"
+        Margin="0,0,0,16" />
+
+  </VerticalStackLayout>
+
+</ContentView>

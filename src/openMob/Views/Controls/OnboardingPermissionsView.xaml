@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:openMob.Core.ViewModels;assembly=openMob.Core"
+             x:Class="openMob.Views.Controls.OnboardingPermissionsView"
+             x:DataType="vm:OnboardingViewModel">
+
+  <VerticalStackLayout
+      Spacing="{StaticResource SpacingLg}"
+      Padding="{StaticResource SpacingXl}">
+
+    <!-- Title -->
+    <Label
+        Text="Permissions"
+        Style="{StaticResource Title2Label}" />
+
+    <!-- Subtitle -->
+    <Label
+        Text="openMob may request the following permissions to provide the best experience."
+        Style="{StaticResource CalloutLabel}"
+        Margin="0,0,0,12" />
+
+    <!-- Notifications permission -->
+    <Border
+        Style="{StaticResource CardBorder}"
+        Padding="{StaticResource SpacingLg}">
+      <HorizontalStackLayout Spacing="{StaticResource SpacingMd}">
+        <Border
+            WidthRequest="44"
+            HeightRequest="44"
+            StrokeShape="RoundRectangle 10"
+            StrokeThickness="0"
+            BackgroundColor="{AppThemeBinding Light={StaticResource ColorPrimaryContainerLight}, Dark={StaticResource ColorPrimaryContainerDark}}">
+          <Label
+              Text="&#x1F514;"
+              FontSize="{StaticResource FontSizeTitle3}"
+              HorizontalOptions="Center"
+              VerticalOptions="Center" />
+        </Border>
+        <VerticalStackLayout
+            Spacing="{StaticResource SpacingXs}"
+            VerticalOptions="Center">
+          <Label
+              Text="Notifications"
+              Style="{StaticResource HeadlineLabel}" />
+          <Label
+              Text="Get notified when the AI responds to your messages."
+              Style="{StaticResource FootnoteLabel}" />
+        </VerticalStackLayout>
+      </HorizontalStackLayout>
+    </Border>
+
+    <!-- Network permission -->
+    <Border
+        Style="{StaticResource CardBorder}"
+        Padding="{StaticResource SpacingLg}">
+      <HorizontalStackLayout Spacing="{StaticResource SpacingMd}">
+        <Border
+            WidthRequest="44"
+            HeightRequest="44"
+            StrokeShape="RoundRectangle 10"
+            StrokeThickness="0"
+            BackgroundColor="{AppThemeBinding Light={StaticResource ColorPrimaryContainerLight}, Dark={StaticResource ColorPrimaryContainerDark}}">
+          <Label
+              Text="&#x1F310;"
+              FontSize="{StaticResource FontSizeTitle3}"
+              HorizontalOptions="Center"
+              VerticalOptions="Center" />
+        </Border>
+        <VerticalStackLayout
+            Spacing="{StaticResource SpacingXs}"
+            VerticalOptions="Center">
+          <Label
+              Text="Network Access"
+              Style="{StaticResource HeadlineLabel}" />
+          <Label
+              Text="Connect to your opencode server for AI interactions."
+              Style="{StaticResource FootnoteLabel}" />
+        </VerticalStackLayout>
+      </HorizontalStackLayout>
+    </Border>
+
+  </VerticalStackLayout>
+
+</ContentView>

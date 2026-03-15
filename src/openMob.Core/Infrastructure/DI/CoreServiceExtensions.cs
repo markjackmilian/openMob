@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using openMob.Core.Data;
 using openMob.Core.Data.Repositories;
+using openMob.Core.Infrastructure.Discovery;
 using openMob.Core.Infrastructure.Http;
 
 namespace openMob.Core.Infrastructure.DI;
@@ -27,6 +28,13 @@ public static class CoreServiceExtensions
         // Named HTTP client for opencode API calls (base address resolved at runtime)
         services.AddHttpClient("opencode");
 
+        // Named HTTP client for mDNS health probe — short 5-second timeout pre-configured
+        // at registration so ValidateServerAsync never mutates a factory-managed client post-creation.
+        services.AddHttpClient("discovery-probe", client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(5);
+        });
+
         // Typed API client (legacy Claude client)
         services.AddTransient<IClaudeApiClient, ClaudeApiClient>();
 
@@ -42,6 +50,10 @@ public static class CoreServiceExtensions
         // If a shared global waiting indicator is needed in the future, change to Singleton and
         // ensure thread safety.
         services.AddTransient<IOpencodeApiClient, OpencodeApiClient>();
+
+        // mDNS discovery (singleton — stateless, safe to share)
+        services.AddSingleton<IZeroconfResolver, ZeroconfResolverAdapter>();
+        services.AddSingleton<IOpencodeDiscoveryService, OpencodeDiscoveryService>();
 
         return services;
     }

@@ -58,7 +58,7 @@
                 Command="{Binding SetActiveCommand}"
                 IsVisible="{Binding IsActiveProject, Converter={StaticResource InvertedBoolConverter}}"
                 AutomationId="ProjectDetailSetActiveButton"
-                Margin="0,{StaticResource SpacingSm},0,0" />
+                Margin="0,8,0,0" />
 
             <!-- Already active indicator -->
             <HorizontalStackLayout
@@ -94,7 +94,7 @@
                 <DataTemplate x:DataType="models:SessionItem">
                   <Grid
                       ColumnDefinitions="*,Auto"
-                      Padding="0,{StaticResource SpacingSm}">
+                      Padding="0,8">
                     <Label
                         Grid.Column="0"
                         Text="{Binding Title, FallbackValue='Untitled'}"
@@ -102,7 +102,7 @@
                         LineBreakMode="TailTruncation" />
                     <Label
                         Grid.Column="1"
-                        Text="{Binding UpdatedAt, StringFormat='{0:MMM dd}'}"
+                        Text="{Binding UpdatedAt, StringFormat='{}{0:MMM dd}'}"
                         Style="{StaticResource FootnoteLabel}"
                         VerticalOptions="Center" />
                   </Grid>
@@ -113,7 +113,7 @@
                     Text="No sessions yet"
                     Style="{StaticResource CalloutLabel}"
                     HorizontalTextAlignment="Center"
-                    Margin="0,{StaticResource SpacingLg}" />
+                    Margin="0,16" />
               </CollectionView.EmptyView>
             </CollectionView>
 
@@ -138,7 +138,7 @@
             <!-- Agent -->
             <Grid
                 ColumnDefinitions="*,Auto"
-                Padding="0,{StaticResource SpacingMd}">
+                Padding="0,12">
               <Grid.GestureRecognizers>
                 <TapGestureRecognizer Command="{Binding ChangeAgentCommand}" />
               </Grid.GestureRecognizers>
@@ -164,7 +164,7 @@
             <!-- Model -->
             <Grid
                 ColumnDefinitions="*,Auto"
-                Padding="0,{StaticResource SpacingMd}">
+                Padding="0,12">
               <Grid.GestureRecognizers>
                 <TapGestureRecognizer Command="{Binding ChangeModelCommand}" />
               </Grid.GestureRecognizers>
@@ -195,7 +195,7 @@
           <VerticalStackLayout Spacing="0">
             <Grid
                 ColumnDefinitions="*,Auto"
-                Padding="0,{StaticResource SpacingMd}"
+                Padding="0,12"
                 Opacity="0.5">
               <Label Grid.Column="0" Text="MCP Plugins" Style="{StaticResource BodyLabel}" />
               <Label
@@ -211,7 +211,7 @@
 
             <Grid
                 ColumnDefinitions="*,Auto"
-                Padding="0,{StaticResource SpacingMd}"
+                Padding="0,12"
                 Opacity="0.5">
               <Label Grid.Column="0" Text="Rules / Instructions" Style="{StaticResource BodyLabel}" />
               <Label
@@ -230,7 +230,7 @@
             Style="{StaticResource DestructiveOutlinedButton}"
             HorizontalOptions="Center"
             AutomationId="ProjectDetailDeleteButton"
-            Margin="0,{StaticResource SpacingLg}" />
+            Margin="0,16" />
 
       </VerticalStackLayout>
     </ScrollView>

@@ -5,18 +5,18 @@
 
   <VerticalStackLayout
       BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceLight}, Dark={StaticResource ColorSurfaceDark}}"
-      Padding="0,{StaticResource SpacingSm}">
+      Padding="0,8">
 
     <!-- Separator -->
     <BoxView
         HeightRequest="1"
         Color="{AppThemeBinding Light={StaticResource ColorSeparatorLight}, Dark={StaticResource ColorSeparatorDark}}"
-        Margin="0,0,0,{StaticResource SpacingSm}" />
+        Margin="0,0,0,8" />
 
     <!-- Projects -->
     <Grid
         ColumnDefinitions="Auto,*"
-        Padding="{StaticResource SpacingLg},{StaticResource SpacingMd}"
+        Padding="16,12"
         BackgroundColor="Transparent">
       <Grid.GestureRecognizers>
         <TapGestureRecognizer Tapped="OnProjectsTapped" />
@@ -26,7 +26,7 @@
           Text="&#x1F4C1;"
           FontSize="{StaticResource FontSizeBody}"
           VerticalOptions="Center"
-          Margin="0,0,{StaticResource SpacingMd},0" />
+          Margin="0,0,12,0" />
       <Label
           Grid.Column="1"
           Text="Projects"
@@ -37,7 +37,7 @@
     <!-- Settings -->
     <Grid
         ColumnDefinitions="Auto,*"
-        Padding="{StaticResource SpacingLg},{StaticResource SpacingMd}"
+        Padding="16,12"
         BackgroundColor="Transparent">
       <Grid.GestureRecognizers>
         <TapGestureRecognizer Tapped="OnSettingsTapped" />
@@ -47,7 +47,7 @@
           Text="&#x2699;"
           FontSize="{StaticResource FontSizeBody}"
           VerticalOptions="Center"
-          Margin="0,0,{StaticResource SpacingMd},0" />
+          Margin="0,0,12,0" />
       <Label
           Grid.Column="1"
           Text="Settings"
@@ -61,7 +61,7 @@
         Style="{StaticResource Caption2Label}"
         TextColor="{AppThemeBinding Light={StaticResource ColorOnSurfaceTertiaryLight}, Dark={StaticResource ColorOnSurfaceTertiaryDark}}"
         HorizontalTextAlignment="Center"
-        Margin="0,{StaticResource SpacingSm},0,{StaticResource SpacingSm}" />
+        Margin="0,8,0,8" />
 
   </VerticalStackLayout>
 

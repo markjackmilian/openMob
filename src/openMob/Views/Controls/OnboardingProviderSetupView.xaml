@@ -19,7 +19,7 @@
     <Label
         Text="You can also do this later from Settings."
         Style="{StaticResource CalloutLabel}"
-        Margin="0,0,0,{StaticResource SpacingSm}" />
+        Margin="0,0,0,8" />
 
     <!-- Provider list -->
     <CollectionView
@@ -30,7 +30,7 @@
         <DataTemplate x:DataType="dtos:ProviderDto">
           <Border
               Style="{StaticResource CardBorder}"
-              Margin="0,0,0,{StaticResource SpacingSm}"
+              Margin="0,0,0,8"
               Padding="{StaticResource SpacingMd}">
             <VerticalStackLayout Spacing="{StaticResource SpacingSm}">
               <Label

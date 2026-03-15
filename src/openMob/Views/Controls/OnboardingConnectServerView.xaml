@@ -18,7 +18,7 @@
     <Label
         Text="Enter the URL and access token for your opencode server."
         Style="{StaticResource CalloutLabel}"
-        Margin="0,0,0,{StaticResource SpacingSm}" />
+        Margin="0,0,0,8" />
 
     <!-- Server URL -->
     <VerticalStackLayout Spacing="{StaticResource SpacingXs}">

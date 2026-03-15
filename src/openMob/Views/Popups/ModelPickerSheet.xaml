@@ -19,7 +19,7 @@
         CornerRadius="2"
         Color="{AppThemeBinding Light={StaticResource ColorOnSurfaceTertiaryLight}, Dark={StaticResource ColorOnSurfaceTertiaryDark}}"
         HorizontalOptions="Center"
-        Margin="0,{StaticResource SpacingSm},0,0" />
+        Margin="0,8,0,0" />
 
     <!-- Title -->
     <Label
@@ -46,7 +46,7 @@
                 Style="{StaticResource CaptionLabel}"
                 TextTransform="Uppercase"
                 TextColor="{AppThemeBinding Light={StaticResource ColorOnSurfaceTertiaryLight}, Dark={StaticResource ColorOnSurfaceTertiaryDark}}"
-                Margin="0,{StaticResource SpacingMd},0,{StaticResource SpacingXs}" />
+                Margin="0,12,0,4" />
 
             <!-- Models in this provider -->
             <CollectionView

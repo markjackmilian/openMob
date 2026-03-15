@@ -18,7 +18,7 @@
     <Label
         Text="openMob may request the following permissions to provide the best experience."
         Style="{StaticResource CalloutLabel}"
-        Margin="0,0,0,{StaticResource SpacingMd}" />
+        Margin="0,0,0,12" />
 
     <!-- Notifications permission -->
     <Border

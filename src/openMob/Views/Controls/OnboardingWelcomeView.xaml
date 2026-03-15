@@ -38,7 +38,7 @@
         Text="Your mobile companion for AI-powered coding. Connect to your opencode server and start building with intelligent assistance."
         Style="{StaticResource CalloutLabel}"
         HorizontalTextAlignment="Center"
-        Margin="0,0,0,{StaticResource SpacingLg}" />
+        Margin="0,0,0,16" />
 
   </VerticalStackLayout>
 

@@ -16,7 +16,7 @@
         Grid.Row="0"
         Progress="{Binding Progress}"
         ProgressColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}"
-        Margin="{StaticResource SpacingLg},{StaticResource SpacingXl},{StaticResource SpacingLg},0" />
+        Margin="16,24,16,0" />
 
     <!-- Step content area -->
     <ScrollView Grid.Row="1">

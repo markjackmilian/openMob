@@ -17,7 +17,7 @@
         Style="{StaticResource CaptionLabel}"
         TextTransform="Uppercase"
         TextColor="{AppThemeBinding Light={StaticResource ColorOnSurfaceTertiaryLight}, Dark={StaticResource ColorOnSurfaceTertiaryDark}}"
-        Margin="{StaticResource SpacingLg},12,{StaticResource SpacingLg},{StaticResource SpacingSm}" />
+        Margin="16,12,16,8" />
 
     <!-- No project placeholder -->
     <Label
@@ -36,7 +36,7 @@
         IsVisible="{Binding IsLoading}"
         HorizontalOptions="Center"
         VerticalOptions="Start"
-        Margin="0,{StaticResource SpacingXl},0,0" />
+        Margin="0,24,0,0" />
 
     <!-- Session list -->
     <CollectionView
@@ -74,7 +74,7 @@
 
             <Grid
                 ColumnDefinitions="*,Auto"
-                Padding="{StaticResource SpacingLg},{StaticResource SpacingMd}"
+                Padding="16,12"
                 BackgroundColor="Transparent">
               <Grid.Triggers>
                 <DataTrigger TargetType="Grid" Binding="{Binding IsSelected}" Value="True">
@@ -102,7 +102,7 @@
                   Text="{Binding UpdatedAt, Converter={StaticResource DateTimeToRelativeStringConverter}}"
                   Style="{StaticResource FootnoteLabel}"
                   VerticalOptions="Center"
-                  Margin="{StaticResource SpacingSm},0,0,0" />
+                  Margin="8,0,0,0" />
 
             </Grid>
           </SwipeView>

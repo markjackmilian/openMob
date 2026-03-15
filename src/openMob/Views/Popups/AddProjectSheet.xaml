@@ -18,7 +18,7 @@
         CornerRadius="2"
         Color="{AppThemeBinding Light={StaticResource ColorOnSurfaceTertiaryLight}, Dark={StaticResource ColorOnSurfaceTertiaryDark}}"
         HorizontalOptions="Center"
-        Margin="0,{StaticResource SpacingSm},0,0" />
+        Margin="0,8,0,0" />
 
     <!-- Title -->
     <Label

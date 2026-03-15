@@ -21,14 +21,27 @@ public static class CoreServiceExtensions
         // EF Core — SQLite via IAppDataPathProvider (registered by the MAUI project)
         services.AddDbContext<AppDbContext>();
 
-        // HTTP client factory
+        // HTTP client factory (base registration)
         services.AddHttpClient();
 
-        // Typed API client
+        // Named HTTP client for opencode API calls (base address resolved at runtime)
+        services.AddHttpClient("opencode");
+
+        // Typed API client (legacy Claude client)
         services.AddTransient<IClaudeApiClient, ClaudeApiClient>();
 
         // Server connection repository (scoped — follows DbContext lifetime)
         services.AddScoped<IServerConnectionRepository, ServerConnectionRepository>();
+
+        // opencode connection manager (singleton — holds connection status)
+        services.AddSingleton<IOpencodeConnectionManager, OpencodeConnectionManager>();
+
+        // IOpencodeApiClient is registered as Transient: each consumer (ViewModel) owns its own
+        // instance and its own IsWaitingForServer state. This is intentional — a ViewModel should
+        // only observe the waiting state of its own requests, not requests from other ViewModels.
+        // If a shared global waiting indicator is needed in the future, change to Singleton and
+        // ensure thread safety.
+        services.AddTransient<IOpencodeApiClient, OpencodeApiClient>();
 
         return services;
     }

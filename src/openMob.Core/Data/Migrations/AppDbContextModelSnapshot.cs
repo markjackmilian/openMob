@@ -22,7 +22,7 @@ partial class AppDbContextModelSnapshot : ModelSnapshot
             b.Property<string>("Id")
                 .HasColumnType("TEXT");
 
-            b.Property<DateTimeOffset>("CreatedAt")
+            b.Property<DateTime>("CreatedAt")
                 .HasColumnType("TEXT");
 
             b.Property<bool>("DiscoveredViaMdns")
@@ -49,7 +49,7 @@ partial class AppDbContextModelSnapshot : ModelSnapshot
                 .HasColumnType("INTEGER")
                 .HasDefaultValue(4096);
 
-            b.Property<DateTimeOffset>("UpdatedAt")
+            b.Property<DateTime>("UpdatedAt")
                 .HasColumnType("TEXT");
 
             b.Property<string>("Username")

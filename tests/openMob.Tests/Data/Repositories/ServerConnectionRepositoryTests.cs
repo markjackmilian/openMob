@@ -39,10 +39,10 @@ public sealed class ServerConnectionRepositoryTests : IDisposable
         string? username = null,
         bool isActive = false,
         bool discoveredViaMdns = false,
-        DateTimeOffset? createdAt = null,
-        DateTimeOffset? updatedAt = null)
+        DateTime? createdAt = null,
+        DateTime? updatedAt = null)
     {
-        var now = DateTimeOffset.UtcNow;
+        var now = DateTime.UtcNow;
         var entity = new ServerConnection
         {
             Id = id ?? Ulid.NewUlid().ToString(),
@@ -82,8 +82,8 @@ public sealed class ServerConnectionRepositoryTests : IDisposable
     public async Task GetAllAsync_WhenConnectionsExist_ReturnsAllOrderedByCreatedAt()
     {
         // Arrange
-        var older = DateTimeOffset.UtcNow.AddMinutes(-10);
-        var newer = DateTimeOffset.UtcNow;
+        var older = DateTime.UtcNow.AddMinutes(-10);
+        var newer = DateTime.UtcNow;
         await SeedConnectionAsync(id: "conn-older", name: "Older", createdAt: older);
         await SeedConnectionAsync(id: "conn-newer", name: "Newer", createdAt: newer);
         var sut = CreateSut();
@@ -231,7 +231,7 @@ public sealed class ServerConnectionRepositoryTests : IDisposable
     public async Task AddAsync_WhenValidDto_SetsCreatedAtAndUpdatedAt()
     {
         // Arrange
-        var beforeAdd = DateTimeOffset.UtcNow;
+        var beforeAdd = DateTime.UtcNow;
         var dto = TestDataBuilder.CreateServerConnectionDto(name: "Timestamped Server");
         var sut = CreateSut();
 
@@ -301,7 +301,7 @@ public sealed class ServerConnectionRepositoryTests : IDisposable
     public async Task UpdateAsync_WhenConnectionExists_UpdatesUpdatedAtTimestamp()
     {
         // Arrange
-        var pastTime = DateTimeOffset.UtcNow.AddMinutes(-30);
+        var pastTime = DateTime.UtcNow.AddMinutes(-30);
         var entity = await SeedConnectionAsync(id: "conn-ts", updatedAt: pastTime);
         var updateDto = TestDataBuilder.CreateServerConnectionDto(id: entity.Id, name: "Updated");
         var sut = CreateSut();

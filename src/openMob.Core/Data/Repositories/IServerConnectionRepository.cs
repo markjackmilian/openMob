@@ -39,6 +39,11 @@ public interface IServerConnectionRepository
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The updated server connection DTO.</returns>
     /// <exception cref="InvalidOperationException">Thrown if the connection is not found.</exception>
+    /// <remarks>
+    /// The <see cref="ServerConnectionDto.IsActive"/> property is not updated by this method.
+    /// Use <see cref="SetActiveAsync"/> to change the active connection, which enforces
+    /// the single-active constraint within a transaction.
+    /// </remarks>
     Task<ServerConnectionDto> UpdateAsync(ServerConnectionDto dto, CancellationToken cancellationToken = default);
 
     /// <summary>Deletes a server connection and its associated credentials. Returns true if found and deleted.</summary>

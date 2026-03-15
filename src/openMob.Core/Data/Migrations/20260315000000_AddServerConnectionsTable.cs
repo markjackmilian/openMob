@@ -21,8 +21,8 @@ public partial class AddServerConnectionsTable : Migration
                 Username = table.Column<string>(type: "TEXT", nullable: true),
                 IsActive = table.Column<bool>(type: "INTEGER", nullable: false, defaultValue: false),
                 DiscoveredViaMdns = table.Column<bool>(type: "INTEGER", nullable: false, defaultValue: false),
-                CreatedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: false),
-                UpdatedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: false),
+                CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
+                UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
             },
             constraints: table =>
             {

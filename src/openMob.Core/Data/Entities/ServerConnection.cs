@@ -32,8 +32,8 @@ public sealed class ServerConnection
     public bool DiscoveredViaMdns { get; set; }
 
     /// <summary>Gets or sets the UTC timestamp when this record was created.</summary>
-    public DateTimeOffset CreatedAt { get; set; }
+    public DateTime CreatedAt { get; set; }
 
     /// <summary>Gets or sets the UTC timestamp when this record was last updated.</summary>
-    public DateTimeOffset UpdatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
 }

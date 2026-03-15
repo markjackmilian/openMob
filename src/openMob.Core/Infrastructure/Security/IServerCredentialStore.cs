@@ -21,14 +21,17 @@ public interface IServerCredentialStore
     /// <summary>Saves a password for the given connection ID.</summary>
     /// <param name="connectionId">The unique identifier of the server connection.</param>
     /// <param name="password">The password to store securely.</param>
-    Task SavePasswordAsync(string connectionId, string password);
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task SavePasswordAsync(string connectionId, string password, CancellationToken cancellationToken = default);
 
     /// <summary>Retrieves the password for the given connection ID, or null if not found.</summary>
     /// <param name="connectionId">The unique identifier of the server connection.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The stored password, or <c>null</c> if no password exists for the given ID.</returns>
-    Task<string?> GetPasswordAsync(string connectionId);
+    Task<string?> GetPasswordAsync(string connectionId, CancellationToken cancellationToken = default);
 
     /// <summary>Deletes the password for the given connection ID. No-op if not found (idempotent).</summary>
     /// <param name="connectionId">The unique identifier of the server connection.</param>
-    Task DeletePasswordAsync(string connectionId);
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task DeletePasswordAsync(string connectionId, CancellationToken cancellationToken = default);
 }

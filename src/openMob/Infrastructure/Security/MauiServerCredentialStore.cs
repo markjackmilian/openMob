@@ -22,22 +22,29 @@ internal sealed class MauiServerCredentialStore : IServerCredentialStore
     private const string KeyPrefix = "opencode_server_pwd_";
 
     /// <inheritdoc />
-    public async Task SavePasswordAsync(string connectionId, string password)
+    public async Task SavePasswordAsync(string connectionId, string password, CancellationToken cancellationToken = default)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(connectionId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(password);
+
         var key = BuildKey(connectionId);
         await SecureStorage.Default.SetAsync(key, password).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
-    public async Task<string?> GetPasswordAsync(string connectionId)
+    public async Task<string?> GetPasswordAsync(string connectionId, CancellationToken cancellationToken = default)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(connectionId);
+
         var key = BuildKey(connectionId);
         return await SecureStorage.Default.GetAsync(key).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
-    public Task DeletePasswordAsync(string connectionId)
+    public Task DeletePasswordAsync(string connectionId, CancellationToken cancellationToken = default)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(connectionId);
+
         var key = BuildKey(connectionId);
         SecureStorage.Default.Remove(key);
         return Task.CompletedTask;

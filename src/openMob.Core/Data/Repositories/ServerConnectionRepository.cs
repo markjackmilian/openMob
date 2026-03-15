@@ -29,6 +29,9 @@ internal sealed class ServerConnectionRepository : IServerConnectionRepository
     /// <param name="credentialStore">The secure credential store for server passwords.</param>
     public ServerConnectionRepository(AppDbContext context, IServerCredentialStore credentialStore)
     {
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(credentialStore);
+
         _context = context;
         _credentialStore = credentialStore;
     }
@@ -42,7 +45,7 @@ internal sealed class ServerConnectionRepository : IServerConnectionRepository
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        var passwordTasks = entities.Select(e => _credentialStore.GetPasswordAsync(e.Id)).ToArray();
+        var passwordTasks = entities.Select(e => _credentialStore.GetPasswordAsync(e.Id, cancellationToken)).ToArray();
         var passwords = await Task.WhenAll(passwordTasks).ConfigureAwait(false);
 
         var dtos = new List<ServerConnectionDto>(entities.Count);
@@ -65,7 +68,7 @@ internal sealed class ServerConnectionRepository : IServerConnectionRepository
         if (entity is null)
             return null;
 
-        var password = await _credentialStore.GetPasswordAsync(entity.Id).ConfigureAwait(false);
+        var password = await _credentialStore.GetPasswordAsync(entity.Id, cancellationToken).ConfigureAwait(false);
         return MapToDto(entity, hasPassword: password is not null);
     }
 
@@ -80,14 +83,14 @@ internal sealed class ServerConnectionRepository : IServerConnectionRepository
         if (entity is null)
             return null;
 
-        var password = await _credentialStore.GetPasswordAsync(entity.Id).ConfigureAwait(false);
+        var password = await _credentialStore.GetPasswordAsync(entity.Id, cancellationToken).ConfigureAwait(false);
         return MapToDto(entity, hasPassword: password is not null);
     }
 
     /// <inheritdoc />
     public async Task<ServerConnectionDto> AddAsync(ServerConnectionDto dto, CancellationToken cancellationToken = default)
     {
-        var now = DateTimeOffset.UtcNow;
+        var now = DateTime.UtcNow;
 
         var entity = new ServerConnection
         {
@@ -105,7 +108,7 @@ internal sealed class ServerConnectionRepository : IServerConnectionRepository
         _context.ServerConnections.Add(entity);
         await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
-        var password = await _credentialStore.GetPasswordAsync(entity.Id).ConfigureAwait(false);
+        var password = await _credentialStore.GetPasswordAsync(entity.Id, cancellationToken).ConfigureAwait(false);
         return MapToDto(entity, hasPassword: password is not null);
     }
 
@@ -119,16 +122,18 @@ internal sealed class ServerConnectionRepository : IServerConnectionRepository
         if (entity is null)
             throw new InvalidOperationException($"Server connection with ID '{dto.Id}' was not found.");
 
+        // IsActive is intentionally excluded — it must only change via SetActiveAsync
+        // to enforce the single-active constraint within a transaction.
         entity.Name = dto.Name;
         entity.Host = dto.Host;
         entity.Port = dto.Port;
         entity.Username = dto.Username;
         entity.DiscoveredViaMdns = dto.DiscoveredViaMdns;
-        entity.UpdatedAt = DateTimeOffset.UtcNow;
+        entity.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
-        var password = await _credentialStore.GetPasswordAsync(entity.Id).ConfigureAwait(false);
+        var password = await _credentialStore.GetPasswordAsync(entity.Id, cancellationToken).ConfigureAwait(false);
         return MapToDto(entity, hasPassword: password is not null);
     }
 
@@ -142,10 +147,13 @@ internal sealed class ServerConnectionRepository : IServerConnectionRepository
         if (entity is null)
             return false;
 
+        // Delete credential FIRST — idempotent (no-op if missing), so if the subsequent
+        // DB delete fails, the worst case is a missing password (acceptable).
+        // The reverse ordering would leave an orphaned secret if the app crashes after SaveChanges.
+        await _credentialStore.DeletePasswordAsync(id, cancellationToken).ConfigureAwait(false);
+
         _context.ServerConnections.Remove(entity);
         await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-
-        await _credentialStore.DeletePasswordAsync(id).ConfigureAwait(false);
 
         return true;
     }
@@ -157,9 +165,10 @@ internal sealed class ServerConnectionRepository : IServerConnectionRepository
             .BeginTransactionAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        // Deactivate all currently active connections via raw SQL for atomicity
+        // Deactivate all other connections via raw SQL for atomicity.
+        // Uses WHERE Id != {id} to avoid the unnecessary write to the target row.
         await _context.Database
-            .ExecuteSqlRawAsync("UPDATE ServerConnections SET IsActive = 0 WHERE IsActive = 1", cancellationToken)
+            .ExecuteSqlInterpolatedAsync($"UPDATE ServerConnections SET IsActive = 0 WHERE Id != {id}", cancellationToken)
             .ConfigureAwait(false);
 
         var entity = await _context.ServerConnections
@@ -173,7 +182,7 @@ internal sealed class ServerConnectionRepository : IServerConnectionRepository
         }
 
         entity.IsActive = true;
-        entity.UpdatedAt = DateTimeOffset.UtcNow;
+        entity.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);

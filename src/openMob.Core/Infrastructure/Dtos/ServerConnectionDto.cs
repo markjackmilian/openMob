@@ -23,7 +23,7 @@ public sealed record ServerConnectionDto(
     string? Username,
     bool IsActive,
     bool DiscoveredViaMdns,
-    DateTimeOffset CreatedAt,
-    DateTimeOffset UpdatedAt,
+    DateTime CreatedAt,
+    DateTime UpdatedAt,
     bool HasPassword
 );

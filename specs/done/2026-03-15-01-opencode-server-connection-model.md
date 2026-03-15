@@ -1,11 +1,14 @@
 # opencode Server Connection Model
 
 ## Metadata
-| Field   | Value                        |
-|---------|------------------------------|
-| Date    | 2026-03-15                   |
-| Status  | In Progress                  |
-| Version | 1.0                          |
+| Field       | Value                                          |
+|-------------|------------------------------------------------|
+| Date        | 2026-03-15                                     |
+| Status      | **Completed**                                  |
+| Version     | 1.0                                            |
+| Completed   | 2026-03-15                                     |
+| Branch      | feature/server-connection-model (merged)       |
+| Merged into | develop                                        |
 
 ---
 
@@ -110,13 +113,13 @@ This spec defines the persistence layer for opencode server connection records. 
 
 > Each criterion maps to one or more functional requirements.
 
-- [ ] **[AC-001]** Given a new app install, when the app starts, then the `ServerConnections` table exists in the SQLite database. *(REQ-001, REQ-004)*
-- [ ] **[AC-002]** Given a `ServerConnection` with a password, when it is saved, then the password is retrievable from `SecureStorage` and absent from the `ServerConnections` SQLite table. *(REQ-002)*
-- [ ] **[AC-003]** Given two server connections, when `SetActiveAsync` is called on one, then only that connection has `IsActive = true` and the other has `IsActive = false`. *(REQ-005)*
-- [ ] **[AC-004]** Given a `ServerConnection` that is deleted, when `DeleteAsync` completes, then both the DB row and the `SecureStorage` password entry are removed. *(REQ-008)*
-- [ ] **[AC-005]** Given a `ServerConnectionDto`, when `HasPassword` is checked, then it returns `true` only if a password exists in `SecureStorage` for that connection ID. *(REQ-009)*
-- [ ] **[AC-006]** All new services are resolvable via DI without runtime exceptions. *(REQ-010)*
-- [ ] **[AC-007]** Build and all existing tests pass with zero warnings after the migration is added. *(REQ-004)*
+- [x] **[AC-001]** Given a new app install, when the app starts, then the `ServerConnections` table exists in the SQLite database. *(REQ-001, REQ-004)* — Verified via `adb exec-out` + `sqlite3`: table exists with correct schema and index.
+- [x] **[AC-002]** Given a `ServerConnection` with a password, when it is saved, then the password is retrievable from `SecureStorage` and absent from the `ServerConnections` SQLite table. *(REQ-002)* — Verified: no password column in entity/DB. SecureStorage key format `opencode_server_pwd_{id}`.
+- [x] **[AC-003]** Given two server connections, when `SetActiveAsync` is called on one, then only that connection has `IsActive = true` and the other has `IsActive = false`. *(REQ-005)* — Verified by unit test `SetActiveAsync_WhenOtherConnectionsActive_DeactivatesThem`.
+- [x] **[AC-004]** Given a `ServerConnection` that is deleted, when `DeleteAsync` completes, then both the DB row and the `SecureStorage` password entry are removed. *(REQ-008)* — Verified by unit test `DeleteAsync_WhenConnectionExists_DeletesCredentialFromStore`.
+- [x] **[AC-005]** Given a `ServerConnectionDto`, when `HasPassword` is checked, then it returns `true` only if a password exists in `SecureStorage` for that connection ID. *(REQ-009)* — Verified by unit tests `GetAllAsync_WhenPasswordExists_SetsHasPasswordTrue` and `_WhenNoPasswordExists_SetsHasPasswordFalse`.
+- [x] **[AC-006]** All new services are resolvable via DI without runtime exceptions. *(REQ-010)* — Verified: app launches without DI errors on Android device.
+- [x] **[AC-007]** Build and all existing tests pass with zero warnings after the migration is added. *(REQ-004)* — Verified: `dotnet build` 0 errors 0 warnings, `dotnet test` 21/21 pass.
 
 ---
 
@@ -220,11 +223,11 @@ This spec defines the persistence layer for opencode server connection records. 
 
 ### Definition of Done
 
-- [ ] All `[REQ-001]` through `[REQ-010]` requirements implemented
-- [ ] All `[AC-001]` through `[AC-007]` acceptance criteria satisfied
-- [ ] Unit tests written for `ServerConnectionRepository` (happy path, error paths, single-active constraint, delete cascades credential)
-- [ ] `om-reviewer` verdict: Approved or Approved with remarks
-- [ ] `dotnet build openMob.sln` — zero errors
-- [ ] `dotnet test` — all tests pass
-- [ ] Git Flow branch finished and deleted
-- [ ] Spec moved to `specs/done/` with Completed status
+- [x] All `[REQ-001]` through `[REQ-010]` requirements implemented
+- [x] All `[AC-001]` through `[AC-007]` acceptance criteria satisfied
+- [x] Unit tests written for `ServerConnectionRepository` — 21 tests covering all CRUD, single-active, credential cleanup, error paths
+- [x] `om-reviewer` verdict: ✅ Approved (zero findings after fix loop)
+- [x] `dotnet build openMob.sln` — zero errors
+- [x] `dotnet test` — 21/21 tests pass
+- [x] Git Flow branch finished and deleted
+- [x] Spec moved to `specs/done/` with Completed status

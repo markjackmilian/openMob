@@ -3,6 +3,8 @@ using openMob.Core.Data;
 using openMob.Core.Data.Repositories;
 using openMob.Core.Infrastructure.Discovery;
 using openMob.Core.Infrastructure.Http;
+using openMob.Core.Services;
+using openMob.Core.ViewModels;
 
 namespace openMob.Core.Infrastructure.DI;
 
@@ -12,7 +14,8 @@ namespace openMob.Core.Infrastructure.DI;
 public static class CoreServiceExtensions
 {
     /// <summary>
-    /// Registers all openMob Core services: EF Core DbContext, HTTP client, and infrastructure services.
+    /// Registers all openMob Core services: EF Core DbContext, HTTP client, infrastructure services,
+    /// business services, and ViewModels.
     /// Call this from <c>MauiProgram.CreateMauiApp()</c>.
     /// </summary>
     /// <param name="services">The service collection to register into.</param>
@@ -54,6 +57,24 @@ public static class CoreServiceExtensions
         // mDNS discovery (singleton — stateless, safe to share)
         services.AddSingleton<IZeroconfResolver, ZeroconfResolverAdapter>();
         services.AddSingleton<IOpencodeDiscoveryService, OpencodeDiscoveryService>();
+
+        // ─── Business services ────────────────────────────────────────────────
+        // Navigation and popup services (INavigationService, IAppPopupService) are NOT
+        // registered here — they have MAUI implementations registered by the MAUI project.
+        services.AddTransient<IProjectService, ProjectService>();
+        services.AddTransient<ISessionService, SessionService>();
+        services.AddTransient<IAgentService, AgentService>();
+        services.AddTransient<IProviderService, ProviderService>();
+
+        // ─── ViewModels ───────────────────────────────────────────────────────
+        services.AddTransient<SplashViewModel>();
+        services.AddTransient<OnboardingViewModel>();
+        services.AddTransient<ProjectsViewModel>();
+        services.AddTransient<ProjectDetailViewModel>();
+        services.AddTransient<AddProjectViewModel>();
+        services.AddTransient<ProjectSwitcherViewModel>();
+        services.AddTransient<AgentPickerViewModel>();
+        services.AddTransient<ModelPickerViewModel>();
 
         return services;
     }

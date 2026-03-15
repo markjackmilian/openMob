@@ -1,11 +1,14 @@
 # opencode mDNS Discovery
 
 ## Metadata
-| Field   | Value                        |
-|---------|------------------------------|
-| Date    | 2026-03-15                   |
-| Status  | In Progress                  |
-| Version | 1.0                          |
+| Field       | Value                                          |
+|-------------|------------------------------------------------|
+| Date        | 2026-03-15                                     |
+| Status      | **Completed**                                  |
+| Version     | 1.0                                            |
+| Completed   | 2026-03-15                                     |
+| Branch      | feature/opencode-mdns-discovery (merged)       |
+| Merged into | develop                                        |
 
 ---
 

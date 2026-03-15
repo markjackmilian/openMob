@@ -6,7 +6,7 @@ namespace openMob.Views.Controls;
 /// <summary>
 /// Conditional status banner displayed below the chat header.
 /// Shows contextual messages for server offline, no provider, tool errors, etc.
-/// Uses <see cref="SetAppThemeColor"/> for runtime theme-responsive background colors.
+/// Uses SetAppThemeColor for runtime theme-responsive background colors.
 /// </summary>
 public partial class StatusBannerView : ContentView
 {

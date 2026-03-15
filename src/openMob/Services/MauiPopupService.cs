@@ -20,7 +20,7 @@ internal sealed class MauiPopupService : IAppPopupService
         if (page is null)
             return false;
 
-        return await page.DisplayAlert(title, message, "Delete", "Cancel");
+        return await page.DisplayAlertAsync(title, message, "Delete", "Cancel");
     }
 
     /// <inheritdoc />
@@ -53,7 +53,7 @@ internal sealed class MauiPopupService : IAppPopupService
         if (page is null)
             return;
 
-        await page.DisplayAlert(title, message, "OK");
+        await page.DisplayAlertAsync(title, message, "OK");
     }
 
     /// <inheritdoc />
@@ -65,7 +65,7 @@ internal sealed class MauiPopupService : IAppPopupService
         if (page is null)
             return null;
 
-        var result = await page.DisplayActionSheet(title, "Cancel", null, options.ToArray());
+        var result = await page.DisplayActionSheetAsync(title, "Cancel", null, options.ToArray());
         return result == "Cancel" ? null : result;
     }
 

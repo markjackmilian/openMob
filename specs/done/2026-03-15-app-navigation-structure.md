@@ -1,11 +1,14 @@
 # App Navigation Structure & Page Flow
 
 ## Metadata
-| Field   | Value                          |
-|---------|--------------------------------|
-| Date    | 2026-03-15                     |
-| Status  | **In Progress**                |
-| Version | 1.1                            |
+| Field       | Value                                          |
+|-------------|------------------------------------------------|
+| Date        | 2026-03-15                                     |
+| Status      | **Completed**                                  |
+| Version     | 1.1                                            |
+| Completed   | 2026-03-16                                     |
+| Branch      | feature/app-navigation-structure (merged)      |
+| Merged into | develop                                        |
 
 ---
 

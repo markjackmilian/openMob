@@ -10,7 +10,11 @@
     <Nullable>enable</Nullable>
     <LangVersion>preview</LangVersion>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
-    <MauiXamlInflator>SourceGen</MauiXamlInflator>
+    <!-- MauiXamlInflator=SourceGen disabled: AppThemeBinding as standalone
+         ResourceDictionary values crashes at runtime with "Cannot determine
+         property to provide the value for." in MAUI 10.
+         Re-enable once MAUI fixes this issue. -->
+    <!--<MauiXamlInflator>SourceGen</MauiXamlInflator>-->
     <ApplicationTitle>openMob</ApplicationTitle>
     <ApplicationId>com.openmob.app</ApplicationId>
     <ApplicationVersion>1</ApplicationVersion>

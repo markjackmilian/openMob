@@ -2,7 +2,9 @@ using CommunityToolkit.Maui;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using openMob.Core.Data;
+using openMob.Core.Infrastructure.Security;
 using openMob.Infrastructure;
+using openMob.Infrastructure.Security;
 
 namespace openMob;
 
@@ -38,8 +40,15 @@ public static class MauiProgram
         // Register platform-specific path provider
         builder.Services.AddSingleton<IAppDataPathProvider, MauiAppDataPathProvider>();
 
+        // Register platform-specific credential store (SecureStorage)
+        builder.Services.AddSingleton<IServerCredentialStore, MauiServerCredentialStore>();
+
         // Register all Core services (EF Core, HTTP client, etc.)
         builder.Services.AddOpenMobCore();
+
+        // Register Shell and Pages for DI resolution
+        builder.Services.AddTransient<AppShell>();
+        builder.Services.AddTransient<Views.Pages.MainPage>();
 
         var app = builder.Build();
 

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using openMob.Core.Data;
+using openMob.Core.Data.Repositories;
 using openMob.Core.Infrastructure.Http;
 
 namespace openMob.Core.Infrastructure.DI;
@@ -25,6 +26,9 @@ public static class CoreServiceExtensions
 
         // Typed API client
         services.AddTransient<IClaudeApiClient, ClaudeApiClient>();
+
+        // Server connection repository (scoped — follows DbContext lifetime)
+        services.AddScoped<IServerConnectionRepository, ServerConnectionRepository>();
 
         return services;
     }

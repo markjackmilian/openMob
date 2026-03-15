@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using openMob.Core.Data.Entities;
 
 namespace openMob.Core.Data;
 
@@ -9,6 +10,9 @@ namespace openMob.Core.Data;
 public sealed class AppDbContext : DbContext
 {
     private readonly IAppDataPathProvider _pathProvider;
+
+    /// <summary>Gets or sets the server connections table.</summary>
+    public DbSet<ServerConnection> ServerConnections { get; set; } = null!;
 
     /// <summary>Initialises the context with the given path provider and options.</summary>
     public AppDbContext(IAppDataPathProvider pathProvider, DbContextOptions<AppDbContext> options)
@@ -31,6 +35,18 @@ public sealed class AppDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
-        // Entity configurations will be added here as features are implemented
+
+        modelBuilder.Entity<ServerConnection>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Host).IsRequired();
+            entity.Property(e => e.Port).HasDefaultValue(4096);
+            entity.Property(e => e.IsActive).HasDefaultValue(false);
+            entity.Property(e => e.DiscoveredViaMdns).HasDefaultValue(false);
+            entity.Property(e => e.CreatedAt);
+            entity.Property(e => e.UpdatedAt);
+            entity.HasIndex(e => e.IsActive);
+        });
     }
 }

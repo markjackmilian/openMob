@@ -75,6 +75,8 @@ public static class CoreServiceExtensions
         services.AddTransient<ProjectSwitcherViewModel>();
         services.AddTransient<AgentPickerViewModel>();
         services.AddTransient<ModelPickerViewModel>();
+        services.AddTransient<ChatViewModel>();
+        services.AddTransient<FlyoutViewModel>();
 
         return services;
     }

@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using openMob.Core.Helpers;
 using openMob.Core.Infrastructure.Monitoring;
 using openMob.Core.Models;
 using openMob.Core.Services;
@@ -110,7 +111,7 @@ public sealed partial class ProjectDetailViewModel : ObservableObject
 
             var currentProject = await _projectService.GetCurrentProjectAsync(ct);
 
-            ProjectName = ExtractProjectName(project.Worktree);
+            ProjectName = ProjectNameHelper.ExtractFromWorktree(project.Worktree);
             ProjectPath = project.Worktree;
             ProjectDescription = project.Vcs is not null ? $"VCS: {project.Vcs}" : string.Empty;
             IsActiveProject = currentProject?.Id == project.Id;
@@ -225,18 +226,4 @@ public sealed partial class ProjectDetailViewModel : ObservableObject
         await _navigationService.PopAsync(ct);
     }
 
-    // ─── Private helpers ──────────────────────────────────────────────────────
-
-    /// <summary>Extracts a display name from a worktree path (last directory segment).</summary>
-    /// <param name="worktreePath">The full worktree path.</param>
-    /// <returns>The last directory segment, or the full path if extraction fails.</returns>
-    private static string ExtractProjectName(string worktreePath)
-    {
-        if (string.IsNullOrWhiteSpace(worktreePath))
-            return "Unknown";
-
-        var trimmed = worktreePath.TrimEnd('/', '\\');
-        var lastSep = trimmed.LastIndexOfAny(['/', '\\']);
-        return lastSep >= 0 ? trimmed[(lastSep + 1)..] : trimmed;
-    }
 }

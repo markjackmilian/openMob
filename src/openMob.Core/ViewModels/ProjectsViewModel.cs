@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using openMob.Core.Helpers;
 using openMob.Core.Infrastructure.Monitoring;
 using openMob.Core.Models;
 using openMob.Core.Services;
@@ -73,7 +74,7 @@ public sealed partial class ProjectsViewModel : ObservableObject
 
             var items = projects.Select(p => new ProjectItem(
                 Id: p.Id,
-                Name: ExtractProjectName(p.Worktree),
+                Name: ProjectNameHelper.ExtractFromWorktree(p.Worktree),
                 Path: p.Worktree,
                 IsActive: p.Id == ActiveProjectId
             )).ToList();
@@ -149,17 +150,4 @@ public sealed partial class ProjectsViewModel : ObservableObject
         await _popupService.ShowToastAsync("Add project sheet requested.", ct);
     }
 
-    /// <summary>Extracts a display name from a worktree path (last directory segment).</summary>
-    /// <param name="worktreePath">The full worktree path.</param>
-    /// <returns>The last directory segment, or the full path if extraction fails.</returns>
-    private static string ExtractProjectName(string worktreePath)
-    {
-        if (string.IsNullOrWhiteSpace(worktreePath))
-            return "Unknown";
-
-        // Handle both Unix and Windows path separators
-        var trimmed = worktreePath.TrimEnd('/', '\\');
-        var lastSep = trimmed.LastIndexOfAny(['/', '\\']);
-        return lastSep >= 0 ? trimmed[(lastSep + 1)..] : trimmed;
-    }
 }

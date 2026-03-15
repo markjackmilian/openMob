@@ -55,9 +55,9 @@
           VerticalOptions="Center" />
     </Grid>
 
-    <!-- Version -->
+    <!-- Version (dynamic from AppInfo) -->
     <Label
-        Text="v1.0.0"
+        x:Name="VersionLabel"
         Style="{StaticResource Caption2Label}"
         TextColor="{AppThemeBinding Light={StaticResource ColorOnSurfaceTertiaryLight}, Dark={StaticResource ColorOnSurfaceTertiaryDark}}"
         HorizontalTextAlignment="Center"

@@ -6,6 +6,7 @@ namespace openMob.Views.Controls;
 /// <summary>
 /// Conditional status banner displayed below the chat header.
 /// Shows contextual messages for server offline, no provider, tool errors, etc.
+/// Uses <see cref="SetAppThemeColor"/> for runtime theme-responsive background colors.
 /// </summary>
 public partial class StatusBannerView : ContentView
 {
@@ -72,24 +73,24 @@ public partial class StatusBannerView : ContentView
     {
         IsVisible = bannerType != StatusBannerType.None;
 
-        var colorKey = bannerType switch
+        // Resolve light and dark color keys based on banner type.
+        var (lightKey, darkKey) = bannerType switch
         {
-            StatusBannerType.ServerOffline => "ColorWarningContainer",
-            StatusBannerType.NoProvider => "ColorWarningContainer",
-            StatusBannerType.ToolError => "ColorErrorContainer",
-            StatusBannerType.ContextOverflow => "ColorWarningContainer",
-            _ => "ColorSurfaceSecondary",
+            StatusBannerType.ServerOffline => ("ColorWarningContainerLight", "ColorWarningContainerDark"),
+            StatusBannerType.NoProvider => ("ColorWarningContainerLight", "ColorWarningContainerDark"),
+            StatusBannerType.ToolError => ("ColorErrorContainerLight", "ColorErrorContainerDark"),
+            StatusBannerType.ContextOverflow => ("ColorWarningContainerLight", "ColorWarningContainerDark"),
+            _ => ("ColorSurfaceSecondaryLight", "ColorSurfaceSecondaryDark"),
         };
 
-        if (Application.Current?.RequestedTheme == AppTheme.Dark)
+        // Use SetAppThemeColor so the banner responds to runtime theme changes.
+        if (Application.Current?.Resources.TryGetValue(lightKey, out var lightColor) == true
+            && Application.Current.Resources.TryGetValue(darkKey, out var darkColor) == true)
         {
-            if (Application.Current.Resources.TryGetValue(colorKey + "Dark", out var darkColor))
-                BannerContainer.BackgroundColor = (Color)darkColor;
-        }
-        else
-        {
-            if (Application.Current?.Resources.TryGetValue(colorKey + "Light", out var lightColor) == true)
-                BannerContainer.BackgroundColor = (Color)lightColor;
+            BannerContainer.SetAppThemeColor(
+                Border.BackgroundColorProperty,
+                (Color)lightColor,
+                (Color)darkColor);
         }
     }
 }

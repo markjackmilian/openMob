@@ -15,6 +15,7 @@
       <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
       <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
       <converters:StepToVisibilityConverter x:Key="StepToVisibilityConverter" />
+      <converters:DateTimeToRelativeStringConverter x:Key="DateTimeToRelativeStringConverter" />
     </ResourceDictionary>
   </Application.Resources>
 </Application>

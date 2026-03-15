@@ -1,29 +1,116 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewmodels="clr-namespace:openMob.Core.ViewModels;assembly=openMob.Core"
              xmlns:models="clr-namespace:openMob.Core.Models;assembly=openMob.Core"
-             x:Class="openMob.Views.Controls.FlyoutContentView">
+             x:Class="openMob.Views.Controls.FlyoutContentView"
+             x:DataType="viewmodels:FlyoutViewModel">
 
-  <VerticalStackLayout
+  <Grid
+      RowDefinitions="Auto,*"
       BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceLight}, Dark={StaticResource ColorSurfaceDark}}">
 
-    <!-- Section header: project name -->
+    <!-- Section header: project name (uppercase) -->
     <Label
-        x:Name="ProjectNameLabel"
-        Text="SESSIONS"
+        Grid.Row="0"
+        Text="{Binding ProjectSectionTitle, FallbackValue='SESSIONS', TargetNullValue='SESSIONS'}"
         Style="{StaticResource CaptionLabel}"
         TextTransform="Uppercase"
         TextColor="{AppThemeBinding Light={StaticResource ColorOnSurfaceTertiaryLight}, Dark={StaticResource ColorOnSurfaceTertiaryDark}}"
         Margin="{StaticResource SpacingLg},12,{StaticResource SpacingLg},{StaticResource SpacingSm}" />
 
-    <!-- Session list placeholder -->
+    <!-- No project placeholder -->
     <Label
+        Grid.Row="1"
         Text="Select a project to view sessions"
         Style="{StaticResource CalloutLabel}"
         HorizontalTextAlignment="Center"
         Margin="{StaticResource SpacingLg}"
-        TextColor="{AppThemeBinding Light={StaticResource ColorOnSurfaceTertiaryLight}, Dark={StaticResource ColorOnSurfaceTertiaryDark}}" />
+        TextColor="{AppThemeBinding Light={StaticResource ColorOnSurfaceTertiaryLight}, Dark={StaticResource ColorOnSurfaceTertiaryDark}}"
+        IsVisible="{Binding HasProject, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Invert}" />
 
-  </VerticalStackLayout>
+    <!-- Loading indicator -->
+    <ActivityIndicator
+        Grid.Row="1"
+        IsRunning="{Binding IsLoading}"
+        IsVisible="{Binding IsLoading}"
+        HorizontalOptions="Center"
+        VerticalOptions="Start"
+        Margin="0,{StaticResource SpacingXl},0,0" />
+
+    <!-- Session list -->
+    <CollectionView
+        Grid.Row="1"
+        ItemsSource="{Binding Sessions}"
+        IsVisible="{Binding HasProject}"
+        SelectionMode="None">
+
+      <CollectionView.EmptyView>
+        <VerticalStackLayout
+            VerticalOptions="Center"
+            HorizontalOptions="Center"
+            Padding="{StaticResource SpacingLg}">
+          <Label
+              Text="No sessions yet"
+              Style="{StaticResource CalloutLabel}"
+              HorizontalTextAlignment="Center"
+              TextColor="{AppThemeBinding Light={StaticResource ColorOnSurfaceTertiaryLight}, Dark={StaticResource ColorOnSurfaceTertiaryDark}}" />
+        </VerticalStackLayout>
+      </CollectionView.EmptyView>
+
+      <CollectionView.ItemTemplate>
+        <DataTemplate x:DataType="models:SessionItem">
+          <SwipeView>
+            <SwipeView.RightItems>
+              <SwipeItems>
+                <SwipeItem
+                    Text="Delete"
+                    BackgroundColor="{AppThemeBinding Light={StaticResource ColorErrorLight}, Dark={StaticResource ColorErrorDark}}"
+                    Command="{Binding Source={RelativeSource AncestorType={x:Type viewmodels:FlyoutViewModel}}, Path=DeleteSessionCommand}"
+                    CommandParameter="{Binding Id}"
+                    AutomationId="DeleteSessionSwipeItem" />
+              </SwipeItems>
+            </SwipeView.RightItems>
+
+            <Grid
+                ColumnDefinitions="*,Auto"
+                Padding="{StaticResource SpacingLg},{StaticResource SpacingMd}"
+                BackgroundColor="Transparent">
+              <Grid.Triggers>
+                <DataTrigger TargetType="Grid" Binding="{Binding IsSelected}" Value="True">
+                  <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource ColorPrimaryContainerLight}, Dark={StaticResource ColorPrimaryContainerDark}}" />
+                </DataTrigger>
+              </Grid.Triggers>
+              <Grid.GestureRecognizers>
+                <TapGestureRecognizer
+                    Command="{Binding Source={RelativeSource AncestorType={x:Type viewmodels:FlyoutViewModel}}, Path=SelectSessionCommand}"
+                    CommandParameter="{Binding Id}" />
+              </Grid.GestureRecognizers>
+
+              <!-- Session title -->
+              <Label
+                  Grid.Column="0"
+                  Text="{Binding Title, FallbackValue='Untitled', TargetNullValue='Untitled'}"
+                  Style="{StaticResource BodyLabel}"
+                  LineBreakMode="TailTruncation"
+                  MaxLines="1"
+                  VerticalOptions="Center" />
+
+              <!-- Relative timestamp -->
+              <Label
+                  Grid.Column="1"
+                  Text="{Binding UpdatedAt, Converter={StaticResource DateTimeToRelativeStringConverter}}"
+                  Style="{StaticResource FootnoteLabel}"
+                  VerticalOptions="Center"
+                  Margin="{StaticResource SpacingSm},0,0,0" />
+
+            </Grid>
+          </SwipeView>
+        </DataTemplate>
+      </CollectionView.ItemTemplate>
+
+    </CollectionView>
+
+  </Grid>
 
 </ContentView>

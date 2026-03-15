@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewmodels="clr-namespace:openMob.Core.ViewModels;assembly=openMob.Core"
+             xmlns:controls="clr-namespace:openMob.Views.Controls"
              x:Class="openMob.Views.Pages.ChatPage"
+             x:DataType="viewmodels:ChatViewModel"
              Shell.NavBarIsVisible="False">
 
   <Grid RowDefinitions="Auto,Auto,*">
@@ -32,19 +35,18 @@
         </ImageButton.Source>
       </ImageButton>
 
-      <!-- Project name + Session name (tappable) -->
+      <!-- Project name + Session name (tappable — opens project switcher) -->
       <HorizontalStackLayout
           Grid.Column="1"
           Spacing="{StaticResource SpacingXs}"
           VerticalOptions="Center"
           HorizontalOptions="Start">
         <HorizontalStackLayout.GestureRecognizers>
-          <TapGestureRecognizer Tapped="OnProjectNameTapped" />
+          <TapGestureRecognizer Command="{Binding OpenProjectSwitcherCommand}" />
         </HorizontalStackLayout.GestureRecognizers>
 
         <Label
-            x:Name="ProjectNameLabel"
-            Text="No project"
+            Text="{Binding ProjectName, FallbackValue='No project', TargetNullValue='No project'}"
             FontSize="{StaticResource FontSizeSubheadline}"
             FontAttributes="Bold"
             TextColor="{AppThemeBinding Light={StaticResource ColorOnSurfaceLight}, Dark={StaticResource ColorOnSurfaceDark}}"
@@ -59,8 +61,7 @@
             VerticalOptions="Center" />
 
         <Label
-            x:Name="SessionNameLabel"
-            Text="New chat"
+            Text="{Binding SessionName, FallbackValue='New chat', TargetNullValue='New chat'}"
             FontSize="{StaticResource FontSizeSubheadline}"
             TextColor="{AppThemeBinding Light={StaticResource ColorOnSurfaceSecondaryLight}, Dark={StaticResource ColorOnSurfaceSecondaryDark}}"
             VerticalOptions="Center"
@@ -71,8 +72,7 @@
       <!-- New Chat button -->
       <ImageButton
           Grid.Column="2"
-          x:Name="NewChatButton"
-          Clicked="OnNewChatClicked"
+          Command="{Binding NewChatCommand}"
           MinimumHeightRequest="{StaticResource MinTouchTarget}"
           MinimumWidthRequest="{StaticResource MinTouchTarget}"
           BackgroundColor="Transparent"
@@ -89,8 +89,7 @@
       <!-- More Menu button -->
       <ImageButton
           Grid.Column="3"
-          x:Name="MoreMenuButton"
-          Clicked="OnMoreMenuClicked"
+          Command="{Binding ShowMoreMenuCommand}"
           MinimumHeightRequest="{StaticResource MinTouchTarget}"
           MinimumWidthRequest="{StaticResource MinTouchTarget}"
           BackgroundColor="Transparent"
@@ -106,11 +105,13 @@
 
     </Grid>
 
-    <!-- Separator -->
-    <BoxView
+    <!-- Status banner — shown when StatusBanner is not null -->
+    <controls:StatusBannerView
         Grid.Row="1"
-        HeightRequest="0.5"
-        Color="{AppThemeBinding Light={StaticResource ColorSeparatorLight}, Dark={StaticResource ColorSeparatorDark}}" />
+        IsVisible="{Binding StatusBanner, Converter={StaticResource NullToVisibilityConverter}}"
+        Message="{Binding StatusBanner.Message, FallbackValue='', TargetNullValue=''}"
+        ActionLabel="{Binding StatusBanner.ActionLabel, FallbackValue='', TargetNullValue=''}"
+        BannerType="{Binding StatusBanner.Type, FallbackValue=None}" />
 
     <!-- Body: empty state placeholder (chat UI will be added by chat-ui-design-guidelines feature) -->
     <VerticalStackLayout

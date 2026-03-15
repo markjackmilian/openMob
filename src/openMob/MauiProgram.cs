@@ -46,6 +46,10 @@ public static class MauiProgram
         // Register all Core services (EF Core, HTTP client, etc.)
         builder.Services.AddOpenMobCore();
 
+        // Register Shell and Pages for DI resolution
+        builder.Services.AddTransient<AppShell>();
+        builder.Services.AddTransient<Views.Pages.MainPage>();
+
         var app = builder.Build();
 
         // Apply EF Core migrations on startup.

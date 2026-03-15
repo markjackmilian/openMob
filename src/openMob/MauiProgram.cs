@@ -3,8 +3,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using openMob.Core.Data;
 using openMob.Core.Infrastructure.Security;
+using openMob.Core.Infrastructure.Settings;
 using openMob.Infrastructure;
 using openMob.Infrastructure.Security;
+using openMob.Infrastructure.Settings;
 
 namespace openMob;
 
@@ -42,6 +44,9 @@ public static class MauiProgram
 
         // Register platform-specific credential store (SecureStorage)
         builder.Services.AddSingleton<IServerCredentialStore, MauiServerCredentialStore>();
+
+        // Register MAUI-backed settings service for opencode API client timeout
+        builder.Services.AddSingleton<IOpencodeSettingsService, MauiOpencodeSettingsService>();
 
         // Register all Core services (EF Core, HTTP client, etc.)
         builder.Services.AddOpenMobCore();

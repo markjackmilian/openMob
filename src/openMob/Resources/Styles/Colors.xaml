@@ -82,89 +82,139 @@
     <Color x:Key="IndigoDark50">#1E1D3D</Color>
 
     <!-- ═══════════════════════════════════════════════════════════════
-         SEMANTIC TOKENS — always use these in UI XAML.
-         Each token resolves to the correct raw palette value for the
-         current app theme (Light / Dark) via AppThemeBinding.
+         SEMANTIC TOKENS — Light / Dark pairs.
+         Use AppThemeBinding INLINE at the point of use to select the
+         correct variant for the current app theme.
+         Example: Value="{AppThemeBinding Light={StaticResource ColorBackgroundLight},
+                                          Dark={StaticResource ColorBackgroundDark}}"
          ═══════════════════════════════════════════════════════════════ -->
 
     <!-- Page & scaffold backgrounds -->
-    <AppThemeBinding x:Key="ColorBackground" Light="{StaticResource Neutral100}" Dark="{StaticResource Neutral950}" />
-    <AppThemeBinding x:Key="ColorBackgroundSecondary" Light="{StaticResource Neutral50}" Dark="{StaticResource Slate900}" />
+    <Color x:Key="ColorBackgroundLight">#F2F2F7</Color>
+    <Color x:Key="ColorBackgroundDark">#000000</Color>
+    <Color x:Key="ColorBackgroundSecondaryLight">#F9F9F9</Color>
+    <Color x:Key="ColorBackgroundSecondaryDark">#0F172A</Color>
 
     <!-- Card / sheet surfaces -->
-    <AppThemeBinding x:Key="ColorSurface" Light="{StaticResource Neutral0}" Dark="{StaticResource Neutral900}" />
-    <AppThemeBinding x:Key="ColorSurfaceSecondary" Light="{StaticResource Neutral100}" Dark="{StaticResource Neutral850}" />
-    <AppThemeBinding x:Key="ColorSurfaceTertiary" Light="{StaticResource Neutral200}" Dark="{StaticResource Neutral800}" />
+    <Color x:Key="ColorSurfaceLight">#FFFFFF</Color>
+    <Color x:Key="ColorSurfaceDark">#1C1C1E</Color>
+    <Color x:Key="ColorSurfaceSecondaryLight">#F2F2F7</Color>
+    <Color x:Key="ColorSurfaceSecondaryDark">#2C2C2E</Color>
+    <Color x:Key="ColorSurfaceTertiaryLight">#E5E5EA</Color>
+    <Color x:Key="ColorSurfaceTertiaryDark">#3A3A3C</Color>
 
     <!-- Text on background -->
-    <AppThemeBinding x:Key="ColorOnBackground" Light="{StaticResource Neutral950}" Dark="{StaticResource Neutral0}" />
-    <AppThemeBinding x:Key="ColorOnBackgroundSecondary" Light="{StaticResource Neutral700}" Dark="{StaticResource Neutral500}" />
-    <AppThemeBinding x:Key="ColorOnBackgroundTertiary" Light="{StaticResource Neutral600}" Dark="{StaticResource Neutral600}" />
+    <Color x:Key="ColorOnBackgroundLight">#000000</Color>
+    <Color x:Key="ColorOnBackgroundDark">#FFFFFF</Color>
+    <Color x:Key="ColorOnBackgroundSecondaryLight">#636366</Color>
+    <Color x:Key="ColorOnBackgroundSecondaryDark">#AEAEB2</Color>
+    <Color x:Key="ColorOnBackgroundTertiaryLight">#8E8E93</Color>
+    <Color x:Key="ColorOnBackgroundTertiaryDark">#8E8E93</Color>
 
     <!-- Text on surface -->
-    <AppThemeBinding x:Key="ColorOnSurface" Light="{StaticResource Neutral900}" Dark="{StaticResource Neutral100}" />
-    <AppThemeBinding x:Key="ColorOnSurfaceSecondary" Light="{StaticResource Neutral600}" Dark="{StaticResource Neutral500}" />
-    <AppThemeBinding x:Key="ColorOnSurfaceTertiary" Light="{StaticResource Neutral500}" Dark="{StaticResource Neutral600}" />
+    <Color x:Key="ColorOnSurfaceLight">#1C1C1E</Color>
+    <Color x:Key="ColorOnSurfaceDark">#F2F2F7</Color>
+    <Color x:Key="ColorOnSurfaceSecondaryLight">#8E8E93</Color>
+    <Color x:Key="ColorOnSurfaceSecondaryDark">#AEAEB2</Color>
+    <Color x:Key="ColorOnSurfaceTertiaryLight">#AEAEB2</Color>
+    <Color x:Key="ColorOnSurfaceTertiaryDark">#8E8E93</Color>
 
     <!-- Accent / Primary interactive -->
-    <AppThemeBinding x:Key="ColorPrimary" Light="{StaticResource Blue500}" Dark="{StaticResource BlueDark400}" />
-    <AppThemeBinding x:Key="ColorPrimaryContainer" Light="{StaticResource Blue50}" Dark="{StaticResource BlueDark50}" />
-    <AppThemeBinding x:Key="ColorOnPrimary" Light="{StaticResource Neutral0}" Dark="{StaticResource Neutral0}" />
-    <AppThemeBinding x:Key="ColorOnPrimaryContainer" Light="{StaticResource Blue700}" Dark="{StaticResource Blue300}" />
+    <Color x:Key="ColorPrimaryLight">#007AFF</Color>
+    <Color x:Key="ColorPrimaryDark">#0A84FF</Color>
+    <Color x:Key="ColorPrimaryContainerLight">#EAF3FF</Color>
+    <Color x:Key="ColorPrimaryContainerDark">#1C3A5A</Color>
+    <Color x:Key="ColorOnPrimaryLight">#FFFFFF</Color>
+    <Color x:Key="ColorOnPrimaryDark">#FFFFFF</Color>
+    <Color x:Key="ColorOnPrimaryContainerLight">#004999</Color>
+    <Color x:Key="ColorOnPrimaryContainerDark">#66AEFF</Color>
 
     <!-- Secondary interactive -->
-    <AppThemeBinding x:Key="ColorSecondary" Light="{StaticResource Teal400}" Dark="{StaticResource TealDark400}" />
-    <AppThemeBinding x:Key="ColorOnSecondary" Light="{StaticResource Neutral0}" Dark="{StaticResource Neutral950}" />
+    <Color x:Key="ColorSecondaryLight">#32ADE6</Color>
+    <Color x:Key="ColorSecondaryDark">#64D2FF</Color>
+    <Color x:Key="ColorOnSecondaryLight">#FFFFFF</Color>
+    <Color x:Key="ColorOnSecondaryDark">#000000</Color>
 
     <!-- Tertiary (muted / supporting) -->
-    <AppThemeBinding x:Key="ColorTertiary" Light="{StaticResource Slate500}" Dark="{StaticResource Slate400}" />
-    <AppThemeBinding x:Key="ColorOnTertiary" Light="{StaticResource Neutral0}" Dark="{StaticResource Neutral950}" />
+    <Color x:Key="ColorTertiaryLight">#64748B</Color>
+    <Color x:Key="ColorTertiaryDark">#94A3B8</Color>
+    <Color x:Key="ColorOnTertiaryLight">#FFFFFF</Color>
+    <Color x:Key="ColorOnTertiaryDark">#000000</Color>
 
     <!-- Borders, separators, outlines -->
-    <AppThemeBinding x:Key="ColorOutline" Light="{StaticResource Neutral200}" Dark="{StaticResource Neutral800}" />
-    <AppThemeBinding x:Key="ColorOutlineVariant" Light="{StaticResource Neutral300}" Dark="{StaticResource Neutral700}" />
-    <AppThemeBinding x:Key="ColorSeparator" Light="{StaticResource Neutral300}" Dark="{StaticResource Neutral800}" />
+    <Color x:Key="ColorOutlineLight">#E5E5EA</Color>
+    <Color x:Key="ColorOutlineDark">#3A3A3C</Color>
+    <Color x:Key="ColorOutlineVariantLight">#D1D1D6</Color>
+    <Color x:Key="ColorOutlineVariantDark">#636366</Color>
+    <Color x:Key="ColorSeparatorLight">#D1D1D6</Color>
+    <Color x:Key="ColorSeparatorDark">#3A3A3C</Color>
 
     <!-- Disabled states -->
-    <AppThemeBinding x:Key="ColorDisabled" Light="{StaticResource Neutral400}" Dark="{StaticResource Neutral700}" />
-    <AppThemeBinding x:Key="ColorOnDisabled" Light="{StaticResource Neutral0}" Dark="{StaticResource Neutral900}" />
-    <AppThemeBinding x:Key="ColorDisabledSurface" Light="{StaticResource Neutral200}" Dark="{StaticResource Neutral850}" />
+    <Color x:Key="ColorDisabledLight">#C7C7CC</Color>
+    <Color x:Key="ColorDisabledDark">#636366</Color>
+    <Color x:Key="ColorOnDisabledLight">#FFFFFF</Color>
+    <Color x:Key="ColorOnDisabledDark">#1C1C1E</Color>
+    <Color x:Key="ColorDisabledSurfaceLight">#E5E5EA</Color>
+    <Color x:Key="ColorDisabledSurfaceDark">#2C2C2E</Color>
 
     <!-- Semantic status — Error / Destructive -->
-    <AppThemeBinding x:Key="ColorError" Light="{StaticResource Red500}" Dark="{StaticResource RedDark500}" />
-    <AppThemeBinding x:Key="ColorErrorContainer" Light="{StaticResource Red50}" Dark="{StaticResource RedDark50}" />
-    <AppThemeBinding x:Key="ColorOnError" Light="{StaticResource Neutral0}" Dark="{StaticResource Neutral0}" />
-    <AppThemeBinding x:Key="ColorOnErrorContainer" Light="{StaticResource Red500}" Dark="{StaticResource RedDark500}" />
+    <Color x:Key="ColorErrorLight">#FF3B30</Color>
+    <Color x:Key="ColorErrorDark">#FF453A</Color>
+    <Color x:Key="ColorErrorContainerLight">#FFECEB</Color>
+    <Color x:Key="ColorErrorContainerDark">#3D1210</Color>
+    <Color x:Key="ColorOnErrorLight">#FFFFFF</Color>
+    <Color x:Key="ColorOnErrorDark">#FFFFFF</Color>
+    <Color x:Key="ColorOnErrorContainerLight">#FF3B30</Color>
+    <Color x:Key="ColorOnErrorContainerDark">#FF453A</Color>
 
     <!-- Semantic status — Success -->
-    <AppThemeBinding x:Key="ColorSuccess" Light="{StaticResource Green500}" Dark="{StaticResource GreenDark500}" />
-    <AppThemeBinding x:Key="ColorSuccessContainer" Light="{StaticResource Green50}" Dark="{StaticResource GreenDark50}" />
-    <AppThemeBinding x:Key="ColorOnSuccess" Light="{StaticResource Neutral0}" Dark="{StaticResource Neutral0}" />
-    <AppThemeBinding x:Key="ColorOnSuccessContainer" Light="{StaticResource Green500}" Dark="{StaticResource GreenDark500}" />
+    <Color x:Key="ColorSuccessLight">#34C759</Color>
+    <Color x:Key="ColorSuccessDark">#30D158</Color>
+    <Color x:Key="ColorSuccessContainerLight">#E8F8ED</Color>
+    <Color x:Key="ColorSuccessContainerDark">#1A3D24</Color>
+    <Color x:Key="ColorOnSuccessLight">#FFFFFF</Color>
+    <Color x:Key="ColorOnSuccessDark">#FFFFFF</Color>
+    <Color x:Key="ColorOnSuccessContainerLight">#34C759</Color>
+    <Color x:Key="ColorOnSuccessContainerDark">#30D158</Color>
 
     <!-- Semantic status — Warning -->
-    <AppThemeBinding x:Key="ColorWarning" Light="{StaticResource Amber500}" Dark="{StaticResource AmberDark500}" />
-    <AppThemeBinding x:Key="ColorWarningContainer" Light="{StaticResource Amber50}" Dark="{StaticResource AmberDark50}" />
-    <AppThemeBinding x:Key="ColorOnWarning" Light="{StaticResource Neutral0}" Dark="{StaticResource Neutral950}" />
-    <AppThemeBinding x:Key="ColorOnWarningContainer" Light="{StaticResource Amber500}" Dark="{StaticResource AmberDark500}" />
+    <Color x:Key="ColorWarningLight">#FF9F0A</Color>
+    <Color x:Key="ColorWarningDark">#FFD60A</Color>
+    <Color x:Key="ColorWarningContainerLight">#FFF4E0</Color>
+    <Color x:Key="ColorWarningContainerDark">#3D2E00</Color>
+    <Color x:Key="ColorOnWarningLight">#FFFFFF</Color>
+    <Color x:Key="ColorOnWarningDark">#000000</Color>
+    <Color x:Key="ColorOnWarningContainerLight">#FF9F0A</Color>
+    <Color x:Key="ColorOnWarningContainerDark">#FFD60A</Color>
 
     <!-- Semantic status — Info -->
-    <AppThemeBinding x:Key="ColorInfo" Light="{StaticResource Indigo500}" Dark="{StaticResource IndigoDark500}" />
-    <AppThemeBinding x:Key="ColorInfoContainer" Light="{StaticResource Indigo50}" Dark="{StaticResource IndigoDark50}" />
-    <AppThemeBinding x:Key="ColorOnInfo" Light="{StaticResource Neutral0}" Dark="{StaticResource Neutral0}" />
-    <AppThemeBinding x:Key="ColorOnInfoContainer" Light="{StaticResource Indigo500}" Dark="{StaticResource IndigoDark500}" />
+    <Color x:Key="ColorInfoLight">#5856D6</Color>
+    <Color x:Key="ColorInfoDark">#5E5CE6</Color>
+    <Color x:Key="ColorInfoContainerLight">#EEEEFF</Color>
+    <Color x:Key="ColorInfoContainerDark">#1E1D3D</Color>
+    <Color x:Key="ColorOnInfoLight">#FFFFFF</Color>
+    <Color x:Key="ColorOnInfoDark">#FFFFFF</Color>
+    <Color x:Key="ColorOnInfoContainerLight">#5856D6</Color>
+    <Color x:Key="ColorOnInfoContainerDark">#5E5CE6</Color>
 
     <!-- Shell / navigation chrome -->
-    <AppThemeBinding x:Key="ColorNavigationBar" Light="{StaticResource Neutral0}" Dark="{StaticResource Neutral900}" />
-    <AppThemeBinding x:Key="ColorTabBar" Light="{StaticResource Neutral0}" Dark="{StaticResource Neutral900}" />
-    <AppThemeBinding x:Key="ColorTabBarSelected" Light="{StaticResource Blue500}" Dark="{StaticResource BlueDark400}" />
-    <AppThemeBinding x:Key="ColorTabBarUnselected" Light="{StaticResource Neutral500}" Dark="{StaticResource Neutral600}" />
+    <Color x:Key="ColorNavigationBarLight">#FFFFFF</Color>
+    <Color x:Key="ColorNavigationBarDark">#1C1C1E</Color>
+    <Color x:Key="ColorTabBarLight">#FFFFFF</Color>
+    <Color x:Key="ColorTabBarDark">#1C1C1E</Color>
+    <Color x:Key="ColorTabBarSelectedLight">#007AFF</Color>
+    <Color x:Key="ColorTabBarSelectedDark">#0A84FF</Color>
+    <Color x:Key="ColorTabBarUnselectedLight">#AEAEB2</Color>
+    <Color x:Key="ColorTabBarUnselectedDark">#8E8E93</Color>
 
     <!-- Scrim / overlay (for modals, bottom sheets) -->
-    <AppThemeBinding x:Key="ColorScrim" Light="#80000000" Dark="#99000000" />
+    <Color x:Key="ColorScrimLight">#80000000</Color>
+    <Color x:Key="ColorScrimDark">#99000000</Color>
 
     <!-- Inverse (for snackbars, toasts on dark surfaces) -->
-    <AppThemeBinding x:Key="ColorInverseSurface" Light="{StaticResource Neutral900}" Dark="{StaticResource Neutral100}" />
-    <AppThemeBinding x:Key="ColorInverseOnSurface" Light="{StaticResource Neutral100}" Dark="{StaticResource Neutral900}" />
+    <Color x:Key="ColorInverseSurfaceLight">#1C1C1E</Color>
+    <Color x:Key="ColorInverseSurfaceDark">#F2F2F7</Color>
+    <Color x:Key="ColorInverseOnSurfaceLight">#F2F2F7</Color>
+    <Color x:Key="ColorInverseOnSurfaceDark">#1C1C1E</Color>
 
 </ResourceDictionary>

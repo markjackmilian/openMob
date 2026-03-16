@@ -42,8 +42,9 @@ internal sealed class ChatService : IChatService
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IOpencodeConnectionManager _connectionManager;
 
-    // IsConnected state — volatile for lock-free reads from any thread
-    private volatile bool _isConnected;
+    // IsConnected state — stored as volatile int (0 = false, 1 = true) so that
+    // Interlocked.Exchange can make the guard+assign in SetConnected atomic.
+    private volatile int _isConnected; // 0 = false, 1 = true
 
     // Last-Event-ID — protected by a lock because string assignment is not atomic on all platforms
     private string? _lastEventId;
@@ -55,7 +56,7 @@ internal sealed class ChatService : IChatService
     /// <param name="apiClient">The opencode API client for HTTP calls.</param>
     /// <param name="httpClientFactory">Factory for creating the SSE-specific HTTP client.</param>
     /// <param name="connectionManager">Resolves the active server base URL and auth header.</param>
-    internal ChatService(
+    public ChatService(
         IOpencodeApiClient apiClient,
         IHttpClientFactory httpClientFactory,
         IOpencodeConnectionManager connectionManager)
@@ -66,7 +67,7 @@ internal sealed class ChatService : IChatService
     }
 
     /// <inheritdoc />
-    public bool IsConnected => _isConnected;
+    public bool IsConnected => _isConnected == 1;
 
     /// <inheritdoc />
     public event Action<bool>? IsConnectedChanged;
@@ -75,11 +76,10 @@ internal sealed class ChatService : IChatService
 
     private void SetConnected(bool value)
     {
-        if (_isConnected == value)
-            return;
-
-        _isConnected = value;
-        IsConnectedChanged?.Invoke(value);
+        var newVal = value ? 1 : 0;
+        var oldVal = Interlocked.Exchange(ref _isConnected, newVal);
+        if (oldVal != newVal)
+            IsConnectedChanged?.Invoke(value);
     }
 
     /// <summary>
@@ -91,6 +91,12 @@ internal sealed class ChatService : IChatService
             ErrorKind.Timeout => ChatServiceErrorKind.Timeout,
             ErrorKind.NetworkUnreachable => ChatServiceErrorKind.NetworkError,
             ErrorKind.ServerError => ChatServiceErrorKind.ServerError,
+            // 401 Unauthorized and 404 Not Found are server-side rejections — map to ServerError
+            // so the ViewModel can surface a meaningful "server refused the request" message.
+            ErrorKind.Unauthorized => ChatServiceErrorKind.ServerError,
+            ErrorKind.NotFound => ChatServiceErrorKind.ServerError,
+            // NoActiveServer means no reachable server was found — treat as a network-level failure.
+            ErrorKind.NoActiveServer => ChatServiceErrorKind.NetworkError,
             _ => ChatServiceErrorKind.Unknown,
         };
 
@@ -318,14 +324,6 @@ internal sealed class ChatService : IChatService
         var client = _httpClientFactory.CreateClient("opencode-sse");
 
         var authHeader = await _connectionManager.GetBasicAuthHeaderAsync(ct).ConfigureAwait(false);
-        if (authHeader is not null)
-        {
-            var encoded = authHeader.StartsWith("Basic ", StringComparison.Ordinal)
-                ? authHeader["Basic ".Length..]
-                : authHeader;
-            client.DefaultRequestHeaders.Authorization =
-                new AuthenticationHeaderValue("Basic", encoded);
-        }
 
         // Include Last-Event-ID header if we have a previous event ID (for resume on reconnect)
         string? lastEventId;
@@ -334,18 +332,29 @@ internal sealed class ChatService : IChatService
             lastEventId = _lastEventId;
         }
 
-        if (lastEventId is not null)
+        // Use a per-request HttpRequestMessage instead of mutating DefaultRequestHeaders.
+        // DefaultRequestHeaders.TryAddWithoutValidation *appends* a new value on every call —
+        // it does not replace — so after N reconnects the client would carry N Last-Event-ID
+        // headers. Per-request headers are scoped to this single SendAsync call and are
+        // discarded when the using block exits.
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"{baseUrl}/global/event");
+
+        if (authHeader is not null)
         {
-            client.DefaultRequestHeaders.TryAddWithoutValidation("Last-Event-ID", lastEventId);
+            var encoded = authHeader.StartsWith("Basic ", StringComparison.Ordinal)
+                ? authHeader["Basic ".Length..]
+                : authHeader;
+            request.Headers.Authorization = new AuthenticationHeaderValue("Basic", encoded);
         }
+
+        if (lastEventId is not null)
+            request.Headers.TryAddWithoutValidation("Last-Event-ID", lastEventId);
 
         HttpResponseMessage response;
         try
         {
-            response = await client.GetAsync(
-                $"{baseUrl}/global/event",
-                HttpCompletionOption.ResponseHeadersRead,
-                ct).ConfigureAwait(false);
+            response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct)
+                .ConfigureAwait(false);
         }
         catch (HttpRequestException)
         {

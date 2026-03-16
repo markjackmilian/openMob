@@ -62,6 +62,9 @@ public static class CoreServiceExtensions
                 {
                     SamplingDuration = TimeSpan.FromSeconds(30),
                     MinimumThroughput = 5,
+                    // FailureRatio = 1.0: breaker opens only when ALL requests in the sampling window fail.
+                    // With MinimumThroughput = 5, this means 5 consecutive failures are required.
+                    // Spec REQ-014 says "5 failures in 30s" — interpreted as 5/5 = 100% failure rate.
                     FailureRatio = 1.0,
                     BreakDuration = TimeSpan.FromSeconds(15),
                 });

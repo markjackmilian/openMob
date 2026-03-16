@@ -44,6 +44,7 @@ public sealed class AppDbContext : DbContext
             entity.Property(e => e.Port).HasDefaultValue(4096);
             entity.Property(e => e.IsActive).HasDefaultValue(false);
             entity.Property(e => e.DiscoveredViaMdns).HasDefaultValue(false);
+            entity.Property(e => e.UseHttps).HasDefaultValue(false);
             entity.Property(e => e.CreatedAt);
             entity.Property(e => e.UpdatedAt);
             entity.HasIndex(e => e.IsActive);

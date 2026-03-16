@@ -101,6 +101,7 @@ internal sealed class ServerConnectionRepository : IServerConnectionRepository
             Username = dto.Username,
             IsActive = dto.IsActive,
             DiscoveredViaMdns = dto.DiscoveredViaMdns,
+            UseHttps = dto.UseHttps,
             CreatedAt = now,
             UpdatedAt = now,
         };
@@ -129,6 +130,7 @@ internal sealed class ServerConnectionRepository : IServerConnectionRepository
         entity.Port = dto.Port;
         entity.Username = dto.Username;
         entity.DiscoveredViaMdns = dto.DiscoveredViaMdns;
+        entity.UseHttps = dto.UseHttps;
         entity.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
@@ -203,6 +205,7 @@ internal sealed class ServerConnectionRepository : IServerConnectionRepository
             Username: entity.Username,
             IsActive: entity.IsActive,
             DiscoveredViaMdns: entity.DiscoveredViaMdns,
+            UseHttps: entity.UseHttps,
             CreatedAt: entity.CreatedAt,
             UpdatedAt: entity.UpdatedAt,
             HasPassword: hasPassword

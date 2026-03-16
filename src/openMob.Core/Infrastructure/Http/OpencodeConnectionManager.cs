@@ -57,7 +57,10 @@ internal sealed class OpencodeConnectionManager : IOpencodeConnectionManager
         if (dto is null)
             return null;
 
-        return $"http://{dto.Host}:{dto.Port}";
+        var scheme = dto.UseHttps ? "https" : "http";
+        var defaultPort = dto.UseHttps ? 443 : 80;
+        var portSuffix = dto.Port != defaultPort ? $":{dto.Port}" : string.Empty;
+        return $"{scheme}://{dto.Host}{portSuffix}";
     }
 
     /// <inheritdoc />

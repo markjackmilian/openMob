@@ -12,6 +12,7 @@ namespace openMob.Core.Infrastructure.Dtos;
 /// <param name="Username">The optional username for Basic Auth, or null.</param>
 /// <param name="IsActive">Whether this is the currently active connection.</param>
 /// <param name="DiscoveredViaMdns">Whether this connection was discovered via mDNS.</param>
+/// <param name="UseHttps">Whether this connection uses HTTPS instead of HTTP.</param>
 /// <param name="CreatedAt">The UTC timestamp when the record was created.</param>
 /// <param name="UpdatedAt">The UTC timestamp when the record was last updated.</param>
 /// <param name="HasPassword">True if a password exists in secure storage for this connection.</param>
@@ -23,6 +24,7 @@ public sealed record ServerConnectionDto(
     string? Username,
     bool IsActive,
     bool DiscoveredViaMdns,
+    bool UseHttps,
     DateTime CreatedAt,
     DateTime UpdatedAt,
     bool HasPassword

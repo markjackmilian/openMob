@@ -11,7 +11,7 @@
 
 ## Executive Summary
 
-Completa l'implementazione UI della chat risolvendo tutti i gap strutturali identificati rispetto alla spec `2026-03-14-chat-ui-design-guidelines.md`: sposta i converter nel progetto corretto (`openMob.Core`), aggiunge i design token mancanti, crea i componenti XAML assenti (`MessageBubbleView`, `InputBarView`, `EmptyStateView`, `SuggestionChipView`), collega il pulsante Send al `SendMessageCommand`, corregge il pulsante "New Chat" nel flyout, e attiva la `CollectionView` messaggi in `ChatPage.xaml`. Questa spec è puramente UI/XAML e dipende dal contratto di binding definito in Spec B.
+Completa l'implementazione UI della chat risolvendo tutti i gap strutturali identificati rispetto alla spec `2026-03-14-chat-ui-design-guidelines.md`: sposta i converter nel progetto corretto (`openMob.Core`), aggiunge i design token mancanti, crea i componenti XAML assenti (`MessageBubbleView`, `InputBarView`, `EmptyStateView`, `SuggestionChipView`), collega il pulsante Send al `SendMessageCommand`, corregge il pulsante "New Chat" nel flyout, e attiva la `CollectionView` messaggi in `ChatPage.xaml`. Questa spec è puramente UI/XAML e dipende dal contratto di binding definito in Spec 04.
 
 ---
 
@@ -33,8 +33,8 @@ Completa l'implementazione UI della chat risolvendo tutti i gap strutturali iden
 - Rimozione dei converter duplicati dal progetto MAUI dopo lo spostamento
 
 ### Out of Scope
-- Logica di business (Spec B)
-- Unit test (Spec D)
+- Logica di business (Spec 04)
+- Unit test (Spec 06)
 - Animazioni avanzate oltre quelle già specificate in `2026-03-14-chat-ui-design-guidelines.md`
 - Visualizzazione rich content (code blocks, immagini) — spec futura
 - Typing indicator animato — spec futura (deferred in guidelines spec)
@@ -197,10 +197,10 @@ Completa l'implementazione UI della chat risolvendo tutti i gap strutturali iden
 | `src/openMob/MauiProgram.cs` | Modifica minore | Eventuale registrazione nuovi converter |
 
 ### Dependencies
-- **Spec B (`chat-conversation-loop`)** — `ChatViewModel` deve esporre `Messages`, `InputText`, `SendMessageCommand`, `IsEmpty`, `SuggestionChips`, `ErrorMessage`, `DismissErrorCommand` prima che questa spec possa fare il wiring XAML
-- `ChatMessage` model (Spec B) — `MessageBubbleView` fa binding alle sue proprietà
-- `MessageDeliveryStatus` enum (Spec B) — usato da `MessageStatusToIconConverter`
-- `SuggestionChip` model (Spec B) — usato da `SuggestionChipView`
+- **Spec 04 (`chat-conversation-loop`)** — `ChatViewModel` deve esporre `Messages`, `InputText`, `SendMessageCommand`, `IsEmpty`, `SuggestionChips`, `ErrorMessage`, `DismissErrorCommand` prima che questa spec possa fare il wiring XAML
+- `ChatMessage` model (Spec 04) — `MessageBubbleView` fa binding alle sue proprietà
+- `MessageDeliveryStatus` enum (Spec 04) — usato da `MessageStatusToIconConverter`
+- `SuggestionChip` model (Spec 04) — usato da `SuggestionChipView`
 - `FlyoutViewModel.NewChatCommand` — già definito, solo il binding XAML mancava
 
 ---

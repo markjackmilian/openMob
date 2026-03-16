@@ -13,6 +13,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!--
+      NOTA TFM: I seguenti package non hanno ancora un TFM net10.0 nativo.
+      Il build risolve correttamente via fallback a net8.0 (comportamento standard .NET).
+      Gli errori LSP "tipo non trovato" su Ulid, CommunityToolkit.Mvvm, EF Core sono
+      falsi positivi del language server — non indicano errori reali di compilazione.
+      Verificare con: dotnet build openMob.sln
+      Aggiornare questo commento quando i package rilasciano supporto net10.0 nativo.
+    -->
     <PackageReference Include="CommunityToolkit.Mvvm" Version="*" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="*" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.*" />

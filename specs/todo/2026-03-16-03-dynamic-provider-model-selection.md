@@ -32,7 +32,7 @@ L'app recupera già la lista di provider e modelli disponibili dal server openco
 ### Out of Scope
 - Configurazione provider (inserimento API key, flusso OAuth)
 - Persistenza del modello selezionato a livello di singola sessione (in-memory è sufficiente)
-- Implementazione della send command in `ChatViewModel` (feature separata)
+- Implementazione della send command in `ChatViewModel` (Spec 04)
 - Selezione agent (pattern identico ma feature separata)
 - Modifica del comportamento di `AgentPickerSheet` / `AgentPickerViewModel`
 
@@ -127,7 +127,7 @@ L'app recupera già la lista di provider e modelli disponibili dal server openco
 - **`IAppPopupService` / `MauiPopupService`:** Verificare se `PopupAsync` / `ShowPopupAsync` supporta già il passaggio di parametri al ViewModel del popup (es. callback `Action<string>`). Se non supportato, valutare l'estensione dell'interfaccia con un overload tipizzato oppure l'uso di `WeakReferenceMessenger`.
 - **`ModelPickerViewModel` costruttore:** Valutare l'aggiunta di un parametro opzionale `Action<string>? onModelSelected` per il callback. Questo mantiene la testabilità: nei test si può passare un'action mock senza dipendenze da MAUI.
 - **`ProjectDetailViewModel`:** Aggiungere `IProjectPreferenceService` come dipendenza nel costruttore. In `LoadProjectAsync`, caricare anche `ProjectPreference` per pre-popolare `DefaultModelName`.
-- **`ChatViewModel`:** Aggiungere `IProjectPreferenceService` come dipendenza. In `LoadContextAsync`, dopo aver ottenuto `_currentProjectId`, chiamare `GetAsync` e impostare `SelectedModelId` / `SelectedModelName`. Esporre `SelectedModelId` come proprietà pubblica (non solo osservabile) per uso futuro dalla send command.
+- **`ChatViewModel`:** Aggiungere `IProjectPreferenceService` come dipendenza. In `LoadContextAsync`, dopo aver ottenuto `_currentProjectId`, chiamare `GetAsync` e impostare `SelectedModelId` / `SelectedModelName`. Esporre `SelectedModelId` come proprietà pubblica (non solo osservabile) per uso futuro dalla send command (Spec 04).
 - **Split `"providerId/modelId"`:** Il formato è già usato in `ModelPickerViewModel.ExtractModelsFromProvider`. Verificare che non esistano model ID contenenti `/` (che romperebbero lo split con `maxCount: 2`). Se necessario, usare `IndexOf('/')` per separare solo il primo segmento.
 
 ### Suggested implementation approach

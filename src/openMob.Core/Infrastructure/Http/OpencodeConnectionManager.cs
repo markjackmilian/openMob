@@ -1,4 +1,3 @@
-using System.Net.Http;
 using System.Text;
 using openMob.Core.Data.Repositories;
 using openMob.Core.Infrastructure.Security;

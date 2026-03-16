@@ -170,7 +170,7 @@ internal sealed class ServerConnectionRepository : IServerConnectionRepository
         // Deactivate all other connections via raw SQL for atomicity.
         // Uses WHERE Id != {id} to avoid the unnecessary write to the target row.
         await _context.Database
-            .ExecuteSqlInterpolatedAsync($"UPDATE ServerConnections SET IsActive = 0 WHERE Id != {id}", cancellationToken)
+            .ExecuteSqlAsync($"UPDATE ServerConnections SET IsActive = 0 WHERE Id != {id}", cancellationToken)
             .ConfigureAwait(false);
 
         var entity = await _context.ServerConnections

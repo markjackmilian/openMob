@@ -104,19 +104,24 @@ public sealed class ChatEventParserTests
         result.As<MessageUpdatedEvent>().Message.Should().NotBeNull();
     }
 
-    [Fact]
-    public void Parse_WhenEventTypeIsMessageUpdated_WithInvalidData_ReturnsUnknownEvent()
+    [Theory]
+    [InlineData("message.updated")]
+    [InlineData("message.part.updated")]
+    [InlineData("session.updated")]
+    [InlineData("session.error")]
+    [InlineData("permission.requested")]
+    [InlineData("permission.updated")]
+    public void Parse_WhenDataIsInvalidJsonStructure_ReturnsUnknownEvent(string eventType)
     {
-        // Arrange — malformed JSON that cannot deserialize to MessageWithPartsDto
-        var malformedData = JsonSerializer.SerializeToElement("this is not a message object");
-        var dto = new OpencodeEventDto("message.updated", "evt-bad", malformedData);
+        // Arrange — a string JsonElement is valid JSON but not an object, so it will
+        // fail deserialization into any DTO type
+        var invalidData = JsonSerializer.SerializeToElement("this-is-not-an-object");
+        var dto = new OpencodeEventDto(eventType, null, invalidData);
 
         // Act
-        var act = () => ChatEventParser.Parse(dto);
+        var result = ChatEventParser.Parse(dto);
 
-        // Assert — no exception thrown, returns UnknownEvent
-        act.Should().NotThrow();
-        var result = act();
+        // Assert
         result.Should().BeOfType<UnknownEvent>();
     }
 

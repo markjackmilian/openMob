@@ -42,4 +42,5 @@
       ContentTemplate="{DataTemplate pages:ChatPage}"
       FlyoutItemIsVisible="False" />
 
+
 </Shell>

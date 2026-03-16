@@ -78,6 +78,8 @@ public static class CoreServiceExtensions
         services.AddTransient<ChatViewModel>();
         services.AddTransient<FlyoutViewModel>();
         services.AddTransient<SettingsViewModel>();
+        services.AddTransient<ServerManagementViewModel>();
+        services.AddTransient<ServerDetailViewModel>();
 
         return services;
     }

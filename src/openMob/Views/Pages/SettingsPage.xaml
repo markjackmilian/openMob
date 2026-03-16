@@ -58,6 +58,9 @@
               ColumnDefinitions="Auto,*,Auto"
               Padding="0,12"
               ColumnSpacing="{StaticResource SpacingMd}">
+            <Grid.GestureRecognizers>
+              <TapGestureRecognizer Command="{Binding NavigateToServerManagementCommand}" />
+            </Grid.GestureRecognizers>
             <Label
                 FontFamily="MaterialSymbols"
                 Text="{x:Static helpers:MaterialIcons.Link}"

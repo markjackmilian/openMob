@@ -1,5 +1,6 @@
 using NSubstitute.ExceptionExtensions;
 using openMob.Core.Infrastructure.Settings;
+using openMob.Core.Services;
 using openMob.Core.ViewModels;
 
 namespace openMob.Tests.ViewModels;
@@ -10,10 +11,12 @@ namespace openMob.Tests.ViewModels;
 public sealed class SettingsViewModelTests
 {
     private readonly IThemeService _themeService;
+    private readonly INavigationService _navigationService;
 
     public SettingsViewModelTests()
     {
         _themeService = Substitute.For<IThemeService>();
+        _navigationService = Substitute.For<INavigationService>();
     }
 
     // ─── Constructor / Initialisation ────────────────────────────────────────
@@ -29,7 +32,7 @@ public sealed class SettingsViewModelTests
         _themeService.GetTheme().Returns(preference);
 
         // Act
-        var sut = new SettingsViewModel(_themeService);
+        var sut = new SettingsViewModel(_themeService, _navigationService);
 
         // Assert
         sut.SelectedThemeLabel.Should().Be(expectedLabel);
@@ -39,11 +42,22 @@ public sealed class SettingsViewModelTests
     public void Constructor_WhenThemeServiceIsNull_ThrowsArgumentNullException()
     {
         // Act
-        var act = () => new SettingsViewModel(null!);
+        var act = () => new SettingsViewModel(null!, _navigationService);
 
         // Assert
         act.Should().Throw<ArgumentNullException>()
             .WithParameterName("themeService");
+    }
+
+    [Fact]
+    public void Constructor_WhenNavigationServiceIsNull_ThrowsArgumentNullException()
+    {
+        // Act
+        var act = () => new SettingsViewModel(_themeService, null!);
+
+        // Assert
+        act.Should().Throw<ArgumentNullException>()
+            .WithParameterName("navigationService");
     }
 
     // ─── ApplyThemeCommand — service delegation ───────────────────────────────
@@ -57,7 +71,7 @@ public sealed class SettingsViewModelTests
     {
         // Arrange
         _themeService.GetTheme().Returns(AppThemePreference.System);
-        var sut = new SettingsViewModel(_themeService);
+        var sut = new SettingsViewModel(_themeService, _navigationService);
 
         // Act
         await sut.ApplyThemeCommand.ExecuteAsync(preference);
@@ -79,7 +93,7 @@ public sealed class SettingsViewModelTests
     {
         // Arrange
         _themeService.GetTheme().Returns(AppThemePreference.System);
-        var sut = new SettingsViewModel(_themeService);
+        var sut = new SettingsViewModel(_themeService, _navigationService);
 
         // Act
         await sut.ApplyThemeCommand.ExecuteAsync(preference);
@@ -99,7 +113,7 @@ public sealed class SettingsViewModelTests
             .SetThemeAsync(Arg.Any<AppThemePreference>(), Arg.Any<CancellationToken>())
             .ThrowsAsync(new InvalidOperationException("Theme service failed."));
 
-        var sut = new SettingsViewModel(_themeService);
+        var sut = new SettingsViewModel(_themeService, _navigationService);
         var labelBeforeCommand = sut.SelectedThemeLabel;
 
         // Act
@@ -116,5 +130,23 @@ public sealed class SettingsViewModelTests
 
         // Assert
         sut.SelectedThemeLabel.Should().Be(labelBeforeCommand);
+    }
+
+    // ─── NavigateToServerManagementCommand ───────────────────────────────────
+
+    [Fact]
+    public async Task NavigateToServerManagementCommand_WhenCalled_CallsGoToAsyncWithServerManagementRoute()
+    {
+        // Arrange
+        _themeService.GetTheme().Returns(AppThemePreference.System);
+        var sut = new SettingsViewModel(_themeService, _navigationService);
+
+        // Act
+        await sut.NavigateToServerManagementCommand.ExecuteAsync(null);
+
+        // Assert
+        await _navigationService.Received(1).GoToAsync(
+            "server-management",
+            Arg.Any<CancellationToken>());
     }
 }

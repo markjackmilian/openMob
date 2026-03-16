@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:openMob.Core.ViewModels;assembly=openMob.Core"
+             xmlns:dtos="clr-namespace:openMob.Core.Infrastructure.Dtos;assembly=openMob.Core"
+             xmlns:discovery="clr-namespace:openMob.Core.Infrastructure.Discovery;assembly=openMob.Core"
+             xmlns:helpers="clr-namespace:openMob.Helpers"
+             x:Class="openMob.Views.Pages.ServerManagementPage"
+             x:DataType="vm:ServerManagementViewModel"
+             Title="Servers">
+
+  <ContentPage.ToolbarItems>
+    <ToolbarItem
+        Command="{Binding NavigateToAddCommand}"
+        Text="+"
+        AutomationId="ServerManagementAddButton"
+        SemanticProperties.Description="Add new server" />
+  </ContentPage.ToolbarItems>
+
+  <Grid>
+    <!-- Loading overlay -->
+    <ActivityIndicator
+        IsRunning="{Binding IsLoading}"
+        IsVisible="{Binding IsLoading}"
+        VerticalOptions="Center"
+        HorizontalOptions="Center" />
+
+    <!-- Main content -->
+    <ScrollView IsVisible="{Binding IsLoading, Converter={StaticResource InvertedBoolConverter}}">
+      <VerticalStackLayout
+          Padding="{StaticResource SpacingLg}"
+          Spacing="0">
+
+        <!-- ── Saved Servers section ─────────────────────────────── -->
+        <Label
+            Text="SAVED SERVERS"
+            Style="{StaticResource CaptionLabel}"
+            FontFamily="InterMedium"
+            Margin="0,16,0,8" />
+
+        <Border Style="{StaticResource CardBorder}" Padding="0">
+          <CollectionView
+              ItemsSource="{Binding Servers}"
+              SelectionMode="None">
+            <CollectionView.ItemTemplate>
+              <DataTemplate x:DataType="dtos:ServerConnectionDto">
+                <Grid
+                    ColumnDefinitions="Auto,*,Auto"
+                    ColumnSpacing="{StaticResource SpacingMd}"
+                    Padding="{StaticResource SpacingLg}"
+                    MinimumHeightRequest="44">
+                  <Grid.GestureRecognizers>
+                    <TapGestureRecognizer
+                        Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ServerManagementViewModel}}, Path=NavigateToEditCommand}"
+                        CommandParameter="{Binding .}" />
+                  </Grid.GestureRecognizers>
+
+                  <!-- Active indicator (CheckCircle) -->
+                  <Label
+                      Grid.Column="0"
+                      FontFamily="MaterialSymbols"
+                      Text="{x:Static helpers:MaterialIcons.CheckCircle}"
+                      FontSize="20"
+                      TextColor="{AppThemeBinding Light={StaticResource ColorSuccessLight}, Dark={StaticResource ColorSuccessDark}}"
+                      IsVisible="{Binding IsActive}"
+                      VerticalOptions="Center"
+                      SemanticProperties.Description="Active server" />
+
+                  <!-- Name + Host:Port -->
+                  <VerticalStackLayout
+                      Grid.Column="1"
+                      Spacing="{StaticResource SpacingXs}"
+                      VerticalOptions="Center">
+                    <Label
+                        Text="{Binding Name, FallbackValue='Unnamed'}"
+                        Style="{StaticResource BodyLabel}"
+                        LineBreakMode="TailTruncation" />
+                    <Label Style="{StaticResource FootnoteLabel}">
+                      <Label.Text>
+                        <MultiBinding StringFormat="{}{0}:{1}">
+                          <Binding Path="Host" />
+                          <Binding Path="Port" />
+                        </MultiBinding>
+                      </Label.Text>
+                    </Label>
+                  </VerticalStackLayout>
+
+                  <!-- Chevron -->
+                  <Label
+                      Grid.Column="2"
+                      FontFamily="MaterialSymbols"
+                      Text="{x:Static helpers:MaterialIcons.ChevronRight}"
+                      FontSize="18"
+                      TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
+                      VerticalOptions="Center" />
+                </Grid>
+              </DataTemplate>
+            </CollectionView.ItemTemplate>
+            <CollectionView.EmptyView>
+              <Label
+                  Text="No servers configured yet"
+                  Style="{StaticResource CalloutLabel}"
+                  HorizontalTextAlignment="Center"
+                  Margin="0,16" />
+            </CollectionView.EmptyView>
+          </CollectionView>
+        </Border>
+
+        <!-- ── Scan section ──────────────────────────────────────── -->
+        <Button
+            Text="Scan for servers"
+            Command="{Binding ScanCommand}"
+            Style="{StaticResource SecondaryButton}"
+            Margin="0,16,0,8"
+            AutomationId="ServerManagementScanButton" />
+
+        <ActivityIndicator
+            IsRunning="{Binding IsScanning}"
+            IsVisible="{Binding IsScanning}"
+            HorizontalOptions="Center"
+            Margin="0,4" />
+
+        <!-- ── Discovered section header (shown after scan completes) ── -->
+        <Label
+            Text="DISCOVERED ON NETWORK"
+            Style="{StaticResource CaptionLabel}"
+            FontFamily="InterMedium"
+            Margin="0,8,0,8"
+            IsVisible="{Binding ScanCompleted}" />
+
+        <!-- Discovered servers list (shown when results exist) -->
+        <Border
+            Style="{StaticResource CardBorder}"
+            Padding="0"
+            IsVisible="{Binding HasDiscoveredServers}">
+          <CollectionView
+              ItemsSource="{Binding DiscoveredServers}"
+              SelectionMode="None">
+            <CollectionView.ItemTemplate>
+              <DataTemplate x:DataType="discovery:DiscoveredServerDto">
+                <Grid
+                    ColumnDefinitions="*,Auto"
+                    ColumnSpacing="{StaticResource SpacingMd}"
+                    Padding="{StaticResource SpacingLg}"
+                    MinimumHeightRequest="44">
+                  <Grid.GestureRecognizers>
+                    <TapGestureRecognizer
+                        Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ServerManagementViewModel}}, Path=NavigateToDiscoveredCommand}"
+                        CommandParameter="{Binding .}" />
+                  </Grid.GestureRecognizers>
+
+                  <!-- Name + Host:Port -->
+                  <VerticalStackLayout
+                      Grid.Column="0"
+                      Spacing="{StaticResource SpacingXs}"
+                      VerticalOptions="Center">
+                    <Label
+                        Text="{Binding Name, FallbackValue='Unknown'}"
+                        Style="{StaticResource BodyLabel}"
+                        LineBreakMode="TailTruncation" />
+                    <Label Style="{StaticResource FootnoteLabel}">
+                      <Label.Text>
+                        <MultiBinding StringFormat="{}{0}:{1}">
+                          <Binding Path="Host" />
+                          <Binding Path="Port" />
+                        </MultiBinding>
+                      </Label.Text>
+                    </Label>
+                  </VerticalStackLayout>
+
+                  <!-- Chevron -->
+                  <Label
+                      Grid.Column="1"
+                      FontFamily="MaterialSymbols"
+                      Text="{x:Static helpers:MaterialIcons.ChevronRight}"
+                      FontSize="18"
+                      TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
+                      VerticalOptions="Center" />
+                </Grid>
+              </DataTemplate>
+            </CollectionView.ItemTemplate>
+            <CollectionView.EmptyView>
+              <Label
+                  Text="No servers found on the local network."
+                  Style="{StaticResource CalloutLabel}"
+                  HorizontalTextAlignment="Center"
+                  Margin="0,16" />
+            </CollectionView.EmptyView>
+          </CollectionView>
+        </Border>
+
+        <!-- "No servers found" message — shown when scan completed but no results -->
+        <Label
+            Text="No servers found on the local network."
+            Style="{StaticResource CalloutLabel}"
+            HorizontalTextAlignment="Center"
+            Margin="0,8,0,32"
+            IsVisible="False">
+          <Label.Triggers>
+            <MultiTrigger TargetType="Label">
+              <MultiTrigger.Conditions>
+                <BindingCondition Binding="{Binding ScanCompleted}" Value="True" />
+                <BindingCondition Binding="{Binding HasDiscoveredServers}" Value="False" />
+              </MultiTrigger.Conditions>
+              <Setter Property="IsVisible" Value="True" />
+            </MultiTrigger>
+          </Label.Triggers>
+        </Label>
+
+      </VerticalStackLayout>
+    </ScrollView>
+  </Grid>
+
+</ContentPage>

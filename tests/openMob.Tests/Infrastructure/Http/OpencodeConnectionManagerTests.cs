@@ -21,7 +21,9 @@ public sealed class OpencodeConnectionManagerTests
         _credentialStore = Substitute.For<IServerCredentialStore>();
         _handler = new MockHttpMessageHandler();
         _httpClientFactory = Substitute.For<IHttpClientFactory>();
-        _httpClientFactory.CreateClient("opencode").Returns(new HttpClient(_handler));
+        // IsServerReachableAsync uses "discovery-probe" (not "opencode") to avoid
+        // triggering the circuit breaker during health checks.
+        _httpClientFactory.CreateClient("discovery-probe").Returns(new HttpClient(_handler));
     }
 
     private OpencodeConnectionManager CreateSut()

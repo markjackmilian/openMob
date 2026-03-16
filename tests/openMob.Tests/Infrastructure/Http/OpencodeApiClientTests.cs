@@ -467,9 +467,10 @@ public sealed class OpencodeApiClientTests
         var sseContent = new StringContent(sseBody, Encoding.UTF8, "text/event-stream");
         var sseResponse = new HttpResponseMessage(HttpStatusCode.OK) { Content = sseContent };
 
-        // Override the handler to return an SSE response for the event endpoint
+        // Override the handler to return an SSE response for the event endpoint.
+        // SubscribeToEventsAsync uses "opencode-sse" (infinite timeout, no resilience pipeline).
         var sseHandler = new SseHttpMessageHandler(sseResponse);
-        _httpClientFactory.CreateClient("opencode").Returns(new HttpClient(sseHandler));
+        _httpClientFactory.CreateClient("opencode-sse").Returns(new HttpClient(sseHandler));
 
         var sut = CreateSut();
         using var cts = new CancellationTokenSource();
@@ -500,7 +501,7 @@ public sealed class OpencodeApiClientTests
         var sseResponse = new HttpResponseMessage(HttpStatusCode.OK) { Content = pipeContent };
 
         var sseHandler = new SseHttpMessageHandler(sseResponse);
-        _httpClientFactory.CreateClient("opencode").Returns(new HttpClient(sseHandler));
+        _httpClientFactory.CreateClient("opencode-sse").Returns(new HttpClient(sseHandler));
 
         var sut = CreateSut();
 

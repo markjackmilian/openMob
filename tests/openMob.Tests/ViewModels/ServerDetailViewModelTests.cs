@@ -496,7 +496,9 @@ public sealed class ServerDetailViewModelTests
         var sut = CreateSut();
         sut.Url = "http://192.168.1.10:4096";
 
-        _httpClientFactory.CreateClient("opencode")
+        // TestConnectionAsync uses "discovery-probe" (no resilience pipeline) to avoid
+        // triggering the circuit breaker that protects real API calls on the "opencode" client.
+        _httpClientFactory.CreateClient("discovery-probe")
             .Returns(CreateFakeHttpClient(HttpStatusCode.OK, """{"healthy":true,"version":"1.2.3"}"""));
 
         // Act
@@ -516,7 +518,7 @@ public sealed class ServerDetailViewModelTests
         var sut = CreateSut();
         sut.Url = "http://192.168.1.10:4096";
 
-        _httpClientFactory.CreateClient("opencode")
+        _httpClientFactory.CreateClient("discovery-probe")
             .Returns(CreateFakeHttpClient(HttpStatusCode.OK, """{"healthy":false,"version":"1.2.3"}"""));
 
         // Act
@@ -534,7 +536,7 @@ public sealed class ServerDetailViewModelTests
         var sut = CreateSut();
         sut.Url = "http://192.168.1.10:4096";
 
-        _httpClientFactory.CreateClient("opencode")
+        _httpClientFactory.CreateClient("discovery-probe")
             .Returns(CreateFakeHttpClient(HttpStatusCode.InternalServerError, ""));
 
         // Act
@@ -552,7 +554,7 @@ public sealed class ServerDetailViewModelTests
         var sut = CreateSut();
         sut.Url = "http://192.168.1.10:4096";
 
-        _httpClientFactory.CreateClient("opencode")
+        _httpClientFactory.CreateClient("discovery-probe")
             .Returns(new HttpClient(new TimeoutHttpMessageHandler()));
 
         // Act
@@ -585,7 +587,7 @@ public sealed class ServerDetailViewModelTests
         var sut = CreateSut();
         sut.Url = "http://192.168.1.10:4096";
 
-        _httpClientFactory.CreateClient("opencode")
+        _httpClientFactory.CreateClient("discovery-probe")
             .Returns(new HttpClient(new NetworkErrorHttpMessageHandler()));
 
         // Act

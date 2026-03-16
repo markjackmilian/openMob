@@ -11,7 +11,7 @@
 
 ## Executive Summary
 
-Aggiunge la copertura di unit test completa per tutti i componenti introdotti dalle Spec A, B e C: `ChatService`, `ChatViewModel`, `FlyoutViewModel`, i tre converter (`BoolToVisibilityConverter`, `DateTimeToRelativeStringConverter`, `MessageStatusToIconConverter`) e `ChatEventParser`. Tutti i test seguono il pattern Arrange/Act/Assert con NSubstitute per il mocking e FluentAssertions per le asserzioni. Nessun test introduce dipendenze reali (no HTTP, no DB, no MAUI platform APIs).
+Aggiunge la copertura di unit test completa per tutti i componenti introdotti dalle Spec 02, 04 e 05: `ChatService`, `ChatViewModel`, `FlyoutViewModel`, i tre converter (`BoolToVisibilityConverter`, `DateTimeToRelativeStringConverter`, `MessageStatusToIconConverter`) e `ChatEventParser`. Tutti i test seguono il pattern Arrange/Act/Assert con NSubstitute per il mocking e FluentAssertions per le asserzioni. Nessun test introduce dipendenze reali (no HTTP, no DB, no MAUI platform APIs).
 
 ---
 
@@ -205,9 +205,9 @@ Aggiunge la copertura di unit test completa per tutti i componenti introdotti da
 | `tests/openMob.Tests/Helpers/TestDataBuilders.cs` | Modifica | Aggiunta builder per `MessageWithPartsDto`, `OpencodeEventDto`, `SessionDto` |
 
 ### Dependencies
-- **Spec A** — `ChatService`, `IChatService`, `ChatEvent`, `ChatEventParser`, `SendPromptRequestBuilder` devono esistere
-- **Spec B** — `ChatViewModel`, `ChatMessage`, `MessageDeliveryStatus`, `SuggestionChip` devono esistere
-- **Spec C** — Converter in `openMob.Core.Converters` devono esistere (spostati/creati)
+- **Spec 02** — `ChatService`, `IChatService`, `ChatEvent`, `ChatEventParser`, `SendPromptRequestBuilder` devono esistere
+- **Spec 04** — `ChatViewModel`, `ChatMessage`, `MessageDeliveryStatus`, `SuggestionChip` devono esistere
+- **Spec 05** — Converter in `openMob.Core.Converters` devono esistere (spostati/creati)
 - `FlyoutViewModel` — già esistente, test da aggiungere
 - NSubstitute 5.x, FluentAssertions 6.x, xUnit 2.x — già referenziati
 
@@ -228,7 +228,7 @@ Aggiunge la copertura di unit test completa per tutti i componenti introdotti da
 
 > Each criterion maps to one or more functional requirements.
 
-- [ ] **[AC-001]** Dato `dotnet test tests/openMob.Tests/openMob.Tests.csproj`, quando eseguito dopo l'implementazione di Spec A, B, C, allora tutti i test definiti in questa spec passano con zero fallimenti. *(tutti i REQ)*
+- [ ] **[AC-001]** Dato `dotnet test tests/openMob.Tests/openMob.Tests.csproj`, quando eseguito dopo l'implementazione di Spec 02, 04, 05, allora tutti i test definiti in questa spec passano con zero fallimenti. *(tutti i REQ)*
 - [ ] **[AC-002]** Dato il report di coverage, quando generato con `coverlet`, allora `ChatService`, `ChatViewModel`, `FlyoutViewModel` e tutti i converter hanno copertura ≥ 80% delle righe. *(REQ-004–REQ-053)*
 - [ ] **[AC-003]** Dato un test qualsiasi in questa spec, quando eseguito in isolamento, allora non effettua chiamate HTTP reali, non accede al filesystem, e non usa MAUI platform APIs. *(REQ-002)*
 - [ ] **[AC-004]** Dato `ChatViewModelTests`, quando si verifica il test del grouping, allora i casi di messaggi consecutivi stesso mittente e mittente alternato sono entrambi coperti. *(REQ-028, REQ-029)*

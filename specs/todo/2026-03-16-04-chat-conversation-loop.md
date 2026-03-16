@@ -11,7 +11,7 @@
 
 ## Executive Summary
 
-Implementa il loop conversazionale completo nel `ChatViewModel`: caricamento dello storico messaggi all'apertura di una sessione, invio di un prompt utente, ricezione in streaming della risposta AI tramite eventi SSE, gestione degli stati di caricamento/errore, e cancellazione della risposta in corso. Questa spec dipende da `IChatService` (Spec A) e produce il contratto di binding che `ChatPage.xaml` (Spec C) consumerà.
+Implementa il loop conversazionale completo nel `ChatViewModel`: caricamento dello storico messaggi all'apertura di una sessione, invio di un prompt utente, ricezione in streaming della risposta AI tramite eventi SSE, gestione degli stati di caricamento/errore, e cancellazione della risposta in corso. Questa spec dipende da `IChatService` (Spec 02) e `IProjectPreferenceService` (Spec 03), e produce il contratto di binding che `ChatPage.xaml` (Spec 05) consumerà.
 
 ---
 
@@ -31,10 +31,11 @@ Implementa il loop conversazionale completo nel `ChatViewModel`: caricamento del
 - Stato `IsAiResponding`, `IsBusy`, `ErrorMessage`, `IsEmpty`
 - Aggiornamento del titolo sessione quando arriva `SessionUpdatedEvent`
 - Gestione errori: errori di rete, circuit breaker aperto, errori server
+- Uso di `SelectedModelId` / `SelectedProviderId` (introdotti in Spec 03) nel `SendMessageCommand`
 
 ### Out of Scope
-- XAML e UI (Spec C)
-- Unit test (Spec D)
+- XAML e UI (Spec 05)
+- Unit test (Spec 06)
 - Gestione permessi tool calls (spec futura)
 - Visualizzazione rich content (code blocks, immagini, file diff) — spec futura
 - Ricerca nei messaggi — spec futura
@@ -105,6 +106,7 @@ Implementa il loop conversazionale completo nel `ChatViewModel`: caricamento del
    - Aggiunge ottimisticamente un `ChatMessage` con `IsFromUser = true`, `DeliveryStatus = Sending` alla collezione `Messages`
    - Ricalcola il grouping
    - Chiama `IChatService.SendPromptAsync(SessionId, text, selectedModelId, selectedProviderId)`
+   - `selectedModelId` e `selectedProviderId` sono estratti da `SelectedModelId` (introdotto in Spec 03) via `Split('/', 2)`; se `SelectedModelId` è null, passare `null` a entrambi
    - In caso di successo: aggiorna `DeliveryStatus = Sent` sul messaggio ottimistico
    - In caso di errore: aggiorna `DeliveryStatus = Error`, imposta `ErrorMessage`
    - Imposta `IsAiResponding = true` (la risposta arriverà via SSE)
@@ -177,10 +179,11 @@ Implementa il loop conversazionale completo nel `ChatViewModel`: caricamento del
 | `src/openMob.Core/Models/MessageDeliveryStatus.cs` | Nuovo file | Enum stato consegna |
 | `src/openMob.Core/Models/SuggestionChip.cs` | Nuovo file | Model chip suggerimento |
 | `src/openMob.Core/Infrastructure/DI/CoreServiceExtensions.cs` | Modifica | Registrazione ChatViewModel aggiornata |
-| `src/openMob/Views/Pages/ChatPage.xaml` | Dipendente | Consumerà le proprietà definite qui (Spec C) |
+| `src/openMob/Views/Pages/ChatPage.xaml` | Dipendente | Consumerà le proprietà definite qui (Spec 05) |
 
 ### Dependencies
-- **Spec A (`chat-service-layer`)** — `IChatService`, `ChatEvent`, `ChatServiceResult` devono essere implementati prima di questa spec
+- **Spec 02 (`chat-service-layer`)** — `IChatService`, `ChatEvent`, `ChatServiceResult` devono essere implementati prima di questa spec
+- **Spec 03 (`dynamic-provider-model-selection`)** — `IProjectPreferenceService` e le proprietà `SelectedModelId`/`SelectedModelName` su `ChatViewModel` devono essere disponibili prima di questa spec
 - `IOpencodeApiClient.AbortSessionAsync` — già disponibile per `CancelResponseCommand`
 - `FlyoutViewModel.SelectSessionAsync` — già naviga a `//chat?sessionId=<id>`, `ChatViewModel` deve ricevere il parametro via `IQueryAttributable`
 - `CommunityToolkit.Mvvm` — `[ObservableProperty]`, `[RelayCommand]`, `[AsyncRelayCommand]`, `ObservableObject`
@@ -191,7 +194,7 @@ Implementa il loop conversazionale completo nel `ChatViewModel`: caricamento del
 
 | # | Question | Status | Answer / Decision |
 |---|----------|--------|-------------------|
-| 1 | `selectedModelId` e `selectedProviderId` in `SendMessageCommand` — da dove vengono? | Open | Dipende da `specs/todo/2026-03-16-dynamic-provider-model-selection.md`. Per questa spec, usare `null` (il server usa il default). Aggiornare quando la spec model selection è implementata. |
+| 1 | `selectedModelId` e `selectedProviderId` in `SendMessageCommand` — da dove vengono? | Resolved | Da `SelectedModelId` introdotto in Spec 03. Splittare con `Split('/', 2)` per ottenere provider e model. Se null, passare null al servizio (il server usa il default). |
 | 2 | Il grouping deve considerare anche il tempo tra messaggi (es. gap > 5 min = nuovo gruppo)? | Resolved | No per questa spec. Il grouping è basato solo sul cambio di `IsFromUser`. Aggiungere grouping temporale in una spec futura. |
 | 3 | Quando `SessionId` cambia (utente seleziona altra sessione dal flyout), i messaggi precedenti devono essere svuotati immediatamente o dopo il caricamento dei nuovi? | Resolved | Svuotare immediatamente prima di `LoadMessagesCommand` per evitare flash di contenuto vecchio. |
 | 4 | `IsAiResponding` deve tornare `false` anche se arriva solo `MessageUpdatedEvent` senza `MessagePartUpdatedEvent` precedenti? | Resolved | Sì. Qualsiasi `MessageUpdatedEvent` con `role == "assistant"` e messaggio non-streaming imposta `IsAiResponding = false`. |
@@ -229,3 +232,4 @@ Implementa il loop conversazionale completo nel `ChatViewModel`: caricamento del
 - **`TextContent` da `Parts`**: estrarre il testo concatenando tutte le parti con `Type == "text"` e leggendo il campo `text` dal `Payload` JSON. Gestire il caso in cui `Payload` non contenga `text` (restituire stringa vuota).
 - **As established in `specs/in-progress/2026-03-14-chat-ui-design-guidelines.md`**: `ChatViewModel` deve esporre `ObservableCollection<SuggestionChip>` e la logica di grouping (`IsFirstInGroup`/`IsLastInGroup`) come proprietà del modello, non come converter XAML.
 - **`IDispatcher` injection**: iniettare `IDispatcher` nel costruttore di `ChatViewModel` per marshalling thread-safe. In produzione viene risolto da MAUI DI; nei test viene mockato con NSubstitute.
+- **Integrazione con Spec 03**: `SelectedModelId` e `SelectedModelName` sono già presenti su `ChatViewModel` dopo Spec 03. Questa spec aggiunge solo l'uso di `SelectedModelId` in `SendMessageCommand` per estrarre `providerId` e `modelId`.

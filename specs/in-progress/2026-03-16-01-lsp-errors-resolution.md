@@ -4,7 +4,7 @@
 | Field   | Value                        |
 |---------|------------------------------|
 | Date    | 2026-03-16                   |
-| Status  | Draft                        |
+| Status  | In Progress                  |
 | Version | 1.0                          |
 
 ---
@@ -189,3 +189,77 @@ Il progetto `openMob.Core` presenta una serie di errori LSP (Language Server Pro
 - **`dotnet restore` post-modifica**: eseguire `dotnet restore openMob.sln` prima della verifica build per assicurarsi che il graph dei package sia aggiornato.
 - **File di migrazione**: NON modificare `20260315000000_AddServerConnectionsTable.cs`. La struttura della migrazione è corretta — il warning EF analyzer è un falso positivo dovuto al confronto con il model snapshot cumulativo. Le migrazioni EF Core non devono mai essere modificate dopo essere state applicate a un database.
 - **Complessità stimata**: Low. Tutte le modifiche sono chirurgiche (1-2 righe per file). Nessuna logica di business coinvolta.
+
+---
+
+## Technical Analysis
+
+> Added by: om-orchestrator | Date: 2026-03-16
+
+### Change Classification
+
+| Field | Value |
+|-------|-------|
+| Change type | Bug Fix |
+| Git Flow branch | bugfix/lsp-errors-resolution |
+| Branches from | develop |
+| Estimated complexity | Low |
+| Estimated agents involved | om-mobile-core, om-reviewer |
+
+### Layers Involved
+
+| Layer | Agent | Scope |
+|-------|-------|-------|
+| Business logic / Services | om-mobile-core | `src/openMob.Core/Data/Repositories/ServerConnectionRepository.cs` |
+| Infrastructure | om-mobile-core | `src/openMob.Core/Infrastructure/Http/OpencodeConnectionManager.cs` |
+| Project config | om-mobile-core | `src/openMob.Core/GlobalUsings.cs`, `src/openMob.Core/openMob.Core.csproj` |
+| Code Review | om-reviewer | all of the above |
+
+### Files to Create
+
+*(nessun file nuovo)*
+
+### Files to Modify
+
+- `src/openMob.Core/Data/Repositories/ServerConnectionRepository.cs` — riga 173: `ExecuteSqlInterpolatedAsync` → `ExecuteSqlAsync` (REQ-001)
+- `src/openMob.Core/GlobalUsings.cs` — aggiunta `global using openMob.Core.Infrastructure.Monitoring;` (REQ-002)
+- `src/openMob.Core/Infrastructure/Http/OpencodeConnectionManager.cs` — rimozione `using System.Net.Http;` e `using System.Text;` (REQ-003)
+- `src/openMob.Core/openMob.Core.csproj` — aggiunta commento documentativo gap TFM sopra i PackageReference interessati (REQ-004)
+
+### Technical Dependencies
+
+- `Microsoft.EntityFrameworkCore.Relational` 9.x già presente transitivamente — `ExecuteSqlAsync` disponibile senza aggiornamenti
+- Nessun nuovo NuGet package richiesto
+- Nessuna migrazione EF Core da creare o modificare
+
+### Technical Risks
+
+- **Nessun rischio di breaking change**: tutte le modifiche sono chirurgiche e non alterano la logica di business
+- **REQ-001**: `ExecuteSqlAsync` ha firma identica a `ExecuteSqlInterpolatedAsync` per `FormattableString` — rename diretto, nessun rischio di regressione SQL injection
+- **REQ-002**: `SentryHelper` è nome univoco nel progetto — nessun rischio di conflitto di nome con il global using aggiunto
+- **REQ-003**: `System.Net.Http` e `System.Text` sono già forniti da `ImplicitUsings` — la rimozione non rompe nulla; verificato leggendo il file completo
+- **REQ-004**: modifica solo a commento XML nel `.csproj` — nessun impatto sul build
+
+### Execution Order
+
+> Tutte le modifiche sono indipendenti e possono essere applicate in un unico commit sequenziale.
+
+1. [Git Flow] Creare branch `bugfix/lsp-errors-resolution` da `develop`
+2. [om-mobile-core] Applicare REQ-001: sostituire `ExecuteSqlInterpolatedAsync` con `ExecuteSqlAsync` in `ServerConnectionRepository.cs`
+3. [om-mobile-core] Applicare REQ-002: aggiungere `global using openMob.Core.Infrastructure.Monitoring;` in `GlobalUsings.cs`
+4. [om-mobile-core] Applicare REQ-003: rimuovere `using System.Net.Http;` e `using System.Text;` da `OpencodeConnectionManager.cs`
+5. [om-mobile-core] Applicare REQ-004: aggiungere commento TFM in `openMob.Core.csproj`
+6. [om-mobile-core] Eseguire `dotnet build openMob.sln` e `dotnet test` per verifica REQ-005
+7. [om-reviewer] Review completa dei 4 file modificati
+8. [Git Flow] Finish branch e merge in `develop`
+
+### Definition of Done
+
+- [ ] REQ-001: `ExecuteSqlAsync` usato in `ServerConnectionRepository.cs` riga 173
+- [ ] REQ-002: `global using openMob.Core.Infrastructure.Monitoring;` presente in `GlobalUsings.cs`
+- [ ] REQ-003: nessun `using System.Net.Http;` né `using System.Text;` in `OpencodeConnectionManager.cs`
+- [ ] REQ-004: commento TFM presente in `openMob.Core.csproj`
+- [ ] REQ-005: `dotnet build openMob.sln` → codice 0, zero errori; `dotnet test` → tutti verdi
+- [ ] `om-reviewer` verdict: ✅ Approved o ⚠️ Approved with remarks
+- [ ] Git Flow branch finished e deleted
+- [ ] Spec moved to `specs/done/` con status Completed

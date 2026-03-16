@@ -31,9 +31,9 @@ Introduce `IChatService` e la sua implementazione `ChatService` come strato di s
 
 ### Out of Scope
 - Caching locale dei messaggi in SQLite (spec futura)
-- Logica di business nel ViewModel (Spec B)
-- UI e XAML (Spec C)
-- Unit test (Spec D)
+- Logica di business nel ViewModel (Spec 04)
+- UI e XAML (Spec 05)
+- Unit test (Spec 06)
 - Gestione permessi tool calls (spec futura dedicata)
 - Invio di parti non-testo (immagini, file) — future spec
 

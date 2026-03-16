@@ -87,7 +87,10 @@ internal sealed class OpencodeConnectionManager : IOpencodeConnectionManager
 
         try
         {
-            var client = _httpClientFactory.CreateClient("opencode");
+            // Use the "discovery-probe" client (5-second timeout, no resilience pipeline)
+            // instead of "opencode" to avoid triggering the circuit breaker during health checks.
+            // Repeated failed probes (e.g. server scan) must not open the circuit for real API calls.
+            var client = _httpClientFactory.CreateClient("discovery-probe");
             using var response = await client.GetAsync($"{baseUrl}/global/health", ct).ConfigureAwait(false);
             var reachable = response.IsSuccessStatusCode;
             ConnectionStatus = reachable ? ServerConnectionStatus.Connected : ServerConnectionStatus.Error;

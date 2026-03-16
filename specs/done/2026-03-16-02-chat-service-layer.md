@@ -1,11 +1,14 @@
 # Chat Service Layer — IChatService, Resilienza HTTP e SSE Reconnect
 
 ## Metadata
-| Field   | Value                        |
-|---------|------------------------------|
-| Date    | 2026-03-16                   |
-| Status  | In Progress                  |
-| Version | 1.0                          |
+| Field       | Value                                    |
+|-------------|------------------------------------------|
+| Date        | 2026-03-16                               |
+| Status      | **Completed**                            |
+| Version     | 1.0                                      |
+| Completed   | 2026-03-17                               |
+| Branch      | feature/chat-service-layer (merged)      |
+| Merged into | develop                                  |
 
 ---
 

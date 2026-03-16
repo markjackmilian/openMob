@@ -285,4 +285,72 @@ public sealed class ModelPickerViewModelTests
         _sut.ProviderGroups.Should().HaveCount(2);
         _sut.IsEmpty.Should().BeFalse();
     }
+
+    // ─── SelectModelCommand — callback mechanism ──────────────────────────────
+
+    [Fact]
+    public async Task SelectModelCommand_WhenOnModelSelectedIsSet_InvokesCallbackWithCorrectModelId()
+    {
+        // Arrange
+        var providers = new List<ProviderDto> { BuildProviderWithModels() };
+        _providerService.GetProvidersAsync(Arg.Any<CancellationToken>()).Returns(providers);
+        await _sut.LoadModelsCommand.ExecuteAsync(null);
+
+        string? receivedModelId = null;
+        _sut.OnModelSelected = modelId => receivedModelId = modelId;
+
+        // Act
+        await _sut.SelectModelCommand.ExecuteAsync("anthropic/claude-3-opus");
+
+        // Assert
+        receivedModelId.Should().Be("anthropic/claude-3-opus");
+    }
+
+    [Fact]
+    public async Task SelectModelCommand_WhenOnModelSelectedIsNull_DoesNotThrow()
+    {
+        // Arrange
+        var providers = new List<ProviderDto> { BuildProviderWithModels() };
+        _providerService.GetProvidersAsync(Arg.Any<CancellationToken>()).Returns(providers);
+        await _sut.LoadModelsCommand.ExecuteAsync(null);
+
+        _sut.OnModelSelected = null;
+
+        // Act
+        var act = async () => await _sut.SelectModelCommand.ExecuteAsync("anthropic/claude-3-opus");
+
+        // Assert
+        await act.Should().NotThrowAsync();
+    }
+
+    [Fact]
+    public async Task SelectModelCommand_InvokesCallbackBeforePopPopupAsync()
+    {
+        // Arrange
+        var providers = new List<ProviderDto> { BuildProviderWithModels() };
+        _providerService.GetProvidersAsync(Arg.Any<CancellationToken>()).Returns(providers);
+        await _sut.LoadModelsCommand.ExecuteAsync(null);
+
+        var callOrder = new List<string>();
+        _sut.OnModelSelected = _ => callOrder.Add("callback");
+        _popupService.PopPopupAsync(Arg.Any<CancellationToken>())
+            .Returns(callInfo =>
+            {
+                callOrder.Add("popPopup");
+                return Task.CompletedTask;
+            });
+
+        // Act
+        await _sut.SelectModelCommand.ExecuteAsync("anthropic/claude-3-opus");
+
+        // Assert
+        callOrder.Should().ContainInOrder("callback", "popPopup");
+    }
+
+    [Fact]
+    public void OnModelSelected_DefaultsToNull()
+    {
+        // Assert
+        _sut.OnModelSelected.Should().BeNull();
+    }
 }

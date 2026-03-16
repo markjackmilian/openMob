@@ -13,6 +13,7 @@ public sealed class ProjectDetailViewModelTests
     private readonly ISessionService _sessionService;
     private readonly INavigationService _navigationService;
     private readonly IAppPopupService _popupService;
+    private readonly IProjectPreferenceService _preferenceService;
     private readonly ProjectDetailViewModel _sut;
 
     public ProjectDetailViewModelTests()
@@ -21,9 +22,10 @@ public sealed class ProjectDetailViewModelTests
         _sessionService = Substitute.For<ISessionService>();
         _navigationService = Substitute.For<INavigationService>();
         _popupService = Substitute.For<IAppPopupService>();
+        _preferenceService = Substitute.For<IProjectPreferenceService>();
 
         _sut = new ProjectDetailViewModel(
-            _projectService, _sessionService, _navigationService, _popupService);
+            _projectService, _sessionService, _navigationService, _popupService, _preferenceService);
     }
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -286,5 +288,149 @@ public sealed class ProjectDetailViewModelTests
 
         // Assert
         _sut.ProjectDescription.Should().BeEmpty();
+    }
+
+    // ─── LoadProjectCommand — default model preference ────────────────────────
+
+    [Fact]
+    public async Task LoadProjectCommand_WhenPreferenceExists_SetsDefaultModelName()
+    {
+        // Arrange
+        var project = BuildProject("p1");
+        _projectService.GetProjectByIdAsync("p1", Arg.Any<CancellationToken>()).Returns(project);
+        _projectService.GetCurrentProjectAsync(Arg.Any<CancellationToken>()).Returns((ProjectDto?)null);
+        _sessionService.GetSessionsByProjectAsync("p1", Arg.Any<CancellationToken>())
+            .Returns(new List<openMob.Core.Infrastructure.Http.Dtos.Opencode.SessionDto>());
+        _preferenceService.GetAsync("p1", Arg.Any<CancellationToken>())
+            .Returns(new ProjectPreference { ProjectId = "p1", DefaultModelId = "anthropic/claude-sonnet-4-5" });
+
+        // Act
+        await _sut.LoadProjectCommand.ExecuteAsync("p1");
+
+        // Assert
+        _sut.DefaultModelName.Should().Be("claude-sonnet-4-5");
+    }
+
+    [Fact]
+    public async Task LoadProjectCommand_WhenNoPreferenceExists_DefaultModelNameRemainsEmpty()
+    {
+        // Arrange
+        var project = BuildProject("p1");
+        _projectService.GetProjectByIdAsync("p1", Arg.Any<CancellationToken>()).Returns(project);
+        _projectService.GetCurrentProjectAsync(Arg.Any<CancellationToken>()).Returns((ProjectDto?)null);
+        _sessionService.GetSessionsByProjectAsync("p1", Arg.Any<CancellationToken>())
+            .Returns(new List<openMob.Core.Infrastructure.Http.Dtos.Opencode.SessionDto>());
+        _preferenceService.GetAsync("p1", Arg.Any<CancellationToken>())
+            .Returns((ProjectPreference?)null);
+
+        // Act
+        await _sut.LoadProjectCommand.ExecuteAsync("p1");
+
+        // Assert
+        _sut.DefaultModelName.Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData("anthropic/claude-sonnet-4-5", "claude-sonnet-4-5")]
+    [InlineData("openai/gpt-4o", "gpt-4o")]
+    [InlineData("google/gemini-pro", "gemini-pro")]
+    [InlineData("model-without-slash", "model-without-slash")]
+    public async Task LoadProjectCommand_ExtractsModelNameFromFullModelId(
+        string fullModelId, string expectedModelName)
+    {
+        // Arrange
+        var project = BuildProject("p1");
+        _projectService.GetProjectByIdAsync("p1", Arg.Any<CancellationToken>()).Returns(project);
+        _projectService.GetCurrentProjectAsync(Arg.Any<CancellationToken>()).Returns((ProjectDto?)null);
+        _sessionService.GetSessionsByProjectAsync("p1", Arg.Any<CancellationToken>())
+            .Returns(new List<openMob.Core.Infrastructure.Http.Dtos.Opencode.SessionDto>());
+        _preferenceService.GetAsync("p1", Arg.Any<CancellationToken>())
+            .Returns(new ProjectPreference { ProjectId = "p1", DefaultModelId = fullModelId });
+
+        // Act
+        await _sut.LoadProjectCommand.ExecuteAsync("p1");
+
+        // Assert
+        _sut.DefaultModelName.Should().Be(expectedModelName);
+    }
+
+    // ─── ChangeModelCommand ───────────────────────────────────────────────────
+
+    [Fact]
+    public async Task ChangeModelCommand_OpensModelPicker()
+    {
+        // Act
+        await _sut.ChangeModelCommand.ExecuteAsync(null);
+
+        // Assert
+        await _popupService.Received(1).ShowModelPickerAsync(
+            Arg.Any<Action<string>>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ChangeModelCommand_WhenModelSelected_UpdatesDefaultModelName()
+    {
+        // Arrange
+        _sut.ProjectId = "proj-1";
+        _popupService.ShowModelPickerAsync(Arg.Any<Action<string>>(), Arg.Any<CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var callback = callInfo.Arg<Action<string>>();
+                callback("anthropic/claude-sonnet-4-5");
+                return Task.CompletedTask;
+            });
+
+        // Act
+        await _sut.ChangeModelCommand.ExecuteAsync(null);
+
+        // Assert
+        _sut.DefaultModelName.Should().Be("claude-sonnet-4-5");
+    }
+
+    [Fact]
+    public async Task ChangeModelCommand_WhenModelSelected_PersistsToPreferenceService()
+    {
+        // Arrange
+        _sut.ProjectId = "proj-1";
+        _popupService.ShowModelPickerAsync(Arg.Any<Action<string>>(), Arg.Any<CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var callback = callInfo.Arg<Action<string>>();
+                callback("openai/gpt-4o");
+                return Task.CompletedTask;
+            });
+
+        // Act
+        await _sut.ChangeModelCommand.ExecuteAsync(null);
+
+        // Assert
+        await _preferenceService.Received(1).SetDefaultModelAsync(
+            "proj-1",
+            "openai/gpt-4o",
+            Arg.Any<CancellationToken>());
+    }
+
+    [Theory]
+    [InlineData("anthropic/claude-sonnet-4-5", "claude-sonnet-4-5")]
+    [InlineData("openai/gpt-4", "gpt-4")]
+    public async Task ChangeModelCommand_ExtractsModelNameFromSelectedModelId(
+        string selectedModelId, string expectedDisplayName)
+    {
+        // Arrange
+        _sut.ProjectId = "proj-1";
+        _popupService.ShowModelPickerAsync(Arg.Any<Action<string>>(), Arg.Any<CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var callback = callInfo.Arg<Action<string>>();
+                callback(selectedModelId);
+                return Task.CompletedTask;
+            });
+
+        // Act
+        await _sut.ChangeModelCommand.ExecuteAsync(null);
+
+        // Assert
+        _sut.DefaultModelName.Should().Be(expectedDisplayName);
     }
 }

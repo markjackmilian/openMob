@@ -1,15 +1,16 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:helpers="clr-namespace:openMob.Helpers"
              x:Class="openMob.Views.Controls.FlyoutFooterView">
 
   <VerticalStackLayout
-      BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceLight}, Dark={StaticResource ColorSurfaceDark}}"
+      BackgroundColor="{AppThemeBinding Light={StaticResource ColorBackgroundLight}, Dark={StaticResource ColorBackgroundDark}}"
       Padding="0,8">
 
     <!-- Separator -->
     <BoxView
-        HeightRequest="1"
+        HeightRequest="0.5"
         Color="{AppThemeBinding Light={StaticResource ColorSeparatorLight}, Dark={StaticResource ColorSeparatorDark}}"
         Margin="0,0,0,8" />
 
@@ -17,20 +18,26 @@
     <Grid
         ColumnDefinitions="Auto,*"
         Padding="16,12"
-        BackgroundColor="Transparent">
+        BackgroundColor="Transparent"
+        MinimumHeightRequest="{StaticResource MinTouchTarget}">
       <Grid.GestureRecognizers>
         <TapGestureRecognizer Tapped="OnProjectsTapped" />
       </Grid.GestureRecognizers>
       <Label
           Grid.Column="0"
-          Text="&#x1F4C1;"
-          FontSize="{StaticResource FontSizeBody}"
+          FontFamily="MaterialSymbols"
+          Text="{x:Static helpers:MaterialIcons.Folder}"
+          FontSize="22"
+          TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
           VerticalOptions="Center"
-          Margin="0,0,12,0" />
+          Margin="0,0,12,0"
+          SemanticProperties.Description="Projects folder icon" />
       <Label
           Grid.Column="1"
           Text="Projects"
-          Style="{StaticResource BodyLabel}"
+          FontFamily="InterMedium"
+          FontSize="{StaticResource FontSizeCallout}"
+          TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
           VerticalOptions="Center" />
     </Grid>
 
@@ -38,28 +45,35 @@
     <Grid
         ColumnDefinitions="Auto,*"
         Padding="16,12"
-        BackgroundColor="Transparent">
+        BackgroundColor="Transparent"
+        MinimumHeightRequest="{StaticResource MinTouchTarget}">
       <Grid.GestureRecognizers>
         <TapGestureRecognizer Tapped="OnSettingsTapped" />
       </Grid.GestureRecognizers>
       <Label
           Grid.Column="0"
-          Text="&#x2699;"
-          FontSize="{StaticResource FontSizeBody}"
+          FontFamily="MaterialSymbols"
+          Text="{x:Static helpers:MaterialIcons.Settings}"
+          FontSize="22"
+          TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
           VerticalOptions="Center"
-          Margin="0,0,12,0" />
+          Margin="0,0,12,0"
+          SemanticProperties.Description="Settings gear icon" />
       <Label
           Grid.Column="1"
           Text="Settings"
-          Style="{StaticResource BodyLabel}"
+          FontFamily="InterMedium"
+          FontSize="{StaticResource FontSizeCallout}"
+          TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
           VerticalOptions="Center" />
     </Grid>
 
     <!-- Version (dynamic from AppInfo) -->
     <Label
         x:Name="VersionLabel"
-        Style="{StaticResource Caption2Label}"
-        TextColor="{AppThemeBinding Light={StaticResource ColorOnSurfaceTertiaryLight}, Dark={StaticResource ColorOnSurfaceTertiaryDark}}"
+        FontFamily="InterRegular"
+        FontSize="{StaticResource FontSizeCaption2}"
+        TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
         HorizontalTextAlignment="Center"
         Margin="0,8,0,8" />
 

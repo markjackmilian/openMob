@@ -1,39 +1,215 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:helpers="clr-namespace:openMob.Helpers"
              x:Class="openMob.Views.Pages.SettingsPage"
              Title="Settings">
 
-  <VerticalStackLayout
-      VerticalOptions="Center"
-      HorizontalOptions="Center"
-      Spacing="{StaticResource SpacingLg}"
-      Padding="{StaticResource SpacingXxl}">
+  <ScrollView>
+    <VerticalStackLayout
+        Padding="{StaticResource SpacingLg}"
+        Spacing="0">
 
-    <Border
-        WidthRequest="72"
-        HeightRequest="72"
-        StrokeShape="RoundRectangle 36"
-        StrokeThickness="0"
-        BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceSecondaryLight}, Dark={StaticResource ColorSurfaceSecondaryDark}}"
-        HorizontalOptions="Center">
+      <!-- Section: General -->
       <Label
-          Text="&#x2699;"
-          FontSize="{StaticResource FontSizeTitle1}"
-          HorizontalOptions="Center"
-          VerticalOptions="Center" />
-    </Border>
+          Text="GENERAL"
+          Style="{StaticResource CaptionLabel}"
+          FontFamily="InterMedium"
+          Margin="0,16,0,8" />
 
-    <Label
-        Text="Settings"
-        Style="{StaticResource Title3Label}"
-        HorizontalTextAlignment="Center" />
+      <Border Style="{StaticResource CardBorder}">
+        <VerticalStackLayout Spacing="0">
 
-    <Label
-        Text="Coming soon. Server configuration, provider management, and app preferences will be available here."
-        Style="{StaticResource CalloutLabel}"
-        HorizontalTextAlignment="Center" />
+          <!-- Appearance -->
+          <Grid
+              ColumnDefinitions="Auto,*,Auto"
+              Padding="0,12"
+              ColumnSpacing="{StaticResource SpacingMd}">
+            <Label
+                FontFamily="MaterialSymbols"
+                Text="{x:Static helpers:MaterialIcons.Settings}"
+                FontSize="22"
+                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
+                VerticalOptions="Center" />
+            <Label
+                Grid.Column="1"
+                Text="Appearance"
+                FontFamily="InterRegular"
+                VerticalOptions="Center" />
+            <Label
+                Grid.Column="2"
+                Text="System"
+                FontFamily="InterRegular"
+                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
+                VerticalOptions="Center" />
+          </Grid>
 
-  </VerticalStackLayout>
+          <BoxView
+              HeightRequest="0.5"
+              Color="{AppThemeBinding Light={StaticResource ColorSeparatorLight}, Dark={StaticResource ColorSeparatorDark}}" />
+
+          <!-- Server Connection -->
+          <Grid
+              ColumnDefinitions="Auto,*,Auto"
+              Padding="0,12"
+              ColumnSpacing="{StaticResource SpacingMd}">
+            <Label
+                FontFamily="MaterialSymbols"
+                Text="{x:Static helpers:MaterialIcons.Link}"
+                FontSize="22"
+                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
+                VerticalOptions="Center" />
+            <Label
+                Grid.Column="1"
+                Text="Server Connection"
+                FontFamily="InterRegular"
+                VerticalOptions="Center" />
+            <Label
+                Grid.Column="2"
+                FontFamily="MaterialSymbols"
+                Text="{x:Static helpers:MaterialIcons.ChevronRight}"
+                FontSize="18"
+                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
+                VerticalOptions="Center" />
+          </Grid>
+
+          <BoxView
+              HeightRequest="0.5"
+              Color="{AppThemeBinding Light={StaticResource ColorSeparatorLight}, Dark={StaticResource ColorSeparatorDark}}" />
+
+          <!-- Notifications -->
+          <Grid
+              ColumnDefinitions="Auto,*,Auto"
+              Padding="0,12"
+              ColumnSpacing="{StaticResource SpacingMd}">
+            <Label
+                FontFamily="MaterialSymbols"
+                Text="{x:Static helpers:MaterialIcons.Notifications}"
+                FontSize="22"
+                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
+                VerticalOptions="Center" />
+            <Label
+                Grid.Column="1"
+                Text="Notifications"
+                FontFamily="InterRegular"
+                VerticalOptions="Center" />
+            <Label
+                Grid.Column="2"
+                FontFamily="MaterialSymbols"
+                Text="{x:Static helpers:MaterialIcons.ChevronRight}"
+                FontSize="18"
+                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
+                VerticalOptions="Center" />
+          </Grid>
+
+        </VerticalStackLayout>
+      </Border>
+
+      <!-- Section: AI Providers -->
+      <Label
+          Text="AI PROVIDERS"
+          Style="{StaticResource CaptionLabel}"
+          FontFamily="InterMedium"
+          Margin="0,24,0,8" />
+
+      <Border Style="{StaticResource CardBorder}">
+        <VerticalStackLayout Spacing="0">
+
+          <!-- Manage Providers -->
+          <Grid
+              ColumnDefinitions="Auto,*,Auto"
+              Padding="0,12"
+              ColumnSpacing="{StaticResource SpacingMd}">
+            <Label
+                FontFamily="MaterialSymbols"
+                Text="{x:Static helpers:MaterialIcons.SmartToy}"
+                FontSize="22"
+                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
+                VerticalOptions="Center" />
+            <Label
+                Grid.Column="1"
+                Text="Manage Providers"
+                FontFamily="InterRegular"
+                VerticalOptions="Center" />
+            <Label
+                Grid.Column="2"
+                FontFamily="MaterialSymbols"
+                Text="{x:Static helpers:MaterialIcons.ChevronRight}"
+                FontSize="18"
+                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
+                VerticalOptions="Center" />
+          </Grid>
+
+          <BoxView
+              HeightRequest="0.5"
+              Color="{AppThemeBinding Light={StaticResource ColorSeparatorLight}, Dark={StaticResource ColorSeparatorDark}}" />
+
+          <!-- API Keys -->
+          <Grid
+              ColumnDefinitions="Auto,*,Auto"
+              Padding="0,12"
+              ColumnSpacing="{StaticResource SpacingMd}">
+            <Label
+                FontFamily="MaterialSymbols"
+                Text="{x:Static helpers:MaterialIcons.Key}"
+                FontSize="22"
+                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
+                VerticalOptions="Center" />
+            <Label
+                Grid.Column="1"
+                Text="API Keys"
+                FontFamily="InterRegular"
+                VerticalOptions="Center" />
+            <Label
+                Grid.Column="2"
+                FontFamily="MaterialSymbols"
+                Text="{x:Static helpers:MaterialIcons.ChevronRight}"
+                FontSize="18"
+                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
+                VerticalOptions="Center" />
+          </Grid>
+
+        </VerticalStackLayout>
+      </Border>
+
+      <!-- Section: About -->
+      <Label
+          Text="ABOUT"
+          Style="{StaticResource CaptionLabel}"
+          FontFamily="InterMedium"
+          Margin="0,24,0,8" />
+
+      <Border Style="{StaticResource CardBorder}">
+        <VerticalStackLayout Spacing="0">
+
+          <!-- Version -->
+          <Grid
+              ColumnDefinitions="Auto,*,Auto"
+              Padding="0,12"
+              ColumnSpacing="{StaticResource SpacingMd}">
+            <Label
+                FontFamily="MaterialSymbols"
+                Text="{x:Static helpers:MaterialIcons.Info}"
+                FontSize="22"
+                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
+                VerticalOptions="Center" />
+            <Label
+                Grid.Column="1"
+                Text="Version"
+                FontFamily="InterRegular"
+                VerticalOptions="Center" />
+            <Label
+                Grid.Column="2"
+                Text="1.0.0"
+                FontFamily="InterRegular"
+                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
+                VerticalOptions="Center" />
+          </Grid>
+
+        </VerticalStackLayout>
+      </Border>
+
+    </VerticalStackLayout>
+  </ScrollView>
 
 </ContentPage>

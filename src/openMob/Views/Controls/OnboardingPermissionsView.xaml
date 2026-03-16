@@ -2,6 +2,7 @@
 <ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:openMob.Core.ViewModels;assembly=openMob.Core"
+             xmlns:helpers="clr-namespace:openMob.Helpers"
              x:Class="openMob.Views.Controls.OnboardingPermissionsView"
              x:DataType="vm:OnboardingViewModel">
 
@@ -12,12 +13,14 @@
     <!-- Title -->
     <Label
         Text="Permissions"
-        Style="{StaticResource Title2Label}" />
+        Style="{StaticResource Title2Label}"
+        FontFamily="InterBold" />
 
     <!-- Subtitle -->
     <Label
         Text="openMob may request the following permissions to provide the best experience."
         Style="{StaticResource CalloutLabel}"
+        FontFamily="InterRegular"
         Margin="0,0,0,12" />
 
     <!-- Notifications permission -->
@@ -32,8 +35,10 @@
             StrokeThickness="0"
             BackgroundColor="{AppThemeBinding Light={StaticResource ColorPrimaryContainerLight}, Dark={StaticResource ColorPrimaryContainerDark}}">
           <Label
-              Text="&#x1F514;"
-              FontSize="{StaticResource FontSizeTitle3}"
+              FontFamily="MaterialSymbols"
+              Text="{x:Static helpers:MaterialIcons.Notifications}"
+              FontSize="28"
+              TextColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}"
               HorizontalOptions="Center"
               VerticalOptions="Center" />
         </Border>
@@ -42,10 +47,12 @@
             VerticalOptions="Center">
           <Label
               Text="Notifications"
-              Style="{StaticResource HeadlineLabel}" />
+              Style="{StaticResource HeadlineLabel}"
+              FontFamily="InterSemiBold" />
           <Label
               Text="Get notified when the AI responds to your messages."
-              Style="{StaticResource FootnoteLabel}" />
+              Style="{StaticResource FootnoteLabel}"
+              FontFamily="InterRegular" />
         </VerticalStackLayout>
       </HorizontalStackLayout>
     </Border>
@@ -62,8 +69,10 @@
             StrokeThickness="0"
             BackgroundColor="{AppThemeBinding Light={StaticResource ColorPrimaryContainerLight}, Dark={StaticResource ColorPrimaryContainerDark}}">
           <Label
-              Text="&#x1F310;"
-              FontSize="{StaticResource FontSizeTitle3}"
+              FontFamily="MaterialSymbols"
+              Text="{x:Static helpers:MaterialIcons.Public}"
+              FontSize="28"
+              TextColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}"
               HorizontalOptions="Center"
               VerticalOptions="Center" />
         </Border>
@@ -72,10 +81,12 @@
             VerticalOptions="Center">
           <Label
               Text="Network Access"
-              Style="{StaticResource HeadlineLabel}" />
+              Style="{StaticResource HeadlineLabel}"
+              FontFamily="InterSemiBold" />
           <Label
               Text="Connect to your opencode server for AI interactions."
-              Style="{StaticResource FootnoteLabel}" />
+              Style="{StaticResource FootnoteLabel}"
+              FontFamily="InterRegular" />
         </VerticalStackLayout>
       </HorizontalStackLayout>
     </Border>

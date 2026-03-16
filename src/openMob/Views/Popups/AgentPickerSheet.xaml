@@ -3,34 +3,38 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:openMob.Core.ViewModels;assembly=openMob.Core"
              xmlns:models="clr-namespace:openMob.Core.Models;assembly=openMob.Core"
+             xmlns:helpers="clr-namespace:openMob.Helpers"
              x:Class="openMob.Views.Popups.AgentPickerSheet"
              x:DataType="vm:AgentPickerViewModel"
              Title="Select Agent"
-             Shell.PresentationMode="ModalAnimated">
+             Shell.PresentationMode="ModalAnimated"
+             BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceLight}, Dark={StaticResource ColorSurfaceDark}}">
 
-  <VerticalStackLayout
-      Spacing="{StaticResource SpacingLg}"
-      Padding="{StaticResource SpacingLg}">
+  <VerticalStackLayout Spacing="0">
 
     <!-- Handle bar -->
     <BoxView
         WidthRequest="36"
         HeightRequest="4"
         CornerRadius="2"
-        Color="{AppThemeBinding Light={StaticResource ColorOnSurfaceTertiaryLight}, Dark={StaticResource ColorOnSurfaceTertiaryDark}}"
+        Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
         HorizontalOptions="Center"
-        Margin="0,8,0,0" />
+        Margin="0,8,0,16" />
 
     <!-- Title -->
     <Label
         Text="Select Agent"
-        Style="{StaticResource Title3Label}" />
+        FontFamily="InterSemiBold"
+        FontSize="{StaticResource FontSizeTitle3}"
+        TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}"
+        Margin="16,0,16,16" />
 
     <!-- Loading indicator -->
     <ActivityIndicator
         IsRunning="{Binding IsLoading}"
         IsVisible="{Binding IsLoading}"
-        HorizontalOptions="Center" />
+        HorizontalOptions="Center"
+        Margin="0,16" />
 
     <!-- Agent list -->
     <CollectionView
@@ -39,44 +43,69 @@
         IsVisible="{Binding IsLoading, Converter={StaticResource InvertedBoolConverter}}">
       <CollectionView.ItemTemplate>
         <DataTemplate x:DataType="models:AgentItem">
-          <Grid
-              ColumnDefinitions="*,Auto"
-              Padding="{StaticResource SpacingMd}"
-              MinimumHeightRequest="{StaticResource MinTouchTarget}">
-            <Grid.GestureRecognizers>
-              <TapGestureRecognizer
-                  Command="{Binding SelectAgentCommand, Source={RelativeSource AncestorType={x:Type vm:AgentPickerViewModel}}}"
-                  CommandParameter="{Binding Name}" />
-            </Grid.GestureRecognizers>
+          <VerticalStackLayout Spacing="0" Padding="16,0">
+            <Grid
+                ColumnDefinitions="Auto,*,Auto"
+                Padding="0,14"
+                ColumnSpacing="12"
+                MinimumHeightRequest="{StaticResource MinTouchTarget}">
+              <Grid.GestureRecognizers>
+                <TapGestureRecognizer
+                    Command="{Binding SelectAgentCommand, Source={RelativeSource AncestorType={x:Type vm:AgentPickerViewModel}}}"
+                    CommandParameter="{Binding Name}" />
+              </Grid.GestureRecognizers>
 
-            <VerticalStackLayout
-                Grid.Column="0"
-                Spacing="{StaticResource SpacingXs}"
-                VerticalOptions="Center">
+              <!-- Agent icon -->
               <Label
-                  Text="{Binding Name, FallbackValue='Agent'}"
-                  Style="{StaticResource HeadlineLabel}" />
-              <Label
-                  Text="{Binding Description, FallbackValue='', TargetNullValue=''}"
-                  Style="{StaticResource FootnoteLabel}"
-                  IsVisible="{Binding Description, Converter={StaticResource NullToVisibilityConverter}}" />
-            </VerticalStackLayout>
+                  Grid.Column="0"
+                  FontFamily="MaterialSymbols"
+                  Text="{x:Static helpers:MaterialIcons.SmartToy}"
+                  FontSize="24"
+                  TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
+                  VerticalOptions="Center"
+                  SemanticProperties.Description="Agent icon" />
 
-            <!-- Checkmark for selected agent -->
-            <Label
-                Grid.Column="1"
-                Text="&#x2713;"
-                FontSize="{StaticResource FontSizeBody}"
-                TextColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}"
-                IsVisible="{Binding IsSelected}"
-                VerticalOptions="Center" />
-          </Grid>
+              <VerticalStackLayout
+                  Grid.Column="1"
+                  Spacing="2"
+                  VerticalOptions="Center">
+                <Label
+                    Text="{Binding Name, FallbackValue='Agent'}"
+                    FontFamily="InterMedium"
+                    FontSize="{StaticResource FontSizeBody}"
+                    TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}" />
+                <Label
+                    Text="{Binding Description, FallbackValue='', TargetNullValue=''}"
+                    FontFamily="InterRegular"
+                    FontSize="{StaticResource FontSizeCaption1}"
+                    TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
+                    IsVisible="{Binding Description, Converter={StaticResource NullToVisibilityConverter}}" />
+              </VerticalStackLayout>
+
+              <!-- Checkmark for selected agent -->
+              <Label
+                  Grid.Column="2"
+                  FontFamily="MaterialSymbols"
+                  Text="{x:Static helpers:MaterialIcons.Check}"
+                  FontSize="24"
+                  TextColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}"
+                  IsVisible="{Binding IsSelected}"
+                  VerticalOptions="Center"
+                  SemanticProperties.Description="Selected" />
+            </Grid>
+
+            <BoxView
+                HeightRequest="0.5"
+                Color="{AppThemeBinding Light={StaticResource ColorSeparatorLight}, Dark={StaticResource ColorSeparatorDark}}" />
+          </VerticalStackLayout>
         </DataTemplate>
       </CollectionView.ItemTemplate>
       <CollectionView.EmptyView>
         <Label
             Text="No agents available"
-            Style="{StaticResource CalloutLabel}"
+            FontFamily="InterRegular"
+            FontSize="{StaticResource FontSizeCallout}"
+            TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
             HorizontalTextAlignment="Center"
             Margin="0,16" />
       </CollectionView.EmptyView>

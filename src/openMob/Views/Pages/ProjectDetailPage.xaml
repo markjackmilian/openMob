@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:openMob.Core.ViewModels;assembly=openMob.Core"
              xmlns:models="clr-namespace:openMob.Core.Models;assembly=openMob.Core"
+             xmlns:helpers="clr-namespace:openMob.Helpers"
              x:Class="openMob.Views.Pages.ProjectDetailPage"
              x:DataType="vm:ProjectDetailViewModel"
              Title="{Binding ProjectName, FallbackValue='Project'}">
@@ -24,6 +25,7 @@
         <Label
             Text="INFORMATION"
             Style="{StaticResource CaptionLabel}"
+            FontFamily="InterSemiBold"
             TextTransform="Uppercase"
             TextColor="{AppThemeBinding Light={StaticResource ColorOnSurfaceTertiaryLight}, Dark={StaticResource ColorOnSurfaceTertiaryDark}}" />
 
@@ -65,7 +67,8 @@
                 Spacing="{StaticResource SpacingSm}"
                 IsVisible="{Binding IsActiveProject}">
               <Label
-                  Text="&#x2713;"
+                  FontFamily="MaterialSymbols"
+                  Text="{x:Static helpers:MaterialIcons.Check}"
                   TextColor="{AppThemeBinding Light={StaticResource ColorSuccessLight}, Dark={StaticResource ColorSuccessDark}}"
                   VerticalOptions="Center" />
               <Label
@@ -81,6 +84,7 @@
         <Label
             Text="RECENT SESSIONS"
             Style="{StaticResource CaptionLabel}"
+            FontFamily="InterSemiBold"
             TextTransform="Uppercase"
             TextColor="{AppThemeBinding Light={StaticResource ColorOnSurfaceTertiaryLight}, Dark={StaticResource ColorOnSurfaceTertiaryDark}}" />
 
@@ -130,6 +134,7 @@
         <Label
             Text="DEFAULTS"
             Style="{StaticResource CaptionLabel}"
+            FontFamily="InterSemiBold"
             TextTransform="Uppercase"
             TextColor="{AppThemeBinding Light={StaticResource ColorOnSurfaceTertiaryLight}, Dark={StaticResource ColorOnSurfaceTertiaryDark}}" />
 
@@ -143,14 +148,16 @@
                 <TapGestureRecognizer Command="{Binding ChangeAgentCommand}" />
               </Grid.GestureRecognizers>
               <VerticalStackLayout Grid.Column="0" Spacing="{StaticResource SpacingXs}">
-                <Label Text="Agent" Style="{StaticResource FootnoteLabel}" />
+                <Label Text="Agent" Style="{StaticResource FootnoteLabel}" FontFamily="InterRegular" />
                 <Label
                     Text="{Binding DefaultAgentName, FallbackValue='Default', TargetNullValue='Default'}"
-                    Style="{StaticResource BodyLabel}" />
+                    Style="{StaticResource BodyLabel}"
+                    FontFamily="InterRegular" />
               </VerticalStackLayout>
               <Label
                   Grid.Column="1"
-                  Text="&#x203A;"
+                  FontFamily="MaterialSymbols"
+                  Text="{x:Static helpers:MaterialIcons.ChevronRight}"
                   FontSize="{StaticResource FontSizeTitle2}"
                   TextColor="{AppThemeBinding Light={StaticResource ColorOnSurfaceTertiaryLight}, Dark={StaticResource ColorOnSurfaceTertiaryDark}}"
                   VerticalOptions="Center" />
@@ -169,14 +176,16 @@
                 <TapGestureRecognizer Command="{Binding ChangeModelCommand}" />
               </Grid.GestureRecognizers>
               <VerticalStackLayout Grid.Column="0" Spacing="{StaticResource SpacingXs}">
-                <Label Text="Model" Style="{StaticResource FootnoteLabel}" />
+                <Label Text="Model" Style="{StaticResource FootnoteLabel}" FontFamily="InterRegular" />
                 <Label
                     Text="{Binding DefaultModelName, FallbackValue='Default', TargetNullValue='Default'}"
-                    Style="{StaticResource BodyLabel}" />
+                    Style="{StaticResource BodyLabel}"
+                    FontFamily="InterRegular" />
               </VerticalStackLayout>
               <Label
                   Grid.Column="1"
-                  Text="&#x203A;"
+                  FontFamily="MaterialSymbols"
+                  Text="{x:Static helpers:MaterialIcons.ChevronRight}"
                   FontSize="{StaticResource FontSizeTitle2}"
                   TextColor="{AppThemeBinding Light={StaticResource ColorOnSurfaceTertiaryLight}, Dark={StaticResource ColorOnSurfaceTertiaryDark}}"
                   VerticalOptions="Center" />
@@ -188,6 +197,7 @@
         <Label
             Text="SETTINGS"
             Style="{StaticResource CaptionLabel}"
+            FontFamily="InterSemiBold"
             TextTransform="Uppercase"
             TextColor="{AppThemeBinding Light={StaticResource ColorOnSurfaceTertiaryLight}, Dark={StaticResource ColorOnSurfaceTertiaryDark}}" />
 
@@ -197,11 +207,12 @@
                 ColumnDefinitions="*,Auto"
                 Padding="0,12"
                 Opacity="0.5">
-              <Label Grid.Column="0" Text="MCP Plugins" Style="{StaticResource BodyLabel}" />
+              <Label Grid.Column="0" Text="MCP Plugins" Style="{StaticResource BodyLabel}" FontFamily="InterRegular" />
               <Label
                   Grid.Column="1"
                   Text="Coming soon"
                   Style="{StaticResource FootnoteLabel}"
+                  FontFamily="InterRegular"
                   VerticalOptions="Center" />
             </Grid>
 
@@ -213,11 +224,12 @@
                 ColumnDefinitions="*,Auto"
                 Padding="0,12"
                 Opacity="0.5">
-              <Label Grid.Column="0" Text="Rules / Instructions" Style="{StaticResource BodyLabel}" />
+              <Label Grid.Column="0" Text="Rules / Instructions" Style="{StaticResource BodyLabel}" FontFamily="InterRegular" />
               <Label
                   Grid.Column="1"
                   Text="Coming soon"
                   Style="{StaticResource FootnoteLabel}"
+                  FontFamily="InterRegular"
                   VerticalOptions="Center" />
             </Grid>
           </VerticalStackLayout>

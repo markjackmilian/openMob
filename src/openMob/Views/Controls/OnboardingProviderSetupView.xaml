@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:openMob.Core.ViewModels;assembly=openMob.Core"
              xmlns:dtos="clr-namespace:openMob.Core.Infrastructure.Http.Dtos.Opencode;assembly=openMob.Core"
+             xmlns:helpers="clr-namespace:openMob.Helpers"
              x:Class="openMob.Views.Controls.OnboardingProviderSetupView"
              x:DataType="vm:OnboardingViewModel">
 
@@ -13,12 +14,14 @@
     <!-- Title -->
     <Label
         Text="Configure an AI Provider"
-        Style="{StaticResource Title2Label}" />
+        Style="{StaticResource Title2Label}"
+        FontFamily="InterBold" />
 
     <!-- Subtitle -->
     <Label
         Text="You can also do this later from Settings."
         Style="{StaticResource CalloutLabel}"
+        FontFamily="InterRegular"
         Margin="0,0,0,8" />
 
     <!-- Provider list -->
@@ -32,14 +35,24 @@
               Style="{StaticResource CardBorder}"
               Margin="0,0,0,8"
               Padding="{StaticResource SpacingMd}">
-            <VerticalStackLayout Spacing="{StaticResource SpacingSm}">
+            <HorizontalStackLayout Spacing="{StaticResource SpacingMd}">
               <Label
-                  Text="{Binding Name, FallbackValue='Provider'}"
-                  Style="{StaticResource HeadlineLabel}" />
-              <Label
-                  Text="{Binding Id, FallbackValue='', TargetNullValue=''}"
-                  Style="{StaticResource FootnoteLabel}" />
-            </VerticalStackLayout>
+                  FontFamily="MaterialSymbols"
+                  Text="{x:Static helpers:MaterialIcons.SmartToy}"
+                  FontSize="{StaticResource FontSizeTitle2}"
+                  TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
+                  VerticalOptions="Center" />
+              <VerticalStackLayout Spacing="{StaticResource SpacingSm}">
+                <Label
+                    Text="{Binding Name, FallbackValue='Provider'}"
+                    Style="{StaticResource HeadlineLabel}"
+                    FontFamily="InterMedium" />
+                <Label
+                    Text="{Binding Id, FallbackValue='', TargetNullValue=''}"
+                    Style="{StaticResource FootnoteLabel}"
+                    FontFamily="InterRegular" />
+              </VerticalStackLayout>
+            </HorizontalStackLayout>
           </Border>
         </DataTemplate>
       </CollectionView.ItemTemplate>
@@ -49,8 +62,15 @@
             HorizontalOptions="Center"
             Spacing="{StaticResource SpacingSm}">
           <Label
+              FontFamily="MaterialSymbols"
+              Text="{x:Static helpers:MaterialIcons.SmartToy}"
+              FontSize="{StaticResource FontSizeLargeTitle}"
+              TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
+              HorizontalOptions="Center" />
+          <Label
               Text="No providers available"
               Style="{StaticResource CalloutLabel}"
+              FontFamily="InterRegular"
               HorizontalTextAlignment="Center" />
         </VerticalStackLayout>
       </CollectionView.EmptyView>
@@ -60,9 +80,18 @@
     <VerticalStackLayout
         Spacing="{StaticResource SpacingXs}"
         IsVisible="{Binding SelectedProviderId, Converter={StaticResource NullToVisibilityConverter}}">
-      <Label
-          Text="API Key"
-          Style="{StaticResource SubtitleLabel}" />
+      <HorizontalStackLayout Spacing="{StaticResource SpacingXs}">
+        <Label
+            FontFamily="MaterialSymbols"
+            Text="{x:Static helpers:MaterialIcons.Key}"
+            FontSize="{StaticResource FontSizeBody}"
+            TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
+            VerticalOptions="Center" />
+        <Label
+            Text="API Key"
+            Style="{StaticResource SubtitleLabel}"
+            FontFamily="InterRegular" />
+      </HorizontalStackLayout>
       <Entry
           Text="{Binding ProviderApiKey, Mode=TwoWay}"
           Placeholder="Enter API key"

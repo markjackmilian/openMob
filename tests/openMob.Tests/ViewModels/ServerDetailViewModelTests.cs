@@ -1,4 +1,4 @@
-using openMob.Core.Infrastructure.Http.Dtos.Opencode;
+using System.Net;
 using openMob.Core.Services;
 using openMob.Core.ViewModels;
 using openMob.Tests.Helpers;
@@ -13,7 +13,7 @@ public sealed class ServerDetailViewModelTests
     private readonly IServerConnectionRepository _repository;
     private readonly IServerCredentialStore _credentialStore;
     private readonly IOpencodeConnectionManager _connectionManager;
-    private readonly IOpencodeApiClient _apiClient;
+    private readonly IHttpClientFactory _httpClientFactory;
     private readonly INavigationService _navigationService;
     private readonly IAppPopupService _popupService;
 
@@ -22,13 +22,60 @@ public sealed class ServerDetailViewModelTests
         _repository = Substitute.For<IServerConnectionRepository>();
         _credentialStore = Substitute.For<IServerCredentialStore>();
         _connectionManager = Substitute.For<IOpencodeConnectionManager>();
-        _apiClient = Substitute.For<IOpencodeApiClient>();
+        _httpClientFactory = Substitute.For<IHttpClientFactory>();
         _navigationService = Substitute.For<INavigationService>();
         _popupService = Substitute.For<IAppPopupService>();
     }
 
     private ServerDetailViewModel CreateSut()
-        => new(_repository, _credentialStore, _connectionManager, _apiClient, _navigationService, _popupService);
+        => new(_repository, _credentialStore, _connectionManager, _httpClientFactory, _navigationService, _popupService);
+
+    // ─── Fake HTTP helpers ────────────────────────────────────────────────────
+
+    private static HttpClient CreateFakeHttpClient(HttpStatusCode statusCode, string responseBody)
+    {
+        var handler = new FakeHttpMessageHandler(statusCode, responseBody);
+        return new HttpClient(handler);
+    }
+
+    private sealed class FakeHttpMessageHandler : HttpMessageHandler
+    {
+        private readonly HttpStatusCode _statusCode;
+        private readonly string _responseBody;
+
+        public FakeHttpMessageHandler(HttpStatusCode statusCode, string responseBody)
+        {
+            _statusCode = statusCode;
+            _responseBody = responseBody;
+        }
+
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(new HttpResponseMessage(_statusCode)
+            {
+                Content = new StringContent(_responseBody)
+            });
+        }
+    }
+
+    private sealed class TimeoutHttpMessageHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken)
+            => throw new OperationCanceledException();
+    }
+
+    private sealed class NetworkErrorHttpMessageHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken)
+            => throw new HttpRequestException("Network unreachable");
+    }
 
     // ─── Constructor — null guards ────────────────────────────────────────────
 
@@ -36,7 +83,7 @@ public sealed class ServerDetailViewModelTests
     public void Constructor_WhenRepositoryIsNull_ThrowsArgumentNullException()
     {
         // Act
-        var act = () => new ServerDetailViewModel(null!, _credentialStore, _connectionManager, _apiClient, _navigationService, _popupService);
+        var act = () => new ServerDetailViewModel(null!, _credentialStore, _connectionManager, _httpClientFactory, _navigationService, _popupService);
 
         // Assert
         act.Should().Throw<ArgumentNullException>()
@@ -47,7 +94,7 @@ public sealed class ServerDetailViewModelTests
     public void Constructor_WhenCredentialStoreIsNull_ThrowsArgumentNullException()
     {
         // Act
-        var act = () => new ServerDetailViewModel(_repository, null!, _connectionManager, _apiClient, _navigationService, _popupService);
+        var act = () => new ServerDetailViewModel(_repository, null!, _connectionManager, _httpClientFactory, _navigationService, _popupService);
 
         // Assert
         act.Should().Throw<ArgumentNullException>()
@@ -58,7 +105,7 @@ public sealed class ServerDetailViewModelTests
     public void Constructor_WhenConnectionManagerIsNull_ThrowsArgumentNullException()
     {
         // Act
-        var act = () => new ServerDetailViewModel(_repository, _credentialStore, null!, _apiClient, _navigationService, _popupService);
+        var act = () => new ServerDetailViewModel(_repository, _credentialStore, null!, _httpClientFactory, _navigationService, _popupService);
 
         // Assert
         act.Should().Throw<ArgumentNullException>()
@@ -66,21 +113,21 @@ public sealed class ServerDetailViewModelTests
     }
 
     [Fact]
-    public void Constructor_WhenApiClientIsNull_ThrowsArgumentNullException()
+    public void Constructor_WhenHttpClientFactoryIsNull_ThrowsArgumentNullException()
     {
         // Act
         var act = () => new ServerDetailViewModel(_repository, _credentialStore, _connectionManager, null!, _navigationService, _popupService);
 
         // Assert
         act.Should().Throw<ArgumentNullException>()
-            .WithParameterName("apiClient");
+            .WithParameterName("httpClientFactory");
     }
 
     [Fact]
     public void Constructor_WhenNavigationServiceIsNull_ThrowsArgumentNullException()
     {
         // Act
-        var act = () => new ServerDetailViewModel(_repository, _credentialStore, _connectionManager, _apiClient, null!, _popupService);
+        var act = () => new ServerDetailViewModel(_repository, _credentialStore, _connectionManager, _httpClientFactory, null!, _popupService);
 
         // Assert
         act.Should().Throw<ArgumentNullException>()
@@ -91,7 +138,7 @@ public sealed class ServerDetailViewModelTests
     public void Constructor_WhenPopupServiceIsNull_ThrowsArgumentNullException()
     {
         // Act
-        var act = () => new ServerDetailViewModel(_repository, _credentialStore, _connectionManager, _apiClient, _navigationService, null!);
+        var act = () => new ServerDetailViewModel(_repository, _credentialStore, _connectionManager, _httpClientFactory, _navigationService, null!);
 
         // Assert
         act.Should().Throw<ArgumentNullException>()
@@ -449,8 +496,8 @@ public sealed class ServerDetailViewModelTests
         var sut = CreateSut();
         sut.Url = "http://192.168.1.10:4096";
 
-        _apiClient.GetHealthAsync(Arg.Any<CancellationToken>())
-            .Returns(OpencodeResult<HealthDto>.Success(new HealthDto(Healthy: true, Version: "1.2.3")));
+        _httpClientFactory.CreateClient("opencode")
+            .Returns(CreateFakeHttpClient(HttpStatusCode.OK, """{"healthy":true,"version":"1.2.3"}"""));
 
         // Act
         await sut.TestConnectionCommand.ExecuteAsync(null);
@@ -459,6 +506,7 @@ public sealed class ServerDetailViewModelTests
         sut.IsConnectionSuccessful.Should().BeTrue();
         sut.IsConnectionTested.Should().BeTrue();
         sut.ConnectionStatusMessage.Should().Contain("Connected");
+        sut.ConnectionStatusMessage.Should().Contain("1.2.3");
     }
 
     [Fact]
@@ -468,15 +516,15 @@ public sealed class ServerDetailViewModelTests
         var sut = CreateSut();
         sut.Url = "http://192.168.1.10:4096";
 
-        _apiClient.GetHealthAsync(Arg.Any<CancellationToken>())
-            .Returns(OpencodeResult<HealthDto>.Success(new HealthDto(Healthy: false, Version: "1.2.3")));
+        _httpClientFactory.CreateClient("opencode")
+            .Returns(CreateFakeHttpClient(HttpStatusCode.OK, """{"healthy":false,"version":"1.2.3"}"""));
 
         // Act
         await sut.TestConnectionCommand.ExecuteAsync(null);
 
         // Assert
         sut.IsConnectionSuccessful.Should().BeFalse();
-        sut.ConnectionStatusMessage.Should().Contain("failed");
+        sut.ConnectionStatusMessage.Should().Contain("unhealthy");
     }
 
     [Fact]
@@ -486,20 +534,37 @@ public sealed class ServerDetailViewModelTests
         var sut = CreateSut();
         sut.Url = "http://192.168.1.10:4096";
 
-        var error = new OpencodeApiError(ErrorKind.NetworkUnreachable, "Network unreachable", null, null);
-        _apiClient.GetHealthAsync(Arg.Any<CancellationToken>())
-            .Returns(OpencodeResult<HealthDto>.Failure(error));
+        _httpClientFactory.CreateClient("opencode")
+            .Returns(CreateFakeHttpClient(HttpStatusCode.InternalServerError, ""));
 
         // Act
         await sut.TestConnectionCommand.ExecuteAsync(null);
 
         // Assert
         sut.IsConnectionSuccessful.Should().BeFalse();
-        sut.ConnectionStatusMessage.Should().Contain("failed");
+        sut.ConnectionStatusMessage.Should().Contain("HTTP 500");
     }
 
     [Fact]
-    public async Task TestConnectionCommand_WhenInvalidUrl_SetsConnectionFailedWithoutCallingApiClient()
+    public async Task TestConnectionCommand_WhenApiCallTimesOut_SetsConnectionTimedOutMessage()
+    {
+        // Arrange
+        var sut = CreateSut();
+        sut.Url = "http://192.168.1.10:4096";
+
+        _httpClientFactory.CreateClient("opencode")
+            .Returns(new HttpClient(new TimeoutHttpMessageHandler()));
+
+        // Act
+        await sut.TestConnectionCommand.ExecuteAsync(null);
+
+        // Assert
+        sut.IsConnectionSuccessful.Should().BeFalse();
+        sut.ConnectionStatusMessage.Should().Contain("timed out");
+    }
+
+    [Fact]
+    public async Task TestConnectionCommand_WhenInvalidUrl_SetsConnectionFailedWithoutCallingHttpClientFactory()
     {
         // Arrange
         var sut = CreateSut();
@@ -510,27 +575,25 @@ public sealed class ServerDetailViewModelTests
 
         // Assert
         sut.IsConnectionSuccessful.Should().BeFalse();
-        await _apiClient.DidNotReceive().GetHealthAsync(Arg.Any<CancellationToken>());
+        _httpClientFactory.DidNotReceive().CreateClient(Arg.Any<string>());
     }
 
     [Fact]
-    public async Task TestConnectionCommand_WhenApiCallTimesOut_SetsConnectionTimedOutMessage()
+    public async Task TestConnectionCommand_WhenHttpRequestFails_SetsConnectionFailedMessage()
     {
         // Arrange
         var sut = CreateSut();
         sut.Url = "http://192.168.1.10:4096";
 
-        _apiClient.GetHealthAsync(Arg.Any<CancellationToken>())
-            .Returns<OpencodeResult<HealthDto>>(_ => throw new OperationCanceledException());
+        _httpClientFactory.CreateClient("opencode")
+            .Returns(new HttpClient(new NetworkErrorHttpMessageHandler()));
 
         // Act
         await sut.TestConnectionCommand.ExecuteAsync(null);
 
         // Assert
         sut.IsConnectionSuccessful.Should().BeFalse();
-        sut.IsConnectionTested.Should().BeTrue();
-        sut.ConnectionStatusMessage.Should().Contain("timed out");
-        sut.IsTesting.Should().BeFalse();
+        sut.ConnectionStatusMessage.Should().Contain("Connection failed");
     }
 
     // ─── SetActiveCommand — CanExecute ────────────────────────────────────────

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using openMob.Core.Data.Repositories;
@@ -32,7 +33,7 @@ public sealed partial class ServerDetailViewModel : ObservableObject
     private readonly IServerConnectionRepository _serverConnectionRepository;
     private readonly IServerCredentialStore _credentialStore;
     private readonly IOpencodeConnectionManager _connectionManager;
-    private readonly IOpencodeApiClient _apiClient;
+    private readonly IHttpClientFactory _httpClientFactory;
     private readonly INavigationService _navigationService;
     private readonly IAppPopupService _popupService;
 
@@ -50,7 +51,7 @@ public sealed partial class ServerDetailViewModel : ObservableObject
     /// <param name="serverConnectionRepository">Repository for server connection CRUD operations.</param>
     /// <param name="credentialStore">Secure storage for server credentials.</param>
     /// <param name="connectionManager">Manager for server connectivity and reachability checks.</param>
-    /// <param name="apiClient">HTTP client used to call <c>GET /global/health</c> during connection tests.</param>
+    /// <param name="httpClientFactory">Factory used to create a short-lived HTTP client for direct health-check probes against the URL in the form.</param>
     /// <param name="navigationService">Service for Shell navigation.</param>
     /// <param name="popupService">Service for popup/dialog operations.</param>
     /// <exception cref="ArgumentNullException">Thrown when any parameter is <see langword="null"/>.</exception>
@@ -58,21 +59,21 @@ public sealed partial class ServerDetailViewModel : ObservableObject
         IServerConnectionRepository serverConnectionRepository,
         IServerCredentialStore credentialStore,
         IOpencodeConnectionManager connectionManager,
-        IOpencodeApiClient apiClient,
+        IHttpClientFactory httpClientFactory,
         INavigationService navigationService,
         IAppPopupService popupService)
     {
         ArgumentNullException.ThrowIfNull(serverConnectionRepository);
         ArgumentNullException.ThrowIfNull(credentialStore);
         ArgumentNullException.ThrowIfNull(connectionManager);
-        ArgumentNullException.ThrowIfNull(apiClient);
+        ArgumentNullException.ThrowIfNull(httpClientFactory);
         ArgumentNullException.ThrowIfNull(navigationService);
         ArgumentNullException.ThrowIfNull(popupService);
 
         _serverConnectionRepository = serverConnectionRepository;
         _credentialStore = credentialStore;
         _connectionManager = connectionManager;
-        _apiClient = apiClient;
+        _httpClientFactory = httpClientFactory;
         _navigationService = navigationService;
         _popupService = popupService;
     }
@@ -326,24 +327,21 @@ public sealed partial class ServerDetailViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Tests whether the active server is reachable by calling <c>GET /global/health</c>
-    /// via <see cref="IOpencodeApiClient.GetHealthAsync"/>. Uses a 10-second timeout.
-    /// Does not persist any data.
+    /// Tests the connection to the URL entered in the form by calling <c>GET /global/health</c>
+    /// directly on that host and port. Uses a 10-second timeout. Does not persist any data
+    /// and does not affect the active server.
     /// </summary>
     /// <remarks>
-    /// <para>
-    /// The URL field is validated for format only. The actual health probe targets the
-    /// currently active server as resolved by <see cref="IOpencodeConnectionManager"/>.
-    /// </para>
-    /// <para>
+    /// Uses <see cref="IHttpClientFactory"/> to create a short-lived HTTP client that probes
+    /// the exact URL in the form — not the currently active server. This ensures the test
+    /// reflects the server the user intends to add or edit.
     /// Enabled only when <see cref="Url"/> is non-empty.
-    /// </para>
     /// </remarks>
     /// <param name="ct">Cancellation token.</param>
     [RelayCommand(CanExecute = nameof(CanTestConnection))]
     private async Task TestConnectionAsync(CancellationToken ct)
     {
-        if (!ServerUrlHelper.TryParse(Url, out _, out _, out _))
+        if (!ServerUrlHelper.TryParse(Url, out var host, out var port, out var useHttps))
         {
             IsConnectionTested = true;
             IsConnectionSuccessful = false;
@@ -359,24 +357,54 @@ public sealed partial class ServerDetailViewModel : ObservableObject
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             timeoutCts.CancelAfter(TimeSpan.FromSeconds(10));
 
-            var healthResult = await _apiClient.GetHealthAsync(timeoutCts.Token).ConfigureAwait(false);
+            // Build the health endpoint URL directly from the form's parsed components.
+            // This probes the server the user typed — not the currently active server.
+            var scheme = useHttps ? "https" : "http";
+            var defaultPort = useHttps ? 443 : 80;
+            var baseUrl = port == defaultPort
+                ? $"{scheme}://{host}"
+                : $"{scheme}://{host}:{port}";
+            var healthUrl = $"{baseUrl}/global/health";
 
-            if (healthResult.IsSuccess && healthResult.Value is not null && healthResult.Value.Healthy)
+            var client = _httpClientFactory.CreateClient("opencode");
+            using var response = await client.GetAsync(healthUrl, timeoutCts.Token).ConfigureAwait(false);
+
+            if (!response.IsSuccessStatusCode)
             {
+                IsConnectionSuccessful = false;
+                ConnectionStatusMessage = $"Connection failed: HTTP {(int)response.StatusCode}";
+                return;
+            }
+
+            var body = await response.Content.ReadAsStringAsync(timeoutCts.Token).ConfigureAwait(false);
+            using var doc = JsonDocument.Parse(body);
+
+            var healthy = doc.RootElement.TryGetProperty("healthy", out var healthyProp)
+                && healthyProp.ValueKind == JsonValueKind.True;
+
+            if (healthy)
+            {
+                var version = doc.RootElement.TryGetProperty("version", out var versionProp)
+                    ? versionProp.GetString() ?? "unknown"
+                    : "unknown";
                 IsConnectionSuccessful = true;
-                ConnectionStatusMessage = $"Connected — server v{healthResult.Value.Version}";
+                ConnectionStatusMessage = $"Connected — server v{version}";
             }
             else
             {
                 IsConnectionSuccessful = false;
-                var errorMessage = healthResult.Error?.Message ?? "Server returned unhealthy status.";
-                ConnectionStatusMessage = $"Connection failed: {errorMessage}";
+                ConnectionStatusMessage = "Connection failed: server returned unhealthy status.";
             }
         }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
         {
             IsConnectionSuccessful = false;
             ConnectionStatusMessage = "Connection timed out. Check the URL and try again.";
+        }
+        catch (HttpRequestException ex)
+        {
+            IsConnectionSuccessful = false;
+            ConnectionStatusMessage = $"Connection failed: {ex.Message}";
         }
         catch (Exception ex)
         {
@@ -385,6 +413,7 @@ public sealed partial class ServerDetailViewModel : ObservableObject
             SentryHelper.CaptureException(ex, new Dictionary<string, object>
             {
                 ["context"] = "ServerDetailViewModel.TestConnectionAsync",
+                ["url"] = Url,
             });
         }
         finally

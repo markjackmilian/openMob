@@ -1,10 +1,13 @@
+using System.Net;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Http.Resilience;
 using openMob.Core.Data;
 using openMob.Core.Data.Repositories;
 using openMob.Core.Infrastructure.Discovery;
 using openMob.Core.Infrastructure.Http;
 using openMob.Core.Services;
 using openMob.Core.ViewModels;
+using Polly;
 
 namespace openMob.Core.Infrastructure.DI;
 
@@ -28,8 +31,49 @@ public static class CoreServiceExtensions
         // HTTP client factory (base registration)
         services.AddHttpClient();
 
-        // Named HTTP client for opencode API calls (base address resolved at runtime)
-        services.AddHttpClient("opencode");
+        // Named HTTP client for opencode API calls — with full resilience pipeline
+        // ADR: The resilience pipeline applies to ALL callers of the "opencode" named client,
+        // including ISessionService, IProjectService, etc. This is intentional — all regular
+        // HTTP calls benefit from retry, circuit breaker, and timeout protection.
+        services.AddHttpClient("opencode")
+            .AddResilienceHandler("opencode-resilience", builder =>
+            {
+                // Per-request timeout: 30 seconds
+                builder.AddTimeout(TimeSpan.FromSeconds(30));
+
+                // Retry: 3 attempts, exponential backoff with jitter, transient errors only
+                builder.AddRetry(new HttpRetryStrategyOptions
+                {
+                    MaxRetryAttempts = 3,
+                    BackoffType = DelayBackoffType.Exponential,
+                    UseJitter = true,
+                    Delay = TimeSpan.FromSeconds(1),
+                    ShouldHandle = args => args.Outcome switch
+                    {
+                        { Exception: HttpRequestException } => PredicateResult.True(),
+                        { Exception: TaskCanceledException } => PredicateResult.True(),
+                        { Result.StatusCode: >= HttpStatusCode.InternalServerError } => PredicateResult.True(),
+                        _ => PredicateResult.False(),
+                    },
+                });
+
+                // Circuit breaker: open after 5 failures in 30s, half-open after 15s
+                builder.AddCircuitBreaker(new HttpCircuitBreakerStrategyOptions
+                {
+                    SamplingDuration = TimeSpan.FromSeconds(30),
+                    MinimumThroughput = 5,
+                    FailureRatio = 1.0,
+                    BreakDuration = TimeSpan.FromSeconds(15),
+                });
+            });
+
+        // Named HTTP client for SSE long-lived connections — no resilience pipeline, infinite timeout.
+        // The resilience pipeline's 30-second timeout would terminate SSE connections prematurely.
+        // ChatService manages its own reconnect logic with exponential backoff.
+        services.AddHttpClient("opencode-sse", client =>
+        {
+            client.Timeout = System.Threading.Timeout.InfiniteTimeSpan;
+        });
 
         // Named HTTP client for mDNS health probe — short 5-second timeout pre-configured
         // at registration so ValidateServerAsync never mutates a factory-managed client post-creation.
@@ -65,6 +109,9 @@ public static class CoreServiceExtensions
         services.AddTransient<ISessionService, SessionService>();
         services.AddTransient<IAgentService, AgentService>();
         services.AddTransient<IProviderService, ProviderService>();
+
+        // Chat service (singleton — maintains SSE connection state and IsConnected)
+        services.AddSingleton<IChatService, ChatService>();
 
         // ─── ViewModels ───────────────────────────────────────────────────────
         services.AddTransient<SplashViewModel>();

@@ -1,0 +1,132 @@
+using System.Text.Json;
+using openMob.Core.Infrastructure.Http.Dtos.Opencode;
+
+namespace openMob.Core.Models;
+
+/// <summary>
+/// Abstract base record for all typed SSE chat events received from the opencode server.
+/// Use pattern matching on the concrete derived type to access event-specific data.
+/// </summary>
+public abstract record ChatEvent
+{
+    /// <summary>Gets the discriminated event type.</summary>
+    public abstract ChatEventType Type { get; }
+
+    /// <summary>
+    /// Gets the raw SSE event ID as sent by the server, or <c>null</c> if the server
+    /// did not include an <c>id:</c> field. Used for <c>Last-Event-ID</c> reconnect.
+    /// </summary>
+    public string? RawEventId { get; init; }
+}
+
+/// <summary>
+/// Raised when the SSE connection is first established.
+/// The server always sends this as the first event after a successful connection.
+/// </summary>
+public sealed record ServerConnectedEvent : ChatEvent
+{
+    /// <inheritdoc />
+    public override ChatEventType Type => ChatEventType.ServerConnected;
+}
+
+/// <summary>
+/// Raised when a message is created or updated (e.g. streaming text tokens or completion).
+/// </summary>
+public sealed record MessageUpdatedEvent : ChatEvent
+{
+    /// <inheritdoc />
+    public override ChatEventType Type => ChatEventType.MessageUpdated;
+
+    /// <summary>Gets the updated message with all its parts.</summary>
+    public required MessageWithPartsDto Message { get; init; }
+}
+
+/// <summary>
+/// Raised when a single part of a message is updated.
+/// </summary>
+public sealed record MessagePartUpdatedEvent : ChatEvent
+{
+    /// <inheritdoc />
+    public override ChatEventType Type => ChatEventType.MessagePartUpdated;
+
+    /// <summary>Gets the updated message part.</summary>
+    public required PartDto Part { get; init; }
+}
+
+/// <summary>
+/// Raised when session metadata is updated.
+/// </summary>
+public sealed record SessionUpdatedEvent : ChatEvent
+{
+    /// <inheritdoc />
+    public override ChatEventType Type => ChatEventType.SessionUpdated;
+
+    /// <summary>Gets the updated session data.</summary>
+    public required SessionDto Session { get; init; }
+}
+
+/// <summary>
+/// Raised when an error occurs during session processing.
+/// </summary>
+public sealed record SessionErrorEvent : ChatEvent
+{
+    /// <inheritdoc />
+    public override ChatEventType Type => ChatEventType.SessionError;
+
+    /// <summary>Gets the ID of the session that encountered an error.</summary>
+    public required string SessionId { get; init; }
+
+    /// <summary>Gets the human-readable error message from the server.</summary>
+    public required string ErrorMessage { get; init; }
+}
+
+/// <summary>
+/// Raised when the AI requests a permission (tool call approval).
+/// </summary>
+public sealed record PermissionRequestedEvent : ChatEvent
+{
+    /// <inheritdoc />
+    public override ChatEventType Type => ChatEventType.PermissionRequested;
+
+    /// <summary>Gets the ID of the session requesting the permission.</summary>
+    public required string SessionId { get; init; }
+
+    /// <summary>Gets the unique identifier for this permission request.</summary>
+    public required string PermissionId { get; init; }
+
+    /// <summary>Gets the full raw JSON payload for this permission request.</summary>
+    public required JsonElement RawPayload { get; init; }
+}
+
+/// <summary>
+/// Raised when the state of a pending permission is updated.
+/// </summary>
+public sealed record PermissionUpdatedEvent : ChatEvent
+{
+    /// <inheritdoc />
+    public override ChatEventType Type => ChatEventType.PermissionUpdated;
+
+    /// <summary>Gets the ID of the session whose permission was updated.</summary>
+    public required string SessionId { get; init; }
+
+    /// <summary>Gets the unique identifier for the permission that was updated.</summary>
+    public required string PermissionId { get; init; }
+
+    /// <summary>Gets the full raw JSON payload for this permission update.</summary>
+    public required JsonElement RawPayload { get; init; }
+}
+
+/// <summary>
+/// Represents an unrecognised SSE event type. Raw data is preserved for diagnostics.
+/// </summary>
+public sealed record UnknownEvent : ChatEvent
+{
+    /// <inheritdoc />
+    public override ChatEventType Type => ChatEventType.Unknown;
+
+    /// <summary>Gets the raw event type string as received from the server.</summary>
+    public required string RawType { get; init; }
+
+    /// <summary>Gets the raw JSON data payload, or <c>null</c> if no data was present.</summary>
+    public JsonElement? RawData { get; init; }
+}

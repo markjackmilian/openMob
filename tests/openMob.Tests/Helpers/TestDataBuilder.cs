@@ -31,9 +31,10 @@ public static class TestDataBuilder
         string? username = null,
         bool isActive = false,
         bool discoveredViaMdns = false,
+        bool useHttps = false,
         DateTime? createdAt = null,
         DateTime? updatedAt = null,
         bool hasPassword = false)
-        => new(id, name, host, port, username, isActive, discoveredViaMdns,
+        => new(id, name, host, port, username, isActive, discoveredViaMdns, useHttps,
                createdAt ?? DateTime.UtcNow, updatedAt ?? DateTime.UtcNow, hasPassword);
 }

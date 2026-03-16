@@ -153,6 +153,7 @@ public sealed class OpencodeDiscoveryService : IOpencodeDiscoveryService
             Username: null,
             IsActive: false,
             DiscoveredViaMdns: true,
+            UseHttps: false,
             CreatedAt: DateTime.UtcNow,
             UpdatedAt: DateTime.UtcNow,
             HasPassword: false);

@@ -31,6 +31,9 @@ public sealed class ServerConnection
     /// <summary>Gets or sets whether this connection was created via mDNS discovery.</summary>
     public bool DiscoveredViaMdns { get; set; }
 
+    /// <summary>Gets or sets whether this connection uses HTTPS. Defaults to false.</summary>
+    public bool UseHttps { get; set; } = false;
+
     /// <summary>Gets or sets the UTC timestamp when this record was created.</summary>
     public DateTime CreatedAt { get; set; }
 

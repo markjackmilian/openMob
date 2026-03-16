@@ -34,8 +34,10 @@ public interface IOpencodeConnectionManager
     event Action<ServerConnectionStatus>? StatusChanged;
 
     /// <summary>
-    /// Returns the base URL for the active server connection in the form
-    /// <c>http://{host}:{port}</c>, or <c>null</c> if no active connection exists.
+    /// Returns the base URL for the active server connection (e.g. <c>https://host</c> or
+    /// <c>http://host:4096</c>), or <c>null</c> if no active connection is configured.
+    /// The scheme is <c>https</c> when <see cref="ServerConnectionDto.UseHttps"/> is <c>true</c>;
+    /// otherwise <c>http</c>. The port is omitted when it equals the protocol default (443 for HTTPS, 80 for HTTP).
     /// </summary>
     /// <param name="ct">Cancellation token.</param>
     Task<string?> GetBaseUrlAsync(CancellationToken ct = default);

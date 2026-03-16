@@ -51,6 +51,86 @@ public sealed class OpencodeConnectionManagerTests
     }
 
     [Fact]
+    public async Task GetBaseUrlAsync_WhenUseHttpsTrue_ReturnsHttpsUrl()
+    {
+        // Arrange
+        var dto = TestDataBuilder.CreateServerConnectionDto(
+            id: "conn-1",
+            host: "example.ngrok-free.app",
+            port: 443,
+            useHttps: true,
+            isActive: true);
+        _repository.GetActiveAsync(Arg.Any<CancellationToken>()).Returns(dto);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.GetBaseUrlAsync();
+
+        // Assert
+        result.Should().Be("https://example.ngrok-free.app");
+    }
+
+    [Fact]
+    public async Task GetBaseUrlAsync_WhenUseHttpsTrueAndNonDefaultPort_ReturnsHttpsUrlWithPort()
+    {
+        // Arrange
+        var dto = TestDataBuilder.CreateServerConnectionDto(
+            id: "conn-1",
+            host: "myserver.com",
+            port: 8443,
+            useHttps: true,
+            isActive: true);
+        _repository.GetActiveAsync(Arg.Any<CancellationToken>()).Returns(dto);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.GetBaseUrlAsync();
+
+        // Assert
+        result.Should().Be("https://myserver.com:8443");
+    }
+
+    [Fact]
+    public async Task GetBaseUrlAsync_WhenUseHttpsFalseAndDefaultHttpPort_ReturnsHttpUrlWithoutPort()
+    {
+        // Arrange
+        var dto = TestDataBuilder.CreateServerConnectionDto(
+            id: "conn-1",
+            host: "192.168.1.10",
+            port: 80,
+            useHttps: false,
+            isActive: true);
+        _repository.GetActiveAsync(Arg.Any<CancellationToken>()).Returns(dto);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.GetBaseUrlAsync();
+
+        // Assert
+        result.Should().Be("http://192.168.1.10");
+    }
+
+    [Fact]
+    public async Task GetBaseUrlAsync_WhenUseHttpsFalseAndNonDefaultPort_ReturnsHttpUrlWithPort()
+    {
+        // Arrange
+        var dto = TestDataBuilder.CreateServerConnectionDto(
+            id: "conn-1",
+            host: "192.168.1.10",
+            port: 4096,
+            useHttps: false,
+            isActive: true);
+        _repository.GetActiveAsync(Arg.Any<CancellationToken>()).Returns(dto);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.GetBaseUrlAsync();
+
+        // Assert
+        result.Should().Be("http://192.168.1.10:4096");
+    }
+
+    [Fact]
     public async Task GetBaseUrlAsync_WhenNoActiveConnection_ReturnsNull()
     {
         // Arrange

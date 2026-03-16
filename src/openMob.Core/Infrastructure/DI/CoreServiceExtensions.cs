@@ -77,6 +77,7 @@ public static class CoreServiceExtensions
         services.AddTransient<ModelPickerViewModel>();
         services.AddTransient<ChatViewModel>();
         services.AddTransient<FlyoutViewModel>();
+        services.AddTransient<SettingsViewModel>();
 
         return services;
     }

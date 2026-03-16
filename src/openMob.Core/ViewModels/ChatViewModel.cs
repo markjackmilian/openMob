@@ -22,6 +22,7 @@ public sealed partial class ChatViewModel : ObservableObject
     private readonly IAppPopupService _popupService;
     private readonly IOpencodeConnectionManager _connectionManager;
     private readonly IProviderService _providerService;
+    private readonly IProjectPreferenceService _preferenceService;
 
     /// <summary>Initialises the ChatViewModel with required dependencies.</summary>
     /// <param name="projectService">Service for project operations.</param>
@@ -30,13 +31,15 @@ public sealed partial class ChatViewModel : ObservableObject
     /// <param name="popupService">Service for popup/dialog operations.</param>
     /// <param name="connectionManager">Manages the opencode server connection state.</param>
     /// <param name="providerService">Service for AI provider operations.</param>
+    /// <param name="preferenceService">Service for per-project preference persistence.</param>
     public ChatViewModel(
         IProjectService projectService,
         ISessionService sessionService,
         INavigationService navigationService,
         IAppPopupService popupService,
         IOpencodeConnectionManager connectionManager,
-        IProviderService providerService)
+        IProviderService providerService,
+        IProjectPreferenceService preferenceService)
     {
         ArgumentNullException.ThrowIfNull(projectService);
         ArgumentNullException.ThrowIfNull(sessionService);
@@ -44,6 +47,7 @@ public sealed partial class ChatViewModel : ObservableObject
         ArgumentNullException.ThrowIfNull(popupService);
         ArgumentNullException.ThrowIfNull(connectionManager);
         ArgumentNullException.ThrowIfNull(providerService);
+        ArgumentNullException.ThrowIfNull(preferenceService);
 
         _projectService = projectService;
         _sessionService = sessionService;
@@ -51,6 +55,7 @@ public sealed partial class ChatViewModel : ObservableObject
         _popupService = popupService;
         _connectionManager = connectionManager;
         _providerService = providerService;
+        _preferenceService = preferenceService;
     }
 
     // ─── Properties ───────────────────────────────────────────────────────────
@@ -83,6 +88,21 @@ public sealed partial class ChatViewModel : ObservableObject
     [ObservableProperty]
     private StatusBannerInfo? _statusBanner;
 
+    /// <summary>
+    /// Gets or sets the currently selected model identifier in "providerId/modelId" format (REQ-008, REQ-011).
+    /// Splittable with <c>Split('/', 2)</c> to obtain ProviderId and ModelId for <c>SendPromptRequest</c>.
+    /// </summary>
+    [ObservableProperty]
+    private string? _selectedModelId;
+
+    /// <summary>
+    /// Gets or sets the display name of the currently selected model (REQ-008).
+    /// Derived from <see cref="SelectedModelId"/> by extracting the part after the first '/'.
+    /// Null when no model is selected — the UI should show a placeholder.
+    /// </summary>
+    [ObservableProperty]
+    private string? _selectedModelName;
+
     // ─── Commands ─────────────────────────────────────────────────────────────
 
     /// <summary>
@@ -105,6 +125,14 @@ public sealed partial class ChatViewModel : ObservableObject
             {
                 CurrentProjectId = currentProject.Id;
                 ProjectName = ProjectNameHelper.ExtractFromWorktree(currentProject.Worktree);
+
+                // Load default model preference for this project (REQ-008)
+                var pref = await _preferenceService.GetAsync(currentProject.Id, ct).ConfigureAwait(false);
+                if (pref?.DefaultModelId is not null)
+                {
+                    SelectedModelId = pref.DefaultModelId;
+                    SelectedModelName = ExtractModelName(pref.DefaultModelId);
+                }
             }
             else
             {
@@ -220,7 +248,13 @@ public sealed partial class ChatViewModel : ObservableObject
                 break;
 
             case "Change model":
-                // Signal intent — the View layer handles the ModelPickerSheet popup.
+                // Open the model picker and update in-memory selection (REQ-009).
+                // No persistence to SQLite — this is a session-level override.
+                await _popupService.ShowModelPickerAsync(modelId =>
+                {
+                    SelectedModelId = modelId;
+                    SelectedModelName = ExtractModelName(modelId);
+                }, ct).ConfigureAwait(false);
                 break;
 
             case "Fork session":
@@ -405,5 +439,19 @@ public sealed partial class ChatViewModel : ObservableObject
         {
             StatusBanner = null;
         }
+    }
+
+    // ─── Private helpers ──────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Extracts the display model name from a "providerId/modelId" format string.
+    /// Returns the part after the first '/'.
+    /// </summary>
+    /// <param name="fullModelId">The full model identifier in "providerId/modelId" format.</param>
+    /// <returns>The model name portion, or the full string if no '/' is found.</returns>
+    private static string ExtractModelName(string fullModelId)
+    {
+        var slashIndex = fullModelId.IndexOf('/');
+        return slashIndex >= 0 ? fullModelId[(slashIndex + 1)..] : fullModelId;
     }
 }

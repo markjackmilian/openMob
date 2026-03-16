@@ -112,6 +112,7 @@ public static class CoreServiceExtensions
         services.AddTransient<ISessionService, SessionService>();
         services.AddTransient<IAgentService, AgentService>();
         services.AddTransient<IProviderService, ProviderService>();
+        services.AddTransient<IProjectPreferenceService, ProjectPreferenceService>();
 
         // Chat service (singleton — maintains SSE connection state and IsConnected)
         services.AddSingleton<IChatService, ChatService>();

@@ -36,6 +36,13 @@ public sealed partial class ModelPickerViewModel : ObservableObject
         _popupService = popupService;
     }
 
+    /// <summary>
+    /// Optional callback invoked when the user selects a model.
+    /// Set by the caller (e.g., MauiPopupService) before presenting the picker.
+    /// The callback receives the full model ID in "providerId/modelId" format.
+    /// </summary>
+    public Action<string>? OnModelSelected { get; set; }
+
     /// <summary>Gets or sets the provider model groups for display.</summary>
     [ObservableProperty]
     private ObservableCollection<ProviderModelGroup> _providerGroups = [];
@@ -123,6 +130,8 @@ public sealed partial class ModelPickerViewModel : ObservableObject
         }).ToList();
 
         ProviderGroups = new ObservableCollection<ProviderModelGroup>(updatedGroups);
+
+        OnModelSelected?.Invoke(SelectedModelId);
 
         await _popupService.PopPopupAsync(ct);
     }

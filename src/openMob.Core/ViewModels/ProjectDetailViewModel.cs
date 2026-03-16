@@ -19,27 +19,32 @@ public sealed partial class ProjectDetailViewModel : ObservableObject
     private readonly ISessionService _sessionService;
     private readonly INavigationService _navigationService;
     private readonly IAppPopupService _popupService;
+    private readonly IProjectPreferenceService _preferenceService;
 
     /// <summary>Initialises the ProjectDetailViewModel with required dependencies.</summary>
     /// <param name="projectService">Service for project operations.</param>
     /// <param name="sessionService">Service for session operations.</param>
     /// <param name="navigationService">Service for Shell navigation.</param>
     /// <param name="popupService">Service for popup/dialog operations.</param>
+    /// <param name="preferenceService">Service for per-project preference persistence.</param>
     public ProjectDetailViewModel(
         IProjectService projectService,
         ISessionService sessionService,
         INavigationService navigationService,
-        IAppPopupService popupService)
+        IAppPopupService popupService,
+        IProjectPreferenceService preferenceService)
     {
         ArgumentNullException.ThrowIfNull(projectService);
         ArgumentNullException.ThrowIfNull(sessionService);
         ArgumentNullException.ThrowIfNull(navigationService);
         ArgumentNullException.ThrowIfNull(popupService);
+        ArgumentNullException.ThrowIfNull(preferenceService);
 
         _projectService = projectService;
         _sessionService = sessionService;
         _navigationService = navigationService;
         _popupService = popupService;
+        _preferenceService = preferenceService;
     }
 
     // ─── Properties ───────────────────────────────────────────────────────────
@@ -129,6 +134,13 @@ public sealed partial class ProjectDetailViewModel : ObservableObject
                 .ToList();
 
             RecentSessions = new ObservableCollection<SessionItem>(recentItems);
+
+            // Load default model preference (REQ-007)
+            var pref = await _preferenceService.GetAsync(id, ct).ConfigureAwait(false);
+            if (pref?.DefaultModelId is not null)
+            {
+                DefaultModelName = ExtractModelName(pref.DefaultModelId);
+            }
         }
         catch (Exception ex)
         {
@@ -193,15 +205,20 @@ public sealed partial class ProjectDetailViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Shows the ModelPickerSheet for changing the default model (REQ-026).
+    /// Opens the ModelPickerSheet, receives the selected model via callback,
+    /// updates <see cref="DefaultModelName"/>, and persists the choice to SQLite (REQ-007, REQ-026).
     /// </summary>
     /// <param name="ct">Cancellation token.</param>
     [RelayCommand]
     private async Task ChangeModelAsync(CancellationToken ct)
     {
-        // The View layer handles creating and pushing the ModelPickerSheet popup.
-        // This command signals the intent.
-        await Task.CompletedTask;
+        await _popupService.ShowModelPickerAsync(modelId =>
+        {
+            DefaultModelName = ExtractModelName(modelId);
+            // Fire-and-forget persistence — avoids async void in the Action<string> callback.
+            // Errors are captured by Sentry inside ProjectPreferenceService.
+            _ = _preferenceService.SetDefaultModelAsync(ProjectId, modelId, CancellationToken.None);
+        }, ct).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -226,4 +243,17 @@ public sealed partial class ProjectDetailViewModel : ObservableObject
         await _navigationService.PopAsync(ct);
     }
 
+    // ─── Private helpers ──────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Extracts the display model name from a "providerId/modelId" format string.
+    /// Returns the part after the first '/'.
+    /// </summary>
+    /// <param name="fullModelId">The full model identifier in "providerId/modelId" format.</param>
+    /// <returns>The model name portion, or the full string if no '/' is found.</returns>
+    private static string ExtractModelName(string fullModelId)
+    {
+        var slashIndex = fullModelId.IndexOf('/');
+        return slashIndex >= 0 ? fullModelId[(slashIndex + 1)..] : fullModelId;
+    }
 }

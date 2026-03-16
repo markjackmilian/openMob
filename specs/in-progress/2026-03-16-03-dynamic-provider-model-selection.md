@@ -4,7 +4,7 @@
 | Field   | Value                        |
 |---------|------------------------------|
 | Date    | 2026-03-16                   |
-| Status  | Draft                        |
+| Status  | In Progress                  |
 | Version | 1.0                          |
 
 ---
@@ -93,9 +93,9 @@ L'app recupera già la lista di provider e modelli disponibili dal server openco
 
 | # | Question | Status | Answer / Decision |
 |---|----------|--------|-------------------|
-| 1 | Il meccanismo di callback preferito è `Action<string>` iniettato alla costruzione del picker VM, oppure `WeakReferenceMessenger` di CommunityToolkit? | Open | Da decidere in Technical Analysis. Preferire `Action<string>` per semplicità e testabilità diretta con NSubstitute; usare `WeakReferenceMessenger` solo se il pattern è già adottato altrove nel progetto. |
-| 2 | `ProjectPreference.ProjectId` come PK è sufficiente (un solo record per progetto), oppure serve una PK ULID separata? | Open | Da decidere in Technical Analysis. `ProjectId` come PK è sufficiente dato che la relazione è 1:1 progetto → preferenze. |
-| 3 | `IAppPopupService` supporta già il passaggio di parametri (es. callback) all'apertura di un popup, oppure va esteso? | Open | Da verificare nell'implementazione di `MauiPopupService`. |
+| 1 | Il meccanismo di callback preferito è `Action<string>` iniettato alla costruzione del picker VM, oppure `WeakReferenceMessenger` di CommunityToolkit? | **Resolved** | **`Action<string>?` settable property on `ModelPickerViewModel`.** Codebase analysis confirms `WeakReferenceMessenger` is not used anywhere in the project. Introducing it now would add an unused pattern. An `Action<string>? OnModelSelected` property keeps the VM testable (NSubstitute can capture the invocation), doesn't require constructor changes (VM is DI-resolved as Transient), and the MAUI layer sets it before pushing the popup. |
+| 2 | `ProjectPreference.ProjectId` come PK è sufficiente (un solo record per progetto), oppure serve una PK ULID separata? | **Resolved** | **`ProjectId` (string) as PK.** The relationship is strictly 1:1 (one preference per project). While the existing `ServerConnection` entity uses ULID-based `Id`, that pattern fits entities with their own lifecycle. `ProjectPreference` is a satellite of the project — `ProjectId` as PK is semantically correct and avoids a redundant ULID column. |
+| 3 | `IAppPopupService` supporta già il passaggio di parametri (es. callback) all'apertura di un popup, oppure va esteso? | **Resolved** | **Must be extended.** `PushPopupAsync(object popup, CancellationToken)` returns `Task` (void) and is currently a no-op placeholder. A new method `ShowModelPickerAsync(Action<string> onModelSelected, CancellationToken)` must be added to `IAppPopupService` so that Core ViewModels can request the model picker without touching MAUI types. The MAUI implementation (`MauiPopupService`) will resolve the popup, set the callback on the VM, and present it. |
 
 ---
 
@@ -156,3 +156,107 @@ L'app recupera già la lista di provider e modelli disponibili dal server openco
 - `src/openMob/Views/Popups/ModelPickerSheet.xaml` + `.xaml.cs` — refactor XAML
 - `src/openMob/Views/Pages/ChatPage.xaml` — aggiornare binding topbar
 - `src/openMob/Views/Pages/ProjectDetailPage.xaml` — nessuna modifica prevista (binding già presenti)
+
+---
+
+## Technical Analysis
+
+> Added by: om-orchestrator | Date: 2026-03-17
+
+### Change Classification
+
+| Field | Value |
+|-------|-------|
+| Change type | Feature |
+| Git Flow branch | feature/dynamic-model-selection |
+| Branches from | develop |
+| Estimated complexity | Medium |
+| Estimated agents involved | om-mobile-core, om-mobile-ui, om-tester, om-reviewer |
+
+### Layers Involved
+
+| Layer | Agent | Scope |
+|-------|-------|-------|
+| Data / EF Core | om-mobile-core | `src/openMob.Core/Data/Entities/ProjectPreference.cs`, `src/openMob.Core/Data/AppDbContext.cs` |
+| Business logic / Services | om-mobile-core | `src/openMob.Core/Services/IProjectPreferenceService.cs`, `src/openMob.Core/Services/ProjectPreferenceService.cs`, `src/openMob.Core/Services/IAppPopupService.cs` |
+| ViewModels | om-mobile-core | `src/openMob.Core/ViewModels/ModelPickerViewModel.cs`, `src/openMob.Core/ViewModels/ProjectDetailViewModel.cs`, `src/openMob.Core/ViewModels/ChatViewModel.cs` |
+| XAML Views | om-mobile-ui | `src/openMob/Views/Popups/ModelPickerSheet.xaml` |
+| XAML Views | om-mobile-ui | `src/openMob/Views/Pages/ChatPage.xaml` |
+| MAUI Services | om-mobile-ui | `src/openMob/Services/MauiPopupService.cs` |
+| DI Registration | om-mobile-core | `src/openMob.Core/Infrastructure/DI/CoreServiceExtensions.cs` |
+| Unit Tests | om-tester | `tests/openMob.Tests/` |
+| Code Review | om-reviewer | all of the above |
+
+### Files to Create
+
+- `src/openMob.Core/Data/Entities/ProjectPreference.cs` — new entity with `ProjectId` (string, PK) and `DefaultModelId` (string?, nullable)
+- `src/openMob.Core/Services/IProjectPreferenceService.cs` — interface with `GetAsync` and `SetDefaultModelAsync`
+- `src/openMob.Core/Services/ProjectPreferenceService.cs` — implementation using `AppDbContext`
+- EF Core migration file (auto-generated via `dotnet ef migrations add AddProjectPreference`)
+- `tests/openMob.Tests/Services/ProjectPreferenceServiceTests.cs` — unit tests for the service
+- `tests/openMob.Tests/ViewModels/ModelPickerViewModelTests.cs` — unit tests for callback mechanism
+- `tests/openMob.Tests/ViewModels/ProjectDetailViewModelTests.cs` — unit tests for ChangeModelAsync flow (new file or append to existing)
+- `tests/openMob.Tests/ViewModels/ChatViewModelTests.cs` — unit tests for model selection properties (new file or append to existing)
+
+### Files to Modify
+
+- `src/openMob.Core/Data/AppDbContext.cs` — add `DbSet<ProjectPreference>` and EF Core configuration in `OnModelCreating`
+- `src/openMob.Core/Services/IAppPopupService.cs` — add `ShowModelPickerAsync(Action<string> onModelSelected, CancellationToken ct)` method
+- `src/openMob.Core/ViewModels/ModelPickerViewModel.cs` — add `Action<string>? OnModelSelected` property, invoke it in `SelectModelAsync`
+- `src/openMob.Core/ViewModels/ProjectDetailViewModel.cs` — add `IProjectPreferenceService` dependency, implement `ChangeModelAsync`, load default model in `LoadProjectAsync`
+- `src/openMob.Core/ViewModels/ChatViewModel.cs` — add `IProjectPreferenceService` dependency, add `SelectedModelId`/`SelectedModelName` properties, load from DB in `LoadContextAsync`, handle "Change model" in `ShowMoreMenuAsync`
+- `src/openMob.Core/Infrastructure/DI/CoreServiceExtensions.cs` — register `IProjectPreferenceService` → `ProjectPreferenceService` as Transient
+- `src/openMob/Services/MauiPopupService.cs` — implement `ShowModelPickerAsync` (resolve `ModelPickerSheet`, set callback, push popup)
+- `src/openMob/Views/Popups/ModelPickerSheet.xaml` + `.xaml.cs` — replace hardcoded list with dynamic bindings, add loading/empty states
+- `src/openMob/Views/Pages/ChatPage.xaml` — bind topbar label to `SelectedModelName`, add placeholder fallback
+
+### Technical Dependencies
+
+- `IProviderService.GetProvidersAsync` — already implemented, no changes needed
+- `IAppPopupService` — interface extended with `ShowModelPickerAsync`; implementation in MAUI project
+- EF Core 9.x + SQLite — already configured; new migration required
+- CommunityToolkit.Mvvm — already used; no new packages
+- No new NuGet packages required
+
+### Technical Decisions (Open Question Resolution)
+
+**OQ-1 — Callback mechanism:** Use `Action<string>? OnModelSelected` as a settable property on `ModelPickerViewModel`. The `WeakReferenceMessenger` pattern is not used anywhere in the codebase and would introduce unnecessary complexity. The property approach is simpler, directly testable with NSubstitute, and compatible with the DI-resolved Transient lifecycle of the VM (the MAUI layer sets the property after DI resolution, before pushing the popup).
+
+**OQ-2 — ProjectPreference PK:** Use `ProjectId` (string) as PK directly. The relationship is 1:1 (one preference row per project). Adding a ULID-based `Id` column would be redundant. The existing `ServerConnection` entity uses ULID because it has its own independent lifecycle; `ProjectPreference` is a satellite table keyed by the external project identifier.
+
+**OQ-3 — IAppPopupService extension:** Add `ShowModelPickerAsync(Action<string> onModelSelected, CancellationToken ct)` to `IAppPopupService`. This is a dedicated method rather than a generic parameter-passing mechanism, which keeps the interface explicit and avoids over-engineering. The MAUI implementation resolves `ModelPickerSheet` from DI (or creates it manually), sets `OnModelSelected` on the VM, and presents the popup. This pattern can be replicated for `ShowAgentPickerAsync` in a future feature.
+
+### Technical Risks
+
+- **EF Core migration on existing installations:** Adding a new table (`ProjectPreference`) is additive and non-breaking. `db.Database.Migrate()` at startup will handle it. No data loss risk.
+- **`PushPopupAsync` is a no-op:** The current `MauiPopupService.PushPopupAsync` and `PopPopupAsync` are placeholder no-ops. The `ShowModelPickerAsync` implementation must work independently of these placeholders — it should use CommunityToolkit.Maui popups or the existing popup infrastructure that powers `ShowConfirmDeleteAsync`, `ShowOptionSheetAsync`, etc.
+- **Model ID format assumption:** The `"providerId/modelId"` format assumes no provider or model ID contains `/`. This is safe given that provider IDs are short slugs (e.g., `"anthropic"`, `"openai"`) and model IDs are standardized (e.g., `"claude-sonnet-4-5"`). Using `Split('/', 2)` ensures at most two segments even if the model ID somehow contained `/`.
+- **No platform-specific concerns:** All new code is pure .NET (Core library) or standard MAUI XAML. No iOS/Android conditionals needed.
+
+### Execution Order
+
+> Steps that can run in parallel are marked with ⟳. Steps that must be sequential are numbered.
+
+1. **[Git Flow]** Create branch `feature/dynamic-model-selection` from `develop`
+2. **[om-mobile-core]** Implement data layer: `ProjectPreference` entity, `AppDbContext` DbSet, EF Core migration
+3. **[om-mobile-core]** Implement service layer: `IProjectPreferenceService`, `ProjectPreferenceService`, DI registration
+4. **[om-mobile-core]** Extend `IAppPopupService` with `ShowModelPickerAsync` signature
+5. **[om-mobile-core]** Extend `ModelPickerViewModel` with `OnModelSelected` callback property
+6. **[om-mobile-core]** Implement `ProjectDetailViewModel.ChangeModelAsync` + load default model in `LoadProjectAsync`
+7. **[om-mobile-core]** Extend `ChatViewModel` with `SelectedModelId`, `SelectedModelName`, DB loading, "Change model" handling
+8. ⟳ **[om-mobile-ui]** Refactor `ModelPickerSheet.xaml` — dynamic bindings, loading state, empty state (can start once step 5 is done)
+9. ⟳ **[om-mobile-ui]** Update `ChatPage.xaml` topbar binding (can start once step 7 is done)
+10. ⟳ **[om-mobile-ui]** Implement `MauiPopupService.ShowModelPickerAsync` (can start once step 4 is done)
+11. **[om-tester]** Write unit tests for `ProjectPreferenceService`, `ModelPickerViewModel`, `ProjectDetailViewModel`, `ChatViewModel`
+12. **[om-reviewer]** Full review against spec
+13. **[Fix loop if needed]** Address Critical and Major findings
+14. **[Git Flow]** Finish branch and merge
+
+### Definition of Done
+
+- [ ] All `[REQ-001]` through `[REQ-011]` requirements implemented
+- [ ] All `[AC-001]` through `[AC-007]` acceptance criteria satisfied
+- [ ] Unit tests written for `ProjectPreferenceService`, `ModelPickerViewModel` (callback), `ProjectDetailViewModel` (ChangeModelAsync), `ChatViewModel` (model selection)
+- [ ] `om-reviewer` verdict: Approved or Approved with remarks
+- [ ] Git Flow branch finished and deleted
+- [ ] Spec moved to `specs/done/` with Completed status

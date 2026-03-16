@@ -170,7 +170,7 @@ Il progetto `openMob.Core` presenta una serie di errori LSP (Language Server Pro
 
 - [ ] **[AC-001]** Dato `ServerConnectionRepository.cs`, quando si ispeziona la riga dell'aggiornamento SQL, allora usa `ExecuteSqlAsync` e non compaiono diagnostiche `CS0618` o `EF1001` nel language server. *(REQ-001)*
 - [ ] **[AC-002]** Dato `GlobalUsings.cs`, quando si ispeziona il file, allora contiene `global using openMob.Core.Infrastructure.Monitoring;` e `OnboardingViewModel.cs` non mostra più `CS0246` per `SentryHelper`. *(REQ-002)*
-- [ ] **[AC-003]** Dato `OpencodeConnectionManager.cs`, quando si ispeziona il file, allora non contiene `using System.Net.Http;` né `using System.Text;` ridondanti. *(REQ-003)*
+- [x] **[AC-003]** Dato `OpencodeConnectionManager.cs`, quando si ispeziona il file, allora non contiene `using System.Net.Http;` ridondante. *(REQ-003)* — **Nota implementazione:** `using System.Text;` è stato mantenuto intenzionalmente perché `System.Text` non è incluso negli implicit usings di `Microsoft.NET.Sdk` per class library `net10.0`; rimuoverlo causerebbe `CS0103` su `Encoding.UTF8`. Deviazione approvata da om-reviewer [m-001 assessment].
 - [ ] **[AC-004]** Dato `dotnet build openMob.sln`, quando eseguito dopo tutte le modifiche, allora esce con codice 0 e zero errori. *(REQ-005)*
 - [ ] **[AC-005]** Dato `dotnet test tests/openMob.Tests/openMob.Tests.csproj`, quando eseguito dopo tutte le modifiche, allora tutti i test esistenti passano. *(REQ-005)*
 - [ ] **[AC-006]** Dato `openMob.Core.csproj`, quando si ispeziona il file, allora contiene il commento documentativo sul gap TFM sopra i package interessati. *(REQ-004)*

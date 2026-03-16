@@ -34,7 +34,7 @@ public sealed class SplashViewModelTests
     // ─── Helper ───────────────────────────────────────────────────────────────
 
     private static ServerConnectionDto BuildConnection(string id = "conn-1")
-        => new(id, "Test Server", "192.168.1.100", 4096, "opencode", true, false,
+        => new(id, "Test Server", "192.168.1.100", 4096, "opencode", true, false, false,
                DateTime.UtcNow, DateTime.UtcNow, false);
 
     private static openMob.Core.Infrastructure.Http.Dtos.Opencode.SessionDto BuildSession(

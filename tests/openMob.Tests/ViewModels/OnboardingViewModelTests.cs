@@ -3,6 +3,7 @@ using openMob.Core.Infrastructure.Http.Dtos.Opencode;
 using openMob.Core.Infrastructure.Security;
 using openMob.Core.Services;
 using openMob.Core.ViewModels;
+using openMob.Tests.Helpers;
 
 namespace openMob.Tests.ViewModels;
 
@@ -327,7 +328,7 @@ public sealed class OnboardingViewModelTests
 
         var savedConnection = new ServerConnectionDto(
             "conn-1", "192.168.1.100:4096", "192.168.1.100", 4096, "opencode",
-            true, false, DateTime.UtcNow, DateTime.UtcNow, true);
+            true, false, false, DateTime.UtcNow, DateTime.UtcNow, true);
 
         _serverConnectionRepo.AddAsync(Arg.Any<ServerConnectionDto>(), Arg.Any<CancellationToken>())
             .Returns(savedConnection);
@@ -355,7 +356,7 @@ public sealed class OnboardingViewModelTests
 
         var savedConnection = new ServerConnectionDto(
             "conn-1", "192.168.1.100:4096", "192.168.1.100", 4096, "opencode",
-            false, false, DateTime.UtcNow, DateTime.UtcNow, false);
+            false, false, false, DateTime.UtcNow, DateTime.UtcNow, false);
 
         _serverConnectionRepo.AddAsync(Arg.Any<ServerConnectionDto>(), Arg.Any<CancellationToken>())
             .Returns(savedConnection);
@@ -382,7 +383,7 @@ public sealed class OnboardingViewModelTests
 
         var savedConnection = new ServerConnectionDto(
             "conn-1", "192.168.1.100:4096", "192.168.1.100", 4096, "opencode",
-            false, false, DateTime.UtcNow, DateTime.UtcNow, false);
+            false, false, false, DateTime.UtcNow, DateTime.UtcNow, false);
 
         _serverConnectionRepo.AddAsync(Arg.Any<ServerConnectionDto>(), Arg.Any<CancellationToken>())
             .Returns(savedConnection);
@@ -409,7 +410,7 @@ public sealed class OnboardingViewModelTests
 
         var savedConnection = new ServerConnectionDto(
             "conn-1", "192.168.1.100:4096", "192.168.1.100", 4096, "opencode",
-            true, false, DateTime.UtcNow, DateTime.UtcNow, true);
+            true, false, false, DateTime.UtcNow, DateTime.UtcNow, true);
 
         _serverConnectionRepo.AddAsync(Arg.Any<ServerConnectionDto>(), Arg.Any<CancellationToken>())
             .Returns(savedConnection);
@@ -451,7 +452,7 @@ public sealed class OnboardingViewModelTests
 
         var savedConnection = new ServerConnectionDto(
             "conn-1", "192.168.1.100:4096", "192.168.1.100", 4096, "opencode",
-            false, false, DateTime.UtcNow, DateTime.UtcNow, false);
+            false, false, false, DateTime.UtcNow, DateTime.UtcNow, false);
 
         _serverConnectionRepo.AddAsync(Arg.Any<ServerConnectionDto>(), Arg.Any<CancellationToken>())
             .Returns(savedConnection);
@@ -469,6 +470,83 @@ public sealed class OnboardingViewModelTests
         await _popupService.Received(1).ShowErrorAsync(
             "Connection Failed",
             Arg.Any<string>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    // ─── TestConnectionCommand — UseHttps / Port extraction ──────────────────
+
+    [Fact]
+    public async Task TestConnectionCommand_WhenHttpsUrlWithDefaultPort_SavesUseHttpsTrue()
+    {
+        // Arrange
+        _sut.ServerUrl = "https://3d6e-149-86-203-226.ngrok-free.app";
+
+        var savedConnection = TestDataBuilder.CreateServerConnectionDto(id: "conn-1");
+        _serverConnectionRepo.AddAsync(Arg.Any<ServerConnectionDto>(), Arg.Any<CancellationToken>())
+            .Returns(savedConnection);
+        _serverConnectionRepo.SetActiveAsync("conn-1", Arg.Any<CancellationToken>())
+            .Returns(true);
+
+        var healthDto = new HealthDto(Healthy: true, Version: "1.0.0");
+        _apiClient.GetHealthAsync(Arg.Any<CancellationToken>())
+            .Returns(OpencodeResult<HealthDto>.Success(healthDto));
+
+        // Act
+        await _sut.TestConnectionCommand.ExecuteAsync(null);
+
+        // Assert
+        await _serverConnectionRepo.Received(1).AddAsync(
+            Arg.Is<ServerConnectionDto>(dto => dto.UseHttps == true && dto.Port == 443),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task TestConnectionCommand_WhenHttpUrlWithExplicitPort_SavesUseHttpsFalse()
+    {
+        // Arrange
+        _sut.ServerUrl = "http://192.168.1.100:4096";
+
+        var savedConnection = TestDataBuilder.CreateServerConnectionDto(id: "conn-1");
+        _serverConnectionRepo.AddAsync(Arg.Any<ServerConnectionDto>(), Arg.Any<CancellationToken>())
+            .Returns(savedConnection);
+        _serverConnectionRepo.SetActiveAsync("conn-1", Arg.Any<CancellationToken>())
+            .Returns(true);
+
+        var healthDto = new HealthDto(Healthy: true, Version: "1.0.0");
+        _apiClient.GetHealthAsync(Arg.Any<CancellationToken>())
+            .Returns(OpencodeResult<HealthDto>.Success(healthDto));
+
+        // Act
+        await _sut.TestConnectionCommand.ExecuteAsync(null);
+
+        // Assert
+        await _serverConnectionRepo.Received(1).AddAsync(
+            Arg.Is<ServerConnectionDto>(dto => dto.UseHttps == false && dto.Port == 4096),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task TestConnectionCommand_WhenHttpsUrlWithCustomPort_SavesCorrectPortAndUseHttpsTrue()
+    {
+        // Arrange
+        _sut.ServerUrl = "https://myserver.com:8443";
+
+        var savedConnection = TestDataBuilder.CreateServerConnectionDto(id: "conn-1");
+        _serverConnectionRepo.AddAsync(Arg.Any<ServerConnectionDto>(), Arg.Any<CancellationToken>())
+            .Returns(savedConnection);
+        _serverConnectionRepo.SetActiveAsync("conn-1", Arg.Any<CancellationToken>())
+            .Returns(true);
+
+        var healthDto = new HealthDto(Healthy: true, Version: "1.0.0");
+        _apiClient.GetHealthAsync(Arg.Any<CancellationToken>())
+            .Returns(OpencodeResult<HealthDto>.Success(healthDto));
+
+        // Act
+        await _sut.TestConnectionCommand.ExecuteAsync(null);
+
+        // Assert
+        await _serverConnectionRepo.Received(1).AddAsync(
+            Arg.Is<ServerConnectionDto>(dto => dto.UseHttps == true && dto.Port == 8443),
             Arg.Any<CancellationToken>());
     }
 }

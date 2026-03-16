@@ -366,7 +366,10 @@ public sealed partial class ServerDetailViewModel : ObservableObject
                 : $"{scheme}://{host}:{port}";
             var healthUrl = $"{baseUrl}/global/health";
 
-            var client = _httpClientFactory.CreateClient("opencode");
+            // Use "discovery-probe" (5-second timeout, no resilience pipeline) — not "opencode".
+            // The form probes an arbitrary URL the user typed; failed probes must never
+            // trigger the circuit breaker that protects real API calls on the "opencode" client.
+            var client = _httpClientFactory.CreateClient("discovery-probe");
             using var response = await client.GetAsync(healthUrl, timeoutCts.Token).ConfigureAwait(false);
 
             if (!response.IsSuccessStatusCode)

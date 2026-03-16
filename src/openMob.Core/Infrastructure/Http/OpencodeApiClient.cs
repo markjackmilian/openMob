@@ -613,7 +613,9 @@ internal sealed class OpencodeApiClient : IOpencodeApiClient
         if (baseUrl is null)
             yield break;
 
-        var client = _httpClientFactory.CreateClient("opencode");
+        // Use "opencode-sse" (infinite timeout, no resilience pipeline) for SSE connections.
+        // The "opencode" client has a 30-second timeout that would kill the long-lived stream.
+        var client = _httpClientFactory.CreateClient("opencode-sse");
 
         var authHeader = await _connectionManager.GetBasicAuthHeaderAsync(cancellationToken).ConfigureAwait(false);
         if (authHeader is not null)

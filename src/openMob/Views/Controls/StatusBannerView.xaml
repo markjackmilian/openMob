@@ -2,6 +2,7 @@
 <ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:controls="clr-namespace:openMob.Views.Controls"
+             xmlns:helpers="clr-namespace:openMob.Helpers"
              x:Class="openMob.Views.Controls.StatusBannerView"
              x:Name="ThisView"
              x:DataType="controls:StatusBannerView">
@@ -11,21 +12,35 @@
       StrokeThickness="0"
       StrokeShape="RoundRectangle 0"
       Padding="{StaticResource SpacingMd}">
-    <Grid ColumnDefinitions="*,Auto">
+    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
 
+      <!-- Status icon -->
       <Label
           Grid.Column="0"
+          FontFamily="MaterialSymbols"
+          Text="{x:Static helpers:MaterialIcons.Info}"
+          FontSize="18"
+          TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}"
+          VerticalOptions="Center"
+          SemanticProperties.Description="Status icon" />
+
+      <!-- Message -->
+      <Label
+          Grid.Column="1"
           Text="{Binding Message, Source={x:Reference ThisView}, FallbackValue='', TargetNullValue=''}"
+          FontFamily="InterRegular"
           FontSize="{StaticResource FontSizeFootnote}"
           VerticalOptions="Center"
           TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}" />
 
+      <!-- Action button -->
       <Button
-          Grid.Column="1"
+          Grid.Column="2"
           Text="{Binding ActionLabel, Source={x:Reference ThisView}, FallbackValue='', TargetNullValue=''}"
           Command="{Binding ActionCommand, Source={x:Reference ThisView}}"
           IsVisible="{Binding ActionLabel, Source={x:Reference ThisView}, Converter={StaticResource NullToVisibilityConverter}}"
           Style="{StaticResource TertiaryButton}"
+          FontFamily="InterMedium"
           FontSize="{StaticResource FontSizeFootnote}"
           Padding="8,0"
           MinimumHeightRequest="32"

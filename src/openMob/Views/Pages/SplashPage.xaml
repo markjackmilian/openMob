@@ -16,14 +16,15 @@
     <Border
         WidthRequest="80"
         HeightRequest="80"
-        StrokeShape="RoundRectangle 20"
+        StrokeShape="RoundRectangle 16"
         StrokeThickness="0"
         BackgroundColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}"
+        Padding="0"
         HorizontalOptions="Center">
       <Label
           Text="oM"
+          FontFamily="InterBold"
           FontSize="{StaticResource FontSizeTitle1}"
-          FontAttributes="Bold"
           TextColor="{AppThemeBinding Light={StaticResource ColorOnPrimaryLight}, Dark={StaticResource ColorOnPrimaryDark}}"
           HorizontalOptions="Center"
           VerticalOptions="Center" />
@@ -32,7 +33,9 @@
     <!-- App name -->
     <Label
         Text="openMob"
-        Style="{StaticResource Title2Label}"
+        FontFamily="InterBold"
+        FontSize="{StaticResource FontSizeTitle1}"
+        TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}"
         HorizontalTextAlignment="Center" />
 
     <!-- Loading indicator -->

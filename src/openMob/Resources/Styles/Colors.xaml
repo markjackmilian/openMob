@@ -63,6 +63,12 @@
     <Color x:Key="Green50">#E8F8ED</Color>
     <Color x:Key="GreenDark50">#1A3D24</Color>
 
+    <!-- ChatGPT-inspired Green Accent -->
+    <Color x:Key="Green400">#10A37F</Color>
+    <Color x:Key="GreenDark400">#1DB88E</Color>
+    <Color x:Key="Green100">#E6F4EF</Color>
+    <Color x:Key="GreenDark100">#0D2E23</Color>
+
     <!-- Semantic status — Amber (Warning) -->
     <Color x:Key="Amber500">#FF9F0A</Color>
     <Color x:Key="AmberDark500">#FFD60A</Color>
@@ -90,44 +96,44 @@
          ═══════════════════════════════════════════════════════════════ -->
 
     <!-- Page & scaffold backgrounds -->
-    <Color x:Key="ColorBackgroundLight">#F2F2F7</Color>
-    <Color x:Key="ColorBackgroundDark">#000000</Color>
-    <Color x:Key="ColorBackgroundSecondaryLight">#F9F9F9</Color>
-    <Color x:Key="ColorBackgroundSecondaryDark">#0F172A</Color>
+    <Color x:Key="ColorBackgroundLight">#FFFFFF</Color>
+    <Color x:Key="ColorBackgroundDark">#0D0D0D</Color>
+    <Color x:Key="ColorBackgroundSecondaryLight">#F7F7F8</Color>
+    <Color x:Key="ColorBackgroundSecondaryDark">#1A1A1A</Color>
 
     <!-- Card / sheet surfaces -->
     <Color x:Key="ColorSurfaceLight">#FFFFFF</Color>
-    <Color x:Key="ColorSurfaceDark">#1C1C1E</Color>
-    <Color x:Key="ColorSurfaceSecondaryLight">#F2F2F7</Color>
-    <Color x:Key="ColorSurfaceSecondaryDark">#2C2C2E</Color>
-    <Color x:Key="ColorSurfaceTertiaryLight">#E5E5EA</Color>
-    <Color x:Key="ColorSurfaceTertiaryDark">#3A3A3C</Color>
+    <Color x:Key="ColorSurfaceDark">#1A1A1A</Color>
+    <Color x:Key="ColorSurfaceSecondaryLight">#F0F0F0</Color>
+    <Color x:Key="ColorSurfaceSecondaryDark">#2A2A2A</Color>
+    <Color x:Key="ColorSurfaceTertiaryLight">#E5E5E5</Color>
+    <Color x:Key="ColorSurfaceTertiaryDark">#2A2A2A</Color>
 
     <!-- Text on background -->
-    <Color x:Key="ColorOnBackgroundLight">#000000</Color>
+    <Color x:Key="ColorOnBackgroundLight">#0D0D0D</Color>
     <Color x:Key="ColorOnBackgroundDark">#FFFFFF</Color>
-    <Color x:Key="ColorOnBackgroundSecondaryLight">#636366</Color>
-    <Color x:Key="ColorOnBackgroundSecondaryDark">#AEAEB2</Color>
-    <Color x:Key="ColorOnBackgroundTertiaryLight">#8E8E93</Color>
-    <Color x:Key="ColorOnBackgroundTertiaryDark">#8E8E93</Color>
+    <Color x:Key="ColorOnBackgroundSecondaryLight">#6E6E80</Color>
+    <Color x:Key="ColorOnBackgroundSecondaryDark">#8E8EA0</Color>
+    <Color x:Key="ColorOnBackgroundTertiaryLight">#ACACBE</Color>
+    <Color x:Key="ColorOnBackgroundTertiaryDark">#565869</Color>
 
     <!-- Text on surface -->
-    <Color x:Key="ColorOnSurfaceLight">#1C1C1E</Color>
-    <Color x:Key="ColorOnSurfaceDark">#F2F2F7</Color>
-    <Color x:Key="ColorOnSurfaceSecondaryLight">#8E8E93</Color>
-    <Color x:Key="ColorOnSurfaceSecondaryDark">#AEAEB2</Color>
-    <Color x:Key="ColorOnSurfaceTertiaryLight">#AEAEB2</Color>
-    <Color x:Key="ColorOnSurfaceTertiaryDark">#8E8E93</Color>
+    <Color x:Key="ColorOnSurfaceLight">#0D0D0D</Color>
+    <Color x:Key="ColorOnSurfaceDark">#FFFFFF</Color>
+    <Color x:Key="ColorOnSurfaceSecondaryLight">#6E6E80</Color>
+    <Color x:Key="ColorOnSurfaceSecondaryDark">#8E8EA0</Color>
+    <Color x:Key="ColorOnSurfaceTertiaryLight">#ACACBE</Color>
+    <Color x:Key="ColorOnSurfaceTertiaryDark">#565869</Color>
 
     <!-- Accent / Primary interactive -->
-    <Color x:Key="ColorPrimaryLight">#007AFF</Color>
-    <Color x:Key="ColorPrimaryDark">#0A84FF</Color>
-    <Color x:Key="ColorPrimaryContainerLight">#EAF3FF</Color>
-    <Color x:Key="ColorPrimaryContainerDark">#1C3A5A</Color>
+    <Color x:Key="ColorPrimaryLight">#10A37F</Color>
+    <Color x:Key="ColorPrimaryDark">#1DB88E</Color>
+    <Color x:Key="ColorPrimaryContainerLight">#E6F4EF</Color>
+    <Color x:Key="ColorPrimaryContainerDark">#0D2E23</Color>
     <Color x:Key="ColorOnPrimaryLight">#FFFFFF</Color>
     <Color x:Key="ColorOnPrimaryDark">#FFFFFF</Color>
-    <Color x:Key="ColorOnPrimaryContainerLight">#004999</Color>
-    <Color x:Key="ColorOnPrimaryContainerDark">#66AEFF</Color>
+    <Color x:Key="ColorOnPrimaryContainerLight">#0D8F6F</Color>
+    <Color x:Key="ColorOnPrimaryContainerDark">#1DB88E</Color>
 
     <!-- Secondary interactive -->
     <Color x:Key="ColorSecondaryLight">#32ADE6</Color>
@@ -142,20 +148,20 @@
     <Color x:Key="ColorOnTertiaryDark">#000000</Color>
 
     <!-- Borders, separators, outlines -->
-    <Color x:Key="ColorOutlineLight">#E5E5EA</Color>
-    <Color x:Key="ColorOutlineDark">#3A3A3C</Color>
-    <Color x:Key="ColorOutlineVariantLight">#D1D1D6</Color>
-    <Color x:Key="ColorOutlineVariantDark">#636366</Color>
-    <Color x:Key="ColorSeparatorLight">#D1D1D6</Color>
-    <Color x:Key="ColorSeparatorDark">#3A3A3C</Color>
+    <Color x:Key="ColorOutlineLight">#E5E5E5</Color>
+    <Color x:Key="ColorOutlineDark">#2A2A2A</Color>
+    <Color x:Key="ColorOutlineVariantLight">#E5E5E5</Color>
+    <Color x:Key="ColorOutlineVariantDark">#3A3A3A</Color>
+    <Color x:Key="ColorSeparatorLight">#E5E5E5</Color>
+    <Color x:Key="ColorSeparatorDark">#2A2A2A</Color>
 
     <!-- Disabled states -->
-    <Color x:Key="ColorDisabledLight">#C7C7CC</Color>
-    <Color x:Key="ColorDisabledDark">#636366</Color>
+    <Color x:Key="ColorDisabledLight">#ACACBE</Color>
+    <Color x:Key="ColorDisabledDark">#565869</Color>
     <Color x:Key="ColorOnDisabledLight">#FFFFFF</Color>
     <Color x:Key="ColorOnDisabledDark">#1C1C1E</Color>
-    <Color x:Key="ColorDisabledSurfaceLight">#E5E5EA</Color>
-    <Color x:Key="ColorDisabledSurfaceDark">#2C2C2E</Color>
+    <Color x:Key="ColorDisabledSurfaceLight">#F0F0F0</Color>
+    <Color x:Key="ColorDisabledSurfaceDark">#2A2A2A</Color>
 
     <!-- Semantic status — Error / Destructive -->
     <Color x:Key="ColorErrorLight">#FF3B30</Color>
@@ -199,22 +205,22 @@
 
     <!-- Shell / navigation chrome -->
     <Color x:Key="ColorNavigationBarLight">#FFFFFF</Color>
-    <Color x:Key="ColorNavigationBarDark">#1C1C1E</Color>
+    <Color x:Key="ColorNavigationBarDark">#0D0D0D</Color>
     <Color x:Key="ColorTabBarLight">#FFFFFF</Color>
-    <Color x:Key="ColorTabBarDark">#1C1C1E</Color>
-    <Color x:Key="ColorTabBarSelectedLight">#007AFF</Color>
-    <Color x:Key="ColorTabBarSelectedDark">#0A84FF</Color>
-    <Color x:Key="ColorTabBarUnselectedLight">#AEAEB2</Color>
-    <Color x:Key="ColorTabBarUnselectedDark">#8E8E93</Color>
+    <Color x:Key="ColorTabBarDark">#0D0D0D</Color>
+    <Color x:Key="ColorTabBarSelectedLight">#10A37F</Color>
+    <Color x:Key="ColorTabBarSelectedDark">#1DB88E</Color>
+    <Color x:Key="ColorTabBarUnselectedLight">#ACACBE</Color>
+    <Color x:Key="ColorTabBarUnselectedDark">#565869</Color>
 
     <!-- Scrim / overlay (for modals, bottom sheets) -->
     <Color x:Key="ColorScrimLight">#80000000</Color>
     <Color x:Key="ColorScrimDark">#99000000</Color>
 
     <!-- Inverse (for snackbars, toasts on dark surfaces) -->
-    <Color x:Key="ColorInverseSurfaceLight">#1C1C1E</Color>
-    <Color x:Key="ColorInverseSurfaceDark">#F2F2F7</Color>
-    <Color x:Key="ColorInverseOnSurfaceLight">#F2F2F7</Color>
-    <Color x:Key="ColorInverseOnSurfaceDark">#1C1C1E</Color>
+    <Color x:Key="ColorInverseSurfaceLight">#0D0D0D</Color>
+    <Color x:Key="ColorInverseSurfaceDark">#FFFFFF</Color>
+    <Color x:Key="ColorInverseOnSurfaceLight">#FFFFFF</Color>
+    <Color x:Key="ColorInverseOnSurfaceDark">#0D0D0D</Color>
 
 </ResourceDictionary>

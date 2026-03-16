@@ -61,6 +61,7 @@
     <!-- Label — body text defaults -->
     <Style TargetType="Label">
         <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}" />
+        <Setter Property="FontFamily" Value="InterRegular" />
         <Setter Property="FontSize" Value="{StaticResource FontSizeBody}" />
         <Setter Property="LineBreakMode" Value="WordWrap" />
     </Style>
@@ -69,8 +70,9 @@
     <Style TargetType="Button">
         <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}" />
         <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource ColorOnPrimaryLight}, Dark={StaticResource ColorOnPrimaryDark}}" />
+        <Setter Property="FontFamily" Value="InterBold" />
         <Setter Property="FontSize" Value="{StaticResource FontSizeBody}" />
-        <Setter Property="FontAttributes" Value="Bold" />
+        <Setter Property="FontAttributes" Value="None" />
         <Setter Property="CornerRadius" Value="{StaticResource RadiusMd}" />
         <Setter Property="Padding" Value="16,0" />
         <Setter Property="MinimumHeightRequest" Value="{StaticResource MinTouchTarget}" />
@@ -83,6 +85,7 @@
         <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource ColorSurfaceLight}, Dark={StaticResource ColorSurfaceDark}}" />
         <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource ColorOnSurfaceLight}, Dark={StaticResource ColorOnSurfaceDark}}" />
         <Setter Property="PlaceholderColor" Value="{AppThemeBinding Light={StaticResource ColorOnSurfaceTertiaryLight}, Dark={StaticResource ColorOnSurfaceTertiaryDark}}" />
+        <Setter Property="FontFamily" Value="InterRegular" />
         <Setter Property="FontSize" Value="{StaticResource FontSizeBody}" />
         <Setter Property="MinimumHeightRequest" Value="{StaticResource MinTouchTarget}" />
     </Style>
@@ -92,6 +95,7 @@
         <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource ColorSurfaceLight}, Dark={StaticResource ColorSurfaceDark}}" />
         <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource ColorOnSurfaceLight}, Dark={StaticResource ColorOnSurfaceDark}}" />
         <Setter Property="PlaceholderColor" Value="{AppThemeBinding Light={StaticResource ColorOnSurfaceTertiaryLight}, Dark={StaticResource ColorOnSurfaceTertiaryDark}}" />
+        <Setter Property="FontFamily" Value="InterRegular" />
         <Setter Property="FontSize" Value="{StaticResource FontSizeBody}" />
         <Setter Property="MinimumHeightRequest" Value="{StaticResource MinTouchTarget}" />
     </Style>
@@ -119,6 +123,7 @@
         <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource ColorSurfaceSecondaryLight}, Dark={StaticResource ColorSurfaceSecondaryDark}}" />
         <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource ColorOnSurfaceLight}, Dark={StaticResource ColorOnSurfaceDark}}" />
         <Setter Property="PlaceholderColor" Value="{AppThemeBinding Light={StaticResource ColorOnSurfaceTertiaryLight}, Dark={StaticResource ColorOnSurfaceTertiaryDark}}" />
+        <Setter Property="FontFamily" Value="InterRegular" />
         <Setter Property="FontSize" Value="{StaticResource FontSizeBody}" />
         <Setter Property="MinimumHeightRequest" Value="{StaticResource MinTouchTarget}" />
     </Style>
@@ -150,6 +155,7 @@
         <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource ColorSurfaceLight}, Dark={StaticResource ColorSurfaceDark}}" />
         <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource ColorOnSurfaceLight}, Dark={StaticResource ColorOnSurfaceDark}}" />
         <Setter Property="TitleColor" Value="{AppThemeBinding Light={StaticResource ColorOnSurfaceTertiaryLight}, Dark={StaticResource ColorOnSurfaceTertiaryDark}}" />
+        <Setter Property="FontFamily" Value="InterRegular" />
         <Setter Property="FontSize" Value="{StaticResource FontSizeBody}" />
         <Setter Property="MinimumHeightRequest" Value="{StaticResource MinTouchTarget}" />
     </Style>
@@ -158,6 +164,7 @@
     <Style TargetType="DatePicker">
         <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource ColorSurfaceLight}, Dark={StaticResource ColorSurfaceDark}}" />
         <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource ColorOnSurfaceLight}, Dark={StaticResource ColorOnSurfaceDark}}" />
+        <Setter Property="FontFamily" Value="InterRegular" />
         <Setter Property="FontSize" Value="{StaticResource FontSizeBody}" />
         <Setter Property="MinimumHeightRequest" Value="{StaticResource MinTouchTarget}" />
     </Style>
@@ -166,6 +173,7 @@
     <Style TargetType="TimePicker">
         <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource ColorSurfaceLight}, Dark={StaticResource ColorSurfaceDark}}" />
         <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource ColorOnSurfaceLight}, Dark={StaticResource ColorOnSurfaceDark}}" />
+        <Setter Property="FontFamily" Value="InterRegular" />
         <Setter Property="FontSize" Value="{StaticResource FontSizeBody}" />
         <Setter Property="MinimumHeightRequest" Value="{StaticResource MinTouchTarget}" />
     </Style>
@@ -195,44 +203,50 @@
 
     <!-- Large display title (e.g. onboarding hero, empty state headline) -->
     <Style x:Key="LargeTitleLabel" TargetType="Label">
+        <Setter Property="FontFamily" Value="InterBold" />
         <Setter Property="FontSize" Value="{StaticResource FontSizeLargeTitle}" />
-        <Setter Property="FontAttributes" Value="Bold" />
+        <Setter Property="FontAttributes" Value="None" />
         <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}" />
         <Setter Property="LineBreakMode" Value="WordWrap" />
     </Style>
 
     <!-- Screen / section title -->
     <Style x:Key="Title1Label" TargetType="Label">
+        <Setter Property="FontFamily" Value="InterBold" />
         <Setter Property="FontSize" Value="{StaticResource FontSizeTitle1}" />
-        <Setter Property="FontAttributes" Value="Bold" />
+        <Setter Property="FontAttributes" Value="None" />
         <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}" />
         <Setter Property="LineBreakMode" Value="WordWrap" />
     </Style>
 
     <Style x:Key="Title2Label" TargetType="Label">
+        <Setter Property="FontFamily" Value="InterBold" />
         <Setter Property="FontSize" Value="{StaticResource FontSizeTitle2}" />
-        <Setter Property="FontAttributes" Value="Bold" />
+        <Setter Property="FontAttributes" Value="None" />
         <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}" />
         <Setter Property="LineBreakMode" Value="WordWrap" />
     </Style>
 
     <Style x:Key="Title3Label" TargetType="Label">
+        <Setter Property="FontFamily" Value="InterBold" />
         <Setter Property="FontSize" Value="{StaticResource FontSizeTitle3}" />
-        <Setter Property="FontAttributes" Value="Bold" />
+        <Setter Property="FontAttributes" Value="None" />
         <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}" />
         <Setter Property="LineBreakMode" Value="WordWrap" />
     </Style>
 
     <!-- Headline — semibold body-size, for list item titles, card headers -->
     <Style x:Key="HeadlineLabel" TargetType="Label">
+        <Setter Property="FontFamily" Value="InterSemiBold" />
         <Setter Property="FontSize" Value="{StaticResource FontSizeHeadline}" />
-        <Setter Property="FontAttributes" Value="Bold" />
+        <Setter Property="FontAttributes" Value="None" />
         <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}" />
         <Setter Property="LineBreakMode" Value="WordWrap" />
     </Style>
 
     <!-- Body — default readable text -->
     <Style x:Key="BodyLabel" TargetType="Label">
+        <Setter Property="FontFamily" Value="InterRegular" />
         <Setter Property="FontSize" Value="{StaticResource FontSizeBody}" />
         <Setter Property="FontAttributes" Value="None" />
         <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}" />
@@ -241,6 +255,7 @@
 
     <!-- Callout — slightly smaller body, for supporting text -->
     <Style x:Key="CalloutLabel" TargetType="Label">
+        <Setter Property="FontFamily" Value="InterMedium" />
         <Setter Property="FontSize" Value="{StaticResource FontSizeCallout}" />
         <Setter Property="FontAttributes" Value="None" />
         <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}" />
@@ -249,6 +264,7 @@
 
     <!-- Subtitle — secondary text below a headline -->
     <Style x:Key="SubtitleLabel" TargetType="Label">
+        <Setter Property="FontFamily" Value="InterRegular" />
         <Setter Property="FontSize" Value="{StaticResource FontSizeSubheadline}" />
         <Setter Property="FontAttributes" Value="None" />
         <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}" />
@@ -257,6 +273,7 @@
 
     <!-- Footnote — small supporting text, timestamps, hints -->
     <Style x:Key="FootnoteLabel" TargetType="Label">
+        <Setter Property="FontFamily" Value="InterRegular" />
         <Setter Property="FontSize" Value="{StaticResource FontSizeFootnote}" />
         <Setter Property="FontAttributes" Value="None" />
         <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}" />
@@ -265,6 +282,7 @@
 
     <!-- Caption — smallest readable text, metadata, badges -->
     <Style x:Key="CaptionLabel" TargetType="Label">
+        <Setter Property="FontFamily" Value="InterRegular" />
         <Setter Property="FontSize" Value="{StaticResource FontSizeCaption1}" />
         <Setter Property="FontAttributes" Value="None" />
         <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}" />
@@ -273,6 +291,7 @@
 
     <!-- Caption2 — ultra-small, use sparingly -->
     <Style x:Key="Caption2Label" TargetType="Label">
+        <Setter Property="FontFamily" Value="InterRegular" />
         <Setter Property="FontSize" Value="{StaticResource FontSizeCaption2}" />
         <Setter Property="FontAttributes" Value="None" />
         <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}" />
@@ -281,6 +300,7 @@
 
     <!-- Accent / link text -->
     <Style x:Key="LinkLabel" TargetType="Label">
+        <Setter Property="FontFamily" Value="InterMedium" />
         <Setter Property="FontSize" Value="{StaticResource FontSizeBody}" />
         <Setter Property="FontAttributes" Value="None" />
         <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}" />
@@ -289,6 +309,7 @@
 
     <!-- Error / destructive text -->
     <Style x:Key="ErrorLabel" TargetType="Label">
+        <Setter Property="FontFamily" Value="InterRegular" />
         <Setter Property="FontSize" Value="{StaticResource FontSizeFootnote}" />
         <Setter Property="FontAttributes" Value="None" />
         <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource ColorErrorLight}, Dark={StaticResource ColorErrorDark}}" />
@@ -301,12 +322,14 @@
 
     <!-- Primary — accent fill, white label (inherits implicit Button style) -->
     <Style x:Key="PrimaryButton" TargetType="Button">
+        <Setter Property="FontFamily" Value="InterSemiBold" />
         <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}" />
         <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource ColorOnPrimaryLight}, Dark={StaticResource ColorOnPrimaryDark}}" />
     </Style>
 
     <!-- Secondary — outlined, no fill -->
     <Style x:Key="SecondaryButton" TargetType="Button">
+        <Setter Property="FontFamily" Value="InterSemiBold" />
         <Setter Property="BackgroundColor" Value="Transparent" />
         <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}" />
         <Setter Property="BorderColor" Value="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}" />
@@ -315,6 +338,7 @@
 
     <!-- Tertiary / Ghost — no fill, no border, accent text -->
     <Style x:Key="TertiaryButton" TargetType="Button">
+        <Setter Property="FontFamily" Value="InterSemiBold" />
         <Setter Property="BackgroundColor" Value="Transparent" />
         <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}" />
         <Setter Property="BorderWidth" Value="0" />
@@ -322,12 +346,14 @@
 
     <!-- Destructive — error red fill -->
     <Style x:Key="DestructiveButton" TargetType="Button">
+        <Setter Property="FontFamily" Value="InterSemiBold" />
         <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource ColorErrorLight}, Dark={StaticResource ColorErrorDark}}" />
         <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource ColorOnErrorLight}, Dark={StaticResource ColorOnErrorDark}}" />
     </Style>
 
     <!-- Destructive Outlined — error red border, no fill -->
     <Style x:Key="DestructiveOutlinedButton" TargetType="Button">
+        <Setter Property="FontFamily" Value="InterSemiBold" />
         <Setter Property="BackgroundColor" Value="Transparent" />
         <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource ColorErrorLight}, Dark={StaticResource ColorErrorDark}}" />
         <Setter Property="BorderColor" Value="{AppThemeBinding Light={StaticResource ColorErrorLight}, Dark={StaticResource ColorErrorDark}}" />
@@ -336,6 +362,7 @@
 
     <!-- Disabled — muted surface, no interaction -->
     <Style x:Key="DisabledButton" TargetType="Button">
+        <Setter Property="FontFamily" Value="InterSemiBold" />
         <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource ColorDisabledSurfaceLight}, Dark={StaticResource ColorDisabledSurfaceDark}}" />
         <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource ColorDisabledLight}, Dark={StaticResource ColorDisabledDark}}" />
         <Setter Property="IsEnabled" Value="False" />
@@ -387,6 +414,7 @@
 
     <!-- Outlined input — visible border, surface background -->
     <Style x:Key="OutlinedEntry" TargetType="Entry">
+        <Setter Property="FontFamily" Value="InterRegular" />
         <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource ColorSurfaceLight}, Dark={StaticResource ColorSurfaceDark}}" />
         <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource ColorOnSurfaceLight}, Dark={StaticResource ColorOnSurfaceDark}}" />
         <Setter Property="PlaceholderColor" Value="{AppThemeBinding Light={StaticResource ColorOnSurfaceTertiaryLight}, Dark={StaticResource ColorOnSurfaceTertiaryDark}}" />
@@ -394,6 +422,7 @@
 
     <!-- Filled input — secondary surface background, no border -->
     <Style x:Key="FilledEntry" TargetType="Entry">
+        <Setter Property="FontFamily" Value="InterRegular" />
         <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource ColorSurfaceSecondaryLight}, Dark={StaticResource ColorSurfaceSecondaryDark}}" />
         <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource ColorOnSurfaceLight}, Dark={StaticResource ColorOnSurfaceDark}}" />
         <Setter Property="PlaceholderColor" Value="{AppThemeBinding Light={StaticResource ColorOnSurfaceTertiaryLight}, Dark={StaticResource ColorOnSurfaceTertiaryDark}}" />
@@ -401,6 +430,7 @@
 
     <!-- Outlined editor — multiline, visible border -->
     <Style x:Key="OutlinedEditor" TargetType="Editor">
+        <Setter Property="FontFamily" Value="InterRegular" />
         <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource ColorSurfaceLight}, Dark={StaticResource ColorSurfaceDark}}" />
         <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource ColorOnSurfaceLight}, Dark={StaticResource ColorOnSurfaceDark}}" />
         <Setter Property="PlaceholderColor" Value="{AppThemeBinding Light={StaticResource ColorOnSurfaceTertiaryLight}, Dark={StaticResource ColorOnSurfaceTertiaryDark}}" />

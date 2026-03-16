@@ -2,6 +2,7 @@
 <ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:openMob.Core.ViewModels;assembly=openMob.Core"
+             xmlns:helpers="clr-namespace:openMob.Helpers"
              x:Class="openMob.Views.Controls.OnboardingCompletionView"
              x:DataType="vm:OnboardingViewModel">
 
@@ -11,32 +12,25 @@
       Padding="{StaticResource SpacingXl}">
 
     <!-- Success icon -->
-    <Border
-        WidthRequest="96"
-        HeightRequest="96"
-        StrokeShape="RoundRectangle 48"
-        StrokeThickness="0"
-        BackgroundColor="{AppThemeBinding Light={StaticResource ColorSuccessContainerLight}, Dark={StaticResource ColorSuccessContainerDark}}"
-        HorizontalOptions="Center">
-      <Label
-          Text="&#x2713;"
-          FontSize="{StaticResource FontSizeLargeTitle}"
-          FontAttributes="Bold"
-          TextColor="{AppThemeBinding Light={StaticResource ColorSuccessLight}, Dark={StaticResource ColorSuccessDark}}"
-          HorizontalOptions="Center"
-          VerticalOptions="Center" />
-    </Border>
+    <Label
+        FontFamily="MaterialSymbols"
+        Text="{x:Static helpers:MaterialIcons.CheckCircle}"
+        FontSize="64"
+        TextColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}"
+        HorizontalOptions="Center" />
 
     <!-- Title -->
     <Label
         Text="All set!"
-        Style="{StaticResource LargeTitleLabel}"
+        Style="{StaticResource Title1Label}"
+        FontFamily="InterBold"
         HorizontalTextAlignment="Center" />
 
     <!-- Subtitle -->
     <Label
         Text="Start chatting with your AI agent. You can always adjust settings later."
-        Style="{StaticResource CalloutLabel}"
+        Style="{StaticResource SubtitleLabel}"
+        FontFamily="InterRegular"
         HorizontalTextAlignment="Center"
         Margin="0,0,0,16" />
 

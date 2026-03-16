@@ -2,117 +2,137 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:openMob.Core.ViewModels;assembly=openMob.Core"
-             xmlns:models="clr-namespace:openMob.Core.Models;assembly=openMob.Core"
+             xmlns:helpers="clr-namespace:openMob.Helpers"
              x:Class="openMob.Views.Popups.ModelPickerSheet"
              x:DataType="vm:ModelPickerViewModel"
              Title="Select Model"
-             Shell.PresentationMode="ModalAnimated">
+             Shell.PresentationMode="ModalAnimated"
+             BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceLight}, Dark={StaticResource ColorSurfaceDark}}">
 
-  <VerticalStackLayout
-      Spacing="{StaticResource SpacingLg}"
-      Padding="{StaticResource SpacingLg}">
+  <VerticalStackLayout Spacing="0">
 
     <!-- Handle bar -->
     <BoxView
         WidthRequest="36"
         HeightRequest="4"
         CornerRadius="2"
-        Color="{AppThemeBinding Light={StaticResource ColorOnSurfaceTertiaryLight}, Dark={StaticResource ColorOnSurfaceTertiaryDark}}"
+        Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
         HorizontalOptions="Center"
-        Margin="0,8,0,0" />
+        Margin="0,8,0,16" />
 
     <!-- Title -->
     <Label
         Text="Select Model"
-        Style="{StaticResource Title3Label}" />
+        FontFamily="InterSemiBold"
+        FontSize="{StaticResource FontSizeTitle3}"
+        TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}"
+        Margin="16,0,16,16" />
 
-    <!-- Loading indicator -->
-    <ActivityIndicator
-        IsRunning="{Binding IsLoading}"
-        IsVisible="{Binding IsLoading}"
-        HorizontalOptions="Center" />
+    <!-- Static model list (REQ-034: placeholder with 3 Claude models) -->
+    <VerticalStackLayout Spacing="0" Padding="16,0">
 
-    <!-- Model list grouped by provider -->
-    <CollectionView
-        ItemsSource="{Binding ProviderGroups}"
-        SelectionMode="None"
-        IsVisible="{Binding IsLoading, Converter={StaticResource InvertedBoolConverter}}">
-      <CollectionView.ItemTemplate>
-        <DataTemplate x:DataType="models:ProviderModelGroup">
-          <VerticalStackLayout Spacing="{StaticResource SpacingXs}">
-            <!-- Provider header -->
-            <Label
-                Text="{Binding ProviderName, FallbackValue='Provider'}"
-                Style="{StaticResource CaptionLabel}"
-                TextTransform="Uppercase"
-                TextColor="{AppThemeBinding Light={StaticResource ColorOnSurfaceTertiaryLight}, Dark={StaticResource ColorOnSurfaceTertiaryDark}}"
-                Margin="0,12,0,4" />
-
-            <!-- Models in this provider -->
-            <CollectionView
-                ItemsSource="{Binding Models}"
-                SelectionMode="None">
-              <CollectionView.ItemTemplate>
-                <DataTemplate x:DataType="models:ModelItem">
-                  <Grid
-                      ColumnDefinitions="*,Auto"
-                      Padding="{StaticResource SpacingMd}"
-                      MinimumHeightRequest="{StaticResource MinTouchTarget}">
-                    <Grid.GestureRecognizers>
-                      <TapGestureRecognizer
-                          Command="{Binding SelectModelCommand, Source={RelativeSource AncestorType={x:Type vm:ModelPickerViewModel}}}"
-                          CommandParameter="{Binding Id}" />
-                    </Grid.GestureRecognizers>
-
-                    <VerticalStackLayout
-                        Grid.Column="0"
-                        Spacing="{StaticResource SpacingXs}"
-                        VerticalOptions="Center">
-                      <Label
-                          Text="{Binding Name, FallbackValue='Model'}"
-                          Style="{StaticResource HeadlineLabel}" />
-                      <Label
-                          Text="{Binding ContextSize, FallbackValue='', TargetNullValue=''}"
-                          Style="{StaticResource FootnoteLabel}"
-                          IsVisible="{Binding ContextSize, Converter={StaticResource NullToVisibilityConverter}}" />
-                    </VerticalStackLayout>
-
-                    <!-- Checkmark for selected model -->
-                    <Label
-                        Grid.Column="1"
-                        Text="&#x2713;"
-                        FontSize="{StaticResource FontSizeBody}"
-                        TextColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}"
-                        IsVisible="{Binding IsSelected}"
-                        VerticalOptions="Center" />
-                  </Grid>
-                </DataTemplate>
-              </CollectionView.ItemTemplate>
-            </CollectionView>
-          </VerticalStackLayout>
-        </DataTemplate>
-      </CollectionView.ItemTemplate>
-
-      <!-- Empty state: no providers configured -->
-      <CollectionView.EmptyView>
+      <!-- Claude Haiku -->
+      <Grid
+          ColumnDefinitions="*,Auto"
+          Padding="0,14"
+          ColumnSpacing="12"
+          MinimumHeightRequest="{StaticResource MinTouchTarget}">
         <VerticalStackLayout
-            VerticalOptions="Center"
-            HorizontalOptions="Center"
-            Spacing="{StaticResource SpacingMd}"
-            Padding="{StaticResource SpacingXl}">
+            Grid.Column="0"
+            Spacing="2"
+            VerticalOptions="Center">
           <Label
-              Text="No providers configured"
-              Style="{StaticResource CalloutLabel}"
-              HorizontalTextAlignment="Center" />
-          <Button
-              Text="Configure Providers"
-              Command="{Binding ConfigureProvidersCommand}"
-              Style="{StaticResource SecondaryButton}"
-              HorizontalOptions="Center"
-              AutomationId="ModelPickerConfigureButton" />
+              Text="Claude Haiku"
+              FontFamily="InterMedium"
+              FontSize="{StaticResource FontSizeBody}"
+              TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}" />
+          <Label
+              Text="Fast and lightweight"
+              FontFamily="InterRegular"
+              FontSize="{StaticResource FontSizeCaption1}"
+              TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}" />
         </VerticalStackLayout>
-      </CollectionView.EmptyView>
-    </CollectionView>
+        <Label
+            Grid.Column="1"
+            FontFamily="MaterialSymbols"
+            Text="{x:Static helpers:MaterialIcons.RadioButtonUnchecked}"
+            FontSize="24"
+            TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
+            VerticalOptions="Center"
+            SemanticProperties.Description="Not selected" />
+      </Grid>
+
+      <BoxView
+          HeightRequest="0.5"
+          Color="{AppThemeBinding Light={StaticResource ColorSeparatorLight}, Dark={StaticResource ColorSeparatorDark}}" />
+
+      <!-- Claude Sonnet (selected) -->
+      <Grid
+          ColumnDefinitions="*,Auto"
+          Padding="0,14"
+          ColumnSpacing="12"
+          MinimumHeightRequest="{StaticResource MinTouchTarget}">
+        <VerticalStackLayout
+            Grid.Column="0"
+            Spacing="2"
+            VerticalOptions="Center">
+          <Label
+              Text="Claude Sonnet"
+              FontFamily="InterMedium"
+              FontSize="{StaticResource FontSizeBody}"
+              TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}" />
+          <Label
+              Text="Balanced performance"
+              FontFamily="InterRegular"
+              FontSize="{StaticResource FontSizeCaption1}"
+              TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}" />
+        </VerticalStackLayout>
+        <Label
+            Grid.Column="1"
+            FontFamily="MaterialSymbols"
+            Text="{x:Static helpers:MaterialIcons.Check}"
+            FontSize="24"
+            TextColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}"
+            VerticalOptions="Center"
+            SemanticProperties.Description="Selected" />
+      </Grid>
+
+      <BoxView
+          HeightRequest="0.5"
+          Color="{AppThemeBinding Light={StaticResource ColorSeparatorLight}, Dark={StaticResource ColorSeparatorDark}}" />
+
+      <!-- Claude Opus -->
+      <Grid
+          ColumnDefinitions="*,Auto"
+          Padding="0,14"
+          ColumnSpacing="12"
+          MinimumHeightRequest="{StaticResource MinTouchTarget}">
+        <VerticalStackLayout
+            Grid.Column="0"
+            Spacing="2"
+            VerticalOptions="Center">
+          <Label
+              Text="Claude Opus"
+              FontFamily="InterMedium"
+              FontSize="{StaticResource FontSizeBody}"
+              TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}" />
+          <Label
+              Text="Most capable"
+              FontFamily="InterRegular"
+              FontSize="{StaticResource FontSizeCaption1}"
+              TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}" />
+        </VerticalStackLayout>
+        <Label
+            Grid.Column="1"
+            FontFamily="MaterialSymbols"
+            Text="{x:Static helpers:MaterialIcons.RadioButtonUnchecked}"
+            FontSize="24"
+            TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
+            VerticalOptions="Center"
+            SemanticProperties.Description="Not selected" />
+      </Grid>
+
+    </VerticalStackLayout>
 
   </VerticalStackLayout>
 

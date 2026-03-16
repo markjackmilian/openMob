@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:openMob.Core.ViewModels;assembly=openMob.Core"
              xmlns:models="clr-namespace:openMob.Core.Models;assembly=openMob.Core"
+             xmlns:helpers="clr-namespace:openMob.Helpers"
              x:Class="openMob.Views.Pages.ProjectsPage"
              x:DataType="vm:ProjectsViewModel"
              Title="Projects">
@@ -13,6 +14,7 @@
           Grid.Column="0"
           Text="Projects"
           Style="{StaticResource HeadlineLabel}"
+          FontFamily="InterBold"
           VerticalOptions="Center" />
       <ImageButton
           Grid.Column="1"
@@ -24,7 +26,8 @@
           SemanticProperties.Description="Add a new project">
         <ImageButton.Source>
           <FontImageSource
-              Glyph="+"
+              FontFamily="MaterialSymbols"
+              Glyph="{x:Static helpers:MaterialIcons.Add}"
               Size="24"
               Color="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}" />
         </ImageButton.Source>
@@ -56,7 +59,15 @@
                     BackgroundColor="{AppThemeBinding Light={StaticResource ColorErrorLight}, Dark={StaticResource ColorErrorDark}}"
                     Command="{Binding DeleteProjectCommand, Source={RelativeSource AncestorType={x:Type vm:ProjectsViewModel}}}"
                     CommandParameter="{Binding Id}"
-                    AutomationId="ProjectDeleteSwipe" />
+                    AutomationId="ProjectDeleteSwipe">
+                  <SwipeItem.IconImageSource>
+                    <FontImageSource
+                        FontFamily="MaterialSymbols"
+                        Glyph="{x:Static helpers:MaterialIcons.Delete}"
+                        Size="22"
+                        Color="{AppThemeBinding Light={StaticResource ColorOnErrorLight}, Dark={StaticResource ColorOnErrorDark}}" />
+                  </SwipeItem.IconImageSource>
+                </SwipeItem>
               </SwipeItems>
             </SwipeView.RightItems>
 
@@ -75,10 +86,12 @@
                   Spacing="{StaticResource SpacingXs}">
                 <Label
                     Text="{Binding Name, FallbackValue='Untitled'}"
-                    Style="{StaticResource HeadlineLabel}" />
+                    Style="{StaticResource HeadlineLabel}"
+                    FontFamily="InterRegular" />
                 <Label
                     Text="{Binding Path, FallbackValue='', TargetNullValue=''}"
                     Style="{StaticResource FootnoteLabel}"
+                    FontFamily="InterRegular"
                     LineBreakMode="MiddleTruncation" />
               </VerticalStackLayout>
 
@@ -93,6 +106,7 @@
                   VerticalOptions="Center">
                 <Label
                     Text="Active"
+                    FontFamily="InterMedium"
                     FontSize="{StaticResource FontSizeCaption1}"
                     TextColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}" />
               </Border>
@@ -113,15 +127,24 @@
             Spacing="{StaticResource SpacingLg}"
             Padding="{StaticResource SpacingXxl}">
           <Label
+              FontFamily="MaterialSymbols"
+              Text="{x:Static helpers:MaterialIcons.Folder}"
+              FontSize="{StaticResource FontSizeLargeTitle}"
+              TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
+              HorizontalOptions="Center" />
+          <Label
               Text="No projects"
               Style="{StaticResource Title3Label}"
+              FontFamily="InterBold"
               HorizontalTextAlignment="Center" />
           <Label
               Text="Add your first project to get started."
               Style="{StaticResource CalloutLabel}"
+              FontFamily="InterRegular"
               HorizontalTextAlignment="Center" />
           <Button
               Text="Add Project"
+              Style="{StaticResource PrimaryButton}"
               Clicked="OnAddProjectClicked"
               HorizontalOptions="Center"
               AutomationId="ProjectsEmptyAddButton" />

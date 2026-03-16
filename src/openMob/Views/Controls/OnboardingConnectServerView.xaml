@@ -12,19 +12,22 @@
     <!-- Title -->
     <Label
         Text="Connect your server"
-        Style="{StaticResource Title2Label}" />
+        Style="{StaticResource Title2Label}"
+        FontFamily="InterBold" />
 
     <!-- Subtitle -->
     <Label
         Text="Enter the URL and access token for your opencode server."
         Style="{StaticResource CalloutLabel}"
+        FontFamily="InterRegular"
         Margin="0,0,0,8" />
 
     <!-- Server URL -->
     <VerticalStackLayout Spacing="{StaticResource SpacingXs}">
       <Label
           Text="Server URL"
-          Style="{StaticResource SubtitleLabel}" />
+          Style="{StaticResource SubtitleLabel}"
+          FontFamily="InterRegular" />
       <Entry
           Text="{Binding ServerUrl, Mode=TwoWay}"
           Placeholder="https://your-server.example.com"
@@ -38,7 +41,8 @@
     <VerticalStackLayout Spacing="{StaticResource SpacingXs}">
       <Label
           Text="Access Token"
-          Style="{StaticResource SubtitleLabel}" />
+          Style="{StaticResource SubtitleLabel}"
+          FontFamily="InterRegular" />
       <Entry
           Text="{Binding ServerToken, Mode=TwoWay}"
           Placeholder="sk-..."

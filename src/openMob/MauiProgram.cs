@@ -75,6 +75,8 @@ public static class MauiProgram
         builder.Services.AddTransient<ProjectsPage>();
         builder.Services.AddTransient<ProjectDetailPage>();
         builder.Services.AddTransient<SettingsPage>();
+        builder.Services.AddTransient<ServerManagementPage>();
+        builder.Services.AddTransient<ServerDetailPage>();
 
         // Register Popups as Transient
         builder.Services.AddTransient<ProjectSwitcherSheet>();

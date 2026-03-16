@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:openMob.Core.ViewModels;assembly=openMob.Core"
+             xmlns:helpers="clr-namespace:openMob.Helpers"
+             x:Class="openMob.Views.Pages.ServerDetailPage"
+             x:DataType="vm:ServerDetailViewModel"
+             Title="Server">
+
+  <Grid>
+    <!-- Loading overlay -->
+    <ActivityIndicator
+        IsRunning="{Binding IsLoading}"
+        IsVisible="{Binding IsLoading}"
+        VerticalOptions="Center"
+        HorizontalOptions="Center" />
+
+    <!-- Main content -->
+    <ScrollView IsVisible="{Binding IsLoading, Converter={StaticResource InvertedBoolConverter}}">
+      <VerticalStackLayout
+          Padding="{StaticResource SpacingLg}"
+          Spacing="{StaticResource SpacingLg}">
+
+        <!-- ── Form section ──────────────────────────────────────── -->
+        <Border Style="{StaticResource CardBorder}" Padding="{StaticResource SpacingMd}">
+          <VerticalStackLayout Spacing="{StaticResource SpacingMd}">
+
+            <!-- Name field -->
+            <VerticalStackLayout Spacing="{StaticResource SpacingXs}">
+              <Label
+                  Text="Name"
+                  Style="{StaticResource FootnoteLabel}" />
+              <Entry
+                  Text="{Binding Name, Mode=TwoWay}"
+                  MaxLength="100"
+                  Placeholder="My Server"
+                  FontFamily="InterRegular"
+                  AutomationId="ServerDetailNameEntry"
+                  SemanticProperties.Hint="Enter a display name for this server" />
+            </VerticalStackLayout>
+
+            <!-- Separator -->
+            <BoxView
+                HeightRequest="0.5"
+                Color="{AppThemeBinding Light={StaticResource ColorSeparatorLight}, Dark={StaticResource ColorSeparatorDark}}" />
+
+            <!-- URL field -->
+            <VerticalStackLayout Spacing="{StaticResource SpacingXs}">
+              <Label
+                  Text="URL"
+                  Style="{StaticResource FootnoteLabel}" />
+              <Entry
+                  Text="{Binding Url, Mode=TwoWay}"
+                  Keyboard="Url"
+                  Placeholder="http://192.168.1.10:4096"
+                  FontFamily="InterRegular"
+                  AutomationId="ServerDetailUrlEntry"
+                  SemanticProperties.Hint="Enter the server URL including protocol and port" />
+            </VerticalStackLayout>
+
+            <!-- Separator -->
+            <BoxView
+                HeightRequest="0.5"
+                Color="{AppThemeBinding Light={StaticResource ColorSeparatorLight}, Dark={StaticResource ColorSeparatorDark}}" />
+
+            <!-- Password field -->
+            <VerticalStackLayout Spacing="{StaticResource SpacingXs}">
+              <Label
+                  Text="Password"
+                  Style="{StaticResource FootnoteLabel}" />
+              <Entry
+                  Text="{Binding Password, Mode=TwoWay}"
+                  IsPassword="True"
+                  Placeholder="{Binding PasswordPlaceholder}"
+                  FontFamily="InterRegular"
+                  AutomationId="ServerDetailPasswordEntry"
+                  SemanticProperties.Hint="Enter the server password, or leave empty if not required" />
+            </VerticalStackLayout>
+
+            <!-- Validation error -->
+            <Label
+                Text="{Binding ValidationError, FallbackValue='', TargetNullValue=''}"
+                Style="{StaticResource FootnoteLabel}"
+                TextColor="{AppThemeBinding Light={StaticResource ColorErrorLight}, Dark={StaticResource ColorErrorDark}}"
+                IsVisible="{Binding ValidationError, Converter={StaticResource NullToVisibilityConverter}}" />
+
+          </VerticalStackLayout>
+        </Border>
+
+        <!-- ── Test Connection section ───────────────────────────── -->
+        <Border Style="{StaticResource CardBorder}" Padding="{StaticResource SpacingMd}">
+          <VerticalStackLayout Spacing="{StaticResource SpacingMd}">
+
+            <Button
+                Text="Test Connection"
+                Command="{Binding TestConnectionCommand}"
+                Style="{StaticResource SecondaryButton}"
+                AutomationId="ServerDetailTestConnectionButton" />
+
+            <ActivityIndicator
+                IsRunning="{Binding IsTesting}"
+                IsVisible="{Binding IsTesting}"
+                HorizontalOptions="Center" />
+
+            <!-- Connection result row -->
+            <HorizontalStackLayout
+                Spacing="{StaticResource SpacingSm}"
+                IsVisible="{Binding IsConnectionTested}">
+
+              <!-- Coloured status dot -->
+              <BoxView
+                  WidthRequest="8"
+                  HeightRequest="8"
+                  CornerRadius="4"
+                  VerticalOptions="Center"
+                  Color="{AppThemeBinding Light={StaticResource ColorErrorLight}, Dark={StaticResource ColorErrorDark}}">
+                <BoxView.Triggers>
+                  <DataTrigger TargetType="BoxView" Binding="{Binding IsConnectionSuccessful}" Value="True">
+                    <Setter Property="Color" Value="{AppThemeBinding Light={StaticResource ColorSuccessLight}, Dark={StaticResource ColorSuccessDark}}" />
+                  </DataTrigger>
+                </BoxView.Triggers>
+              </BoxView>
+
+              <Label
+                  Text="{Binding ConnectionStatusMessage, FallbackValue=''}"
+                  Style="{StaticResource FootnoteLabel}"
+                  VerticalOptions="Center" />
+
+            </HorizontalStackLayout>
+
+          </VerticalStackLayout>
+        </Border>
+
+        <!-- ── Action buttons section ────────────────────────────── -->
+        <VerticalStackLayout Spacing="{StaticResource SpacingSm}" Margin="0,0,0,32">
+
+          <!-- Save button -->
+          <Grid>
+            <Button
+                Text="Save"
+                Command="{Binding SaveCommand}"
+                AutomationId="ServerDetailSaveButton" />
+            <ActivityIndicator
+                IsRunning="{Binding IsSaving}"
+                IsVisible="{Binding IsSaving}"
+                HorizontalOptions="End"
+                VerticalOptions="Center"
+                Margin="0,0,16,0" />
+          </Grid>
+
+          <!-- Set as Active button -->
+          <Grid>
+            <Button
+                Text="Set as Active"
+                Command="{Binding SetActiveCommand}"
+                Style="{StaticResource SecondaryButton}"
+                AutomationId="ServerDetailSetActiveButton" />
+            <ActivityIndicator
+                IsRunning="{Binding IsActivating}"
+                IsVisible="{Binding IsActivating}"
+                HorizontalOptions="End"
+                VerticalOptions="Center"
+                Margin="0,0,16,0" />
+          </Grid>
+
+          <!-- Activation status message -->
+          <Label
+              Text="{Binding ActivationStatusMessage, FallbackValue='', TargetNullValue=''}"
+              Style="{StaticResource FootnoteLabel}"
+              HorizontalTextAlignment="Center"
+              IsVisible="{Binding ActivationStatusMessage, Converter={StaticResource NullToVisibilityConverter}}" />
+
+          <!-- Delete button (Edit mode only) -->
+          <VerticalStackLayout
+              Spacing="{StaticResource SpacingXs}"
+              IsVisible="{Binding IsEditMode}"
+              Margin="0,8,0,0">
+            <Button
+                Text="Delete Server"
+                Command="{Binding DeleteCommand}"
+                Style="{StaticResource DestructiveOutlinedButton}"
+                HorizontalOptions="Fill"
+                AutomationId="ServerDetailDeleteButton" />
+            <ActivityIndicator
+                IsRunning="{Binding IsDeleting}"
+                IsVisible="{Binding IsDeleting}"
+                HorizontalOptions="Center" />
+          </VerticalStackLayout>
+
+        </VerticalStackLayout>
+
+      </VerticalStackLayout>
+    </ScrollView>
+  </Grid>
+
+</ContentPage>

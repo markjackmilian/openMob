@@ -369,7 +369,7 @@ public sealed class OpencodeDiscoveryServiceTests
     {
         // Arrange
         var server = BuildDiscoveredServer("opencode-4096", "192.168.1.10", 4096);
-        var createdDto = Helpers.TestDataBuilder.CreateServerConnectionDto(
+        var createdDto = openMob.Tests.Helpers.TestDataBuilder.CreateServerConnectionDto(
             id: "new-ulid-001",
             name: "opencode-4096",
             host: "192.168.1.10",

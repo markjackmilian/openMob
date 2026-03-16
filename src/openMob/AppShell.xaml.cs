@@ -15,6 +15,8 @@ public partial class AppShell : Shell
         Routing.RegisterRoute("projects", typeof(ProjectsPage));
         Routing.RegisterRoute("project-detail", typeof(ProjectDetailPage));
         Routing.RegisterRoute("settings", typeof(SettingsPage));
+        Routing.RegisterRoute("server-management", typeof(ServerManagementPage));
+        Routing.RegisterRoute("server-detail", typeof(ServerDetailPage));
 
         // Register popup routes (for Shell-based modal navigation)
         Routing.RegisterRoute("project-switcher", typeof(ProjectSwitcherSheet));

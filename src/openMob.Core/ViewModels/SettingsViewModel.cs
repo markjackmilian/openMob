@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using openMob.Core.Infrastructure.Settings;
+using openMob.Core.Services;
 
 namespace openMob.Core.ViewModels;
 
@@ -20,16 +21,20 @@ namespace openMob.Core.ViewModels;
 public sealed partial class SettingsViewModel : ObservableObject
 {
     private readonly IThemeService _themeService;
+    private readonly INavigationService _navigationService;
 
     /// <summary>
-    /// Initialises the <see cref="SettingsViewModel"/> with the required theme service.
+    /// Initialises the <see cref="SettingsViewModel"/> with the required services.
     /// </summary>
     /// <param name="themeService">Service used to read and persist the theme preference.</param>
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="themeService"/> is <see langword="null"/>.</exception>
-    public SettingsViewModel(IThemeService themeService)
+    /// <param name="navigationService">Service for Shell navigation.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="themeService"/> or <paramref name="navigationService"/> is <see langword="null"/>.</exception>
+    public SettingsViewModel(IThemeService themeService, INavigationService navigationService)
     {
         ArgumentNullException.ThrowIfNull(themeService);
+        ArgumentNullException.ThrowIfNull(navigationService);
         _themeService = themeService;
+        _navigationService = navigationService;
 
         // Initialise the label from the currently persisted preference.
         _selectedThemeLabel = MapToLabel(_themeService.GetTheme());
@@ -54,8 +59,16 @@ public sealed partial class SettingsViewModel : ObservableObject
     [RelayCommand]
     private async Task ApplyThemeAsync(AppThemePreference preference, CancellationToken ct)
     {
-        await _themeService.SetThemeAsync(preference, ct);
+        await _themeService.SetThemeAsync(preference, ct).ConfigureAwait(false);
         SelectedThemeLabel = MapToLabel(preference);
+    }
+
+    /// <summary>Navigates to the Server Management page.</summary>
+    /// <param name="ct">Cancellation token.</param>
+    [RelayCommand]
+    private async Task NavigateToServerManagementAsync(CancellationToken ct)
+    {
+        await _navigationService.GoToAsync("server-management", ct).ConfigureAwait(false);
     }
 
     /// <summary>

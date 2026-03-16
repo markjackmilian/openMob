@@ -139,7 +139,7 @@ public sealed partial class ProjectDetailViewModel : ObservableObject
             var pref = await _preferenceService.GetAsync(id, ct).ConfigureAwait(false);
             if (pref?.DefaultModelId is not null)
             {
-                DefaultModelName = ExtractModelName(pref.DefaultModelId);
+                DefaultModelName = ModelIdHelper.ExtractModelName(pref.DefaultModelId);
             }
         }
         catch (Exception ex)
@@ -214,7 +214,7 @@ public sealed partial class ProjectDetailViewModel : ObservableObject
     {
         await _popupService.ShowModelPickerAsync(modelId =>
         {
-            DefaultModelName = ExtractModelName(modelId);
+            DefaultModelName = ModelIdHelper.ExtractModelName(modelId);
             // Fire-and-forget persistence — avoids async void in the Action<string> callback.
             // Errors are captured by Sentry inside ProjectPreferenceService.
             _ = _preferenceService.SetDefaultModelAsync(ProjectId, modelId, CancellationToken.None);
@@ -243,17 +243,4 @@ public sealed partial class ProjectDetailViewModel : ObservableObject
         await _navigationService.PopAsync(ct);
     }
 
-    // ─── Private helpers ──────────────────────────────────────────────────────
-
-    /// <summary>
-    /// Extracts the display model name from a "providerId/modelId" format string.
-    /// Returns the part after the first '/'.
-    /// </summary>
-    /// <param name="fullModelId">The full model identifier in "providerId/modelId" format.</param>
-    /// <returns>The model name portion, or the full string if no '/' is found.</returns>
-    private static string ExtractModelName(string fullModelId)
-    {
-        var slashIndex = fullModelId.IndexOf('/');
-        return slashIndex >= 0 ? fullModelId[(slashIndex + 1)..] : fullModelId;
-    }
 }

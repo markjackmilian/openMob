@@ -1,5 +1,6 @@
 using openMob.Core.Data;
 using openMob.Core.Data.Entities;
+using openMob.Core.Infrastructure.Monitoring;
 
 namespace openMob.Core.Services;
 
@@ -38,24 +39,36 @@ public sealed class ProjectPreferenceService : IProjectPreferenceService
         ArgumentException.ThrowIfNullOrWhiteSpace(projectId);
         ArgumentException.ThrowIfNullOrWhiteSpace(modelId);
 
-        var existing = await _db.ProjectPreferences
-            .FindAsync([projectId], ct)
-            .ConfigureAwait(false);
+        try
+        {
+            var existing = await _db.ProjectPreferences
+                .FindAsync([projectId], ct)
+                .ConfigureAwait(false);
 
-        if (existing is not null)
-        {
-            existing.DefaultModelId = modelId;
-        }
-        else
-        {
-            var preference = new ProjectPreference
+            if (existing is not null)
             {
-                ProjectId = projectId,
-                DefaultModelId = modelId,
-            };
-            _db.ProjectPreferences.Add(preference);
-        }
+                existing.DefaultModelId = modelId;
+            }
+            else
+            {
+                var preference = new ProjectPreference
+                {
+                    ProjectId = projectId,
+                    DefaultModelId = modelId,
+                };
+                _db.ProjectPreferences.Add(preference);
+            }
 
-        await _db.SaveChangesAsync(ct).ConfigureAwait(false);
+            await _db.SaveChangesAsync(ct).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            SentryHelper.CaptureException(ex, new Dictionary<string, object>
+            {
+                ["projectId"] = projectId,
+                ["modelId"] = modelId,
+                ["operation"] = "SetDefaultModelAsync",
+            });
+        }
     }
 }

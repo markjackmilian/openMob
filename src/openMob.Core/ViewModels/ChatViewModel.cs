@@ -131,7 +131,7 @@ public sealed partial class ChatViewModel : ObservableObject
                 if (pref?.DefaultModelId is not null)
                 {
                     SelectedModelId = pref.DefaultModelId;
-                    SelectedModelName = ExtractModelName(pref.DefaultModelId);
+                    SelectedModelName = ModelIdHelper.ExtractModelName(pref.DefaultModelId);
                 }
             }
             else
@@ -253,7 +253,7 @@ public sealed partial class ChatViewModel : ObservableObject
                 await _popupService.ShowModelPickerAsync(modelId =>
                 {
                     SelectedModelId = modelId;
-                    SelectedModelName = ExtractModelName(modelId);
+                    SelectedModelName = ModelIdHelper.ExtractModelName(modelId);
                 }, ct).ConfigureAwait(false);
                 break;
 
@@ -441,17 +441,4 @@ public sealed partial class ChatViewModel : ObservableObject
         }
     }
 
-    // ─── Private helpers ──────────────────────────────────────────────────────
-
-    /// <summary>
-    /// Extracts the display model name from a "providerId/modelId" format string.
-    /// Returns the part after the first '/'.
-    /// </summary>
-    /// <param name="fullModelId">The full model identifier in "providerId/modelId" format.</param>
-    /// <returns>The model name portion, or the full string if no '/' is found.</returns>
-    private static string ExtractModelName(string fullModelId)
-    {
-        var slashIndex = fullModelId.IndexOf('/');
-        return slashIndex >= 0 ? fullModelId[(slashIndex + 1)..] : fullModelId;
-    }
 }

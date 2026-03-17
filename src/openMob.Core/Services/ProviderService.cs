@@ -28,7 +28,7 @@ internal sealed class ProviderService : IProviderService
         var result = await _apiClient.GetProvidersAsync(ct).ConfigureAwait(false);
 
         if (result.IsSuccess && result.Value is not null)
-            return result.Value;
+            return result.Value.All;
 
         if (result.Error is not null)
         {
@@ -70,9 +70,33 @@ internal sealed class ProviderService : IProviderService
     }
 
     /// <inheritdoc />
+    public async Task<IReadOnlyList<ProviderDto>> GetConfiguredProvidersAsync(CancellationToken ct = default)
+    {
+        var result = await _apiClient.GetConfigProvidersAsync(ct).ConfigureAwait(false);
+
+        if (result.IsSuccess && result.Value?.Providers is not null)
+            return result.Value.Providers;
+
+        if (result.Error is not null)
+        {
+            SentryHelper.CaptureException(
+                new InvalidOperationException($"Failed to get configured providers: {result.Error.Message}"),
+                new Dictionary<string, object> { ["errorKind"] = result.Error.Kind.ToString() });
+        }
+
+        return [];
+    }
+
+    /// <inheritdoc />
     public async Task<bool> HasAnyProviderConfiguredAsync(CancellationToken ct = default)
     {
-        var providers = await GetProvidersAsync(ct).ConfigureAwait(false);
-        return providers.Any(p => !string.IsNullOrWhiteSpace(p.Key));
+        // Use the "connected" list from the envelope — the server does not include
+        // the "key" field in GET /provider responses, so ProviderDto.Key is always null.
+        var result = await _apiClient.GetProvidersAsync(ct).ConfigureAwait(false);
+
+        if (!result.IsSuccess || result.Value is null)
+            return false;
+
+        return result.Value.Connected.Count > 0;
     }
 }

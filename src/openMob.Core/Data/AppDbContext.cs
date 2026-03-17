@@ -14,6 +14,9 @@ public sealed class AppDbContext : DbContext
     /// <summary>Gets or sets the server connections table.</summary>
     public DbSet<ServerConnection> ServerConnections { get; set; } = null!;
 
+    /// <summary>Gets or sets the per-project user preferences table.</summary>
+    public DbSet<ProjectPreference> ProjectPreferences { get; set; } = null!;
+
     /// <summary>Initialises the context with the given path provider and options.</summary>
     public AppDbContext(IAppDataPathProvider pathProvider, DbContextOptions<AppDbContext> options)
         : base(options)
@@ -48,6 +51,13 @@ public sealed class AppDbContext : DbContext
             entity.Property(e => e.CreatedAt);
             entity.Property(e => e.UpdatedAt);
             entity.HasIndex(e => e.IsActive);
+        });
+
+        modelBuilder.Entity<ProjectPreference>(entity =>
+        {
+            entity.HasKey(e => e.ProjectId);
+            entity.Property(e => e.ProjectId).IsRequired().HasMaxLength(500);
+            entity.Property(e => e.DefaultModelId).HasMaxLength(500);
         });
     }
 }

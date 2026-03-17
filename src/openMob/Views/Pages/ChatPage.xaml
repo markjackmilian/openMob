@@ -56,12 +56,12 @@
                                             Dark={StaticResource ColorOnBackgroundDark}}"
                VerticalOptions="Center" />
 
-        <!-- Hardcoded model name placeholder — will bind to SelectedModelName in future -->
-        <Label Text="Sonnet"
+        <!-- Model name — bound to SelectedModelName (REQ-010, AC-004, AC-005, AC-007) -->
+        <Label Text="{Binding SelectedModelName, TargetNullValue='Seleziona modello', FallbackValue='Seleziona modello'}"
                FontFamily="InterSemiBold"
                FontSize="{StaticResource FontSizeHeadline}"
                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight},
-                                            Dark={StaticResource ColorOnBackgroundDark}}"
+                                             Dark={StaticResource ColorOnBackgroundDark}}"
                VerticalOptions="Center" />
 
         <!-- Chevron right disclosure indicator -->

@@ -41,7 +41,11 @@ public sealed class ProviderServiceTests
         // Arrange
         var providers = new List<ProviderDto> { BuildProvider(), BuildProvider("openai", "OpenAI") };
         _apiClient.GetProvidersAsync(Arg.Any<CancellationToken>())
-            .Returns(OpencodeResult<IReadOnlyList<ProviderDto>>.Success(providers));
+            .Returns(OpencodeResult<ProviderListResponseDto>.Success(
+                new ProviderListResponseDto(
+                    All: providers,
+                    Default: new Dictionary<string, string> { ["anthropic"] = "claude-opus-4-5" },
+                    Connected: new List<string> { "anthropic" })));
 
         // Act
         var result = await _sut.GetProvidersAsync();
@@ -55,7 +59,7 @@ public sealed class ProviderServiceTests
     {
         // Arrange
         _apiClient.GetProvidersAsync(Arg.Any<CancellationToken>())
-            .Returns(OpencodeResult<IReadOnlyList<ProviderDto>>.Failure(
+            .Returns(OpencodeResult<ProviderListResponseDto>.Failure(
                 new OpencodeApiError(ErrorKind.ServerError, "Server error", 500, null)));
 
         // Act
@@ -70,7 +74,11 @@ public sealed class ProviderServiceTests
     {
         // Arrange
         _apiClient.GetProvidersAsync(Arg.Any<CancellationToken>())
-            .Returns(OpencodeResult<IReadOnlyList<ProviderDto>>.Success(new List<ProviderDto>()));
+            .Returns(OpencodeResult<ProviderListResponseDto>.Success(
+                new ProviderListResponseDto(
+                    All: new List<ProviderDto>(),
+                    Default: new Dictionary<string, string>(),
+                    Connected: new List<string>())));
 
         // Act
         await _sut.GetProvidersAsync();
@@ -141,15 +149,89 @@ public sealed class ProviderServiceTests
         await act.Should().ThrowAsync<ArgumentException>();
     }
 
+    // ─── GetConfiguredProvidersAsync ─────────────────────────────────────────
+
+    [Fact]
+    public async Task GetConfiguredProvidersAsync_WhenApiReturnsSuccess_ReturnsProviderList()
+    {
+        // Arrange
+        var providers = new List<ProviderDto> { BuildProvider(), BuildProvider("openai", "OpenAI") };
+        _apiClient.GetConfigProvidersAsync(Arg.Any<CancellationToken>())
+            .Returns(OpencodeResult<ConfigProvidersDto>.Success(
+                new ConfigProvidersDto(
+                    Providers: providers,
+                    Default: new Dictionary<string, string> { ["anthropic"] = "claude-sonnet-4-6" })));
+
+        // Act
+        var result = await _sut.GetConfiguredProvidersAsync();
+
+        // Assert
+        result.Should().HaveCount(2);
+        result.Should().Contain(p => p.Id == "anthropic");
+        result.Should().Contain(p => p.Id == "openai");
+    }
+
+    [Fact]
+    public async Task GetConfiguredProvidersAsync_WhenApiReturnsFailure_ReturnsEmptyList()
+    {
+        // Arrange
+        _apiClient.GetConfigProvidersAsync(Arg.Any<CancellationToken>())
+            .Returns(OpencodeResult<ConfigProvidersDto>.Failure(
+                new OpencodeApiError(ErrorKind.ServerError, "Server error", 500, null)));
+
+        // Act
+        var result = await _sut.GetConfiguredProvidersAsync();
+
+        // Assert
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetConfiguredProvidersAsync_WhenProvidersIsNull_ReturnsEmptyList()
+    {
+        // Arrange
+        _apiClient.GetConfigProvidersAsync(Arg.Any<CancellationToken>())
+            .Returns(OpencodeResult<ConfigProvidersDto>.Success(
+                new ConfigProvidersDto(
+                    Providers: null,
+                    Default: new Dictionary<string, string> { ["anthropic"] = "claude-sonnet-4-6" })));
+
+        // Act
+        var result = await _sut.GetConfiguredProvidersAsync();
+
+        // Assert
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetConfiguredProvidersAsync_CallsApiClientExactlyOnce()
+    {
+        // Arrange
+        _apiClient.GetConfigProvidersAsync(Arg.Any<CancellationToken>())
+            .Returns(OpencodeResult<ConfigProvidersDto>.Success(
+                new ConfigProvidersDto(
+                    Providers: new List<ProviderDto>(),
+                    Default: new Dictionary<string, string>())));
+
+        // Act
+        await _sut.GetConfiguredProvidersAsync();
+
+        // Assert
+        await _apiClient.Received(1).GetConfigProvidersAsync(Arg.Any<CancellationToken>());
+    }
+
     // ─── HasAnyProviderConfiguredAsync ────────────────────────────────────────
 
     [Fact]
-    public async Task HasAnyProviderConfiguredAsync_WhenProviderHasKey_ReturnsTrue()
+    public async Task HasAnyProviderConfiguredAsync_WhenConnectedListIsNonEmpty_ReturnsTrue()
     {
         // Arrange
-        var providers = new List<ProviderDto> { BuildProvider(key: "sk-test") };
         _apiClient.GetProvidersAsync(Arg.Any<CancellationToken>())
-            .Returns(OpencodeResult<IReadOnlyList<ProviderDto>>.Success(providers));
+            .Returns(OpencodeResult<ProviderListResponseDto>.Success(
+                new ProviderListResponseDto(
+                    All: new List<ProviderDto> { BuildProvider() },
+                    Default: new Dictionary<string, string> { ["anthropic"] = "claude-opus-4-5" },
+                    Connected: new List<string> { "anthropic" })));
 
         // Act
         var result = await _sut.HasAnyProviderConfiguredAsync();
@@ -159,12 +241,15 @@ public sealed class ProviderServiceTests
     }
 
     [Fact]
-    public async Task HasAnyProviderConfiguredAsync_WhenNoProviderHasKey_ReturnsFalse()
+    public async Task HasAnyProviderConfiguredAsync_WhenConnectedListIsEmpty_ReturnsFalse()
     {
         // Arrange
-        var providers = new List<ProviderDto> { BuildProvider(key: null), BuildProvider("openai", "OpenAI", key: "") };
         _apiClient.GetProvidersAsync(Arg.Any<CancellationToken>())
-            .Returns(OpencodeResult<IReadOnlyList<ProviderDto>>.Success(providers));
+            .Returns(OpencodeResult<ProviderListResponseDto>.Success(
+                new ProviderListResponseDto(
+                    All: new List<ProviderDto> { BuildProvider(), BuildProvider("openai", "OpenAI") },
+                    Default: new Dictionary<string, string>(),
+                    Connected: new List<string>())));
 
         // Act
         var result = await _sut.HasAnyProviderConfiguredAsync();
@@ -178,7 +263,11 @@ public sealed class ProviderServiceTests
     {
         // Arrange
         _apiClient.GetProvidersAsync(Arg.Any<CancellationToken>())
-            .Returns(OpencodeResult<IReadOnlyList<ProviderDto>>.Success(new List<ProviderDto>()));
+            .Returns(OpencodeResult<ProviderListResponseDto>.Success(
+                new ProviderListResponseDto(
+                    All: new List<ProviderDto>(),
+                    Default: new Dictionary<string, string>(),
+                    Connected: new List<string>())));
 
         // Act
         var result = await _sut.HasAnyProviderConfiguredAsync();
@@ -192,7 +281,7 @@ public sealed class ProviderServiceTests
     {
         // Arrange
         _apiClient.GetProvidersAsync(Arg.Any<CancellationToken>())
-            .Returns(OpencodeResult<IReadOnlyList<ProviderDto>>.Failure(
+            .Returns(OpencodeResult<ProviderListResponseDto>.Failure(
                 new OpencodeApiError(ErrorKind.ServerError, "Error", 500, null)));
 
         // Act

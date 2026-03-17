@@ -53,15 +53,22 @@ public sealed record ConfigDto(
 
 /// <summary>
 /// Response DTO for <c>GET /config/providers</c>.
-/// Returns a dictionary mapping provider IDs to their raw configuration objects.
-/// The per-provider shape is complex and varies by provider type, so each value
-/// is represented as a <see cref="JsonElement"/> for v1 flexibility.
+/// Returns only the providers that are configured on the server, with their active models.
+/// Each provider entry reuses <see cref="ProviderDto"/> which carries <c>Id</c>, <c>Name</c>,
+/// <c>Models</c> (JsonElement), and other fields.
 /// </summary>
 /// <param name="Providers">
-/// A map of provider ID to raw provider configuration, or <c>null</c> if the
-/// server returns an empty or absent providers section.
+/// An ordered list of configured providers, or <c>null</c> if the server returns an
+/// empty or absent providers section.
+/// </param>
+/// <param name="Default">
+/// A map of provider ID → default model ID for each configured provider.
+/// May be <c>null</c> if the server omits the field.
 /// </param>
 public sealed record ConfigProvidersDto(
     [property: JsonPropertyName("providers")]
-    IReadOnlyDictionary<string, JsonElement>? Providers
+    IReadOnlyList<ProviderDto>? Providers,
+
+    [property: JsonPropertyName("default")]
+    IReadOnlyDictionary<string, string>? Default
 );

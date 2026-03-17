@@ -42,6 +42,18 @@ public interface IAppPopupService
     /// <returns>The selected option label, or <c>null</c> if dismissed.</returns>
     Task<string?> ShowOptionSheetAsync(string title, IReadOnlyList<string> options, CancellationToken ct = default);
 
+    /// <summary>
+    /// Opens the model picker popup and invokes the callback when a model is selected.
+    /// </summary>
+    /// <remarks>
+    /// The MAUI implementation resolves <c>ModelPickerSheet</c>, sets the callback on the
+    /// ViewModel, and presents the popup. Core ViewModels call this method without touching
+    /// any MAUI types.
+    /// </remarks>
+    /// <param name="onModelSelected">Callback invoked with the selected model ID in "providerId/modelId" format.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task ShowModelPickerAsync(Action<string> onModelSelected, CancellationToken ct = default);
+
     /// <summary>Pushes a custom popup page onto the popup stack.</summary>
     /// <param name="popup">The popup page instance to display.</param>
     /// <param name="ct">Cancellation token.</param>

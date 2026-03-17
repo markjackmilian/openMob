@@ -305,8 +305,8 @@ internal sealed class OpencodeApiClient : IOpencodeApiClient
     // ─── Provider ─────────────────────────────────────────────────────────────
 
     /// <inheritdoc />
-    public Task<OpencodeResult<IReadOnlyList<ProviderDto>>> GetProvidersAsync(CancellationToken ct = default)
-        => ExecuteAsync<IReadOnlyList<ProviderDto>>(
+    public Task<OpencodeResult<ProviderListResponseDto>> GetProvidersAsync(CancellationToken ct = default)
+        => ExecuteAsync<ProviderListResponseDto>(
             (client, baseUrl, token) => client.GetAsync($"{baseUrl}/provider", token),
             ct);
 

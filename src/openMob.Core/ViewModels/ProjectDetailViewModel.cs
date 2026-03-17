@@ -19,27 +19,32 @@ public sealed partial class ProjectDetailViewModel : ObservableObject
     private readonly ISessionService _sessionService;
     private readonly INavigationService _navigationService;
     private readonly IAppPopupService _popupService;
+    private readonly IProjectPreferenceService _preferenceService;
 
     /// <summary>Initialises the ProjectDetailViewModel with required dependencies.</summary>
     /// <param name="projectService">Service for project operations.</param>
     /// <param name="sessionService">Service for session operations.</param>
     /// <param name="navigationService">Service for Shell navigation.</param>
     /// <param name="popupService">Service for popup/dialog operations.</param>
+    /// <param name="preferenceService">Service for per-project preference persistence.</param>
     public ProjectDetailViewModel(
         IProjectService projectService,
         ISessionService sessionService,
         INavigationService navigationService,
-        IAppPopupService popupService)
+        IAppPopupService popupService,
+        IProjectPreferenceService preferenceService)
     {
         ArgumentNullException.ThrowIfNull(projectService);
         ArgumentNullException.ThrowIfNull(sessionService);
         ArgumentNullException.ThrowIfNull(navigationService);
         ArgumentNullException.ThrowIfNull(popupService);
+        ArgumentNullException.ThrowIfNull(preferenceService);
 
         _projectService = projectService;
         _sessionService = sessionService;
         _navigationService = navigationService;
         _popupService = popupService;
+        _preferenceService = preferenceService;
     }
 
     // ─── Properties ───────────────────────────────────────────────────────────
@@ -129,6 +134,13 @@ public sealed partial class ProjectDetailViewModel : ObservableObject
                 .ToList();
 
             RecentSessions = new ObservableCollection<SessionItem>(recentItems);
+
+            // Load default model preference (REQ-007)
+            var pref = await _preferenceService.GetAsync(id, ct).ConfigureAwait(false);
+            if (pref?.DefaultModelId is not null)
+            {
+                DefaultModelName = ModelIdHelper.ExtractModelName(pref.DefaultModelId);
+            }
         }
         catch (Exception ex)
         {
@@ -193,15 +205,36 @@ public sealed partial class ProjectDetailViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Shows the ModelPickerSheet for changing the default model (REQ-026).
+    /// Opens the ModelPickerSheet, receives the selected model via callback,
+    /// updates <see cref="DefaultModelName"/>, and persists the choice to SQLite (REQ-007, REQ-026).
+    /// If persistence fails, the UI is reverted to the previous model name and an error toast is shown.
     /// </summary>
     /// <param name="ct">Cancellation token.</param>
     [RelayCommand]
     private async Task ChangeModelAsync(CancellationToken ct)
     {
-        // The View layer handles creating and pushing the ModelPickerSheet popup.
-        // This command signals the intent.
-        await Task.CompletedTask;
+        string? selectedModelId = null;
+        var previousModelName = DefaultModelName;
+
+        await _popupService.ShowModelPickerAsync(modelId =>
+        {
+            selectedModelId = modelId;
+            DefaultModelName = ModelIdHelper.ExtractModelName(modelId);
+        }, ct).ConfigureAwait(false);
+
+        if (selectedModelId is null)
+            return;
+
+        var persisted = await _preferenceService
+            .SetDefaultModelAsync(ProjectId, selectedModelId, ct)
+            .ConfigureAwait(false);
+
+        if (!persisted)
+        {
+            DefaultModelName = previousModelName;
+            await _popupService.ShowToastAsync(
+                "Failed to save model preference. Please try again.", ct).ConfigureAwait(false);
+        }
     }
 
     /// <summary>

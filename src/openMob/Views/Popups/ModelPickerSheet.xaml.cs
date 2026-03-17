@@ -2,7 +2,7 @@ using openMob.Core.ViewModels;
 
 namespace openMob.Views.Popups;
 
-/// <summary>Model picker bottom sheet — displays AI models grouped by provider for selection.</summary>
+/// <summary>Model picker bottom sheet — displays a flat, virtualised list of AI models for selection.</summary>
 public partial class ModelPickerSheet : ContentPage
 {
     private readonly ModelPickerViewModel _viewModel;

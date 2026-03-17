@@ -1,6 +1,8 @@
 using CommunityToolkit.Maui.Alerts;
 using CommunityToolkit.Maui.Core;
 using openMob.Core.Services;
+using openMob.Core.ViewModels;
+using openMob.Views.Popups;
 
 namespace openMob.Services;
 
@@ -11,6 +13,16 @@ namespace openMob.Services;
 /// </summary>
 internal sealed class MauiPopupService : IAppPopupService
 {
+    private readonly IServiceProvider _serviceProvider;
+
+    /// <summary>Initialises the popup service with the DI service provider.</summary>
+    /// <param name="serviceProvider">The application service provider for resolving popup pages.</param>
+    public MauiPopupService(IServiceProvider serviceProvider)
+    {
+        ArgumentNullException.ThrowIfNull(serviceProvider);
+        _serviceProvider = serviceProvider;
+    }
+
     /// <inheritdoc />
     public async Task<bool> ShowConfirmDeleteAsync(string title, string message, CancellationToken ct = default)
     {
@@ -70,6 +82,28 @@ internal sealed class MauiPopupService : IAppPopupService
     }
 
     /// <inheritdoc />
+    public async Task ShowModelPickerAsync(Action<string> onModelSelected, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        var navigation = Shell.Current?.Navigation;
+        if (navigation is null)
+            return;
+
+        // Resolve the ModelPickerSheet from DI (registered as Transient)
+        var sheet = _serviceProvider.GetRequiredService<ModelPickerSheet>();
+
+        // Set the callback on the ViewModel before presenting
+        if (sheet.BindingContext is ModelPickerViewModel vm)
+        {
+            vm.OnModelSelected = onModelSelected;
+        }
+
+        // Present as a modal page (Shell.PresentationMode="ModalAnimated" on the page)
+        await navigation.PushModalAsync(sheet, animated: true);
+    }
+
+    /// <inheritdoc />
     public Task PushPopupAsync(object popup, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
@@ -79,11 +113,18 @@ internal sealed class MauiPopupService : IAppPopupService
     }
 
     /// <inheritdoc />
-    public Task PopPopupAsync(CancellationToken ct = default)
+    public async Task PopPopupAsync(CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
-        // UXDivers popup pop will be integrated here.
-        // For now, this is a no-op placeholder.
-        return Task.CompletedTask;
+
+        var navigation = Shell.Current?.Navigation;
+        if (navigation is null)
+            return;
+
+        // Pop the topmost modal page if one exists
+        if (navigation.ModalStack.Count > 0)
+        {
+            await navigation.PopModalAsync(animated: true);
+        }
     }
 }

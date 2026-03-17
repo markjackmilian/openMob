@@ -47,11 +47,11 @@ public sealed class ModelPickerViewModelTests
         {
             "claude-3-opus": {
                 "name": "Claude 3 Opus",
-                "context_length": 200000
+                "limit": { "context": 200000, "output": 64000 }
             },
             "claude-3-sonnet": {
                 "name": "Claude 3 Sonnet",
-                "context_length": 200000
+                "limit": { "context": 200000, "output": 8192 }
             }
         }
         """;
@@ -64,42 +64,41 @@ public sealed class ModelPickerViewModelTests
     public void Constructor_InitializesWithDefaultValues()
     {
         // Assert
-        _sut.ProviderGroups.Should().BeEmpty();
+        _sut.Models.Should().BeEmpty();
         _sut.IsLoading.Should().BeFalse();
         _sut.IsEmpty.Should().BeFalse();
-        _sut.HasProviders.Should().BeFalse();
         _sut.SelectedModelId.Should().BeNull();
     }
 
     // ─── LoadModelsCommand ────────────────────────────────────────────────────
 
     [Fact]
-    public async Task LoadModelsCommand_WhenProvidersExist_SetsHasProvidersTrue()
+    public async Task LoadModelsCommand_WhenProvidersExist_SetsIsEmptyFalse()
     {
         // Arrange
         var providers = new List<ProviderDto> { BuildProviderWithModels() };
-        _providerService.GetProvidersAsync(Arg.Any<CancellationToken>()).Returns(providers);
+        _providerService.GetConfiguredProvidersAsync(Arg.Any<CancellationToken>()).Returns(providers);
 
         // Act
         await _sut.LoadModelsCommand.ExecuteAsync(null);
 
         // Assert
-        _sut.HasProviders.Should().BeTrue();
+        _sut.IsEmpty.Should().BeFalse();
     }
 
     [Fact]
-    public async Task LoadModelsCommand_WhenNoProviders_SetsHasProvidersFalse()
+    public async Task LoadModelsCommand_WhenNoProviders_SetsIsEmptyTrue()
     {
         // Arrange
-        _providerService.GetProvidersAsync(Arg.Any<CancellationToken>())
+        _providerService.GetConfiguredProvidersAsync(Arg.Any<CancellationToken>())
             .Returns(new List<ProviderDto>());
 
         // Act
         await _sut.LoadModelsCommand.ExecuteAsync(null);
 
         // Assert
-        _sut.HasProviders.Should().BeFalse();
         _sut.IsEmpty.Should().BeTrue();
+        _sut.Models.Should().BeEmpty();
     }
 
     [Fact]
@@ -107,15 +106,14 @@ public sealed class ModelPickerViewModelTests
     {
         // Arrange
         var providers = new List<ProviderDto> { BuildProviderWithModels() };
-        _providerService.GetProvidersAsync(Arg.Any<CancellationToken>()).Returns(providers);
+        _providerService.GetConfiguredProvidersAsync(Arg.Any<CancellationToken>()).Returns(providers);
 
         // Act
         await _sut.LoadModelsCommand.ExecuteAsync(null);
 
         // Assert
-        _sut.ProviderGroups.Should().ContainSingle();
-        _sut.ProviderGroups[0].ProviderName.Should().Be("Anthropic");
-        _sut.ProviderGroups[0].Models.Should().HaveCount(2);
+        _sut.Models.Should().HaveCount(2);
+        _sut.Models.Should().OnlyContain(m => m.ProviderName == "Anthropic");
     }
 
     [Fact]
@@ -123,13 +121,13 @@ public sealed class ModelPickerViewModelTests
     {
         // Arrange
         var providers = new List<ProviderDto> { BuildProviderWithModels() };
-        _providerService.GetProvidersAsync(Arg.Any<CancellationToken>()).Returns(providers);
+        _providerService.GetConfiguredProvidersAsync(Arg.Any<CancellationToken>()).Returns(providers);
 
         // Act
         await _sut.LoadModelsCommand.ExecuteAsync(null);
 
         // Assert
-        _sut.ProviderGroups[0].Models.Should().Contain(m => m.Id == "anthropic/claude-3-opus");
+        _sut.Models.Should().Contain(m => m.Id == "anthropic/claude-3-opus");
     }
 
     [Fact]
@@ -137,13 +135,13 @@ public sealed class ModelPickerViewModelTests
     {
         // Arrange
         var providers = new List<ProviderDto> { BuildProviderWithModels() };
-        _providerService.GetProvidersAsync(Arg.Any<CancellationToken>()).Returns(providers);
+        _providerService.GetConfiguredProvidersAsync(Arg.Any<CancellationToken>()).Returns(providers);
 
         // Act
         await _sut.LoadModelsCommand.ExecuteAsync(null);
 
         // Assert
-        _sut.ProviderGroups[0].Models.Should().Contain(m => m.Name == "Claude 3 Opus");
+        _sut.Models.Should().Contain(m => m.Name == "Claude 3 Opus");
     }
 
     [Fact]
@@ -151,13 +149,13 @@ public sealed class ModelPickerViewModelTests
     {
         // Arrange
         var providers = new List<ProviderDto> { BuildProviderWithModels() };
-        _providerService.GetProvidersAsync(Arg.Any<CancellationToken>()).Returns(providers);
+        _providerService.GetConfiguredProvidersAsync(Arg.Any<CancellationToken>()).Returns(providers);
 
         // Act
         await _sut.LoadModelsCommand.ExecuteAsync(null);
 
         // Assert
-        _sut.ProviderGroups[0].Models.Should().Contain(m => m.ContextSize == "200k tokens");
+        _sut.Models.Should().Contain(m => m.ContextSize == "200k tokens");
     }
 
     [Fact]
@@ -165,7 +163,7 @@ public sealed class ModelPickerViewModelTests
     {
         // Arrange
         var providers = new List<ProviderDto> { BuildProvider() };
-        _providerService.GetProvidersAsync(Arg.Any<CancellationToken>()).Returns(providers);
+        _providerService.GetConfiguredProvidersAsync(Arg.Any<CancellationToken>()).Returns(providers);
 
         // Act
         await _sut.LoadModelsCommand.ExecuteAsync(null);
@@ -178,7 +176,7 @@ public sealed class ModelPickerViewModelTests
     public async Task LoadModelsCommand_SetsIsLoadingFalseAfterCompletion()
     {
         // Arrange
-        _providerService.GetProvidersAsync(Arg.Any<CancellationToken>())
+        _providerService.GetConfiguredProvidersAsync(Arg.Any<CancellationToken>())
             .Returns(new List<ProviderDto>());
 
         // Act
@@ -192,14 +190,14 @@ public sealed class ModelPickerViewModelTests
     public async Task LoadModelsCommand_WhenServiceThrows_SetsIsEmptyTrue()
     {
         // Arrange
-        _providerService.GetProvidersAsync(Arg.Any<CancellationToken>())
+        _providerService.GetConfiguredProvidersAsync(Arg.Any<CancellationToken>())
             .ThrowsAsync(new InvalidOperationException("Error"));
 
         // Act
         await _sut.LoadModelsCommand.ExecuteAsync(null);
 
         // Assert
-        _sut.ProviderGroups.Should().BeEmpty();
+        _sut.Models.Should().BeEmpty();
         _sut.IsEmpty.Should().BeTrue();
         _sut.IsLoading.Should().BeFalse();
     }
@@ -211,7 +209,7 @@ public sealed class ModelPickerViewModelTests
     {
         // Arrange
         var providers = new List<ProviderDto> { BuildProviderWithModels() };
-        _providerService.GetProvidersAsync(Arg.Any<CancellationToken>()).Returns(providers);
+        _providerService.GetConfiguredProvidersAsync(Arg.Any<CancellationToken>()).Returns(providers);
         await _sut.LoadModelsCommand.ExecuteAsync(null);
 
         // Act
@@ -222,19 +220,19 @@ public sealed class ModelPickerViewModelTests
     }
 
     [Fact]
-    public async Task SelectModelCommand_UpdatesIsSelectedInGroups()
+    public async Task SelectModelCommand_UpdatesIsSelectedInModels()
     {
         // Arrange
         var providers = new List<ProviderDto> { BuildProviderWithModels() };
-        _providerService.GetProvidersAsync(Arg.Any<CancellationToken>()).Returns(providers);
+        _providerService.GetConfiguredProvidersAsync(Arg.Any<CancellationToken>()).Returns(providers);
         await _sut.LoadModelsCommand.ExecuteAsync(null);
 
         // Act
         await _sut.SelectModelCommand.ExecuteAsync("anthropic/claude-3-opus");
 
         // Assert
-        _sut.ProviderGroups[0].Models.Should().ContainSingle(m => m.Id == "anthropic/claude-3-opus" && m.IsSelected);
-        _sut.ProviderGroups[0].Models.Should().ContainSingle(m => m.Id == "anthropic/claude-3-sonnet" && !m.IsSelected);
+        _sut.Models.Should().ContainSingle(m => m.Id == "anthropic/claude-3-opus" && m.IsSelected);
+        _sut.Models.Should().ContainSingle(m => m.Id == "anthropic/claude-3-sonnet" && !m.IsSelected);
     }
 
     [Fact]
@@ -242,7 +240,7 @@ public sealed class ModelPickerViewModelTests
     {
         // Arrange
         var providers = new List<ProviderDto> { BuildProviderWithModels() };
-        _providerService.GetProvidersAsync(Arg.Any<CancellationToken>()).Returns(providers);
+        _providerService.GetConfiguredProvidersAsync(Arg.Any<CancellationToken>()).Returns(providers);
         await _sut.LoadModelsCommand.ExecuteAsync(null);
 
         // Act
@@ -268,7 +266,7 @@ public sealed class ModelPickerViewModelTests
     // ─── LoadModelsCommand — Multiple providers ──────────────────────────────
 
     [Fact]
-    public async Task LoadModelsCommand_WithMultipleProviders_CreatesMultipleGroups()
+    public async Task LoadModelsCommand_WithMultipleProviders_ContainsAllModels()
     {
         // Arrange
         var providers = new List<ProviderDto>
@@ -276,13 +274,81 @@ public sealed class ModelPickerViewModelTests
             BuildProviderWithModels("anthropic", "Anthropic"),
             BuildProvider("openai", "OpenAI", """{"gpt-4o": {"name": "GPT-4o"}}"""),
         };
-        _providerService.GetProvidersAsync(Arg.Any<CancellationToken>()).Returns(providers);
+        _providerService.GetConfiguredProvidersAsync(Arg.Any<CancellationToken>()).Returns(providers);
 
         // Act
         await _sut.LoadModelsCommand.ExecuteAsync(null);
 
         // Assert
-        _sut.ProviderGroups.Should().HaveCount(2);
+        _sut.Models.Should().HaveCount(3);
         _sut.IsEmpty.Should().BeFalse();
+    }
+
+    // ─── SelectModelCommand — callback mechanism ──────────────────────────────
+
+    [Fact]
+    public async Task SelectModelCommand_WhenOnModelSelectedIsSet_InvokesCallbackWithCorrectModelId()
+    {
+        // Arrange
+        var providers = new List<ProviderDto> { BuildProviderWithModels() };
+        _providerService.GetConfiguredProvidersAsync(Arg.Any<CancellationToken>()).Returns(providers);
+        await _sut.LoadModelsCommand.ExecuteAsync(null);
+
+        string? receivedModelId = null;
+        _sut.OnModelSelected = modelId => receivedModelId = modelId;
+
+        // Act
+        await _sut.SelectModelCommand.ExecuteAsync("anthropic/claude-3-opus");
+
+        // Assert
+        receivedModelId.Should().Be("anthropic/claude-3-opus");
+    }
+
+    [Fact]
+    public async Task SelectModelCommand_WhenOnModelSelectedIsNull_DoesNotThrow()
+    {
+        // Arrange
+        var providers = new List<ProviderDto> { BuildProviderWithModels() };
+        _providerService.GetConfiguredProvidersAsync(Arg.Any<CancellationToken>()).Returns(providers);
+        await _sut.LoadModelsCommand.ExecuteAsync(null);
+
+        _sut.OnModelSelected = null;
+
+        // Act
+        var act = async () => await _sut.SelectModelCommand.ExecuteAsync("anthropic/claude-3-opus");
+
+        // Assert
+        await act.Should().NotThrowAsync();
+    }
+
+    [Fact]
+    public async Task SelectModelCommand_InvokesCallbackBeforePopPopupAsync()
+    {
+        // Arrange
+        var providers = new List<ProviderDto> { BuildProviderWithModels() };
+        _providerService.GetConfiguredProvidersAsync(Arg.Any<CancellationToken>()).Returns(providers);
+        await _sut.LoadModelsCommand.ExecuteAsync(null);
+
+        var callOrder = new List<string>();
+        _sut.OnModelSelected = _ => callOrder.Add("callback");
+        _popupService.PopPopupAsync(Arg.Any<CancellationToken>())
+            .Returns(callInfo =>
+            {
+                callOrder.Add("popPopup");
+                return Task.CompletedTask;
+            });
+
+        // Act
+        await _sut.SelectModelCommand.ExecuteAsync("anthropic/claude-3-opus");
+
+        // Assert
+        callOrder.Should().ContainInOrder("callback", "popPopup");
+    }
+
+    [Fact]
+    public void OnModelSelected_DefaultsToNull()
+    {
+        // Assert
+        _sut.OnModelSelected.Should().BeNull();
     }
 }

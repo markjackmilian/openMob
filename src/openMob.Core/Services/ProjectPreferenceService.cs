@@ -34,7 +34,7 @@ public sealed class ProjectPreferenceService : IProjectPreferenceService
     }
 
     /// <inheritdoc />
-    public async Task SetDefaultModelAsync(string projectId, string modelId, CancellationToken ct = default)
+    public async Task<bool> SetDefaultModelAsync(string projectId, string modelId, CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(projectId);
         ArgumentException.ThrowIfNullOrWhiteSpace(modelId);
@@ -60,6 +60,7 @@ public sealed class ProjectPreferenceService : IProjectPreferenceService
             }
 
             await _db.SaveChangesAsync(ct).ConfigureAwait(false);
+            return true;
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -69,6 +70,7 @@ public sealed class ProjectPreferenceService : IProjectPreferenceService
                 ["modelId"] = modelId,
                 ["operation"] = "SetDefaultModelAsync",
             });
+            return false;
         }
     }
 }

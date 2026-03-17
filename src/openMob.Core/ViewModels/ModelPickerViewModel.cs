@@ -198,6 +198,10 @@ public sealed partial class ModelPickerViewModel : ObservableObject
                     IsSelected: $"{providerId}/{modelId}" == SelectedModelId));
             }
         }
+        // Broad catch is intentional: ExtractModelsFromProvider parses untrusted JSON
+        // from the server. Any unexpected shape (missing properties, wrong types, etc.)
+        // must not crash the picker — we log to Sentry and return whatever models were
+        // successfully parsed so far.
         catch (Exception ex)
         {
             SentryHelper.CaptureException(ex, new Dictionary<string, object>

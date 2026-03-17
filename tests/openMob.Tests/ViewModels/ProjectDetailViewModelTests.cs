@@ -380,6 +380,8 @@ public sealed class ProjectDetailViewModelTests
                 callback("anthropic/claude-sonnet-4-5");
                 return Task.CompletedTask;
             });
+        _preferenceService.SetDefaultModelAsync("proj-1", "anthropic/claude-sonnet-4-5", Arg.Any<CancellationToken>())
+            .Returns(true);
 
         // Act
         await _sut.ChangeModelCommand.ExecuteAsync(null);
@@ -426,6 +428,8 @@ public sealed class ProjectDetailViewModelTests
                 callback(selectedModelId);
                 return Task.CompletedTask;
             });
+        _preferenceService.SetDefaultModelAsync("proj-1", selectedModelId, Arg.Any<CancellationToken>())
+            .Returns(true);
 
         // Act
         await _sut.ChangeModelCommand.ExecuteAsync(null);

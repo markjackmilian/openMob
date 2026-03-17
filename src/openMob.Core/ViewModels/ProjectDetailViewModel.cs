@@ -207,18 +207,34 @@ public sealed partial class ProjectDetailViewModel : ObservableObject
     /// <summary>
     /// Opens the ModelPickerSheet, receives the selected model via callback,
     /// updates <see cref="DefaultModelName"/>, and persists the choice to SQLite (REQ-007, REQ-026).
+    /// If persistence fails, the UI is reverted to the previous model name and an error toast is shown.
     /// </summary>
     /// <param name="ct">Cancellation token.</param>
     [RelayCommand]
     private async Task ChangeModelAsync(CancellationToken ct)
     {
+        string? selectedModelId = null;
+        var previousModelName = DefaultModelName;
+
         await _popupService.ShowModelPickerAsync(modelId =>
         {
+            selectedModelId = modelId;
             DefaultModelName = ModelIdHelper.ExtractModelName(modelId);
-            // Fire-and-forget persistence — avoids async void in the Action<string> callback.
-            // Errors are captured by Sentry inside ProjectPreferenceService.
-            _ = _preferenceService.SetDefaultModelAsync(ProjectId, modelId, CancellationToken.None);
         }, ct).ConfigureAwait(false);
+
+        if (selectedModelId is null)
+            return;
+
+        var persisted = await _preferenceService
+            .SetDefaultModelAsync(ProjectId, selectedModelId, ct)
+            .ConfigureAwait(false);
+
+        if (!persisted)
+        {
+            DefaultModelName = previousModelName;
+            await _popupService.ShowToastAsync(
+                "Failed to save model preference. Please try again.", ct).ConfigureAwait(false);
+        }
     }
 
     /// <summary>

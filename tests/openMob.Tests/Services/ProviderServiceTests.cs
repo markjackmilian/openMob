@@ -149,6 +149,77 @@ public sealed class ProviderServiceTests
         await act.Should().ThrowAsync<ArgumentException>();
     }
 
+    // ─── GetConfiguredProvidersAsync ─────────────────────────────────────────
+
+    [Fact]
+    public async Task GetConfiguredProvidersAsync_WhenApiReturnsSuccess_ReturnsProviderList()
+    {
+        // Arrange
+        var providers = new List<ProviderDto> { BuildProvider(), BuildProvider("openai", "OpenAI") };
+        _apiClient.GetConfigProvidersAsync(Arg.Any<CancellationToken>())
+            .Returns(OpencodeResult<ConfigProvidersDto>.Success(
+                new ConfigProvidersDto(
+                    Providers: providers,
+                    Default: new Dictionary<string, string> { ["anthropic"] = "claude-sonnet-4-6" })));
+
+        // Act
+        var result = await _sut.GetConfiguredProvidersAsync();
+
+        // Assert
+        result.Should().HaveCount(2);
+        result.Should().Contain(p => p.Id == "anthropic");
+        result.Should().Contain(p => p.Id == "openai");
+    }
+
+    [Fact]
+    public async Task GetConfiguredProvidersAsync_WhenApiReturnsFailure_ReturnsEmptyList()
+    {
+        // Arrange
+        _apiClient.GetConfigProvidersAsync(Arg.Any<CancellationToken>())
+            .Returns(OpencodeResult<ConfigProvidersDto>.Failure(
+                new OpencodeApiError(ErrorKind.ServerError, "Server error", 500, null)));
+
+        // Act
+        var result = await _sut.GetConfiguredProvidersAsync();
+
+        // Assert
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetConfiguredProvidersAsync_WhenProvidersIsNull_ReturnsEmptyList()
+    {
+        // Arrange
+        _apiClient.GetConfigProvidersAsync(Arg.Any<CancellationToken>())
+            .Returns(OpencodeResult<ConfigProvidersDto>.Success(
+                new ConfigProvidersDto(
+                    Providers: null,
+                    Default: new Dictionary<string, string> { ["anthropic"] = "claude-sonnet-4-6" })));
+
+        // Act
+        var result = await _sut.GetConfiguredProvidersAsync();
+
+        // Assert
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetConfiguredProvidersAsync_CallsApiClientExactlyOnce()
+    {
+        // Arrange
+        _apiClient.GetConfigProvidersAsync(Arg.Any<CancellationToken>())
+            .Returns(OpencodeResult<ConfigProvidersDto>.Success(
+                new ConfigProvidersDto(
+                    Providers: new List<ProviderDto>(),
+                    Default: new Dictionary<string, string>())));
+
+        // Act
+        await _sut.GetConfiguredProvidersAsync();
+
+        // Assert
+        await _apiClient.Received(1).GetConfigProvidersAsync(Arg.Any<CancellationToken>());
+    }
+
     // ─── HasAnyProviderConfiguredAsync ────────────────────────────────────────
 
     [Fact]

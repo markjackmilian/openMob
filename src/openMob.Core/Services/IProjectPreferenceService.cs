@@ -22,5 +22,6 @@ public interface IProjectPreferenceService
     /// <param name="projectId">The external project identifier.</param>
     /// <param name="modelId">The model identifier in "providerId/modelId" format.</param>
     /// <param name="ct">Cancellation token.</param>
-    Task SetDefaultModelAsync(string projectId, string modelId, CancellationToken ct = default);
+    /// <returns><c>true</c> if the preference was persisted successfully; <c>false</c> if persistence failed.</returns>
+    Task<bool> SetDefaultModelAsync(string projectId, string modelId, CancellationToken ct = default);
 }

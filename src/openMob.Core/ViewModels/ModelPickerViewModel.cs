@@ -9,9 +9,14 @@ using openMob.Core.Services;
 namespace openMob.Core.ViewModels;
 
 /// <summary>
-/// ViewModel for the ModelPickerSheet popup. Displays AI models grouped by provider
+/// ViewModel for the ModelPickerSheet popup. Displays a flat list of AI models
 /// and allows the user to select one (REQ-031, REQ-032).
 /// </summary>
+/// <remarks>
+/// Models are presented in a flat list (no provider grouping) to enable
+/// <c>CollectionView</c> virtualisation in the UI layer. Each <see cref="ModelItem"/>
+/// still carries its <see cref="ModelItem.ProviderName"/> for display purposes.
+/// </remarks>
 public sealed partial class ModelPickerViewModel : ObservableObject
 {
     private readonly IProviderService _providerService;
@@ -43,9 +48,9 @@ public sealed partial class ModelPickerViewModel : ObservableObject
     /// </summary>
     public Action<string>? OnModelSelected { get; set; }
 
-    /// <summary>Gets or sets the provider model groups for display.</summary>
+    /// <summary>Gets or sets the flat list of all available models across all providers.</summary>
     [ObservableProperty]
-    private ObservableCollection<ProviderModelGroup> _providerGroups = [];
+    private ObservableCollection<ModelItem> _models = [];
 
     /// <summary>Gets or sets the ID of the currently selected model.</summary>
     [ObservableProperty]
@@ -59,13 +64,9 @@ public sealed partial class ModelPickerViewModel : ObservableObject
     [ObservableProperty]
     private bool _isEmpty;
 
-    /// <summary>Gets or sets whether any providers are configured on the server.</summary>
-    [ObservableProperty]
-    private bool _hasProviders;
-
     /// <summary>
-    /// Loads providers and extracts models from <c>ProviderDto.Models</c> JsonElement,
-    /// grouping them by provider name.
+    /// Loads providers and extracts models from <c>ProviderDto.Models</c> JsonElement
+    /// into a flat list for virtualised display.
     /// </summary>
     /// <param name="ct">Cancellation token.</param>
     [RelayCommand]
@@ -73,27 +74,22 @@ public sealed partial class ModelPickerViewModel : ObservableObject
     {
         if (IsLoading)
             return;
-
         IsLoading = true;
 
         try
         {
-            var providers = await _providerService.GetProvidersAsync(ct);
-            HasProviders = providers.Count > 0;
+            var providers = await _providerService.GetConfiguredProvidersAsync(ct).ConfigureAwait(false);
 
-            var groups = new List<ProviderModelGroup>();
+            var allModels = new List<ModelItem>();
 
             foreach (var provider in providers)
             {
                 var models = ExtractModelsFromProvider(provider.Id, provider.Name, provider.Models);
-                if (models.Count > 0)
-                {
-                    groups.Add(new ProviderModelGroup(provider.Name, models));
-                }
+                allModels.AddRange(models);
             }
 
-            ProviderGroups = new ObservableCollection<ProviderModelGroup>(groups);
-            IsEmpty = groups.Count == 0 || groups.All(g => g.Models.Count == 0);
+            Models = new ObservableCollection<ModelItem>(allModels);
+            IsEmpty = allModels.Count == 0;
         }
         catch (Exception ex)
         {
@@ -101,7 +97,7 @@ public sealed partial class ModelPickerViewModel : ObservableObject
             {
                 ["context"] = "ModelPickerViewModel.LoadModelsAsync",
             });
-            ProviderGroups = [];
+            Models = [];
             IsEmpty = true;
         }
         finally
@@ -111,10 +107,10 @@ public sealed partial class ModelPickerViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Selects a model and closes the popup. The caller reads <see cref="SelectedModelId"/>
-    /// to apply the selection.
+    /// Selects a model, updates the visual selection state, and closes the popup.
+    /// The caller reads <see cref="SelectedModelId"/> to apply the selection.
     /// </summary>
-    /// <param name="modelId">The ID of the model to select.</param>
+    /// <param name="modelId">The ID of the model to select (e.g. <c>"anthropic/claude-3-opus"</c>).</param>
     /// <param name="ct">Cancellation token.</param>
     [RelayCommand]
     private async Task SelectModelAsync(string modelId, CancellationToken ct)
@@ -123,17 +119,13 @@ public sealed partial class ModelPickerViewModel : ObservableObject
 
         SelectedModelId = modelId;
 
-        // Update the IsSelected state in all groups
-        var updatedGroups = ProviderGroups.Select(g => g with
-        {
-            Models = g.Models.Select(m => m with { IsSelected = m.Id == modelId }).ToList().AsReadOnly(),
-        }).ToList();
-
-        ProviderGroups = new ObservableCollection<ProviderModelGroup>(updatedGroups);
+        // Rebuild the collection with updated IsSelected state
+        var updatedModels = Models.Select(m => m with { IsSelected = m.Id == modelId }).ToList();
+        Models = new ObservableCollection<ModelItem>(updatedModels);
 
         OnModelSelected?.Invoke(SelectedModelId);
 
-        await _popupService.PopPopupAsync(ct);
+        await _popupService.PopPopupAsync(ct).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -143,8 +135,8 @@ public sealed partial class ModelPickerViewModel : ObservableObject
     [RelayCommand]
     private async Task ConfigureProvidersAsync(CancellationToken ct)
     {
-        await _popupService.PopPopupAsync(ct);
-        await _navigationService.GoToAsync("settings", ct);
+        await _popupService.PopPopupAsync(ct).ConfigureAwait(false);
+        await _navigationService.GoToAsync("settings", ct).ConfigureAwait(false);
     }
 
     // ─── Private helpers ──────────────────────────────────────────────────────
@@ -185,15 +177,16 @@ public sealed partial class ModelPickerViewModel : ObservableObject
                         modelName = nameElement.GetString() ?? modelId;
                     }
 
-                    // Try to extract context window size
-                    if (modelProperty.Value.TryGetProperty("context_length", out var contextElement))
+                    // Try to extract context window size from "limit.context"
+                    // (server shape: "limit": { "context": 131072, "output": 32768 })
+                    if (modelProperty.Value.TryGetProperty("limit", out var limitElement) &&
+                        limitElement.TryGetProperty("context", out var contextElement) &&
+                        contextElement.ValueKind == JsonValueKind.Number &&
+                        contextElement.TryGetInt64(out var contextLength))
                     {
-                        if (contextElement.ValueKind == JsonValueKind.Number && contextElement.TryGetInt64(out var contextLength))
-                        {
-                            contextSize = contextLength >= 1000
-                                ? $"{contextLength / 1000}k tokens"
-                                : $"{contextLength} tokens";
-                        }
+                        contextSize = contextLength >= 1000
+                            ? $"{contextLength / 1000}k tokens"
+                            : $"{contextLength} tokens";
                     }
                 }
 

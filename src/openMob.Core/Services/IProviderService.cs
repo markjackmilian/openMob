@@ -24,4 +24,12 @@ public interface IProviderService
     /// <param name="ct">Cancellation token.</param>
     /// <returns><c>true</c> if at least one provider has a key configured; <c>false</c> otherwise.</returns>
     Task<bool> HasAnyProviderConfiguredAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Gets the configured providers and their active models from the server.
+    /// Uses <c>GET /config/providers</c> which returns only providers with valid configuration.
+    /// </summary>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>A read-only list of configured providers, or an empty list on failure.</returns>
+    Task<IReadOnlyList<ProviderDto>> GetConfiguredProvidersAsync(CancellationToken ct = default);
 }

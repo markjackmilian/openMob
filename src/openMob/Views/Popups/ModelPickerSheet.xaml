@@ -10,186 +10,167 @@
              Shell.PresentationMode="ModalAnimated"
              BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceLight}, Dark={StaticResource ColorSurfaceDark}}">
 
-  <ScrollView>
-    <VerticalStackLayout Spacing="0">
+  <Grid RowDefinitions="Auto,Auto,Auto,*">
 
-      <!-- Handle bar -->
-      <BoxView
-          WidthRequest="36"
-          HeightRequest="4"
-          CornerRadius="2"
-          Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
-          HorizontalOptions="Center"
-          Margin="0,8,0,16" />
+    <!-- Handle bar -->
+    <BoxView
+        Grid.Row="0"
+        WidthRequest="36"
+        HeightRequest="4"
+        CornerRadius="2"
+        Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
+        HorizontalOptions="Center"
+        Margin="0,8,0,16" />
 
-      <!-- Title -->
+    <!-- Title -->
+    <Label
+        Grid.Row="1"
+        Text="Select Model"
+        FontFamily="InterSemiBold"
+        FontSize="{StaticResource FontSizeTitle3}"
+        TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}"
+        Margin="16,0,16,16" />
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         Loading state (REQ-002)
+         ═══════════════════════════════════════════════════════════════ -->
+    <ActivityIndicator
+        Grid.Row="2"
+        IsRunning="{Binding IsLoading}"
+        IsVisible="{Binding IsLoading}"
+        HorizontalOptions="Center"
+        Margin="0,32"
+        SemanticProperties.Description="Loading models" />
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         Empty state (REQ-003) — visible when IsEmpty and not loading
+         ═══════════════════════════════════════════════════════════════ -->
+    <VerticalStackLayout
+        Grid.Row="3"
+        IsVisible="False"
+        Spacing="{StaticResource SpacingSm}"
+        HorizontalOptions="Center"
+        Padding="{StaticResource SpacingXxl}">
+      <VerticalStackLayout.Triggers>
+        <MultiTrigger TargetType="VerticalStackLayout">
+          <MultiTrigger.Conditions>
+            <BindingCondition Binding="{Binding IsEmpty}" Value="True" />
+            <BindingCondition Binding="{Binding IsLoading}" Value="False" />
+          </MultiTrigger.Conditions>
+          <Setter Property="IsVisible" Value="True" />
+        </MultiTrigger>
+      </VerticalStackLayout.Triggers>
+
       <Label
-          Text="Select Model"
-          FontFamily="InterSemiBold"
-          FontSize="{StaticResource FontSizeTitle3}"
-          TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}"
-          Margin="16,0,16,16" />
-
-      <!-- ═══════════════════════════════════════════════════════════════
-           Loading state (REQ-002)
-           ═══════════════════════════════════════════════════════════════ -->
-      <ActivityIndicator
-          IsRunning="{Binding IsLoading}"
-          IsVisible="{Binding IsLoading}"
+          Text="{x:Static helpers:MaterialIcons.SmartToy}"
+          FontFamily="MaterialSymbols"
+          FontSize="48"
+          TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
           HorizontalOptions="Center"
-          Margin="0,32"
-          SemanticProperties.Description="Loading models" />
+          SemanticProperties.Description="No models icon" />
 
-      <!-- ═══════════════════════════════════════════════════════════════
-           Empty state (REQ-003) — visible when IsEmpty and not loading
-           ═══════════════════════════════════════════════════════════════ -->
-      <VerticalStackLayout
-          IsVisible="False"
-          Spacing="{StaticResource SpacingSm}"
+      <Label
+          Text="Nessun modello disponibile"
+          Style="{StaticResource HeadlineLabel}"
+          HorizontalTextAlignment="Center"
+          HorizontalOptions="Center" />
+
+      <Label
+          Text="Configura un provider per visualizzare i modelli disponibili."
+          Style="{StaticResource SubtitleLabel}"
+          HorizontalTextAlignment="Center"
+          HorizontalOptions="Center" />
+
+      <Button
+          Text="Configura provider"
+          Style="{StaticResource SecondaryButton}"
+          Command="{Binding ConfigureProvidersCommand}"
           HorizontalOptions="Center"
-          Padding="{StaticResource SpacingXxl}">
-        <VerticalStackLayout.Triggers>
-          <MultiTrigger TargetType="VerticalStackLayout">
-            <MultiTrigger.Conditions>
-              <BindingCondition Binding="{Binding IsEmpty}" Value="True" />
-              <BindingCondition Binding="{Binding IsLoading}" Value="False" />
-            </MultiTrigger.Conditions>
-            <Setter Property="IsVisible" Value="True" />
-          </MultiTrigger>
-        </VerticalStackLayout.Triggers>
+          Margin="0,8,0,0"
+          AutomationId="ConfigureProvidersButton"
+          SemanticProperties.Description="Navigate to provider settings" />
+    </VerticalStackLayout>
 
-        <Label
-            Text="{x:Static helpers:MaterialIcons.SmartToy}"
-            FontFamily="MaterialSymbols"
-            FontSize="48"
-            TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
-            HorizontalOptions="Center"
-            SemanticProperties.Description="No models icon" />
+    <!-- ═══════════════════════════════════════════════════════════════
+         Model list — flat, virtualised (REQ-001)
+         Replaces the previous BindableLayout approach that created all
+         elements eagerly and blocked the main thread with large lists.
+         ═══════════════════════════════════════════════════════════════ -->
+    <CollectionView
+        Grid.Row="3"
+        ItemsSource="{Binding Models}"
+        SelectionMode="None"
+        IsVisible="False">
+      <CollectionView.Triggers>
+        <MultiTrigger TargetType="CollectionView">
+          <MultiTrigger.Conditions>
+            <BindingCondition Binding="{Binding IsEmpty}" Value="False" />
+            <BindingCondition Binding="{Binding IsLoading}" Value="False" />
+          </MultiTrigger.Conditions>
+          <Setter Property="IsVisible" Value="True" />
+        </MultiTrigger>
+      </CollectionView.Triggers>
 
-        <Label
-            Text="Nessun modello disponibile"
-            Style="{StaticResource HeadlineLabel}"
-            HorizontalTextAlignment="Center"
-            HorizontalOptions="Center" />
+      <CollectionView.ItemTemplate>
+        <DataTemplate x:DataType="models:ModelItem">
+          <VerticalStackLayout Spacing="0" Padding="16,0">
+            <Grid
+                ColumnDefinitions="*,Auto"
+                Padding="0,14"
+                ColumnSpacing="{StaticResource SpacingMd}"
+                MinimumHeightRequest="{StaticResource MinTouchTarget}">
+              <Grid.GestureRecognizers>
+                <TapGestureRecognizer
+                    Command="{Binding SelectModelCommand, Source={RelativeSource AncestorType={x:Type vm:ModelPickerViewModel}}}"
+                    CommandParameter="{Binding Id}" />
+              </Grid.GestureRecognizers>
 
-        <Label
-            Text="Configura un provider per visualizzare i modelli disponibili."
-            Style="{StaticResource SubtitleLabel}"
-            HorizontalTextAlignment="Center"
-            HorizontalOptions="Center" />
-
-        <Button
-            Text="Configura provider"
-            Style="{StaticResource SecondaryButton}"
-            Command="{Binding ConfigureProvidersCommand}"
-            HorizontalOptions="Center"
-            Margin="0,8,0,0"
-            AutomationId="ConfigureProvidersButton"
-            SemanticProperties.Description="Navigate to provider settings" />
-      </VerticalStackLayout>
-
-      <!-- ═══════════════════════════════════════════════════════════════
-           Model list grouped by provider (REQ-001)
-           Uses BindableLayout on VerticalStackLayout because
-           ProviderModelGroup is a record (not IEnumerable) and cannot
-           be used with CollectionView.IsGrouped directly.
-           ═══════════════════════════════════════════════════════════════ -->
-      <VerticalStackLayout
-          IsVisible="False"
-          Spacing="0"
-          Padding="0,0,0,16">
-        <VerticalStackLayout.Triggers>
-          <MultiTrigger TargetType="VerticalStackLayout">
-            <MultiTrigger.Conditions>
-              <BindingCondition Binding="{Binding HasProviders}" Value="True" />
-              <BindingCondition Binding="{Binding IsLoading}" Value="False" />
-              <BindingCondition Binding="{Binding IsEmpty}" Value="False" />
-            </MultiTrigger.Conditions>
-            <Setter Property="IsVisible" Value="True" />
-          </MultiTrigger>
-        </VerticalStackLayout.Triggers>
-
-        <BindableLayout.ItemsSource>
-          <Binding Path="ProviderGroups" />
-        </BindableLayout.ItemsSource>
-
-        <BindableLayout.ItemTemplate>
-          <DataTemplate x:DataType="models:ProviderModelGroup">
-            <VerticalStackLayout Spacing="0">
-
-              <!-- Group header — provider name -->
-              <Label
-                  Text="{Binding ProviderName, FallbackValue='Provider'}"
-                  FontFamily="InterSemiBold"
-                  FontSize="{StaticResource FontSizeFootnote}"
-                  TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
-                  Margin="16,16,16,8"
-                  SemanticProperties.HeadingLevel="Level2" />
-
-              <!-- Models within this provider group -->
+              <!-- Model name, context size, and provider name -->
               <VerticalStackLayout
-                  Spacing="0"
-                  BindableLayout.ItemsSource="{Binding Models}">
-                <BindableLayout.ItemTemplate>
-                  <DataTemplate x:DataType="models:ModelItem">
-                    <VerticalStackLayout Spacing="0" Padding="16,0">
-                      <Grid
-                          ColumnDefinitions="*,Auto"
-                          Padding="0,14"
-                          ColumnSpacing="{StaticResource SpacingMd}"
-                          MinimumHeightRequest="{StaticResource MinTouchTarget}">
-                        <Grid.GestureRecognizers>
-                          <TapGestureRecognizer
-                              Command="{Binding SelectModelCommand, Source={RelativeSource AncestorType={x:Type vm:ModelPickerViewModel}}}"
-                              CommandParameter="{Binding Id}" />
-                        </Grid.GestureRecognizers>
-
-                        <!-- Model name and context size -->
-                        <VerticalStackLayout
-                            Grid.Column="0"
-                            Spacing="{StaticResource SpacingXxs}"
-                            VerticalOptions="Center">
-                          <Label
-                              Text="{Binding Name, FallbackValue='Model'}"
-                              FontFamily="InterMedium"
-                              FontSize="{StaticResource FontSizeBody}"
-                              TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}" />
-                          <Label
-                              Text="{Binding ContextSize, FallbackValue='', TargetNullValue=''}"
-                              FontFamily="InterRegular"
-                              FontSize="{StaticResource FontSizeCaption1}"
-                              TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
-                              IsVisible="{Binding ContextSize, Converter={StaticResource NullToVisibilityConverter}}" />
-                        </VerticalStackLayout>
-
-                        <!-- Selection indicator: checkmark when selected -->
-                        <Label
-                            Grid.Column="1"
-                            FontFamily="MaterialSymbols"
-                            Text="{x:Static helpers:MaterialIcons.Check}"
-                            FontSize="24"
-                            TextColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}"
-                            IsVisible="{Binding IsSelected}"
-                            VerticalOptions="Center"
-                            SemanticProperties.Description="Selected model" />
-                      </Grid>
-
-                      <!-- Separator -->
-                      <BoxView
-                          HeightRequest="0.5"
-                          Color="{AppThemeBinding Light={StaticResource ColorSeparatorLight}, Dark={StaticResource ColorSeparatorDark}}" />
-                    </VerticalStackLayout>
-                  </DataTemplate>
-                </BindableLayout.ItemTemplate>
+                  Grid.Column="0"
+                  Spacing="{StaticResource SpacingXxs}"
+                  VerticalOptions="Center">
+                <Label
+                    Text="{Binding Name, FallbackValue='Model'}"
+                    FontFamily="InterMedium"
+                    FontSize="{StaticResource FontSizeBody}"
+                    TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}"
+                    LineBreakMode="TailTruncation"
+                    MaxLines="1" />
+                <Label
+                    Text="{Binding ContextSize, FallbackValue='', TargetNullValue=''}"
+                    FontFamily="InterRegular"
+                    FontSize="{StaticResource FontSizeCaption1}"
+                    TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
+                    IsVisible="{Binding ContextSize, Converter={StaticResource NullToVisibilityConverter}}" />
+                <Label
+                    Text="{Binding ProviderName, FallbackValue='Provider'}"
+                    FontFamily="InterRegular"
+                    FontSize="{StaticResource FontSizeCaption1}"
+                    TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}" />
               </VerticalStackLayout>
 
-            </VerticalStackLayout>
-          </DataTemplate>
-        </BindableLayout.ItemTemplate>
+              <!-- Selection indicator: checkmark when selected -->
+              <Label
+                  Grid.Column="1"
+                  FontFamily="MaterialSymbols"
+                  Text="{x:Static helpers:MaterialIcons.Check}"
+                  FontSize="24"
+                  TextColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}"
+                  IsVisible="{Binding IsSelected}"
+                  VerticalOptions="Center"
+                  SemanticProperties.Description="Selected model" />
+            </Grid>
 
-      </VerticalStackLayout>
+            <!-- Separator -->
+            <BoxView
+                HeightRequest="0.5"
+                Color="{AppThemeBinding Light={StaticResource ColorSeparatorLight}, Dark={StaticResource ColorSeparatorDark}}" />
+          </VerticalStackLayout>
+        </DataTemplate>
+      </CollectionView.ItemTemplate>
+    </CollectionView>
 
-    </VerticalStackLayout>
-  </ScrollView>
+  </Grid>
 
 </ContentPage>

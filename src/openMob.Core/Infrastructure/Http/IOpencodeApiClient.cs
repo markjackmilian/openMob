@@ -77,9 +77,17 @@ public interface IOpencodeApiClient
 
     // ─── Provider ─────────────────────────────────────────────────────────────
 
-    /// <summary>Lists all configured providers. Maps to <c>GET /provider</c>.</summary>
+    /// <summary>
+    /// Lists all providers known to the server. Maps to <c>GET /provider</c>.
+    /// </summary>
+    /// <remarks>
+    /// The response is an envelope containing <c>all</c> (every provider), <c>default</c>
+    /// (per-provider default model IDs), and <c>connected</c> (IDs of providers that have
+    /// a valid credential configured). Use <see cref="ProviderListResponseDto.Connected"/>
+    /// rather than <see cref="ProviderDto.Key"/> to determine connectivity.
+    /// </remarks>
     /// <param name="ct">Cancellation token.</param>
-    Task<OpencodeResult<IReadOnlyList<ProviderDto>>> GetProvidersAsync(CancellationToken ct = default);
+    Task<OpencodeResult<ProviderListResponseDto>> GetProvidersAsync(CancellationToken ct = default);
 
     /// <summary>Lists available authentication methods for providers. Maps to <c>GET /provider/auth</c>.</summary>
     /// <param name="ct">Cancellation token.</param>

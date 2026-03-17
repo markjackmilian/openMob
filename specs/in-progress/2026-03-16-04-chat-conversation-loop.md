@@ -4,7 +4,7 @@
 | Field   | Value                        |
 |---------|------------------------------|
 | Date    | 2026-03-16                   |
-| Status  | Draft                        |
+| Status  | In Progress                  |
 | Version | 1.0                          |
 
 ---
@@ -198,7 +198,7 @@ Implementa il loop conversazionale completo nel `ChatViewModel`: caricamento del
 | 2 | Il grouping deve considerare anche il tempo tra messaggi (es. gap > 5 min = nuovo gruppo)? | Resolved | No per questa spec. Il grouping è basato solo sul cambio di `IsFromUser`. Aggiungere grouping temporale in una spec futura. |
 | 3 | Quando `SessionId` cambia (utente seleziona altra sessione dal flyout), i messaggi precedenti devono essere svuotati immediatamente o dopo il caricamento dei nuovi? | Resolved | Svuotare immediatamente prima di `LoadMessagesCommand` per evitare flash di contenuto vecchio. |
 | 4 | `IsAiResponding` deve tornare `false` anche se arriva solo `MessageUpdatedEvent` senza `MessagePartUpdatedEvent` precedenti? | Resolved | Sì. Qualsiasi `MessageUpdatedEvent` con `role == "assistant"` e messaggio non-streaming imposta `IsAiResponding = false`. |
-| 5 | Come determinare se un messaggio assistant è "completo" (non più in streaming) dall'evento SSE? | Open | Da verificare sul wire format opencode. Probabilmente il campo `time.completed` è presente nel DTO quando il messaggio è completo. `ChatEventParser` deve esporre questa informazione. |
+| 5 | Come determinare se un messaggio assistant è "completo" (non più in streaming) dall'evento SSE? | Resolved | In `ChatMessage.FromDto()`, check if `MessageInfoDto.Time` raw JSON contains a `completed` property that is non-null. If present, the message is complete (`IsStreaming = false`). If absent or null, the message is still streaming (`IsStreaming = true`, assistant messages only). User messages are always `IsStreaming = false`. This does not require changes to `ChatEventParser` — the info is already in `MessageWithPartsDto.Info.Time`. |
 
 ---
 
@@ -233,3 +233,119 @@ Implementa il loop conversazionale completo nel `ChatViewModel`: caricamento del
 - **As established in `specs/in-progress/2026-03-14-chat-ui-design-guidelines.md`**: `ChatViewModel` deve esporre `ObservableCollection<SuggestionChip>` e la logica di grouping (`IsFirstInGroup`/`IsLastInGroup`) come proprietà del modello, non come converter XAML.
 - **`IDispatcher` injection**: iniettare `IDispatcher` nel costruttore di `ChatViewModel` per marshalling thread-safe. In produzione viene risolto da MAUI DI; nei test viene mockato con NSubstitute.
 - **Integrazione con Spec 03**: `SelectedModelId` e `SelectedModelName` sono già presenti su `ChatViewModel` dopo Spec 03. Questa spec aggiunge solo l'uso di `SelectedModelId` in `SendMessageCommand` per estrarre `providerId` e `modelId`.
+
+---
+
+## Technical Analysis
+
+> Added by: om-orchestrator | Date: 2026-03-18
+
+### Change Classification
+
+| Field | Value |
+|-------|-------|
+| Change type | Feature |
+| Git Flow branch | `feature/chat-conversation-loop` |
+| Branches from | `develop` |
+| Estimated complexity | High |
+| Estimated agents involved | om-mobile-core, om-tester, om-reviewer |
+
+### Layers Involved
+
+| Layer | Agent | Scope |
+|-------|-------|-------|
+| Domain Models | om-mobile-core | `src/openMob.Core/Models/` |
+| ViewModels | om-mobile-core | `src/openMob.Core/ViewModels/` |
+| DI Registration | om-mobile-core | `src/openMob.Core/Infrastructure/DI/` |
+| Dispatcher Abstraction | om-mobile-core | `src/openMob.Core/Services/` |
+| Unit Tests | om-tester | `tests/openMob.Tests/` |
+| Code Review | om-reviewer | all of the above |
+
+> **No om-mobile-ui involvement** — this spec explicitly excludes XAML/UI (deferred to Spec 05).
+
+### Files to Create
+
+- `src/openMob.Core/Models/ChatMessage.cs` — Sealed class inheriting `ObservableObject`. Domain model for UI-bound chat messages with mutable grouping/streaming/delivery properties. Static factory `FromDto(MessageWithPartsDto)` maps from DTO. [REQ-001]
+- `src/openMob.Core/Models/MessageDeliveryStatus.cs` — Enum: `Sending`, `Sent`, `Error`. [REQ-002]
+- `src/openMob.Core/Models/SuggestionChip.cs` — Sealed record with `Title`, `Subtitle`, `PromptText`. [REQ-003]
+- `src/openMob.Core/Services/IDispatcherService.cs` — Abstraction over UI thread dispatching for testability. Single method: `void Dispatch(Action action)`. The MAUI project provides the concrete implementation wrapping `MainThread.BeginInvokeOnMainThread`. [Technical decision — see Notes]
+
+### Files to Modify
+
+- `src/openMob.Core/ViewModels/ChatViewModel.cs` — Major refactoring: add `IDisposable`, add all observable properties (Messages, InputText, IsBusy, IsAiResponding, IsEmpty, ErrorMessage, HasError, SuggestionChips, SessionTitle), add commands (LoadMessages, SendMessage, CancelResponse, SelectSuggestionChip, DismissError), add SSE subscription lifecycle, add grouping logic, add `SetSession(string)` method. Constructor gains `IChatService`, `IOpencodeApiClient`, `IDispatcherService` dependencies. [REQ-004 through REQ-018]
+- `src/openMob.Core/Infrastructure/DI/CoreServiceExtensions.cs` — Register `IDispatcherService` is NOT done here (MAUI project registers the concrete implementation). No change needed for `ChatViewModel` registration (already `AddTransient`).
+
+### Technical Decisions
+
+#### 1. IQueryAttributable replacement → `SetSession(string sessionId)` method
+
+`IQueryAttributable` lives in `Microsoft.Maui.Controls` — implementing it in `openMob.Core` would break the zero-MAUI-dependency rule. Instead:
+
+- `ChatViewModel` exposes a public `SetSession(string sessionId)` method
+- `ChatPage.xaml.cs` implements `IQueryAttributable` and calls `ViewModel.SetSession(sessionId)` in its override
+- This respects layer separation and keeps the ViewModel fully testable without MAUI references
+
+**Impact on REQ-005**: The spec's `ApplyQueryAttributes` signature is replaced by `SetSession(string)`. The behavioral contract (cancel previous SSE, update SessionId, invoke LoadMessages) remains identical.
+
+#### 2. IDispatcherService abstraction
+
+The codebase currently has no dispatcher abstraction. SSE events arrive on background threads and must marshal to the UI thread for `ObservableCollection` updates. Creating `IDispatcherService` with a `Dispatch(Action)` method allows:
+- NSubstitute mocking in tests (mock executes the action synchronously)
+- MAUI project provides `MainThreadDispatcherService` wrapping `MainThread.BeginInvokeOnMainThread`
+
+#### 3. ChatMessage inherits ObservableObject
+
+`ChatMessage` has 4 mutable properties (`IsFirstInGroup`, `IsLastInGroup`, `IsStreaming`, `DeliveryStatus`, `TextContent`) that the UI needs to observe reactively. Inheriting from `ObservableObject` and using `[ObservableProperty]` is the cleanest approach consistent with the project's patterns.
+
+#### 4. Open Question #5 resolution — streaming detection
+
+`MessageInfoDto.Time` is a `JsonElement`. For assistant messages, the shape is `{ created: number, completed?: number }`. In `ChatMessage.FromDto()`:
+- If `time` has a `completed` property with `ValueKind != Null` → `IsStreaming = false`
+- If `completed` is absent or null → `IsStreaming = true` (assistant only; user messages always `false`)
+
+#### 5. SessionId property naming
+
+The existing `ChatViewModel` has `CurrentSessionId`. The spec calls it `SessionId`. To avoid a breaking rename (the property is likely used by `ChatPage.xaml` and `FlyoutViewModel`), **keep `CurrentSessionId` as the canonical name** and treat spec's `SessionId` as an alias. The spec's `SessionTitle` maps to the existing `SessionName`.
+
+### Technical Dependencies
+
+- `IChatService` (Spec 02) — `GetMessagesAsync`, `SendPromptAsync`, `SubscribeToEventsAsync` — all available and merged
+- `IOpencodeApiClient.AbortSessionAsync` — available for `CancelResponseCommand`
+- `SelectedModelId` / `SelectedModelName` on `ChatViewModel` (Spec 03) — already present
+- `ModelIdHelper.ExtractModelName` — already available in `src/openMob.Core/Helpers/`
+- `SendPromptRequestBuilder.FromText` — already available (not directly used by ViewModel, but by ChatService)
+- `MessageWithPartsDto`, `PartDto`, `MessageInfoDto` — already available in DTOs
+- `ChatEvent` hierarchy (`MessageUpdatedEvent`, `MessagePartUpdatedEvent`, `SessionUpdatedEvent`, `SessionErrorEvent`) — already available
+- `ChatServiceResult<T>` — already available
+- No new NuGet packages required
+- No EF Core migrations required
+
+### Technical Risks
+
+| Risk | Mitigation |
+|------|------------|
+| Thread safety: `ObservableCollection` updated from SSE background thread | `IDispatcherService.Dispatch()` marshals all collection mutations to UI thread. Tests mock it with synchronous execution. |
+| Property naming conflict: spec says `SessionId`/`SessionTitle` but existing code has `CurrentSessionId`/`SessionName` | Keep existing property names to avoid breaking existing XAML bindings. Document the mapping. |
+| SSE subscription leak: if `SetSession` is called rapidly (user taps multiple sessions quickly) | Use `CancellationTokenSource` per session. `SetSession` cancels previous CTS before creating new one. |
+| `ChatMessage.FromDto` parsing: `Time` JSON may not contain `completed` field | Defensive check with `TryGetProperty("completed", ...)` — gracefully defaults to `IsStreaming = true` for assistant messages. |
+| Large message history: loading 100+ messages into `ObservableCollection` | Single batch `Clear()` + `foreach Add()` — acceptable for v1. Future spec can add virtualization/paging. |
+
+### Execution Order
+
+> Steps that can run in parallel are marked with ⟳. Steps that must be sequential are numbered.
+
+1. **[Git Flow]** Create branch `feature/chat-conversation-loop` from `develop`
+2. **[om-mobile-core]** Implement all domain models (`ChatMessage`, `MessageDeliveryStatus`, `SuggestionChip`), `IDispatcherService` interface, and refactor `ChatViewModel` with full binding surface, commands, SSE handling, and lifecycle management
+3. **[om-tester]** Write unit tests for `ChatMessage.FromDto`, `ChatViewModel` (all commands, SSE event handling, grouping logic, lifecycle)
+4. **[om-reviewer]** Full review against spec — all REQ and AC
+5. **[Fix loop if needed]** Address Critical and Major findings
+6. **[Git Flow]** Finish branch and merge into `develop`
+
+### Definition of Done
+
+- [ ] All `[REQ-001]` through `[REQ-018]` requirements implemented
+- [ ] All `[AC-001]` through `[AC-011]` acceptance criteria satisfied
+- [ ] Unit tests written for `ChatMessage`, `ChatViewModel` (all commands, SSE event handlers, grouping, lifecycle)
+- [ ] `om-reviewer` verdict: Approved or Approved with remarks
+- [ ] Git Flow branch finished and deleted
+- [ ] Spec moved to `specs/done/` with Completed status

@@ -70,11 +70,33 @@ public partial class InputBarView : ContentView
         private set => SetValue(HasTextProperty, value);
     }
 
+    /// <summary>
+    /// Handles the Editor's TextChanged event and pushes the new value into the
+    /// <see cref="TextProperty"/> bindable property. This ensures the external
+    /// TwoWay binding (e.g. ChatViewModel.InputText) receives the typed text.
+    /// </summary>
+    private void OnEditorTextChanged(object? sender, TextChangedEventArgs e)
+    {
+        Text = e.NewTextValue;
+    }
+
+    /// <summary>
+    /// Called when <see cref="TextProperty"/> changes (from either direction).
+    /// Updates <see cref="HasText"/> and syncs the value back to the Editor
+    /// when the property is set externally (e.g. ViewModel clears InputText after sending).
+    /// </summary>
     private static void OnTextChanged(BindableObject bindable, object oldValue, object newValue)
     {
         if (bindable is InputBarView view)
         {
-            view.HasText = !string.IsNullOrEmpty(newValue as string);
+            var text = newValue as string ?? string.Empty;
+            view.HasText = !string.IsNullOrEmpty(text);
+
+            // Sync to Editor when set externally (avoids infinite loop by checking current value)
+            if (view.MessageEditor is not null && view.MessageEditor.Text != text)
+            {
+                view.MessageEditor.Text = text;
+            }
         }
     }
 }

@@ -58,7 +58,7 @@
         <Grid ColumnDefinitions="*,Auto">
 
           <Editor Grid.Column="0"
-                  Text="{Binding Text, Source={x:Reference this}, Mode=TwoWay}"
+                  x:Name="MessageEditor"
                   Placeholder="{Binding Placeholder, Source={x:Reference this}, FallbackValue='Message...'}"
                   IsEnabled="{Binding IsInputEnabled, Source={x:Reference this}}"
                   Style="{StaticResource InputBarEditor}"
@@ -67,6 +67,7 @@
                   MinimumHeightRequest="{StaticResource MinTouchTarget}"
                   MaximumHeightRequest="120"
                   Margin="16,8,0,8"
+                  TextChanged="OnEditorTextChanged"
                   AutomationId="ChatMessageEditor"
                   SemanticProperties.Hint="Type your message here" />
 

@@ -16,6 +16,7 @@
       <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
       <converters:StepToVisibilityConverter x:Key="StepToVisibilityConverter" />
       <converters:DateTimeToRelativeStringConverter x:Key="DateTimeToRelativeStringConverter" />
+      <converters:MessageStatusToIconConverter x:Key="MessageStatusToIconConverter" />
     </ResourceDictionary>
   </Application.Resources>
 </Application>

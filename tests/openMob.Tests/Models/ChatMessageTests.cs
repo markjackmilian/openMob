@@ -204,4 +204,56 @@ public sealed class ChatMessageTests
         result.Id.Should().NotBeNullOrEmpty();
         result.Timestamp.Should().BeCloseTo(DateTimeOffset.UtcNow, TimeSpan.FromSeconds(5));
     }
+
+    // ─── Null / edge-case guards [M-003] ─────────────────────────────────────
+
+    [Fact]
+    public void FromDto_WithNullDto_ThrowsArgumentNullException()
+    {
+        // Act
+        var act = () => ChatMessage.FromDto(null!);
+
+        // Assert
+        act.Should().Throw<ArgumentNullException>();
+    }
+
+    [Fact]
+    public void CreateOptimistic_WithNullSessionId_ThrowsArgumentNullException()
+    {
+        // Act
+        var act = () => ChatMessage.CreateOptimistic(null!, "Hello");
+
+        // Assert
+        act.Should().Throw<ArgumentNullException>();
+    }
+
+    [Fact]
+    public void CreateOptimistic_WithNullText_ThrowsArgumentNullException()
+    {
+        // Act
+        var act = () => ChatMessage.CreateOptimistic("sess-1", null!);
+
+        // Assert
+        act.Should().Throw<ArgumentNullException>();
+    }
+
+    [Fact]
+    public void ExtractTextContent_WithNullParts_ReturnsEmpty()
+    {
+        // Act
+        var result = ChatMessage.ExtractTextContent(null!);
+
+        // Assert
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ExtractTextContent_WithEmptyParts_ReturnsEmpty()
+    {
+        // Act
+        var result = ChatMessage.ExtractTextContent(Array.Empty<PartDto>());
+
+        // Assert
+        result.Should().BeEmpty();
+    }
 }

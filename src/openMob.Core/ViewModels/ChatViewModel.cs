@@ -415,6 +415,9 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
                     RecalculateGrouping();
                     UpdateIsEmpty();
                 });
+
+                // Start SSE subscription only after messages loaded successfully [REQ-011]
+                _ = StartSseSubscriptionAsync();
             }
             else if (result.Error is not null)
             {
@@ -438,9 +441,6 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
         {
             IsBusy = false;
         }
-
-        // Start SSE subscription for the current session [REQ-011]
-        _ = StartSseSubscriptionAsync();
     }
 
     /// <summary>
@@ -649,7 +649,7 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
             if (existing is not null)
             {
                 existing.TextContent = ChatMessage.ExtractTextContent(e.Message.Parts);
-                existing.IsStreaming = !existing.IsFromUser && !HasCompletedTimestamp(e.Message.Info.Time);
+                existing.IsStreaming = !existing.IsFromUser && !ChatMessage.HasCompletedTimestamp(e.Message.Info.Time);
                 existing.DeliveryStatus = MessageDeliveryStatus.Sent;
             }
             else
@@ -779,18 +779,6 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
         }
 
         return null;
-    }
-
-    /// <summary>
-    /// Checks whether the time JSON element contains a non-null <c>completed</c> property.
-    /// </summary>
-    /// <param name="time">The raw JSON time element.</param>
-    /// <returns><c>true</c> if a non-null <c>completed</c> property exists; otherwise <c>false</c>.</returns>
-    private static bool HasCompletedTimestamp(JsonElement time)
-    {
-        return time.ValueKind == JsonValueKind.Object &&
-               time.TryGetProperty("completed", out var completedEl) &&
-               completedEl.ValueKind != JsonValueKind.Null;
     }
 
     /// <summary>

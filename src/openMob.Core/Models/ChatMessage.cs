@@ -183,7 +183,7 @@ public sealed partial class ChatMessage : ObservableObject
     /// </summary>
     /// <param name="time">The raw JSON time element.</param>
     /// <returns><c>true</c> if a non-null <c>completed</c> property exists; otherwise <c>false</c>.</returns>
-    private static bool HasCompletedTimestamp(JsonElement time)
+    internal static bool HasCompletedTimestamp(JsonElement time)
     {
         if (time.ValueKind == JsonValueKind.Object &&
             time.TryGetProperty("completed", out var completedEl) &&

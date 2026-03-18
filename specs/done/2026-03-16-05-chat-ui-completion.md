@@ -1,11 +1,14 @@
 # Chat UI Completion — Correzioni Strutturali, Componenti Mancanti e Wiring
 
 ## Metadata
-| Field   | Value                        |
-|---------|------------------------------|
-| Date    | 2026-03-16                   |
-| Status  | In Progress                  |
-| Version | 1.0                          |
+| Field       | Value                                    |
+|-------------|------------------------------------------|
+| Date        | 2026-03-16                               |
+| Status      | **Completed**                            |
+| Version     | 1.0                                      |
+| Completed   | 2026-03-18                               |
+| Branch      | feature/chat-ui-completion (merged)      |
+| Merged into | develop                                  |
 
 ---
 

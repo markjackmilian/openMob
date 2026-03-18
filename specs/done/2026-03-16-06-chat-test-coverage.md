@@ -1,11 +1,14 @@
 # Chat Test Coverage — Unit Test per ViewModel, Converter e Service Layer
 
 ## Metadata
-| Field   | Value                        |
-|---------|------------------------------|
-| Date    | 2026-03-16                   |
-| Status  | In Progress                  |
-| Version | 1.0                          |
+| Field       | Value                                    |
+|-------------|------------------------------------------|
+| Date        | 2026-03-16                               |
+| Status      | **Completed**                            |
+| Version     | 1.0                                      |
+| Completed   | 2026-03-18                               |
+| Branch      | feature/chat-test-coverage (merged)      |
+| Merged into | develop                                  |
 
 ---
 
@@ -340,9 +343,9 @@ A thorough codebase audit reveals that **8 of 9 test files** specified in this s
 ### Definition of Done
 
 - [x] All `[REQ-001]` through `[REQ-032]` and `[REQ-038]` through `[REQ-053]` — already implemented
-- [ ] `[REQ-033]` through `[REQ-037]` — FlyoutViewModelTests implemented
-- [ ] All `[AC-XXX]` acceptance criteria satisfied
-- [ ] Unit tests written for FlyoutViewModel
-- [ ] `om-reviewer` verdict: Approved or Approved with remarks
-- [ ] Git Flow branch finished and deleted
-- [ ] Spec moved to `specs/done/` with Completed status
+- [x] `[REQ-033]` through `[REQ-037]` — FlyoutViewModelTests implemented (39 tests)
+- [x] All `[AC-XXX]` acceptance criteria satisfied
+- [x] Unit tests written for FlyoutViewModel
+- [x] `om-reviewer` verdict: ⚠️ Approved with remarks (0 Critical, 0 Major, 3 Minor — all resolved)
+- [x] Git Flow branch finished and deleted
+- [x] Spec moved to `specs/done/` with Completed status

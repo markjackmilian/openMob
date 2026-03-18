@@ -7,7 +7,7 @@ namespace openMob.Views.Pages;
 /// status banners, a message CollectionView with MessageBubbleView items,
 /// suggestion chips, an InputBarView, and an error banner.
 /// </summary>
-public partial class ChatPage : ContentPage
+public partial class ChatPage : ContentPage, IQueryAttributable
 {
     /// <summary>Bindable property for the maximum bubble width in absolute points.</summary>
     public static readonly BindableProperty BubbleMaxWidthProperty =
@@ -29,6 +29,18 @@ public partial class ChatPage : ContentPage
     }
 
     /// <inheritdoc />
+    public void ApplyQueryAttributes(IDictionary<string, object> query)
+    {
+        if (query.TryGetValue("sessionId", out var value) &&
+            value is string sessionId &&
+            !string.IsNullOrWhiteSpace(sessionId) &&
+            BindingContext is ChatViewModel vm)
+        {
+            vm.SetSession(sessionId);
+        }
+    }
+
+    /// <inheritdoc />
     protected override async void OnAppearing()
     {
         base.OnAppearing();
@@ -36,6 +48,12 @@ public partial class ChatPage : ContentPage
         if (BindingContext is ChatViewModel vm)
         {
             await vm.LoadContextCommand.ExecuteAsync(null);
+
+            // If no session was set via navigation, create one so the user can chat immediately
+            if (vm.CurrentSessionId is null)
+            {
+                await vm.NewChatCommand.ExecuteAsync(null);
+            }
         }
 
         UpdateBubbleMaxWidth();

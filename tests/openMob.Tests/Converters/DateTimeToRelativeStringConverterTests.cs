@@ -108,13 +108,14 @@ public sealed class DateTimeToRelativeStringConverterTests
     public void Convert_WhenOlderThanWeek_ReturnsDateFormat()
     {
         // Arrange
-        var value = new DateTimeOffset(2026, 3, 1, 12, 0, 0, TimeSpan.Zero);
+        var value = DateTimeOffset.Now.AddDays(-30);
+        var expected = value.ToString("MMM d", CultureInfo.InvariantCulture);
 
         // Act
         var result = _sut.Convert(value, typeof(string), null, CultureInfo.InvariantCulture);
 
         // Assert
-        result.Should().Be("Mar 1");
+        result.Should().Be(expected);
     }
 
     // ─── Convert — null and invalid input ─────────────────────────────────────

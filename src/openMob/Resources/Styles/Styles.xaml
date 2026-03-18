@@ -442,7 +442,7 @@
 
     <!-- Chat Bubble — sent (user) message border -->
     <Style x:Key="MessageBubbleSentBorder" TargetType="Border">
-        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#10A37F, Dark=#1DB88E}" />
+        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource ColorBubbleSentLight}, Dark={StaticResource ColorBubbleSentDark}}" />
         <Setter Property="StrokeThickness" Value="0" />
         <Setter Property="Padding" Value="{StaticResource SpacingMd}" />
         <Setter Property="StrokeShape" Value="RoundRectangle 16,16,4,16" />
@@ -450,7 +450,7 @@
 
     <!-- Chat Bubble — received (AI) message border -->
     <Style x:Key="MessageBubbleReceivedBorder" TargetType="Border">
-        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#FFFFFF, Dark=#1A1A1A}" />
+        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource ColorBubbleReceivedLight}, Dark={StaticResource ColorBubbleReceivedDark}}" />
         <Setter Property="StrokeThickness" Value="0" />
         <Setter Property="Padding" Value="{StaticResource SpacingMd}" />
         <Setter Property="StrokeShape" Value="RoundRectangle 16,16,16,4" />
@@ -458,17 +458,17 @@
 
     <!-- Chat Input Bar — editor field -->
     <Style x:Key="InputBarEditor" TargetType="Editor">
-        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#F0F0F0, Dark=#2A2A2A}" />
+        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource ColorInputFieldBackgroundLight}, Dark={StaticResource ColorInputFieldBackgroundDark}}" />
         <Setter Property="FontSize" Value="{StaticResource FontSizeBody}" />
-        <Setter Property="PlaceholderColor" Value="{AppThemeBinding Light=#ACACBE, Dark=#565869}" />
+        <Setter Property="PlaceholderColor" Value="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}" />
         <Setter Property="FontFamily" Value="InterRegular" />
-        <Setter Property="TextColor" Value="{AppThemeBinding Light=#0D0D0D, Dark=#FFFFFF}" />
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource ColorOnSurfaceLight}, Dark={StaticResource ColorOnSurfaceDark}}" />
     </Style>
 
     <!-- Suggestion Chip — tappable card border -->
     <Style x:Key="SuggestionChipBorder" TargetType="Border">
-        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#FFFFFF, Dark=#1A1A1A}" />
-        <Setter Property="Stroke" Value="{AppThemeBinding Light=#E5E5E5, Dark=#2A2A2A}" />
+        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource ColorSurfaceLight}, Dark={StaticResource ColorSurfaceDark}}" />
+        <Setter Property="Stroke" Value="{AppThemeBinding Light={StaticResource ColorOutlineLight}, Dark={StaticResource ColorOutlineDark}}" />
         <Setter Property="StrokeThickness" Value="1" />
         <Setter Property="StrokeShape" Value="RoundRectangle 12" />
         <Setter Property="Padding" Value="{StaticResource SpacingMd}" />

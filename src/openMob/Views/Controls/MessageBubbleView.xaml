@@ -7,7 +7,14 @@
              x:Name="this"
              x:DataType="controls:MessageBubbleView">
 
-  <Grid Padding="{StaticResource SpacingXs}">
+  <Grid Padding="4,4,4,4">
+    <Grid.Triggers>
+      <DataTrigger TargetType="Grid"
+                   Binding="{Binding IsFirstInGroup, Source={x:Reference this}}"
+                   Value="False">
+        <Setter Property="Padding" Value="4,2,4,4" />
+      </DataTrigger>
+    </Grid.Triggers>
 
     <!-- ═══════════════════════════════════════════════════════════════
          USER MESSAGE (IsFromUser = true) — right-aligned, sent style
@@ -21,7 +28,8 @@
 
           <!-- Message text -->
           <Label Text="{Binding TextContent, Source={x:Reference this}, FallbackValue=''}"
-                 TextColor="{AppThemeBinding Light=#FFFFFF, Dark=#FFFFFF}"
+                 TextColor="{AppThemeBinding Light={StaticResource ColorOnBubbleSentLight},
+                                              Dark={StaticResource ColorOnBubbleSentDark}}"
                  FontFamily="InterRegular"
                  FontSize="{StaticResource FontSizeBody}"
                  LineBreakMode="WordWrap" />
@@ -32,12 +40,14 @@
             <Label Text="{Binding Timestamp, Source={x:Reference this}, Converter={StaticResource DateTimeToRelativeStringConverter}, FallbackValue=''}"
                    FontFamily="InterRegular"
                    FontSize="{StaticResource FontSizeCaption2}"
-                   TextColor="#FFFFFFB3"
+                   TextColor="{AppThemeBinding Light={StaticResource ColorOnBubbleSentSecondaryLight},
+                                                Dark={StaticResource ColorOnBubbleSentSecondaryDark}}"
                    VerticalOptions="Center" />
             <Label Text="{Binding DeliveryStatus, Source={x:Reference this}, Converter={StaticResource MessageStatusToIconConverter}, FallbackValue=''}"
                    FontFamily="MaterialSymbols"
-                   FontSize="14"
-                   TextColor="#FFFFFFB3"
+                   FontSize="{StaticResource FontSizeFootnote}"
+                   TextColor="{AppThemeBinding Light={StaticResource ColorOnBubbleSentSecondaryLight},
+                                                Dark={StaticResource ColorOnBubbleSentSecondaryDark}}"
                    VerticalOptions="Center"
                    SemanticProperties.Description="Message delivery status" />
           </HorizontalStackLayout>
@@ -68,7 +78,7 @@
               Padding="0">
         <Label Text="{x:Static helpers:MaterialIcons.SmartToy}"
                FontFamily="MaterialSymbols"
-               FontSize="16"
+               FontSize="{StaticResource FontSizeCallout}"
                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
                                            Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
                HorizontalOptions="Center"
@@ -77,11 +87,10 @@
       </Border>
 
       <!-- Invisible spacer when avatar is hidden (to maintain alignment) -->
-      <BoxView Grid.Column="0"
-               WidthRequest="{StaticResource SizeAvatarSmall}"
-               HeightRequest="0"
-               IsVisible="{Binding IsLastInGroup, Source={x:Reference this}, Converter={StaticResource InvertedBoolConverter}}"
-               Color="Transparent" />
+      <ContentView Grid.Column="0"
+                   WidthRequest="{StaticResource SizeAvatarSmall}"
+                   HeightRequest="0"
+                   IsVisible="{Binding IsLastInGroup, Source={x:Reference this}, Converter={StaticResource InvertedBoolConverter}}" />
 
       <!-- Bubble -->
       <Border Grid.Column="1"
@@ -90,7 +99,8 @@
 
           <!-- Message text -->
           <Label Text="{Binding TextContent, Source={x:Reference this}, FallbackValue=''}"
-                 TextColor="{AppThemeBinding Light=#0D0D0D, Dark=#FFFFFF}"
+                 TextColor="{AppThemeBinding Light={StaticResource ColorOnBubbleReceivedLight},
+                                              Dark={StaticResource ColorOnBubbleReceivedDark}}"
                  FontFamily="InterRegular"
                  FontSize="{StaticResource FontSizeBody}"
                  LineBreakMode="WordWrap" />

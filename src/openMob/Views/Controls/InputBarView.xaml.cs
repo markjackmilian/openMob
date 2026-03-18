@@ -17,9 +17,9 @@ public partial class InputBarView : ContentView
     public static readonly BindableProperty SendCommandProperty =
         BindableProperty.Create(nameof(SendCommand), typeof(ICommand), typeof(InputBarView));
 
-    /// <summary>Bindable property for the enabled state.</summary>
-    public static new readonly BindableProperty IsEnabledProperty =
-        BindableProperty.Create(nameof(IsEnabled), typeof(bool), typeof(InputBarView), true);
+    /// <summary>Bindable property for the input enabled state. Controls whether the editor and buttons are interactive.</summary>
+    public static readonly BindableProperty IsInputEnabledProperty =
+        BindableProperty.Create(nameof(IsInputEnabled), typeof(bool), typeof(InputBarView), true);
 
     /// <summary>Bindable property for the placeholder text.</summary>
     public static readonly BindableProperty PlaceholderProperty =
@@ -49,11 +49,11 @@ public partial class InputBarView : ContentView
         set => SetValue(SendCommandProperty, value);
     }
 
-    /// <summary>Gets or sets whether the input bar is enabled.</summary>
-    public new bool IsEnabled
+    /// <summary>Gets or sets whether the input controls (editor and buttons) are enabled.</summary>
+    public bool IsInputEnabled
     {
-        get => (bool)GetValue(IsEnabledProperty);
-        set => SetValue(IsEnabledProperty, value);
+        get => (bool)GetValue(IsInputEnabledProperty);
+        set => SetValue(IsInputEnabledProperty, value);
     }
 
     /// <summary>Gets or sets the placeholder text.</summary>

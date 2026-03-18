@@ -6,6 +6,7 @@
              xmlns:models="clr-namespace:openMob.Core.Models;assembly=openMob.Core"
              xmlns:viewmodels="clr-namespace:openMob.Core.ViewModels;assembly=openMob.Core"
              x:Class="openMob.Views.Pages.ChatPage"
+             x:Name="ChatPageRoot"
              x:DataType="viewmodels:ChatViewModel"
              Shell.NavBarIsVisible="False">
 
@@ -158,7 +159,8 @@
                 DeliveryStatus="{Binding DeliveryStatus}"
                 IsFirstInGroup="{Binding IsFirstInGroup}"
                 IsLastInGroup="{Binding IsLastInGroup}"
-                IsStreaming="{Binding IsStreaming}" />
+                IsStreaming="{Binding IsStreaming}"
+                BubbleMaxWidth="{Binding Source={x:Reference ChatPageRoot}, Path=BubbleMaxWidth}" />
           </DataTemplate>
         </CollectionView.ItemTemplate>
       </CollectionView>
@@ -228,10 +230,10 @@
            Row 3: Input Bar — fixed at bottom
            ───────────────────────────────────────────────────────────── -->
       <controls:InputBarView Grid.Row="3"
-                             Text="{Binding InputText, Mode=TwoWay}"
-                             SendCommand="{Binding SendMessageCommand}"
-                             IsEnabled="{Binding IsAiResponding, Converter={StaticResource InvertedBoolConverter}}"
-                             Placeholder="Message..." />
+                              Text="{Binding InputText, Mode=TwoWay}"
+                              SendCommand="{Binding SendMessageCommand}"
+                              IsInputEnabled="{Binding IsAiResponding, Converter={StaticResource InvertedBoolConverter}}"
+                              Placeholder="Message..." />
 
     </Grid>
 

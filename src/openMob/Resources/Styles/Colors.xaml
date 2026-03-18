@@ -236,6 +236,8 @@
     <!-- Chat bubble text -->
     <Color x:Key="ColorOnBubbleSentLight">#FFFFFF</Color>
     <Color x:Key="ColorOnBubbleSentDark">#FFFFFF</Color>
+    <Color x:Key="ColorOnBubbleSentSecondaryLight">#FFFFFFB3</Color>
+    <Color x:Key="ColorOnBubbleSentSecondaryDark">#FFFFFFB3</Color>
     <Color x:Key="ColorOnBubbleReceivedLight">#0D0D0D</Color>
     <Color x:Key="ColorOnBubbleReceivedDark">#FFFFFF</Color>
 

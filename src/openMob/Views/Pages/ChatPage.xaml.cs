@@ -1,5 +1,4 @@
 using openMob.Core.ViewModels;
-using openMob.Views.Controls;
 
 namespace openMob.Views.Pages;
 
@@ -10,6 +9,17 @@ namespace openMob.Views.Pages;
 /// </summary>
 public partial class ChatPage : ContentPage
 {
+    /// <summary>Bindable property for the maximum bubble width in absolute points.</summary>
+    public static readonly BindableProperty BubbleMaxWidthProperty =
+        BindableProperty.Create(nameof(BubbleMaxWidth), typeof(double), typeof(ChatPage), 300.0);
+
+    /// <summary>Gets or sets the maximum bubble width. Bound by MessageBubbleView items in the DataTemplate.</summary>
+    public double BubbleMaxWidth
+    {
+        get => (double)GetValue(BubbleMaxWidthProperty);
+        set => SetValue(BubbleMaxWidthProperty, value);
+    }
+
     /// <summary>Initialises the chat page with the injected ChatViewModel.</summary>
     /// <param name="viewModel">The ChatViewModel resolved from DI.</param>
     public ChatPage(ChatViewModel viewModel)
@@ -46,29 +56,17 @@ public partial class ChatPage : ContentPage
 
     /// <summary>
     /// Calculates 80% of the screen width and sets it as the BubbleMaxWidth
-    /// on all MessageBubbleView items in the CollectionView.
+    /// page-level property. MessageBubbleView items bind to this via x:Reference.
     /// This is purely visual state management — no business logic.
     /// </summary>
     private void UpdateBubbleMaxWidth()
     {
         var screenWidth = DeviceDisplay.MainDisplayInfo.Width / DeviceDisplay.MainDisplayInfo.Density;
-        var maxWidth = screenWidth * 0.80;
+        var calculatedWidth = screenWidth * 0.80;
 
-        if (maxWidth <= 0)
+        if (calculatedWidth <= 0)
             return;
 
-        // Set the max width on the CollectionView's item template via a page-level resource
-        // that MessageBubbleView can reference. Since we can't easily bind to a page property
-        // from a DataTemplate, we iterate visible items after layout.
-        if (MessagesCollectionView?.GetVisualTreeDescendants() is { } descendants)
-        {
-            foreach (var descendant in descendants)
-            {
-                if (descendant is MessageBubbleView bubble)
-                {
-                    bubble.BubbleMaxWidth = maxWidth;
-                }
-            }
-        }
+        BubbleMaxWidth = calculatedWidth;
     }
 }

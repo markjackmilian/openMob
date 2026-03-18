@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:openMob.Views.Controls"
+             xmlns:helpers="clr-namespace:openMob.Helpers"
+             x:Class="openMob.Views.Controls.InputBarView"
+             x:Name="this"
+             x:DataType="controls:InputBarView">
+
+  <Grid RowDefinitions="Auto,Auto"
+        BackgroundColor="{AppThemeBinding Light={StaticResource ColorInputBarBackgroundLight},
+                                          Dark={StaticResource ColorInputBarBackgroundDark}}">
+
+    <!-- Top separator -->
+    <BoxView Grid.Row="0"
+             HeightRequest="0.5"
+             VerticalOptions="Start"
+             Color="{AppThemeBinding Light={StaticResource ColorSeparatorLight},
+                                     Dark={StaticResource ColorSeparatorDark}}" />
+
+    <!-- Input bar layout -->
+    <Grid Grid.Row="1"
+          ColumnDefinitions="Auto,*,Auto"
+          Padding="{StaticResource SpacingSm}"
+          ColumnSpacing="{StaticResource SpacingSm}">
+
+      <!-- + button (attachment placeholder, not connected) -->
+      <Border Grid.Column="0"
+              WidthRequest="44"
+              HeightRequest="44"
+              StrokeShape="RoundRectangle 22"
+              Stroke="{AppThemeBinding Light={StaticResource ColorOutlineLight},
+                                       Dark={StaticResource ColorOutlineDark}}"
+              StrokeThickness="1.5"
+              BackgroundColor="Transparent"
+              VerticalOptions="End"
+              Padding="0"
+              IsEnabled="{Binding IsInputEnabled, Source={x:Reference this}}"
+              SemanticProperties.Description="Attach file">
+        <Label Text="{x:Static helpers:MaterialIcons.Add}"
+               FontFamily="MaterialSymbols"
+               FontSize="{StaticResource FontSizeTitle2}"
+               TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
+                                           Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
+               HorizontalOptions="Center"
+               VerticalOptions="Center" />
+      </Border>
+
+      <!-- Pill-shaped text field with mic overlay -->
+      <Border Grid.Column="1"
+              StrokeShape="RoundRectangle 22"
+              Stroke="Transparent"
+              StrokeThickness="0"
+              BackgroundColor="{AppThemeBinding Light={StaticResource ColorInputFieldBackgroundLight},
+                                               Dark={StaticResource ColorInputFieldBackgroundDark}}"
+              Padding="0"
+              VerticalOptions="End">
+        <Grid ColumnDefinitions="*,Auto">
+
+          <Editor Grid.Column="0"
+                  x:Name="MessageEditor"
+                  Placeholder="{Binding Placeholder, Source={x:Reference this}, FallbackValue='Message...'}"
+                  IsEnabled="{Binding IsInputEnabled, Source={x:Reference this}}"
+                  Style="{StaticResource InputBarEditor}"
+                  BackgroundColor="Transparent"
+                  AutoSize="TextChanges"
+                  MinimumHeightRequest="{StaticResource MinTouchTarget}"
+                  MaximumHeightRequest="120"
+                  Margin="16,8,0,8"
+                  TextChanged="OnEditorTextChanged"
+                  AutomationId="ChatMessageEditor"
+                  SemanticProperties.Hint="Type your message here" />
+
+          <!-- Mic icon — visible when Text is empty -->
+           <Label Grid.Column="1"
+                  Text="{x:Static helpers:MaterialIcons.Mic}"
+                  FontFamily="MaterialSymbols"
+                  FontSize="{StaticResource FontSizeTitle2}"
+                 TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
+                                             Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
+                 VerticalOptions="Center"
+                 Margin="0,0,12,0"
+                 IsVisible="{Binding HasText, Source={x:Reference this}, Converter={StaticResource InvertedBoolConverter}}"
+                 SemanticProperties.Description="Voice input" />
+
+        </Grid>
+      </Border>
+
+      <!-- Send button — visible when text present, primary accent circle -->
+      <Border Grid.Column="2"
+              WidthRequest="36"
+              HeightRequest="36"
+              StrokeShape="RoundRectangle 18"
+              Stroke="Transparent"
+              StrokeThickness="0"
+              BackgroundColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight},
+                                               Dark={StaticResource ColorPrimaryDark}}"
+              VerticalOptions="End"
+              Padding="0"
+              IsVisible="{Binding HasText, Source={x:Reference this}}"
+              IsEnabled="{Binding IsInputEnabled, Source={x:Reference this}}"
+              SemanticProperties.Description="Send message"
+              AutomationId="ChatSendButton">
+        <Border.GestureRecognizers>
+          <TapGestureRecognizer Command="{Binding SendCommand, Source={x:Reference this}}" />
+        </Border.GestureRecognizers>
+        <Label Text="{x:Static helpers:MaterialIcons.ArrowUpward}"
+               FontFamily="MaterialSymbols"
+               FontSize="{StaticResource FontSizeTitle2}"
+               TextColor="{AppThemeBinding Light={StaticResource ColorOnPrimaryLight},
+                                           Dark={StaticResource ColorOnPrimaryDark}}"
+               HorizontalOptions="Center"
+               VerticalOptions="Center" />
+      </Border>
+
+    </Grid>
+  </Grid>
+
+</ContentView>

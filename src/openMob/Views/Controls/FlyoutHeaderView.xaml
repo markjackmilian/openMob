@@ -2,7 +2,9 @@
 <ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:helpers="clr-namespace:openMob.Helpers"
-             x:Class="openMob.Views.Controls.FlyoutHeaderView">
+             xmlns:viewmodels="clr-namespace:openMob.Core.ViewModels;assembly=openMob.Core"
+             x:Class="openMob.Views.Controls.FlyoutHeaderView"
+             x:DataType="viewmodels:FlyoutViewModel">
 
   <Grid
       ColumnDefinitions="*,Auto"
@@ -18,13 +20,13 @@
         TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}"
         VerticalOptions="Center" />
 
-    <!-- New chat button -->
+    <!-- New chat button — bound to FlyoutViewModel.NewChatCommand -->
     <ImageButton
         Grid.Column="1"
         BackgroundColor="Transparent"
         MinimumHeightRequest="{StaticResource MinTouchTarget}"
         MinimumWidthRequest="{StaticResource MinTouchTarget}"
-        Clicked="OnNewChatTapped"
+        Command="{Binding NewChatCommand}"
         AutomationId="NewChatButton"
         SemanticProperties.Description="Start a new chat session">
       <ImageButton.Source>

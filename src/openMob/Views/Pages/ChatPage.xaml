@@ -3,8 +3,10 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:helpers="clr-namespace:openMob.Helpers"
              xmlns:controls="clr-namespace:openMob.Views.Controls"
+             xmlns:models="clr-namespace:openMob.Core.Models;assembly=openMob.Core"
              xmlns:viewmodels="clr-namespace:openMob.Core.ViewModels;assembly=openMob.Core"
              x:Class="openMob.Views.Pages.ChatPage"
+             x:Name="ChatPageRoot"
              x:DataType="viewmodels:ChatViewModel"
              Shell.NavBarIsVisible="False">
 
@@ -12,7 +14,6 @@
 
     <!-- ═══════════════════════════════════════════════════════════════
          ROW 0 — Custom Topbar (56dp, background, bottom separator)
-         REQ-012, REQ-013, REQ-014
          ═══════════════════════════════════════════════════════════════ -->
     <Grid Grid.Row="0"
           ColumnDefinitions="Auto,*,Auto,Auto"
@@ -56,7 +57,7 @@
                                             Dark={StaticResource ColorOnBackgroundDark}}"
                VerticalOptions="Center" />
 
-        <!-- Model name — bound to SelectedModelName (REQ-010, AC-004, AC-005, AC-007) -->
+        <!-- Model name — bound to SelectedModelName -->
         <Label Text="{Binding SelectedModelName, TargetNullValue='Seleziona modello', FallbackValue='Seleziona modello'}"
                FontFamily="InterSemiBold"
                FontSize="{StaticResource FontSizeHeadline}"
@@ -126,205 +127,113 @@
                                BannerType="{Binding StatusBanner.Type, FallbackValue=None}" />
 
     <!-- ═══════════════════════════════════════════════════════════════
-         ROW 2 — Body (message area + input bar)
+         ROW 2 — Body (message area + suggestion chips + input bar)
          ═══════════════════════════════════════════════════════════════ -->
     <Grid Grid.Row="2"
-          RowDefinitions="*,Auto"
+          RowDefinitions="*,Auto,Auto,Auto"
           BackgroundColor="{AppThemeBinding Light={StaticResource ColorBackgroundLight},
                                             Dark={StaticResource ColorBackgroundDark}}">
 
       <!-- ─────────────────────────────────────────────────────────────
-           Message Area — Empty state placeholder
-           REQ-015 through REQ-019
+           Row 0: Empty State — visible when IsEmpty = true
            ───────────────────────────────────────────────────────────── -->
-      <VerticalStackLayout Grid.Row="0"
-                           VerticalOptions="Center"
-                           HorizontalOptions="Center"
-                           Spacing="{StaticResource SpacingSm}"
-                           Padding="{StaticResource SpacingXxl}">
-
-        <Label Text="{x:Static helpers:MaterialIcons.Chat}"
-               FontFamily="MaterialSymbols"
-               FontSize="48"
-               TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
-                                            Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
-               HorizontalOptions="Center"
-               SemanticProperties.Description="Chat icon" />
-
-        <Label Text="Start a conversation"
-               Style="{StaticResource HeadlineLabel}"
-               HorizontalTextAlignment="Center"
-               HorizontalOptions="Center" />
-
-        <Label Text="Type a message below to begin"
-               Style="{StaticResource SubtitleLabel}"
-               HorizontalTextAlignment="Center"
-               HorizontalOptions="Center" />
-
-      </VerticalStackLayout>
-
-      <!--
-          Future: CollectionView bound to Messages collection
-          ═══════════════════════════════════════════════════════════════
-
-          <CollectionView ItemsSource="{Binding Messages}"
-                          ItemsUpdatingScrollMode="KeepLastItemInView"
-                          SelectionMode="None">
-              <CollectionView.ItemTemplate>
-                  <DataTemplate x:DataType="viewmodels:ChatMessageViewModel">
-
-                      User bubble: right-aligned, primary accent background, on-primary text
-                      <Border BackgroundColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight},
-                                                                 Dark={StaticResource ColorPrimaryDark}}"
-                              StrokeShape="RoundRectangle 16,16,4,16"
-                              HorizontalOptions="End"
-                              Margin="64,4,16,4"
-                              Padding="12,8">
-                          <Label Text="{Binding Text}"
-                                 TextColor="{AppThemeBinding Light={StaticResource ColorOnPrimaryLight},
-                                                              Dark={StaticResource ColorOnPrimaryDark}}" />
-                      </Border>
-
-                      Assistant bubble: left-aligned, surface secondary background, on-surface text
-                      <Border BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceSecondaryLight},
-                                                                 Dark={StaticResource ColorSurfaceSecondaryDark}}"
-                              StrokeShape="RoundRectangle 16,16,16,4"
-                              HorizontalOptions="Start"
-                              Margin="16,4,64,4"
-                              Padding="12,8">
-                          <Label Text="{Binding Text}"
-                                 TextColor="{AppThemeBinding Light={StaticResource ColorOnSurfaceLight},
-                                                              Dark={StaticResource ColorOnSurfaceDark}}" />
-                      </Border>
-
-                  </DataTemplate>
-              </CollectionView.ItemTemplate>
-
-              <CollectionView.EmptyView>
-                  (empty state shown above)
-              </CollectionView.EmptyView>
-          </CollectionView>
-
-          ═══════════════════════════════════════════════════════════════
-      -->
+      <controls:EmptyStateView Grid.Row="0"
+                               IsVisible="{Binding IsEmpty}"
+                               Title="How can I help you?" />
 
       <!-- ─────────────────────────────────────────────────────────────
-           Input Bar — fixed at bottom
-           REQ-020 through REQ-025
+           Row 0: Message CollectionView — visible when IsEmpty = false
            ───────────────────────────────────────────────────────────── -->
-      <Grid Grid.Row="1">
-        <Grid.RowDefinitions>
-          <RowDefinition Height="Auto" />
-          <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
+      <CollectionView Grid.Row="0"
+                      x:Name="MessagesCollectionView"
+                      ItemsSource="{Binding Messages}"
+                      ItemsUpdatingScrollMode="KeepLastItemInView"
+                      SelectionMode="None"
+                      IsVisible="{Binding IsEmpty, Converter={StaticResource InvertedBoolConverter}}">
+        <CollectionView.ItemTemplate>
+          <DataTemplate x:DataType="models:ChatMessage">
+            <controls:MessageBubbleView
+                TextContent="{Binding TextContent}"
+                IsFromUser="{Binding IsFromUser}"
+                Timestamp="{Binding Timestamp}"
+                DeliveryStatus="{Binding DeliveryStatus}"
+                IsFirstInGroup="{Binding IsFirstInGroup}"
+                IsLastInGroup="{Binding IsLastInGroup}"
+                IsStreaming="{Binding IsStreaming}"
+                BubbleMaxWidth="{Binding Source={x:Reference ChatPageRoot}, Path=BubbleMaxWidth}" />
+          </DataTemplate>
+        </CollectionView.ItemTemplate>
+      </CollectionView>
 
-        <!-- Input bar top separator -->
-        <BoxView Grid.Row="0"
-                 HeightRequest="0.5"
-                 VerticalOptions="Start"
-                 Color="{AppThemeBinding Light={StaticResource ColorSeparatorLight},
-                                          Dark={StaticResource ColorSeparatorDark}}" />
-
-        <!-- Input bar layout -->
-        <Grid Grid.Row="1"
-              ColumnDefinitions="Auto,*,Auto"
-              Padding="{StaticResource SpacingSm}"
-              ColumnSpacing="{StaticResource SpacingSm}"
-              BackgroundColor="{AppThemeBinding Light={StaticResource ColorBackgroundLight},
-                                                Dark={StaticResource ColorBackgroundDark}}">
-
-          <!-- + button (attachment placeholder, not connected) -->
-          <Border Grid.Column="0"
-                  WidthRequest="36"
-                  HeightRequest="36"
-                  StrokeShape="RoundRectangle 18"
-                  Stroke="{AppThemeBinding Light={StaticResource ColorOutlineLight},
-                                            Dark={StaticResource ColorOutlineDark}}"
-                  StrokeThickness="1.5"
-                  BackgroundColor="Transparent"
-                  VerticalOptions="End"
-                  Padding="0"
-                  SemanticProperties.Description="Attach file">
-            <Label Text="{x:Static helpers:MaterialIcons.Add}"
-                   FontFamily="MaterialSymbols"
-                   FontSize="22"
-                   TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
-                                                Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
-                   HorizontalOptions="Center"
-                   VerticalOptions="Center" />
-          </Border>
-
-          <!-- Pill-shaped text field with mic overlay -->
-          <Border Grid.Column="1"
-                  StrokeShape="RoundRectangle 22"
-                  Stroke="Transparent"
-                  StrokeThickness="0"
-                  BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceSecondaryLight},
-                                                    Dark={StaticResource ColorSurfaceSecondaryDark}}"
-                  Padding="0"
-                  VerticalOptions="End">
-            <Grid ColumnDefinitions="*,Auto">
-
-              <Editor x:Name="MessageEditor"
-                      Grid.Column="0"
-                      Placeholder="Message"
-                      PlaceholderColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
-                                                          Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
-                      FontFamily="InterRegular"
-                      FontSize="{StaticResource FontSizeBody}"
-                      TextColor="{AppThemeBinding Light={StaticResource ColorOnSurfaceLight},
-                                                    Dark={StaticResource ColorOnSurfaceDark}}"
-                      BackgroundColor="Transparent"
-                      AutoSize="TextChanges"
-                      MinimumHeightRequest="{StaticResource MinTouchTarget}"
-                      MaximumHeightRequest="120"
-                      Margin="16,8,0,8"
-                      TextChanged="OnMessageEditorTextChanged"
-                      AutomationId="ChatMessageEditor"
-                      SemanticProperties.Hint="Type your message here" />
-
-              <!-- Mic icon — visible when Editor is empty, hidden when typing -->
-              <Label x:Name="MicIcon"
-                     Grid.Column="1"
-                     Text="{x:Static helpers:MaterialIcons.Mic}"
-                     FontFamily="MaterialSymbols"
-                     FontSize="22"
-                     TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
-                                                  Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
-                     VerticalOptions="Center"
-                     Margin="0,0,12,0"
-                     IsVisible="True"
-                     SemanticProperties.Description="Voice input" />
-
-            </Grid>
-          </Border>
-
-          <!-- Send button — green when text present, gray when empty -->
-          <Border x:Name="SendButton"
-                  Grid.Column="2"
-                  WidthRequest="36"
-                  HeightRequest="36"
-                  StrokeShape="RoundRectangle 18"
-                  Stroke="Transparent"
-                  StrokeThickness="0"
-                  BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceSecondaryLight},
-                                                    Dark={StaticResource ColorSurfaceSecondaryDark}}"
-                  VerticalOptions="End"
-                  Padding="0"
-                  SemanticProperties.Description="Send message"
-                  AutomationId="ChatSendButton">
-            <Label x:Name="SendIcon"
-                   Text="{x:Static helpers:MaterialIcons.ArrowUpward}"
-                   FontFamily="MaterialSymbols"
-                   FontSize="22"
-                   TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
-                                                Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
-                   HorizontalOptions="Center"
-                   VerticalOptions="Center" />
-          </Border>
-
+      <!-- ─────────────────────────────────────────────────────────────
+           Row 1: Error Banner — visible when HasError = true
+           ───────────────────────────────────────────────────────────── -->
+      <Border Grid.Row="1"
+              IsVisible="{Binding HasError}"
+              BackgroundColor="{AppThemeBinding Light={StaticResource ColorErrorContainerLight},
+                                               Dark={StaticResource ColorErrorContainerDark}}"
+              StrokeThickness="0"
+              StrokeShape="RoundRectangle 0"
+              Padding="{StaticResource SpacingMd}">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource SpacingSm}">
+          <Label Grid.Column="0"
+                 Text="{Binding ErrorMessage, FallbackValue='', TargetNullValue=''}"
+                 FontFamily="InterRegular"
+                 FontSize="{StaticResource FontSizeFootnote}"
+                 TextColor="{AppThemeBinding Light={StaticResource ColorOnErrorContainerLight},
+                                             Dark={StaticResource ColorOnErrorContainerDark}}"
+                 VerticalOptions="Center"
+                 LineBreakMode="WordWrap" />
+          <ImageButton Grid.Column="1"
+                       Command="{Binding DismissErrorCommand}"
+                       WidthRequest="{StaticResource MinTouchTarget}"
+                       HeightRequest="{StaticResource MinTouchTarget}"
+                       BackgroundColor="Transparent"
+                       AutomationId="DismissErrorButton"
+                       SemanticProperties.Description="Dismiss error">
+            <ImageButton.Source>
+              <FontImageSource FontFamily="MaterialSymbols"
+                               Glyph="{x:Static helpers:MaterialIcons.Close}"
+                               Size="18"
+                               Color="{AppThemeBinding Light={StaticResource ColorOnErrorContainerLight},
+                                                        Dark={StaticResource ColorOnErrorContainerDark}}" />
+            </ImageButton.Source>
+          </ImageButton>
         </Grid>
-      </Grid>
+      </Border>
+
+      <!-- ─────────────────────────────────────────────────────────────
+           Row 2: Suggestion Chips — visible when IsEmpty = true
+           ───────────────────────────────────────────────────────────── -->
+      <CollectionView Grid.Row="2"
+                      ItemsSource="{Binding SuggestionChips}"
+                      SelectionMode="None"
+                      IsVisible="{Binding IsEmpty}"
+                      HeightRequest="80"
+                      Margin="{StaticResource SpacingSm}">
+        <CollectionView.ItemsLayout>
+          <LinearItemsLayout Orientation="Horizontal"
+                             ItemSpacing="{StaticResource SpacingSm}" />
+        </CollectionView.ItemsLayout>
+        <CollectionView.ItemTemplate>
+          <DataTemplate x:DataType="models:SuggestionChip">
+            <controls:SuggestionChipView
+                Title="{Binding Title}"
+                Subtitle="{Binding Subtitle}"
+                TapCommand="{Binding Source={RelativeSource AncestorType={x:Type viewmodels:ChatViewModel}}, Path=SelectSuggestionChipCommand}"
+                CommandParameter="{Binding .}" />
+          </DataTemplate>
+        </CollectionView.ItemTemplate>
+      </CollectionView>
+
+      <!-- ─────────────────────────────────────────────────────────────
+           Row 3: Input Bar — fixed at bottom
+           ───────────────────────────────────────────────────────────── -->
+      <controls:InputBarView Grid.Row="3"
+                              Text="{Binding InputText, Mode=TwoWay}"
+                              SendCommand="{Binding SendMessageCommand}"
+                              IsInputEnabled="{Binding IsAiResponding, Converter={StaticResource InvertedBoolConverter}}"
+                              Placeholder="Message..." />
 
     </Grid>
 

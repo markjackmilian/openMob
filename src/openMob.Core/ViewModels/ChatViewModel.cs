@@ -305,8 +305,8 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
 
             if (session is not null)
             {
-                CurrentSessionId = session.Id;
                 SessionName = session.Title;
+                SetSession(session.Id);
             }
             else
             {

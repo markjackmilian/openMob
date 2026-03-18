@@ -1,13 +1,14 @@
 using System.Globalization;
-using CoreConverter = openMob.Core.Converters.DateTimeToRelativeStringConverter;
+using CoreConverter = openMob.Core.Converters.MessageStatusToIconConverter;
 
 namespace openMob.Converters;
 
 /// <summary>
 /// MAUI wrapper for <see cref="CoreConverter"/>. Implements <see cref="IValueConverter"/>
 /// and delegates conversion logic to the pure .NET Core class.
+/// Maps <see cref="openMob.Core.Models.MessageDeliveryStatus"/> to Material Symbols Unicode glyph strings.
 /// </summary>
-public sealed class DateTimeToRelativeStringConverter : IValueConverter
+public sealed class MessageStatusToIconConverter : IValueConverter
 {
     private static readonly CoreConverter _core = new();
 

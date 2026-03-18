@@ -223,4 +223,34 @@
     <Color x:Key="ColorInverseOnSurfaceLight">#FFFFFF</Color>
     <Color x:Key="ColorInverseOnSurfaceDark">#0D0D0D</Color>
 
+    <!-- ═══════════════════════════════════════════════════════════════
+         CHAT-SPECIFIC TOKENS
+         ═══════════════════════════════════════════════════════════════ -->
+
+    <!-- Chat bubble backgrounds -->
+    <Color x:Key="ColorBubbleSentLight">#10A37F</Color>
+    <Color x:Key="ColorBubbleSentDark">#1DB88E</Color>
+    <Color x:Key="ColorBubbleReceivedLight">#FFFFFF</Color>
+    <Color x:Key="ColorBubbleReceivedDark">#1A1A1A</Color>
+
+    <!-- Chat bubble text -->
+    <Color x:Key="ColorOnBubbleSentLight">#FFFFFF</Color>
+    <Color x:Key="ColorOnBubbleSentDark">#FFFFFF</Color>
+    <Color x:Key="ColorOnBubbleSentSecondaryLight">#FFFFFFB3</Color>
+    <Color x:Key="ColorOnBubbleSentSecondaryDark">#FFFFFFB3</Color>
+    <Color x:Key="ColorOnBubbleReceivedLight">#0D0D0D</Color>
+    <Color x:Key="ColorOnBubbleReceivedDark">#FFFFFF</Color>
+
+    <!-- Input bar -->
+    <Color x:Key="ColorInputBarBackgroundLight">#FFFFFF</Color>
+    <Color x:Key="ColorInputBarBackgroundDark">#1A1A1A</Color>
+    <Color x:Key="ColorInputFieldBackgroundLight">#F0F0F0</Color>
+    <Color x:Key="ColorInputFieldBackgroundDark">#2A2A2A</Color>
+
+    <!-- Chat sizing tokens (theme-independent) -->
+    <x:Double x:Key="SizeBubbleMaxWidth">0.80</x:Double>
+    <x:Double x:Key="SizeAvatarSmall">28</x:Double>
+    <x:Double x:Key="SizeFlyoutWidth">0.80</x:Double>
+    <x:Double x:Key="SizeFlyoutMaxWidth">320</x:Double>
+
 </ResourceDictionary>

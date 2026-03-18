@@ -58,9 +58,10 @@ public static class MauiProgram
         // Register MAUI-backed theme service (REQ-003, REQ-004)
         builder.Services.AddSingleton<IThemeService, MauiThemeService>();
 
-        // Register platform services (navigation, popups)
+        // Register platform services (navigation, popups, dispatcher)
         builder.Services.AddSingleton<INavigationService, MauiNavigationService>();
         builder.Services.AddSingleton<IAppPopupService, MauiPopupService>();
+        builder.Services.AddSingleton<IDispatcherService, MauiDispatcherService>();
 
         // Register all Core services (EF Core, HTTP client, etc.)
         builder.Services.AddOpenMobCore();

@@ -4,7 +4,7 @@
 | Field   | Value                        |
 |---------|------------------------------|
 | Date    | 2026-03-16                   |
-| Status  | Draft                        |
+| Status  | In Progress                  |
 | Version | 1.0                          |
 
 ---
@@ -209,11 +209,11 @@ Completa l'implementazione UI della chat risolvendo tutti i gap strutturali iden
 
 | # | Question | Status | Answer / Decision |
 |---|----------|--------|-------------------|
-| 1 | `IValueConverter` in `openMob.Core` — dipendenza MAUI? | Open | Verificare se `Microsoft.Maui.Controls.IValueConverter` può essere referenziato da un progetto `net10.0` puro. Se no, usare un adapter pattern: interfaccia custom in Core + wrapper MAUI nel progetto UI. |
-| 2 | Icone per `MessageStatusToIconConverter` — usare Unicode glyphs, FontAwesome, o Material Icons già inclusi? | Open | Verificare quale font icon è già referenziato nel progetto. Usare quello esistente per coerenza. |
+| 1 | `IValueConverter` in `openMob.Core` — dipendenza MAUI? | **Resolved** | `openMob.Core` targets `net10.0` only — `IValueConverter` from `Microsoft.Maui.Controls` is NOT available. **Decision: Adapter pattern.** Converter pure logic lives in Core as plain classes with `object Convert(object value, Type targetType, object parameter, CultureInfo culture)` methods. Thin MAUI wrapper classes in `src/openMob/Converters/` implement `IValueConverter` and delegate to Core. This keeps Core testable from `openMob.Tests` without MAUI dependencies. |
+| 2 | Icone per `MessageStatusToIconConverter` — usare Unicode glyphs, FontAwesome, o Material Icons già inclusi? | **Resolved** | Project uses `MaterialSymbols-Outlined.ttf` registered as `MaterialSymbols` with a `MaterialIcons.cs` helper class. Use existing glyphs: `Check` (`\ue5ca`) for Sent, `Error` (`\ue000`) for Error. Add new `Schedule` (`\ue8b5`) glyph constant to `MaterialIcons.cs` for Sending. The Core converter returns the Unicode string; XAML renders it with `FontFamily="MaterialSymbols"`. |
 | 3 | L'indicatore di streaming (pulsing dots) — implementare come animazione XAML pura o con Lottie? | Resolved | Animazione XAML pura (opacity animation su tre `Ellipse`) per non aggiungere dipendenze. Lottie è disponibile ma non necessario per questo caso. |
 | 4 | `MaximumWidthRequest` per le bubble — MAUI supporta percentuale della larghezza schermo? | Resolved | No, `MaximumWidthRequest` è in pt assoluti. Calcolare in code-behind di `ChatPage` usando `DeviceDisplay.MainDisplayInfo.Width / DeviceDisplay.MainDisplayInfo.Density * 0.80` e impostarlo come `BindableProperty` su `MessageBubbleView`, oppure usare un `Behavior`. |
-| 5 | I converter spostati in Core devono essere re-registrati in `App.xaml` come `StaticResource`? | Resolved | Sì. Aggiornare il namespace XML in `App.xaml` per puntare a `openMob.Core.Converters` invece di `openMob.Converters`. |
+| 5 | I converter spostati in Core devono essere re-registrati in `App.xaml` come `StaticResource`? | Resolved | Sì. The MAUI wrapper converters stay in `src/openMob/Converters/` with namespace `openMob.Converters`, so `App.xaml` namespace declaration remains the same. Only the internal implementation changes (delegates to Core). |
 
 ---
 
@@ -247,3 +247,152 @@ Completa l'implementazione UI della chat risolvendo tutti i gap strutturali iden
 - **Rimozione converter dal progetto MAUI**: dopo lo spostamento, verificare che nessun altro file nel progetto MAUI referenzi il vecchio namespace `openMob.Converters`. Aggiornare tutti i namespace XML in XAML.
 - **`FlyoutHeaderView` binding context**: verificare che `FlyoutHeaderView` abbia accesso a `FlyoutViewModel` come `BindingContext`. Attualmente il binding context potrebbe non essere propagato correttamente dal `AppShell`. Potrebbe essere necessario usare `x:Reference` o `RelativeSource` per raggiungere il ViewModel.
 - **As established in `specs/in-progress/2026-03-14-chat-ui-design-guidelines.md`**: usare `CollectionView` (non `ListView`), `Border` (non `Frame`), `VerticalStackLayout` (non `StackLayout`). Nessun colore hardcoded.
+
+---
+
+## Technical Analysis
+
+> Added by: om-orchestrator | Date: 2026-03-18
+
+### Change Classification
+
+| Field | Value |
+|-------|-------|
+| Change type | Feature |
+| Git Flow branch | feature/chat-ui-completion |
+| Branches from | develop |
+| Estimated complexity | High |
+| Estimated agents involved | om-mobile-core, om-mobile-ui, om-tester, om-reviewer |
+
+### Layers Involved
+
+| Layer | Agent | Scope |
+|-------|-------|-------|
+| Converter logic (pure .NET) | om-mobile-core | src/openMob.Core/Converters/ |
+| Icon constants | om-mobile-ui | src/openMob/Helpers/MaterialIcons.cs |
+| XAML Views | om-mobile-ui | src/openMob/Views/Pages/, src/openMob/Views/Controls/ |
+| UI Components | om-mobile-ui | src/openMob/Views/Controls/ (4 new controls) |
+| Styles / Theme | om-mobile-ui | Resources/Styles/Colors.xaml, Resources/Styles/Styles.xaml |
+| Converter MAUI wrappers | om-mobile-ui | src/openMob/Converters/ |
+| App resources | om-mobile-ui | src/openMob/App.xaml |
+| Unit Tests | om-tester | tests/openMob.Tests/Converters/ |
+| Code Review | om-reviewer | all of the above |
+
+### Architectural Decision: Converter Adapter Pattern
+
+`openMob.Core` targets `net10.0` only and has zero MAUI dependencies. `IValueConverter` is defined in `Microsoft.Maui.Controls` which is NOT available in a pure `net10.0` project. The following adapter pattern is adopted:
+
+**In `openMob.Core/Converters/` (pure .NET, testable):**
+- `BoolToVisibilityConverter` — pure class with `public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)` method. Does NOT implement any MAUI interface.
+- `DateTimeToRelativeStringConverter` — same pattern.
+- `MessageStatusToIconConverter` — same pattern. Returns Unicode glyph strings for `MaterialSymbols` font.
+
+**In `src/openMob/Converters/` (MAUI wrappers):**
+- Existing `BoolToVisibilityConverter.cs` and `DateTimeToRelativeStringConverter.cs` are **refactored** (not deleted) to become thin wrappers that implement `IValueConverter` and delegate to the Core class.
+- New `MessageStatusToIconConverter.cs` wrapper created.
+- `InvertedBoolConverter`, `NullToVisibilityConverter`, `StepToVisibilityConverter` remain unchanged in the MAUI project (not part of this spec's scope).
+
+This means:
+- `App.xaml` namespace declaration stays as `xmlns:converters="clr-namespace:openMob.Converters"` — no change needed.
+- The MAUI wrapper classes keep the same class names, so no XAML `StaticResource` keys change.
+- Core logic is testable from `openMob.Tests` without MAUI dependencies.
+
+### Resolved: Icon Glyphs for MessageStatusToIconConverter
+
+The project uses `MaterialSymbols-Outlined.ttf` (registered as `MaterialSymbols`) with a `MaterialIcons.cs` helper class at `src/openMob/Helpers/MaterialIcons.cs`.
+
+| Status | Glyph constant | Unicode | Exists in MaterialIcons.cs? |
+|--------|----------------|---------|----------------------------|
+| `Sending` | `Schedule` | `\ue8b5` | **No — must be added** |
+| `Sent` | `Check` | `\ue5ca` | Yes |
+| `Error` | `Error` | `\ue000` | Yes |
+
+The Core converter returns the raw Unicode string (e.g., `"\ue8b5"`). The XAML `Label` renders it with `FontFamily="MaterialSymbols"`.
+
+### Files to Create
+
+**In `openMob.Core` (om-mobile-core):**
+- `src/openMob.Core/Converters/BoolToVisibilityConverter.cs` — pure logic, moved from MAUI
+- `src/openMob.Core/Converters/DateTimeToRelativeStringConverter.cs` — pure logic, moved from MAUI
+- `src/openMob.Core/Converters/MessageStatusToIconConverter.cs` — new, converts `MessageDeliveryStatus` → Unicode glyph string
+
+**In `openMob` MAUI project (om-mobile-ui):**
+- `src/openMob/Views/Controls/MessageBubbleView.xaml` + `.xaml.cs` — chat message bubble component
+- `src/openMob/Views/Controls/InputBarView.xaml` + `.xaml.cs` — message input bar component
+- `src/openMob/Views/Controls/EmptyStateView.xaml` + `.xaml.cs` — empty chat state component
+- `src/openMob/Views/Controls/SuggestionChipView.xaml` + `.xaml.cs` — suggestion chip component
+- `src/openMob/Converters/MessageStatusToIconConverter.cs` — thin MAUI wrapper delegating to Core
+
+### Files to Modify
+
+**om-mobile-core:**
+- (none — Core files are new creations)
+
+**om-mobile-ui:**
+- `src/openMob/Converters/BoolToVisibilityConverter.cs` — refactor to delegate to Core logic class
+- `src/openMob/Converters/DateTimeToRelativeStringConverter.cs` — refactor to delegate to Core logic class
+- `src/openMob/Resources/Styles/Colors.xaml` — add 10 chat design tokens (REQ-006)
+- `src/openMob/Resources/Styles/Styles.xaml` — add 4 explicit styles (REQ-007)
+- `src/openMob/Views/Pages/ChatPage.xaml` — major rewrite: activate CollectionView, add EmptyStateView, SuggestionChips, InputBarView, error banner (REQ-016 through REQ-020)
+- `src/openMob/Views/Pages/ChatPage.xaml.cs` — remove `OnMessageEditorTextChanged` code-behind, add bubble max-width calculation (REQ-019)
+- `src/openMob/Views/Controls/FlyoutHeaderView.xaml` — replace `Clicked` with `Command` binding (REQ-021)
+- `src/openMob/Views/Controls/FlyoutHeaderView.xaml.cs` — remove `OnNewChatTapped` stub (REQ-021)
+- `src/openMob/Helpers/MaterialIcons.cs` — add `Schedule` glyph constant
+- `src/openMob/App.xaml` — add `MessageStatusToIconConverter` registration (existing converters keep same keys)
+
+**om-tester:**
+- `tests/openMob.Tests/Converters/BoolToVisibilityConverterTests.cs` — new test file
+- `tests/openMob.Tests/Converters/DateTimeToRelativeStringConverterTests.cs` — new test file
+- `tests/openMob.Tests/Converters/MessageStatusToIconConverterTests.cs` — new test file
+
+### Technical Dependencies
+
+- **Spec 04 (chat-conversation-loop)** — ✅ COMPLETED and merged to develop. All required ViewModel properties, commands, and models exist:
+  - `ChatViewModel`: `Messages`, `InputText`, `SendMessageCommand`, `IsEmpty`, `SuggestionChips`, `ErrorMessage`, `HasError`, `DismissErrorCommand`, `IsBusy`, `IsAiResponding`, `SelectSuggestionChipCommand`
+  - `ChatMessage` model: `Id`, `SessionId`, `IsFromUser`, `TextContent`, `Timestamp`, `DeliveryStatus`, `IsFirstInGroup`, `IsLastInGroup`, `IsStreaming`
+  - `MessageDeliveryStatus` enum: `Sending`, `Sent`, `Error`
+  - `SuggestionChip` record: `Title`, `Subtitle`, `PromptText`
+  - `FlyoutViewModel.NewChatCommand` — already implemented
+- **No new NuGet packages required**
+- **No Claude server API endpoints involved** (this is a pure UI spec)
+- **No EF Core migrations required**
+
+### Technical Risks
+
+1. **`OnboardingPage.xaml` also references `clr-namespace:openMob.Converters`** — since the MAUI wrapper classes keep the same namespace and class names, this is NOT a breaking change. No action needed.
+2. **`FlyoutHeaderView` BindingContext propagation** — `FlyoutHeaderView` is used as `Shell.FlyoutHeader` in `AppShell.xaml`. The `BindingContext` may not automatically be `FlyoutViewModel`. The om-mobile-ui agent must verify this and use `x:Reference` or set `BindingContext` explicitly in code-behind if needed.
+3. **Bubble max-width calculation** — `MaximumWidthRequest` requires absolute pt values, not percentages. The code-behind of `ChatPage` must calculate `screenWidth * 0.80` and pass it to `MessageBubbleView` via a `BindableProperty` or a page-level property. This must handle screen rotation.
+4. **Streaming animation lifecycle** — The pulsing dots animation in `MessageBubbleView` code-behind must properly start/stop based on `IsStreaming` property changes to avoid memory leaks or orphaned animations.
+5. **No platform-specific concerns** — all changes are cross-platform XAML and pure .NET.
+
+### Execution Order
+
+> Steps that can run in parallel are marked with ⟳. Steps that must be sequential are numbered.
+
+1. **[Git Flow]** Create branch `feature/chat-ui-completion` from `develop`
+2. **[om-mobile-core]** Create converter pure logic classes in `openMob.Core/Converters/` (REQ-001, REQ-002, REQ-003, REQ-004)
+3. ⟳ **[om-mobile-ui]** — can start immediately on items that don't depend on Core converters:
+   - Add 10 design tokens to `Colors.xaml` (REQ-006)
+   - Add 4 styles to `Styles.xaml` (REQ-007)
+   - Add `Schedule` glyph to `MaterialIcons.cs`
+   - Create `EmptyStateView` (REQ-012, REQ-013) — no converter dependency
+   - Create `SuggestionChipView` (REQ-014, REQ-015) — no converter dependency
+   - Refactor MAUI converter wrappers to delegate to Core (REQ-001, REQ-002, REQ-005) — **after om-mobile-core completes step 2**
+   - Create `MessageStatusToIconConverter` MAUI wrapper + register in `App.xaml` (REQ-003, REQ-005) — **after om-mobile-core completes step 2**
+   - Create `MessageBubbleView` (REQ-008, REQ-009) — **after converter wrappers are ready**
+   - Create `InputBarView` (REQ-010, REQ-011) — no converter dependency beyond existing `BoolToVisibilityConverter`
+   - Rewrite `ChatPage.xaml` + `.xaml.cs` (REQ-016 through REQ-020)
+   - Fix `FlyoutHeaderView` (REQ-021)
+4. **[om-tester]** Write unit tests for all 3 Core converter classes (after step 2 completes)
+5. **[om-reviewer]** Full review against spec (after steps 2, 3, 4 complete)
+6. **[Fix loop if needed]** Address Critical and Major findings
+7. **[Git Flow]** Finish branch and merge
+
+### Definition of Done
+
+- [ ] All `[REQ-001]` through `[REQ-021]` requirements implemented
+- [ ] All `[AC-001]` through `[AC-012]` acceptance criteria satisfied
+- [ ] Unit tests written for all 3 Core converter classes (BoolToVisibility, DateTimeToRelativeString, MessageStatusToIcon)
+- [ ] `om-reviewer` verdict: ✅ Approved or ⚠️ Approved with remarks
+- [ ] Git Flow branch finished and deleted
+- [ ] Spec moved to `specs/done/` with Completed status

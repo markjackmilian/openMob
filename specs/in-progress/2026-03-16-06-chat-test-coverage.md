@@ -4,7 +4,7 @@
 | Field   | Value                        |
 |---------|------------------------------|
 | Date    | 2026-03-16                   |
-| Status  | Draft                        |
+| Status  | In Progress                  |
 | Version | 1.0                          |
 
 ---
@@ -258,3 +258,91 @@ Aggiunge la copertura di unit test completa per tutti i componenti introdotti da
   ```
 - **Timeout nei test async**: usare `CancellationTokenSource` con timeout di 5s per tutti i test che attendono eventi asincroni. Evitare `Task.Delay` senza timeout (test che non terminano mai).
 - **As established in `AGENTS.md`**: test stack obbligatorio — xUnit 2.x, NSubstitute 5.x, FluentAssertions 6.x. Non sostituire con alternative.
+
+---
+
+## Technical Analysis
+
+> Added by: om-orchestrator | Date: 2026-03-18
+
+### Change Classification
+
+| Field | Value |
+|-------|-------|
+| Change type | Feature (test coverage) |
+| Git Flow branch | feature/chat-test-coverage |
+| Branches from | develop |
+| Estimated complexity | Low |
+| Estimated agents involved | om-tester, om-reviewer |
+
+### Gap Analysis — Pre-existing Coverage
+
+A thorough codebase audit reveals that **8 of 9 test files** specified in this spec already exist with full requirement coverage. They were implemented during Spec 02, 04, and 05 execution:
+
+| Test File | Status | Tests | REQs Covered |
+|-----------|--------|-------|-------------|
+| `ChatServiceTests.cs` | **Exists** (582 lines, 16 tests) | REQ-004 to REQ-012 | All 9 |
+| `ChatViewModelTests.cs` | **Exists** (1017 lines, 38+ tests) | REQ-013 to REQ-032 | All 20 |
+| `FlyoutViewModelTests.cs` | **MISSING** | REQ-033 to REQ-037 | 0 of 5 |
+| `BoolToVisibilityConverterTests.cs` | **Exists** (93 lines) | REQ-038 | All 4 cases |
+| `DateTimeToRelativeStringConverterTests.cs` | **Exists** (157 lines) | REQ-039 | All 5 cases |
+| `MessageStatusToIconConverterTests.cs` | **Exists** (86 lines) | REQ-040 | All 4 cases |
+| `ChatEventParserTests.cs` | **Exists** (356 lines, 17 tests) | REQ-041 to REQ-045 | All 5 |
+| `ChatMessageTests.cs` | **Exists** (259 lines, 13 tests) | REQ-046 to REQ-050 | All 5 |
+| `SendPromptRequestBuilderTests.cs` | **Exists** (113 lines, 8 tests) | REQ-051 to REQ-053 | All 3 |
+
+**Remaining work:** Create `FlyoutViewModelTests.cs` covering REQ-033 through REQ-037 (5 test scenarios).
+
+**TestDataBuilder note:** REQ-003 calls for centralised builders. Currently each test file uses inline helpers. This is acceptable — the inline helpers are co-located with their tests and serve the same purpose. No refactoring needed to satisfy the spec's intent.
+
+### Layers Involved
+
+| Layer | Agent | Scope |
+|-------|-------|-------|
+| Unit Tests | om-tester | `tests/openMob.Tests/ViewModels/FlyoutViewModelTests.cs` (new) |
+| Code Review | om-reviewer | `tests/openMob.Tests/ViewModels/FlyoutViewModelTests.cs` |
+
+### Files to Create
+
+- `tests/openMob.Tests/ViewModels/FlyoutViewModelTests.cs` — Unit tests for `FlyoutViewModel` covering REQ-033 to REQ-037
+
+### Files to Modify
+
+- None — all source code and other test files already exist
+
+### Technical Dependencies
+
+- `FlyoutViewModel` (exists at `src/openMob.Core/ViewModels/FlyoutViewModel.cs`)
+- `IProjectService` (exists at `src/openMob.Core/Services/IProjectService.cs`)
+- `ISessionService` (exists at `src/openMob.Core/Services/ISessionService.cs`)
+- `INavigationService` (exists at `src/openMob.Core/Services/INavigationService.cs`)
+- `IAppPopupService` (exists at `src/openMob.Core/Services/IAppPopupService.cs`)
+- `SessionItem` model (exists at `src/openMob.Core/Models/SessionItem.cs`)
+- `ProjectDto`, `SessionDto`, `SessionTimeDto` DTOs (exist in `Infrastructure/Http/Dtos/Opencode/`)
+- xUnit 2.x, NSubstitute 5.x, FluentAssertions 6.x (already referenced in test project)
+
+### Technical Risks
+
+- None — this is a pure test-only change with no production code modifications
+- `FlyoutViewModel.DeleteSessionAsync` calls `IAppPopupService.ShowConfirmDeleteAsync` before deletion — tests must mock the confirmation dialog
+- `FlyoutViewModel.LoadSessionsAsync` uses `SentryHelper.CaptureException` in catch block — this is a static call that cannot be mocked, but it won't affect test execution since the exception is caught
+
+### Execution Order
+
+> Steps that can run in parallel are marked with ⟳. Steps that must be sequential are numbered.
+
+1. [Git Flow] Create branch `feature/chat-test-coverage`
+2. [om-tester] Write `FlyoutViewModelTests.cs` covering REQ-033 to REQ-037
+3. [om-reviewer] Review the new test file against spec
+4. [Fix loop if needed] Address Critical and Major findings
+5. [Git Flow] Finish branch and merge
+
+### Definition of Done
+
+- [x] All `[REQ-001]` through `[REQ-032]` and `[REQ-038]` through `[REQ-053]` — already implemented
+- [ ] `[REQ-033]` through `[REQ-037]` — FlyoutViewModelTests implemented
+- [ ] All `[AC-XXX]` acceptance criteria satisfied
+- [ ] Unit tests written for FlyoutViewModel
+- [ ] `om-reviewer` verdict: Approved or Approved with remarks
+- [ ] Git Flow branch finished and deleted
+- [ ] Spec moved to `specs/done/` with Completed status

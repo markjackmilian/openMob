@@ -1,11 +1,12 @@
 using openMob.Core.ViewModels;
+using openMob.Views.Controls;
 
 namespace openMob.Views.Pages;
 
 /// <summary>
 /// Chat page — root screen of the app. Shows a custom topbar with model indicator,
-/// status banners, an empty-state message area, and a ChatGPT-inspired input bar
-/// with mic icon toggle and send button color state.
+/// status banners, a message CollectionView with MessageBubbleView items,
+/// suggestion chips, an InputBarView, and an error banner.
 /// </summary>
 public partial class ChatPage : ContentPage
 {
@@ -26,6 +27,15 @@ public partial class ChatPage : ContentPage
         {
             await vm.LoadContextCommand.ExecuteAsync(null);
         }
+
+        UpdateBubbleMaxWidth();
+    }
+
+    /// <inheritdoc />
+    protected override void OnSizeAllocated(double width, double height)
+    {
+        base.OnSizeAllocated(width, height);
+        UpdateBubbleMaxWidth();
     }
 
     /// <summary>Opens the Shell flyout when the hamburger button is tapped.</summary>
@@ -35,41 +45,30 @@ public partial class ChatPage : ContentPage
     }
 
     /// <summary>
-    /// Handles text changes in the message editor to update UI state.
-    /// Toggles mic icon visibility and send button appearance (active/inactive).
+    /// Calculates 80% of the screen width and sets it as the BubbleMaxWidth
+    /// on all MessageBubbleView items in the CollectionView.
     /// This is purely visual state management — no business logic.
     /// </summary>
-    private void OnMessageEditorTextChanged(object? sender, TextChangedEventArgs e)
+    private void UpdateBubbleMaxWidth()
     {
-        var hasText = !string.IsNullOrEmpty(e.NewTextValue);
+        var screenWidth = DeviceDisplay.MainDisplayInfo.Width / DeviceDisplay.MainDisplayInfo.Density;
+        var maxWidth = screenWidth * 0.80;
 
-        // Toggle mic icon: visible when empty, hidden when typing
-        MicIcon.IsVisible = !hasText;
+        if (maxWidth <= 0)
+            return;
 
-        // Toggle send button: primary accent when text present, muted when empty
-        if (hasText)
+        // Set the max width on the CollectionView's item template via a page-level resource
+        // that MessageBubbleView can reference. Since we can't easily bind to a page property
+        // from a DataTemplate, we iterate visible items after layout.
+        if (MessagesCollectionView?.GetVisualTreeDescendants() is { } descendants)
         {
-            SendButton.SetAppThemeColor(
-                Border.BackgroundColorProperty,
-                (Color)Application.Current!.Resources["ColorPrimaryLight"],
-                (Color)Application.Current!.Resources["ColorPrimaryDark"]);
-
-            SendIcon.SetAppThemeColor(
-                Label.TextColorProperty,
-                (Color)Application.Current!.Resources["ColorOnPrimaryLight"],
-                (Color)Application.Current!.Resources["ColorOnPrimaryDark"]);
-        }
-        else
-        {
-            SendButton.SetAppThemeColor(
-                Border.BackgroundColorProperty,
-                (Color)Application.Current!.Resources["ColorSurfaceSecondaryLight"],
-                (Color)Application.Current!.Resources["ColorSurfaceSecondaryDark"]);
-
-            SendIcon.SetAppThemeColor(
-                Label.TextColorProperty,
-                (Color)Application.Current!.Resources["ColorOnBackgroundTertiaryLight"],
-                (Color)Application.Current!.Resources["ColorOnBackgroundTertiaryDark"]);
+            foreach (var descendant in descendants)
+            {
+                if (descendant is MessageBubbleView bubble)
+                {
+                    bubble.BubbleMaxWidth = maxWidth;
+                }
+            }
         }
     }
 }

@@ -18,13 +18,13 @@
         TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}"
         VerticalOptions="Center" />
 
-    <!-- New chat button -->
+    <!-- New chat button — bound to FlyoutViewModel.NewChatCommand -->
     <ImageButton
         Grid.Column="1"
         BackgroundColor="Transparent"
         MinimumHeightRequest="{StaticResource MinTouchTarget}"
         MinimumWidthRequest="{StaticResource MinTouchTarget}"
-        Clicked="OnNewChatTapped"
+        Command="{Binding NewChatCommand}"
         AutomationId="NewChatButton"
         SemanticProperties.Description="Start a new chat session">
       <ImageButton.Source>

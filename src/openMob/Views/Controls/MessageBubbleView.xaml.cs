@@ -167,8 +167,8 @@ public partial class MessageBubbleView : ContentView
 
             while (!ct.IsCancellationRequested)
             {
-                await dot.FadeTo(1.0, 300, Easing.CubicOut);
-                await dot.FadeTo(0.3, 300, Easing.CubicIn);
+                await dot.FadeToAsync(1.0, 300, Easing.CubicOut);
+                await dot.FadeToAsync(0.3, 300, Easing.CubicIn);
             }
         }
         catch (OperationCanceledException)

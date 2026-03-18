@@ -90,4 +90,7 @@ public static class MaterialIcons
 
     /// <summary>Radio button checked icon.</summary>
     public const string RadioButtonChecked = "\ue837";
+
+    /// <summary>Schedule / clock icon.</summary>
+    public const string Schedule = "\ue8b5";
 }

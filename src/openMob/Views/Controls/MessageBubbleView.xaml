@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:openMob.Views.Controls"
+             xmlns:helpers="clr-namespace:openMob.Helpers"
+             x:Class="openMob.Views.Controls.MessageBubbleView"
+             x:Name="this"
+             x:DataType="controls:MessageBubbleView">
+
+  <Grid Padding="{StaticResource SpacingXs}">
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         USER MESSAGE (IsFromUser = true) — right-aligned, sent style
+         ═══════════════════════════════════════════════════════════════ -->
+    <Grid IsVisible="{Binding IsFromUser, Source={x:Reference this}}"
+          HorizontalOptions="End"
+          MaximumWidthRequest="{Binding BubbleMaxWidth, Source={x:Reference this}}">
+
+      <Border Style="{StaticResource MessageBubbleSentBorder}">
+        <VerticalStackLayout Spacing="{StaticResource SpacingXs}">
+
+          <!-- Message text -->
+          <Label Text="{Binding TextContent, Source={x:Reference this}, FallbackValue=''}"
+                 TextColor="{AppThemeBinding Light=#FFFFFF, Dark=#FFFFFF}"
+                 FontFamily="InterRegular"
+                 FontSize="{StaticResource FontSizeBody}"
+                 LineBreakMode="WordWrap" />
+
+          <!-- Footer: timestamp + delivery status -->
+          <HorizontalStackLayout Spacing="{StaticResource SpacingXs}"
+                                 HorizontalOptions="End">
+            <Label Text="{Binding Timestamp, Source={x:Reference this}, Converter={StaticResource DateTimeToRelativeStringConverter}, FallbackValue=''}"
+                   FontFamily="InterRegular"
+                   FontSize="{StaticResource FontSizeCaption2}"
+                   TextColor="#FFFFFFB3"
+                   VerticalOptions="Center" />
+            <Label Text="{Binding DeliveryStatus, Source={x:Reference this}, Converter={StaticResource MessageStatusToIconConverter}, FallbackValue=''}"
+                   FontFamily="MaterialSymbols"
+                   FontSize="14"
+                   TextColor="#FFFFFFB3"
+                   VerticalOptions="Center"
+                   SemanticProperties.Description="Message delivery status" />
+          </HorizontalStackLayout>
+
+        </VerticalStackLayout>
+      </Border>
+    </Grid>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         AI MESSAGE (IsFromUser = false) — left-aligned, received style
+         ═══════════════════════════════════════════════════════════════ -->
+    <Grid IsVisible="{Binding IsFromUser, Source={x:Reference this}, Converter={StaticResource InvertedBoolConverter}}"
+          ColumnDefinitions="Auto,*"
+          ColumnSpacing="{StaticResource SpacingSm}"
+          HorizontalOptions="Start"
+          MaximumWidthRequest="{Binding BubbleMaxWidth, Source={x:Reference this}}">
+
+      <!-- Avatar — visible only when IsLastInGroup -->
+      <Border Grid.Column="0"
+              WidthRequest="{StaticResource SizeAvatarSmall}"
+              HeightRequest="{StaticResource SizeAvatarSmall}"
+              StrokeShape="RoundRectangle 14"
+              StrokeThickness="0"
+              BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceSecondaryLight},
+                                               Dark={StaticResource ColorSurfaceSecondaryDark}}"
+              VerticalOptions="End"
+              IsVisible="{Binding IsLastInGroup, Source={x:Reference this}}"
+              Padding="0">
+        <Label Text="{x:Static helpers:MaterialIcons.SmartToy}"
+               FontFamily="MaterialSymbols"
+               FontSize="16"
+               TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
+                                           Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
+               HorizontalOptions="Center"
+               VerticalOptions="Center"
+               SemanticProperties.Description="AI assistant" />
+      </Border>
+
+      <!-- Invisible spacer when avatar is hidden (to maintain alignment) -->
+      <BoxView Grid.Column="0"
+               WidthRequest="{StaticResource SizeAvatarSmall}"
+               HeightRequest="0"
+               IsVisible="{Binding IsLastInGroup, Source={x:Reference this}, Converter={StaticResource InvertedBoolConverter}}"
+               Color="Transparent" />
+
+      <!-- Bubble -->
+      <Border Grid.Column="1"
+              Style="{StaticResource MessageBubbleReceivedBorder}">
+        <VerticalStackLayout Spacing="{StaticResource SpacingXs}">
+
+          <!-- Message text -->
+          <Label Text="{Binding TextContent, Source={x:Reference this}, FallbackValue=''}"
+                 TextColor="{AppThemeBinding Light=#0D0D0D, Dark=#FFFFFF}"
+                 FontFamily="InterRegular"
+                 FontSize="{StaticResource FontSizeBody}"
+                 LineBreakMode="WordWrap" />
+
+          <!-- Streaming indicator (pulsing dots) -->
+          <HorizontalStackLayout x:Name="StreamingDots"
+                                 Spacing="{StaticResource SpacingXs}"
+                                 IsVisible="{Binding IsStreaming, Source={x:Reference this}}"
+                                 Padding="0,4,0,0">
+            <Ellipse x:Name="Dot1"
+                     WidthRequest="6"
+                     HeightRequest="6"
+                     Fill="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
+                                           Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
+                     Opacity="0.3" />
+            <Ellipse x:Name="Dot2"
+                     WidthRequest="6"
+                     HeightRequest="6"
+                     Fill="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
+                                           Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
+                     Opacity="0.3" />
+            <Ellipse x:Name="Dot3"
+                     WidthRequest="6"
+                     HeightRequest="6"
+                     Fill="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
+                                           Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
+                     Opacity="0.3" />
+          </HorizontalStackLayout>
+
+          <!-- Footer: timestamp -->
+          <HorizontalStackLayout Spacing="{StaticResource SpacingXs}"
+                                 HorizontalOptions="Start"
+                                 IsVisible="{Binding IsStreaming, Source={x:Reference this}, Converter={StaticResource InvertedBoolConverter}}">
+            <Label Text="{Binding Timestamp, Source={x:Reference this}, Converter={StaticResource DateTimeToRelativeStringConverter}, FallbackValue=''}"
+                   FontFamily="InterRegular"
+                   FontSize="{StaticResource FontSizeCaption2}"
+                   TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
+                                               Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
+                   VerticalOptions="Center" />
+          </HorizontalStackLayout>
+
+        </VerticalStackLayout>
+      </Border>
+    </Grid>
+
+  </Grid>
+
+</ContentView>

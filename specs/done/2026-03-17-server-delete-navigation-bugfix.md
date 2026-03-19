@@ -1,11 +1,14 @@
 # Server Delete Navigation & List Blank Screen Bugfix
 
 ## Metadata
-| Field   | Value                        |
-|---------|------------------------------|
-| Date    | 2026-03-17                   |
-| Status  | In Progress                  |
-| Version | 1.0                          |
+| Field       | Value                                  |
+|-------------|----------------------------------------|
+| Date        | 2026-03-17                             |
+| Status      | **Completed**                          |
+| Version     | 1.0                                    |
+| Completed   | 2026-03-19                             |
+| Branch      | bugfix/server-delete-navigation (merged) |
+| Merged into | develop                                |
 
 ---
 

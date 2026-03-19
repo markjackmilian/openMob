@@ -771,9 +771,9 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
                 // by text content. This prevents the message from appearing twice.
                 if (newMessage.IsFromUser)
                 {
-                    var optimisticIndex = FindOptimisticUserMessageIndex(newMessage.TextContent);
+                    var optimisticIndex = FindOptimisticUserMessageIndex();
 #if DEBUG
-                    System.Diagnostics.Debug.WriteLine($"[MSG_UPDATED] optimisticIndex={optimisticIndex} for TextContent='{newMessage.TextContent}'");
+                    System.Diagnostics.Debug.WriteLine($"[MSG_UPDATED] optimisticIndex={optimisticIndex} (IsOptimistic-based search)");
 #endif
                     if (optimisticIndex >= 0)
                     {
@@ -959,25 +959,17 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     // ─── Helpers ──────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Finds the index of an optimistic user message placeholder that matches the given text content.
-    /// An optimistic message is identified by <see cref="ChatMessage.IsFromUser"/> = true and
-    /// <see cref="ChatMessage.DeliveryStatus"/> = <see cref="MessageDeliveryStatus.Sending"/> or
-    /// <see cref="MessageDeliveryStatus.Sent"/> (before server confirmation).
+    /// Finds the index of the most recent optimistic user message placeholder.
+    /// An optimistic message is identified by <see cref="ChatMessage.IsOptimistic"/> = true.
+    /// Searches from the end of the collection (most recent first).
     /// </summary>
-    /// <param name="textContent">The text content to match against.</param>
     /// <returns>The zero-based index of the matching message, or -1 if not found.</returns>
-    private int FindOptimisticUserMessageIndex(string textContent)
+    private int FindOptimisticUserMessageIndex()
     {
         for (var i = Messages.Count - 1; i >= 0; i--)
         {
-            var msg = Messages[i];
-            if (msg.IsFromUser &&
-                msg.TextContent == textContent &&
-                (msg.DeliveryStatus == MessageDeliveryStatus.Sending ||
-                 msg.DeliveryStatus == MessageDeliveryStatus.Sent))
-            {
+            if (Messages[i].IsFromUser && Messages[i].IsOptimistic)
                 return i;
-            }
         }
 
         return -1;

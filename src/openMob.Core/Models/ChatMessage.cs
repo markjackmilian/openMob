@@ -54,6 +54,10 @@ public sealed partial class ChatMessage : ObservableObject
     [ObservableProperty]
     private string _senderName = string.Empty;
 
+    /// <summary>Gets or sets whether this message is an optimistic placeholder awaiting server confirmation.</summary>
+    [ObservableProperty]
+    private bool _isOptimistic;
+
     /// <summary>
     /// Initialises a new <see cref="ChatMessage"/> with the specified immutable properties.
     /// </summary>
@@ -64,6 +68,9 @@ public sealed partial class ChatMessage : ObservableObject
     /// <param name="timestamp">The creation timestamp.</param>
     /// <param name="deliveryStatus">The initial delivery status.</param>
     /// <param name="isStreaming">Whether the message is currently being streamed.</param>
+    /// <param name="senderType">The sender type (User, Agent, or Subagent).</param>
+    /// <param name="senderName">The display name of the sender.</param>
+    /// <param name="isOptimistic">Whether this is an optimistic placeholder awaiting server confirmation.</param>
     internal ChatMessage(
         string id,
         string sessionId,
@@ -73,7 +80,8 @@ public sealed partial class ChatMessage : ObservableObject
         MessageDeliveryStatus deliveryStatus,
         bool isStreaming,
         SenderType senderType = SenderType.Agent,
-        string senderName = "")
+        string senderName = "",
+        bool isOptimistic = false)
     {
         Id = id;
         SessionId = sessionId;
@@ -84,6 +92,7 @@ public sealed partial class ChatMessage : ObservableObject
         _isStreaming = isStreaming;
         _senderType = senderType;
         _senderName = senderName;
+        _isOptimistic = isOptimistic;
     }
 
     /// <summary>
@@ -147,7 +156,8 @@ public sealed partial class ChatMessage : ObservableObject
             deliveryStatus: MessageDeliveryStatus.Sending,
             isStreaming: false,
             senderType: SenderType.User,
-            senderName: "You");
+            senderName: "You",
+            isOptimistic: true);
     }
 
     /// <summary>

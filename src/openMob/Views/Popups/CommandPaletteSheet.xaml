@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:openMob.Core.ViewModels;assembly=openMob.Core"
+             xmlns:models="clr-namespace:openMob.Core.Models;assembly=openMob.Core"
+             xmlns:helpers="clr-namespace:openMob.Helpers"
+             x:Class="openMob.Views.Popups.CommandPaletteSheet"
+             x:DataType="vm:CommandPaletteViewModel"
+             Shell.PresentationMode="ModalAnimated"
+             BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceLight},
+                                               Dark={StaticResource ColorSurfaceDark}}">
+
+  <Grid RowDefinitions="Auto,Auto,*">
+
+    <!-- Handle bar -->
+    <BoxView Grid.Row="0"
+             Style="{StaticResource SheetHandleBar}"
+             Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
+                                      Dark={StaticResource ColorOnBackgroundTertiaryDark}}" />
+
+    <!-- Search bar -->
+    <SearchBar Grid.Row="1"
+               Style="{StaticResource CommandPaletteSearchBar}"
+               Text="{Binding SearchText, Mode=TwoWay}"
+               Margin="16,4"
+               AutomationId="CommandPaletteSearchBar"
+               SemanticProperties.Hint="Search for commands" />
+
+    <!-- Command list -->
+    <Grid Grid.Row="2">
+
+      <!-- Loading indicator -->
+      <ActivityIndicator IsRunning="{Binding IsLoading}"
+                         IsVisible="{Binding IsLoading}"
+                         HorizontalOptions="Center"
+                         VerticalOptions="Center" />
+
+      <!-- Command CollectionView -->
+      <CollectionView ItemsSource="{Binding Commands}"
+                      SelectionMode="None"
+                      IsVisible="{Binding IsLoading, Converter={StaticResource InvertedBoolConverter}}">
+        <CollectionView.ItemTemplate>
+          <DataTemplate x:DataType="models:CommandItem">
+            <VerticalStackLayout Spacing="0" Padding="16,0">
+              <Grid Padding="0,12"
+                    MinimumHeightRequest="{StaticResource MinTouchTarget}">
+                <Grid.GestureRecognizers>
+                  <TapGestureRecognizer
+                      Command="{Binding ExecuteCommandCommand, Source={RelativeSource AncestorType={x:Type vm:CommandPaletteViewModel}}}"
+                      CommandParameter="{Binding .}" />
+                </Grid.GestureRecognizers>
+
+                <VerticalStackLayout Spacing="{StaticResource SpacingXxs}"
+                                     VerticalOptions="Center">
+                  <Label Text="{Binding Name, FallbackValue='Command'}"
+                         FontFamily="InterSemiBold"
+                         FontSize="{StaticResource FontSizeBody}" />
+                  <Label Text="{Binding Description, FallbackValue='', TargetNullValue=''}"
+                         FontFamily="InterRegular"
+                         FontSize="{StaticResource FontSizeCaption1}"
+                         TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
+                                                      Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
+                         IsVisible="{Binding Description, Converter={StaticResource NullToVisibilityConverter}}" />
+                </VerticalStackLayout>
+              </Grid>
+
+              <BoxView HeightRequest="0.5"
+                       Color="{AppThemeBinding Light={StaticResource ColorSeparatorLight},
+                                                Dark={StaticResource ColorSeparatorDark}}" />
+            </VerticalStackLayout>
+          </DataTemplate>
+        </CollectionView.ItemTemplate>
+
+        <CollectionView.EmptyView>
+          <Label Text="No commands found"
+                 FontFamily="InterRegular"
+                 FontSize="{StaticResource FontSizeCallout}"
+                 TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
+                                              Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
+                 HorizontalTextAlignment="Center"
+                  Margin="0,24" />
+        </CollectionView.EmptyView>
+      </CollectionView>
+
+    </Grid>
+
+  </Grid>
+
+</ContentPage>

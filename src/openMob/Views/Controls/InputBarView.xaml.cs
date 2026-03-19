@@ -25,6 +25,10 @@ public partial class InputBarView : ContentView
     public static readonly BindableProperty PlaceholderProperty =
         BindableProperty.Create(nameof(Placeholder), typeof(string), typeof(InputBarView), "Message...");
 
+    /// <summary>Bindable property for the command palette command.</summary>
+    public static readonly BindableProperty OpenCommandPaletteCommandProperty =
+        BindableProperty.Create(nameof(OpenCommandPaletteCommand), typeof(ICommand), typeof(InputBarView));
+
     /// <summary>Computed property indicating whether the text field has content.</summary>
     public static readonly BindableProperty HasTextProperty =
         BindableProperty.Create(nameof(HasText), typeof(bool), typeof(InputBarView), false);
@@ -61,6 +65,13 @@ public partial class InputBarView : ContentView
     {
         get => (string)GetValue(PlaceholderProperty);
         set => SetValue(PlaceholderProperty, value);
+    }
+
+    /// <summary>Gets or sets the command executed when the command palette button is tapped.</summary>
+    public ICommand? OpenCommandPaletteCommand
+    {
+        get => (ICommand?)GetValue(OpenCommandPaletteCommandProperty);
+        set => SetValue(OpenCommandPaletteCommandProperty, value);
     }
 
     /// <summary>Gets whether the text field has content (computed from Text).</summary>

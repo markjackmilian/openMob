@@ -6,6 +6,7 @@ using openMob.Core.Data.Repositories;
 using openMob.Core.Infrastructure.Discovery;
 using openMob.Core.Infrastructure.Http;
 using openMob.Core.Services;
+using openMob.Core.Services.Markdown;
 using openMob.Core.ViewModels;
 using Polly;
 
@@ -117,6 +118,12 @@ public static class CoreServiceExtensions
         // Chat service (singleton — maintains SSE connection state and IsConnected)
         services.AddSingleton<IChatService, ChatService>();
 
+        // Markdown parsing (singleton — stateless pipeline, safe to share)
+        services.AddSingleton<IMarkdownParser, MarkdigMarkdownParser>();
+
+        // Command service (transient — each consumer owns its own cache lifecycle)
+        services.AddTransient<ICommandService, CommandService>();
+
         // ─── ViewModels ───────────────────────────────────────────────────────
         services.AddTransient<SplashViewModel>();
         services.AddTransient<OnboardingViewModel>();
@@ -127,6 +134,8 @@ public static class CoreServiceExtensions
         services.AddTransient<AgentPickerViewModel>();
         services.AddTransient<ModelPickerViewModel>();
         services.AddTransient<ChatViewModel>();
+        services.AddTransient<ContextSheetViewModel>();
+        services.AddTransient<CommandPaletteViewModel>();
         services.AddTransient<FlyoutViewModel>();
         services.AddTransient<SettingsViewModel>();
         services.AddTransient<ServerManagementViewModel>();

@@ -46,6 +46,14 @@ public sealed partial class ChatMessage : ObservableObject
     [ObservableProperty]
     private bool _isStreaming;
 
+    /// <summary>Gets or sets the sender type of this message (User, Agent, or Subagent).</summary>
+    [ObservableProperty]
+    private SenderType _senderType;
+
+    /// <summary>Gets or sets the display name of the sender.</summary>
+    [ObservableProperty]
+    private string _senderName = string.Empty;
+
     /// <summary>
     /// Initialises a new <see cref="ChatMessage"/> with the specified immutable properties.
     /// </summary>
@@ -63,7 +71,9 @@ public sealed partial class ChatMessage : ObservableObject
         string textContent,
         DateTimeOffset timestamp,
         MessageDeliveryStatus deliveryStatus,
-        bool isStreaming)
+        bool isStreaming,
+        SenderType senderType = SenderType.Agent,
+        string senderName = "")
     {
         Id = id;
         SessionId = sessionId;
@@ -72,6 +82,8 @@ public sealed partial class ChatMessage : ObservableObject
         Timestamp = timestamp;
         _deliveryStatus = deliveryStatus;
         _isStreaming = isStreaming;
+        _senderType = senderType;
+        _senderName = senderName;
     }
 
     /// <summary>
@@ -97,6 +109,10 @@ public sealed partial class ChatMessage : ObservableObject
         // For assistant messages, check if "completed" exists and is non-null.
         var isStreaming = !isFromUser && !HasCompletedTimestamp(dto.Info.Time);
 
+        // Determine sender type and name
+        var senderType = isFromUser ? SenderType.User : SenderType.Agent;
+        var senderName = isFromUser ? "You" : "Assistant";
+
         return new ChatMessage(
             id: dto.Info.Id,
             sessionId: dto.Info.SessionId,
@@ -104,7 +120,9 @@ public sealed partial class ChatMessage : ObservableObject
             textContent: textContent,
             timestamp: timestamp,
             deliveryStatus: MessageDeliveryStatus.Sent,
-            isStreaming: isStreaming);
+            isStreaming: isStreaming,
+            senderType: senderType,
+            senderName: senderName);
     }
 
     /// <summary>
@@ -127,7 +145,9 @@ public sealed partial class ChatMessage : ObservableObject
             textContent: text,
             timestamp: DateTimeOffset.UtcNow,
             deliveryStatus: MessageDeliveryStatus.Sending,
-            isStreaming: false);
+            isStreaming: false,
+            senderType: SenderType.User,
+            senderName: "You");
     }
 
     /// <summary>
@@ -147,13 +167,9 @@ public sealed partial class ChatMessage : ObservableObject
             if (!string.Equals(part.Type, "text", StringComparison.OrdinalIgnoreCase))
                 continue;
 
-            if (part.Payload.ValueKind == JsonValueKind.Object &&
-                part.Payload.TryGetProperty("text", out var textEl))
-            {
-                var text = textEl.GetString();
-                if (!string.IsNullOrEmpty(text))
-                    textParts.Add(text);
-            }
+            // The opencode server returns text directly in the "text" field of the part object.
+            if (!string.IsNullOrEmpty(part.Text))
+                textParts.Add(part.Text);
         }
 
         return string.Join("", textParts);

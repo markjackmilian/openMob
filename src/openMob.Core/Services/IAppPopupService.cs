@@ -62,4 +62,16 @@ public interface IAppPopupService
     /// <summary>Pops the topmost popup from the popup stack.</summary>
     /// <param name="ct">Cancellation token.</param>
     Task PopPopupAsync(CancellationToken ct = default);
+
+    /// <summary>Shows the Context Sheet bottom sheet (REQ-025).</summary>
+    /// <param name="ct">Cancellation token.</param>
+    Task ShowContextSheetAsync(CancellationToken ct = default);
+
+    /// <summary>Shows the Command Palette bottom sheet (REQ-029).</summary>
+    /// <param name="ct">Cancellation token.</param>
+    Task ShowCommandPaletteAsync(CancellationToken ct = default);
+
+    /// <summary>Shows the agent picker in subagent invocation mode (REQ-031).</summary>
+    /// <param name="ct">Cancellation token.</param>
+    Task ShowAgentPickerSubagentModeAsync(CancellationToken ct = default);
 }

@@ -39,7 +39,8 @@ public sealed class ChatEventParserTests
         string id = "part-1",
         string sessionId = "sess-1",
         string messageId = "msg-1",
-        string type = "text")
+        string type = "text",
+        string? text = null)
     {
         return JsonSerializer.SerializeToElement(new
         {
@@ -47,7 +48,7 @@ public sealed class ChatEventParserTests
             sessionID = sessionId,
             messageID = messageId,
             type,
-            payload = new { }
+            text,
         });
     }
 

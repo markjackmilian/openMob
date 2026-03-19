@@ -1,0 +1,355 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:openMob.Core.ViewModels;assembly=openMob.Core"
+             xmlns:models="clr-namespace:openMob.Core.Models;assembly=openMob.Core"
+             xmlns:helpers="clr-namespace:openMob.Helpers"
+             x:Class="openMob.Views.Popups.ContextSheet"
+             x:DataType="vm:ContextSheetViewModel"
+             Shell.PresentationMode="ModalAnimated"
+             BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceLight},
+                                               Dark={StaticResource ColorSurfaceDark}}">
+
+  <ScrollView>
+    <VerticalStackLayout Spacing="0">
+
+      <!-- Handle bar -->
+      <BoxView Style="{StaticResource SheetHandleBar}"
+               Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
+                                        Dark={StaticResource ColorOnBackgroundTertiaryDark}}" />
+
+      <!-- ═══════════════════════════════════════════════════════════════
+           Project row
+           ═══════════════════════════════════════════════════════════════ -->
+      <Grid Style="{StaticResource SheetRowGrid}"
+            ColumnDefinitions="Auto,*,Auto,Auto"
+            ColumnSpacing="{StaticResource SpacingMd}">
+        <Grid.GestureRecognizers>
+          <TapGestureRecognizer Command="{Binding OpenProjectSwitcherCommand}" />
+        </Grid.GestureRecognizers>
+
+        <Label Grid.Column="0"
+               Text="{x:Static helpers:MaterialIcons.Folder}"
+               FontFamily="MaterialSymbols"
+               FontSize="24"
+               TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
+                                            Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
+               VerticalOptions="Center"
+               SemanticProperties.Description="Project icon" />
+
+        <Label Grid.Column="1"
+               Text="Project"
+               FontFamily="InterRegular"
+               FontSize="{StaticResource FontSizeBody}"
+               VerticalOptions="Center" />
+
+        <Label Grid.Column="2"
+               Text="{Binding ProjectName, FallbackValue='No project'}"
+               FontFamily="InterRegular"
+               FontSize="{StaticResource FontSizeCallout}"
+               TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
+                                            Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
+               HorizontalOptions="End"
+               VerticalOptions="Center"
+               LineBreakMode="TailTruncation"
+               MaximumWidthRequest="160" />
+
+        <Label Grid.Column="3"
+               Text="{x:Static helpers:MaterialIcons.ChevronRight}"
+               FontFamily="MaterialSymbols"
+               FontSize="20"
+               TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
+                                            Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
+               VerticalOptions="Center" />
+      </Grid>
+
+      <!-- ═══════════════════════════════════════════════════════════════
+           Agent row
+           ═══════════════════════════════════════════════════════════════ -->
+      <Grid Style="{StaticResource SheetRowGrid}"
+            ColumnDefinitions="Auto,*,Auto,Auto"
+            ColumnSpacing="{StaticResource SpacingMd}">
+        <Grid.GestureRecognizers>
+          <TapGestureRecognizer Command="{Binding OpenAgentPickerCommand}" />
+        </Grid.GestureRecognizers>
+
+        <Label Grid.Column="0"
+               Text="{x:Static helpers:MaterialIcons.SmartToy}"
+               FontFamily="MaterialSymbols"
+               FontSize="24"
+               TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
+                                            Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
+               VerticalOptions="Center"
+               SemanticProperties.Description="Agent icon" />
+
+        <Label Grid.Column="1"
+               Text="Agent"
+               FontFamily="InterRegular"
+               FontSize="{StaticResource FontSizeBody}"
+               VerticalOptions="Center" />
+
+        <Label Grid.Column="2"
+               Text="{Binding AgentName, FallbackValue='Default'}"
+               FontFamily="InterRegular"
+               FontSize="{StaticResource FontSizeCallout}"
+               TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
+                                            Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
+               HorizontalOptions="End"
+               VerticalOptions="Center"
+               LineBreakMode="TailTruncation"
+               MaximumWidthRequest="160" />
+
+        <Label Grid.Column="3"
+               Text="{x:Static helpers:MaterialIcons.ChevronRight}"
+               FontFamily="MaterialSymbols"
+               FontSize="20"
+               TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
+                                            Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
+               VerticalOptions="Center" />
+      </Grid>
+
+      <!-- ═══════════════════════════════════════════════════════════════
+           Model row
+           ═══════════════════════════════════════════════════════════════ -->
+      <Grid Style="{StaticResource SheetRowGrid}"
+            ColumnDefinitions="Auto,*,Auto,Auto"
+            ColumnSpacing="{StaticResource SpacingMd}">
+        <Grid.GestureRecognizers>
+          <TapGestureRecognizer Command="{Binding OpenModelPickerCommand}" />
+        </Grid.GestureRecognizers>
+
+        <Label Grid.Column="0"
+               Text="{x:Static helpers:MaterialIcons.Psychology}"
+               FontFamily="MaterialSymbols"
+               FontSize="24"
+               TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
+                                            Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
+               VerticalOptions="Center"
+               SemanticProperties.Description="Model icon" />
+
+        <Label Grid.Column="1"
+               Text="Model"
+               FontFamily="InterRegular"
+               FontSize="{StaticResource FontSizeBody}"
+               VerticalOptions="Center" />
+
+        <Label Grid.Column="2"
+               Text="{Binding ModelName, FallbackValue='No model'}"
+               FontFamily="InterRegular"
+               FontSize="{StaticResource FontSizeCallout}"
+               TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
+                                            Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
+               HorizontalOptions="End"
+               VerticalOptions="Center"
+               LineBreakMode="TailTruncation"
+               MaximumWidthRequest="160" />
+
+        <Label Grid.Column="3"
+               Text="{x:Static helpers:MaterialIcons.ChevronRight}"
+               FontFamily="MaterialSymbols"
+               FontSize="20"
+               TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
+                                            Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
+               VerticalOptions="Center" />
+      </Grid>
+
+      <!-- Divider -->
+      <BoxView HeightRequest="0.5"
+               Color="{AppThemeBinding Light={StaticResource ColorSeparatorLight},
+                                        Dark={StaticResource ColorSeparatorDark}}"
+               Margin="16,0" />
+
+      <!-- ═══════════════════════════════════════════════════════════════
+           Thinking Level row
+           ═══════════════════════════════════════════════════════════════ -->
+      <Grid Style="{StaticResource SheetRowGrid}"
+            ColumnDefinitions="Auto,*,Auto"
+            ColumnSpacing="{StaticResource SpacingMd}">
+
+        <Label Grid.Column="0"
+               Text="{x:Static helpers:MaterialIcons.Psychology}"
+               FontFamily="MaterialSymbols"
+               FontSize="24"
+               TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
+                                            Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
+               VerticalOptions="Center"
+               SemanticProperties.Description="Thinking level icon" />
+
+        <Label Grid.Column="1"
+               Text="Thinking Level"
+               FontFamily="InterRegular"
+               FontSize="{StaticResource FontSizeBody}"
+               VerticalOptions="Center" />
+
+        <!-- Segmented control: Low / Medium / High -->
+        <HorizontalStackLayout Grid.Column="2"
+                               Spacing="{StaticResource SpacingXs}"
+                               VerticalOptions="Center">
+
+          <Button Text="Low"
+                  FontFamily="InterMedium"
+                  FontSize="{StaticResource FontSizeCaption1}"
+                  Padding="12,6"
+                  MinimumHeightRequest="32"
+                  MinimumWidthRequest="0"
+                  CornerRadius="8"
+                  Command="{Binding ChangeThinkingLevelCommand}"
+                  CommandParameter="{x:Static models:ThinkingLevel.Low}"
+                  BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceSecondaryLight},
+                                                    Dark={StaticResource ColorSurfaceSecondaryDark}}"
+                  TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight},
+                                               Dark={StaticResource ColorOnBackgroundDark}}"
+                  AutomationId="ThinkingLevelLow">
+            <Button.Triggers>
+              <DataTrigger TargetType="Button"
+                           Binding="{Binding ThinkingLevel}"
+                           Value="{x:Static models:ThinkingLevel.Low}">
+                <Setter Property="BackgroundColor"
+                        Value="{AppThemeBinding Light={StaticResource ColorPrimaryLight},
+                                                Dark={StaticResource ColorPrimaryDark}}" />
+                <Setter Property="TextColor"
+                        Value="{AppThemeBinding Light={StaticResource ColorOnPrimaryLight},
+                                                Dark={StaticResource ColorOnPrimaryDark}}" />
+              </DataTrigger>
+            </Button.Triggers>
+          </Button>
+
+          <Button Text="Medium"
+                  FontFamily="InterMedium"
+                  FontSize="{StaticResource FontSizeCaption1}"
+                  Padding="12,6"
+                  MinimumHeightRequest="32"
+                  MinimumWidthRequest="0"
+                  CornerRadius="8"
+                  Command="{Binding ChangeThinkingLevelCommand}"
+                  CommandParameter="{x:Static models:ThinkingLevel.Medium}"
+                  BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceSecondaryLight},
+                                                    Dark={StaticResource ColorSurfaceSecondaryDark}}"
+                  TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight},
+                                               Dark={StaticResource ColorOnBackgroundDark}}"
+                  AutomationId="ThinkingLevelMedium">
+            <Button.Triggers>
+              <DataTrigger TargetType="Button"
+                           Binding="{Binding ThinkingLevel}"
+                           Value="{x:Static models:ThinkingLevel.Medium}">
+                <Setter Property="BackgroundColor"
+                        Value="{AppThemeBinding Light={StaticResource ColorPrimaryLight},
+                                                Dark={StaticResource ColorPrimaryDark}}" />
+                <Setter Property="TextColor"
+                        Value="{AppThemeBinding Light={StaticResource ColorOnPrimaryLight},
+                                                Dark={StaticResource ColorOnPrimaryDark}}" />
+              </DataTrigger>
+            </Button.Triggers>
+          </Button>
+
+          <Button Text="High"
+                  FontFamily="InterMedium"
+                  FontSize="{StaticResource FontSizeCaption1}"
+                  Padding="12,6"
+                  MinimumHeightRequest="32"
+                  MinimumWidthRequest="0"
+                  CornerRadius="8"
+                  Command="{Binding ChangeThinkingLevelCommand}"
+                  CommandParameter="{x:Static models:ThinkingLevel.High}"
+                  BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceSecondaryLight},
+                                                    Dark={StaticResource ColorSurfaceSecondaryDark}}"
+                  TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight},
+                                               Dark={StaticResource ColorOnBackgroundDark}}"
+                  AutomationId="ThinkingLevelHigh">
+            <Button.Triggers>
+              <DataTrigger TargetType="Button"
+                           Binding="{Binding ThinkingLevel}"
+                           Value="{x:Static models:ThinkingLevel.High}">
+                <Setter Property="BackgroundColor"
+                        Value="{AppThemeBinding Light={StaticResource ColorPrimaryLight},
+                                                Dark={StaticResource ColorPrimaryDark}}" />
+                <Setter Property="TextColor"
+                        Value="{AppThemeBinding Light={StaticResource ColorOnPrimaryLight},
+                                                Dark={StaticResource ColorOnPrimaryDark}}" />
+              </DataTrigger>
+            </Button.Triggers>
+          </Button>
+
+        </HorizontalStackLayout>
+      </Grid>
+
+      <!-- ═══════════════════════════════════════════════════════════════
+           Auto-Accept row
+           ═══════════════════════════════════════════════════════════════ -->
+      <Grid Style="{StaticResource SheetRowGrid}"
+            ColumnDefinitions="Auto,*,Auto"
+            ColumnSpacing="{StaticResource SpacingMd}">
+
+        <Label Grid.Column="0"
+               Text="{x:Static helpers:MaterialIcons.AutoAwesome}"
+               FontFamily="MaterialSymbols"
+               FontSize="24"
+               TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
+                                            Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
+               VerticalOptions="Center"
+               SemanticProperties.Description="Auto-accept icon" />
+
+        <VerticalStackLayout Grid.Column="1"
+                             Spacing="{StaticResource SpacingXxs}"
+                             VerticalOptions="Center">
+          <Label Text="Auto-Accept"
+                 FontFamily="InterRegular"
+                 FontSize="{StaticResource FontSizeBody}" />
+          <Label Text="Automatically accept agent suggestions"
+                 FontFamily="InterRegular"
+                 FontSize="{StaticResource FontSizeCaption1}"
+                 TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
+                                              Dark={StaticResource ColorOnBackgroundSecondaryDark}}" />
+        </VerticalStackLayout>
+
+        <Switch Grid.Column="2"
+                IsToggled="{Binding AutoAccept, Mode=TwoWay}"
+                VerticalOptions="Center"
+                AutomationId="AutoAcceptSwitch"
+                SemanticProperties.Description="Toggle auto-accept" />
+      </Grid>
+
+      <!-- Divider -->
+      <BoxView HeightRequest="0.5"
+               Color="{AppThemeBinding Light={StaticResource ColorSeparatorLight},
+                                        Dark={StaticResource ColorSeparatorDark}}"
+               Margin="16,0" />
+
+      <!-- ═══════════════════════════════════════════════════════════════
+           Invoke Subagent row
+           ═══════════════════════════════════════════════════════════════ -->
+      <Grid Style="{StaticResource SheetRowGrid}"
+            ColumnDefinitions="Auto,*,Auto"
+            ColumnSpacing="{StaticResource SpacingMd}">
+        <Grid.GestureRecognizers>
+          <TapGestureRecognizer Command="{Binding InvokeSubagentCommand}" />
+        </Grid.GestureRecognizers>
+
+        <Label Grid.Column="0"
+               Text="{x:Static helpers:MaterialIcons.SmartToy}"
+               FontFamily="MaterialSymbols"
+               FontSize="24"
+               TextColor="{AppThemeBinding Light={StaticResource ColorSubagentAccentLight},
+                                            Dark={StaticResource ColorSubagentAccentDark}}"
+               VerticalOptions="Center"
+               SemanticProperties.Description="Subagent icon" />
+
+        <Label Grid.Column="1"
+               Text="Invoke Subagent..."
+               FontFamily="InterRegular"
+               FontSize="{StaticResource FontSizeBody}"
+               VerticalOptions="Center" />
+
+        <Label Grid.Column="2"
+               Text="{x:Static helpers:MaterialIcons.ChevronRight}"
+               FontFamily="MaterialSymbols"
+               FontSize="20"
+               TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
+                                            Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
+               VerticalOptions="Center" />
+      </Grid>
+
+    </VerticalStackLayout>
+  </ScrollView>
+
+</ContentPage>

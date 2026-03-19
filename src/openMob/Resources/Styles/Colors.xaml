@@ -253,4 +253,35 @@
     <x:Double x:Key="SizeFlyoutWidth">0.80</x:Double>
     <x:Double x:Key="SizeFlyoutMaxWidth">320</x:Double>
 
+    <!-- ═══════════════════════════════════════════════════════════════
+         CHAT PAGE REDESIGN TOKENS
+         ═══════════════════════════════════════════════════════════════ -->
+
+    <!-- Agent accent — used for agent message left bar and sender label -->
+    <!-- A blue-tinted accent distinct from the green primary -->
+    <Color x:Key="ColorAgentAccentLight">#5B6EF5</Color>
+    <Color x:Key="ColorAgentAccentDark">#7B8EFF</Color>
+
+    <!-- Subagent accent — tertiary accent for subagent messages -->
+    <!-- A warm amber/orange to distinguish from both primary and agent -->
+    <Color x:Key="ColorSubagentAccentLight">#E67E22</Color>
+    <Color x:Key="ColorSubagentAccentDark">#F0A050</Color>
+
+    <!-- Inline code background — subtle tinted background for `code` spans -->
+    <Color x:Key="ColorCodeInlineLight">#F0F0F4</Color>
+    <Color x:Key="ColorCodeInlineDark">#2A2D35</Color>
+
+    <!-- Code block background — container background for fenced code blocks -->
+    <Color x:Key="ColorCodeBlockBackgroundLight">#F5F5F8</Color>
+    <Color x:Key="ColorCodeBlockBackgroundDark">#1E2028</Color>
+
+    <!-- User message block background — distinct from page background -->
+    <!-- Reuses ColorSurfaceSecondary concept but as a dedicated token for flexibility -->
+    <Color x:Key="ColorMessageUserBackgroundLight">#F2F3F5</Color>
+    <Color x:Key="ColorMessageUserBackgroundDark">#1C1E24</Color>
+
+    <!-- Context status bar background (if distinct from page) -->
+    <Color x:Key="ColorContextBarLight">#FAFAFA</Color>
+    <Color x:Key="ColorContextBarDark">#141518</Color>
+
 </ResourceDictionary>

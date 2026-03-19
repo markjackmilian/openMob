@@ -48,6 +48,25 @@
     <x:Double x:Key="MinTouchTarget">44</x:Double>
 
     <!-- ═══════════════════════════════════════════════════════════════
+         CHAT PAGE REDESIGN SIZING TOKENS
+         ═══════════════════════════════════════════════════════════════ -->
+
+    <!-- Message block left color bar width (pt) -->
+    <x:Double x:Key="SizeMessageBarWidth">3</x:Double>
+
+    <!-- Context status bar height (pt) -->
+    <x:Double x:Key="SizeContextBarHeight">28</x:Double>
+
+    <!-- Bottom sheet handle width (pt) -->
+    <x:Double x:Key="SizeSheetHandleWidth">36</x:Double>
+
+    <!-- Bottom sheet handle height (pt) -->
+    <x:Double x:Key="SizeSheetHandleHeight">4</x:Double>
+
+    <!-- Context sheet row height (pt) -->
+    <x:Double x:Key="SizeSheetRowHeight">56</x:Double>
+
+    <!-- ═══════════════════════════════════════════════════════════════
          IMPLICIT STYLES
          Applied automatically to all matching controls in the app.
          No x:Key — these are the default appearance for each control.
@@ -472,6 +491,88 @@
         <Setter Property="StrokeThickness" Value="1" />
         <Setter Property="StrokeShape" Value="RoundRectangle 12" />
         <Setter Property="Padding" Value="{StaticResource SpacingMd}" />
+    </Style>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         CHAT PAGE REDESIGN COMPONENT STYLES
+         ═══════════════════════════════════════════════════════════════ -->
+
+    <!-- Message block container (replaces bubble styles) -->
+    <Style x:Key="MessageBlockBorder" TargetType="Border">
+        <Setter Property="StrokeThickness" Value="0" />
+        <Setter Property="Padding" Value="{StaticResource SpacingSm}" />
+        <Setter Property="StrokeShape">
+            <RoundRectangle CornerRadius="0" />
+        </Setter>
+    </Style>
+
+    <!-- Context status bar style -->
+    <Style x:Key="ContextStatusBarLabel" TargetType="Label">
+        <Setter Property="FontSize" Value="{StaticResource FontSizeCaption1}" />
+        <Setter Property="FontFamily" Value="InterRegular" />
+        <Setter Property="HorizontalTextAlignment" Value="Center" />
+        <Setter Property="VerticalTextAlignment" Value="Center" />
+    </Style>
+
+    <!-- Sheet handle bar style -->
+    <Style x:Key="SheetHandleBar" TargetType="BoxView">
+        <Setter Property="WidthRequest" Value="{StaticResource SizeSheetHandleWidth}" />
+        <Setter Property="HeightRequest" Value="{StaticResource SizeSheetHandleHeight}" />
+        <Setter Property="CornerRadius" Value="{StaticResource RadiusFull}" />
+        <Setter Property="HorizontalOptions" Value="Center" />
+        <Setter Property="Margin" Value="0,8,0,12" />
+    </Style>
+
+    <!-- Sheet tappable row style -->
+    <Style x:Key="SheetRowGrid" TargetType="Grid">
+        <Setter Property="HeightRequest" Value="{StaticResource SizeSheetRowHeight}" />
+        <Setter Property="Padding" Value="{StaticResource SpacingLg}" />
+    </Style>
+
+    <!-- Code block container style -->
+    <Style x:Key="CodeBlockBorder" TargetType="Border">
+        <Setter Property="StrokeThickness" Value="0" />
+        <Setter Property="Padding" Value="{StaticResource SpacingMd}" />
+        <Setter Property="StrokeShape">
+            <RoundRectangle CornerRadius="{StaticResource RadiusMd}" />
+        </Setter>
+    </Style>
+
+    <!-- Blockquote container style -->
+    <Style x:Key="BlockquoteBorder" TargetType="Border">
+        <Setter Property="StrokeThickness" Value="0" />
+        <Setter Property="Padding" Value="{StaticResource SpacingMd}" />
+        <Setter Property="StrokeShape">
+            <RoundRectangle CornerRadius="{StaticResource RadiusSm}" />
+        </Setter>
+    </Style>
+
+    <!-- Sender label style -->
+    <Style x:Key="SenderLabel" TargetType="Label">
+        <Setter Property="FontSize" Value="{StaticResource FontSizeCaption1}" />
+        <Setter Property="FontFamily" Value="InterSemiBold" />
+    </Style>
+
+    <!-- Timestamp label style -->
+    <Style x:Key="TimestampLabel" TargetType="Label">
+        <Setter Property="FontSize" Value="{StaticResource FontSizeCaption2}" />
+        <Setter Property="FontFamily" Value="InterRegular" />
+        <Setter Property="HorizontalTextAlignment" Value="End" />
+    </Style>
+
+    <!-- Message body label style — used in MessageBlockView for user message text -->
+    <Style x:Key="MessageBodyLabel" TargetType="Label">
+        <Setter Property="FontFamily" Value="InterRegular" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeBody}" />
+        <Setter Property="LineBreakMode" Value="WordWrap" />
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}" />
+    </Style>
+
+    <!-- Command palette search field style -->
+    <Style x:Key="CommandPaletteSearchBar" TargetType="SearchBar">
+        <Setter Property="FontSize" Value="{StaticResource FontSizeBody}" />
+        <Setter Property="FontFamily" Value="InterRegular" />
+        <Setter Property="Placeholder" Value="Search commands..." />
     </Style>
 
 </ResourceDictionary>

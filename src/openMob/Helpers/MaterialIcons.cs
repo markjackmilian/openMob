@@ -19,6 +19,9 @@ public static class MaterialIcons
     /// <summary>Arrow upward icon (used for send button in ChatGPT style).</summary>
     public const string ArrowUpward = "\ue5d8";
 
+    /// <summary>Material Symbols: auto_awesome (for auto-accept).</summary>
+    public const string AutoAwesome = "\ue65f";
+
     /// <summary>Microphone icon.</summary>
     public const string Mic = "\ue029";
 
@@ -31,8 +34,14 @@ public static class MaterialIcons
     /// <summary>Chevron right icon (used as disclosure indicator).</summary>
     public const string ChevronRight = "\ue5cc";
 
+    /// <summary>Material Symbols: code (for command palette button).</summary>
+    public const string Code = "\ue86f";
+
     /// <summary>Close / X icon.</summary>
     public const string Close = "\ue5cd";
+
+    /// <summary>Material Symbols: content_copy (for code block copy action).</summary>
+    public const string ContentCopy = "\ue14d";
 
     /// <summary>Check / checkmark icon.</summary>
     public const string Check = "\ue5ca";
@@ -55,6 +64,9 @@ public static class MaterialIcons
     /// <summary>Public / globe icon.</summary>
     public const string Public = "\ue80b";
 
+    /// <summary>Material Symbols: psychology (for thinking level).</summary>
+    public const string Psychology = "\uea4a";
+
     /// <summary>Warning / alert icon.</summary>
     public const string Warning = "\ue002";
 
@@ -76,6 +88,9 @@ public static class MaterialIcons
     /// <summary>Smart toy / robot icon (for AI/agent).</summary>
     public const string SmartToy = "\ue99a";
 
+    /// <summary>Material Symbols: stop (for cancel/stop action).</summary>
+    public const string Stop = "\ue047";
+
     /// <summary>Key icon (for API keys).</summary>
     public const string Key = "\ue73c";
 
@@ -93,4 +108,10 @@ public static class MaterialIcons
 
     /// <summary>Schedule / clock icon.</summary>
     public const string Schedule = "\ue8b5";
+
+    /// <summary>Material Symbols: terminal (alternative command icon).</summary>
+    public const string Terminal = "\ueb8e";
+
+    /// <summary>Material Symbols: tune (for context/settings icon).</summary>
+    public const string Tune = "\ue429";
 }

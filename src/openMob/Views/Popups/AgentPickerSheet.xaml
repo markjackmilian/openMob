@@ -21,9 +21,9 @@
         HorizontalOptions="Center"
         Margin="0,8,0,16" />
 
-    <!-- Title -->
+    <!-- Title — bound to SheetTitle (changes based on IsSubagentMode) -->
     <Label
-        Text="Select Agent"
+        Text="{Binding SheetTitle, FallbackValue='Select Agent'}"
         FontFamily="InterSemiBold"
         FontSize="{StaticResource FontSizeTitle3}"
         TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}"

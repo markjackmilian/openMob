@@ -127,4 +127,55 @@ internal sealed class MauiPopupService : IAppPopupService
             await navigation.PopModalAsync(animated: true);
         }
     }
+
+    /// <inheritdoc />
+    public async Task ShowContextSheetAsync(CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        var sheet = _serviceProvider.GetRequiredService<ContextSheet>();
+        var page = GetCurrentPage();
+        if (page is not null)
+        {
+            await page.Navigation.PushModalAsync(sheet, animated: true);
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task ShowCommandPaletteAsync(CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        var sheet = _serviceProvider.GetRequiredService<CommandPaletteSheet>();
+        var page = GetCurrentPage();
+        if (page is not null)
+        {
+            await page.Navigation.PushModalAsync(sheet, animated: true);
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task ShowAgentPickerSubagentModeAsync(CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        var sheet = _serviceProvider.GetRequiredService<AgentPickerSheet>();
+        if (sheet.BindingContext is AgentPickerViewModel vm)
+        {
+            vm.IsSubagentMode = true;
+        }
+
+        var page = GetCurrentPage();
+        if (page is not null)
+        {
+            await page.Navigation.PushModalAsync(sheet, animated: true);
+        }
+    }
+
+    /// <summary>Gets the current visible page from Shell navigation.</summary>
+    /// <returns>The current page, or <c>null</c> if unavailable.</returns>
+    private static Page? GetCurrentPage()
+    {
+        return Shell.Current?.CurrentPage;
+    }
 }

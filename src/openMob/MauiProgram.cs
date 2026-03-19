@@ -5,10 +5,12 @@ using openMob.Core.Data;
 using openMob.Core.Infrastructure.Security;
 using openMob.Core.Infrastructure.Settings;
 using openMob.Core.Services;
+using openMob.Core.Services.Markdown;
 using openMob.Infrastructure;
 using openMob.Infrastructure.Security;
 using openMob.Infrastructure.Settings;
 using openMob.Services;
+using openMob.Views.Controls.Markdown;
 using openMob.Views.Pages;
 using openMob.Views.Popups;
 
@@ -84,8 +86,14 @@ public static class MauiProgram
         builder.Services.AddTransient<AgentPickerSheet>();
         builder.Services.AddTransient<ModelPickerSheet>();
         builder.Services.AddTransient<AddProjectSheet>();
+        builder.Services.AddTransient<ContextSheet>();
+        builder.Services.AddTransient<CommandPaletteSheet>();
 
         var app = builder.Build();
+
+        // Initialise the shared Markdown parser singleton for MarkdownView.
+        // Done here (after Build) so the DI container is ready before any view is created.
+        MarkdownView.SharedParser = app.Services.GetRequiredService<IMarkdownParser>();
 
         // Apply EF Core migrations on startup.
         // Wrapped in try-catch to prevent startup crash if migrations fail.

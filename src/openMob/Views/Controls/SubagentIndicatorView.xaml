@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:openMob.Views.Controls"
+             xmlns:helpers="clr-namespace:openMob.Helpers"
+             x:Class="openMob.Views.Controls.SubagentIndicatorView"
+             x:Name="this"
+             x:DataType="controls:SubagentIndicatorView">
+
+  <Border BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceSecondaryLight},
+                                             Dark={StaticResource ColorSurfaceSecondaryDark}}"
+          StrokeThickness="0"
+          StrokeShape="RoundRectangle 12"
+          Padding="{StaticResource SpacingSm}"
+           Margin="8,0"
+          HorizontalOptions="Fill">
+
+    <HorizontalStackLayout Spacing="{StaticResource SpacingSm}"
+                           VerticalOptions="Center">
+
+      <!-- SmartToy icon (animated pulse when IsActive) -->
+      <Label x:Name="SubagentIcon"
+             Text="{x:Static helpers:MaterialIcons.SmartToy}"
+             FontFamily="MaterialSymbols"
+             FontSize="20"
+             TextColor="{AppThemeBinding Light={StaticResource ColorSubagentAccentLight},
+                                         Dark={StaticResource ColorSubagentAccentDark}}"
+             VerticalOptions="Center"
+             SemanticProperties.Description="Subagent icon" />
+
+      <!-- Subagent name -->
+      <Label Text="{Binding SubagentName, Source={x:Reference this}, FallbackValue='Subagent'}"
+             FontFamily="InterSemiBold"
+             FontSize="{StaticResource FontSizeFootnote}"
+             TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight},
+                                         Dark={StaticResource ColorOnBackgroundDark}}"
+             VerticalOptions="Center" />
+
+      <!-- Status text -->
+      <Label Text="{Binding StatusText, Source={x:Reference this}, FallbackValue='Working...'}"
+             FontFamily="InterRegular"
+             FontSize="{StaticResource FontSizeCaption1}"
+             TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
+                                         Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
+             VerticalOptions="Center" />
+
+    </HorizontalStackLayout>
+
+  </Border>
+
+</ContentView>

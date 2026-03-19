@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
+using System.Threading.Channels;
 using openMob.Core.Helpers;
 using openMob.Core.Infrastructure.Http;
 using openMob.Core.Infrastructure.Http.Dtos.Opencode;
@@ -190,6 +191,21 @@ internal sealed class ChatService : IChatService
     // ─── SubscribeToEventsAsync ───────────────────────────────────────────────
 
     /// <inheritdoc />
+    /// <remarks>
+    /// <para>
+    /// Uses a <see cref="Channel{T}"/> producer/consumer bridge to yield events in real-time
+    /// as they arrive from the SSE stream. This works around the C# language restriction that
+    /// prevents <c>yield return</c> inside a <c>try/catch</c> block: the producer task runs
+    /// <see cref="OpenSseConnectionAsync"/> inside a try/catch and writes each event to the
+    /// channel; the consumer (this method) reads from the channel and yields immediately,
+    /// without buffering.
+    /// </para>
+    /// <para>
+    /// The channel is bounded (capacity 64) with <see cref="BoundedChannelFullMode.Wait"/>
+    /// to provide backpressure: if the consumer is slow, the producer blocks rather than
+    /// dropping events.
+    /// </para>
+    /// </remarks>
     public async IAsyncEnumerable<ChatEvent> SubscribeToEventsAsync(
         [EnumeratorCancellation] CancellationToken ct = default)
     {
@@ -198,25 +214,62 @@ internal sealed class ChatService : IChatService
 
         while (!ct.IsCancellationRequested)
         {
-            // Collect events from a single SSE connection attempt.
-            // We cannot yield inside a try/catch block (C# language restriction), so we
-            // use an inner async enumerable and yield its results outside the try/catch.
-            var connectionResult = await TryOpenSseConnectionAsync(ct).ConfigureAwait(false);
+            // Create a bounded channel for this connection attempt.
+            // SingleWriter = true (producer task only), SingleReader = true (this loop only).
+            var channel = Channel.CreateBounded<ChatEvent>(new BoundedChannelOptions(64)
+            {
+                FullMode = BoundedChannelFullMode.Wait,
+                SingleWriter = true,
+                SingleReader = true,
+            });
 
-            if (connectionResult.WasCancelled)
+            var receivedAtLeastOneEvent = false;
+            var wasCancelled = false;
+
+            // Producer: runs OpenSseConnectionAsync and writes each event to the channel
+            // as it arrives — no buffering. Completes the channel writer when done.
+            var producerTask = Task.Run(async () =>
+            {
+                try
+                {
+                    await foreach (var chatEvent in OpenSseConnectionAsync(ct).ConfigureAwait(false))
+                    {
+                        receivedAtLeastOneEvent = true;
+                        await channel.Writer.WriteAsync(chatEvent, ct).ConfigureAwait(false);
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    wasCancelled = true;
+                }
+                catch (Exception)
+                {
+                    // Connection error — channel will complete, outer loop will backoff
+                }
+                finally
+                {
+                    // Always complete the writer so the consumer's ReadAllAsync terminates
+                    channel.Writer.TryComplete();
+                }
+            }, ct);
+
+            // Consumer: yield events in real-time as the producer writes them
+            await foreach (var chatEvent in channel.Reader.ReadAllAsync(ct).ConfigureAwait(false))
+            {
+                yield return chatEvent;
+            }
+
+            // Wait for the producer to fully stop before deciding on reconnect
+            await producerTask.ConfigureAwait(false);
+
+            if (wasCancelled || ct.IsCancellationRequested)
             {
                 SetConnected(false);
                 yield break;
             }
 
-            // Yield all events from this connection attempt
-            foreach (var chatEvent in connectionResult.Events)
-            {
-                yield return chatEvent;
-            }
-
             // Determine whether to reset or increment the failure counter
-            if (connectionResult.ReceivedAtLeastOneEvent)
+            if (receivedAtLeastOneEvent)
             {
                 consecutiveFailedAttempts = 0;
                 backoffMs = InitialBackoffMs;
@@ -249,65 +302,6 @@ internal sealed class ChatService : IChatService
         }
 
         SetConnected(false);
-    }
-
-    /// <summary>
-    /// Holds the result of a single SSE connection attempt.
-    /// </summary>
-    private sealed class SseConnectionResult
-    {
-        /// <summary>Gets the events received during this connection attempt.</summary>
-        public IReadOnlyList<ChatEvent> Events { get; init; } = [];
-
-        /// <summary>Gets a value indicating whether at least one event was received.</summary>
-        public bool ReceivedAtLeastOneEvent { get; init; }
-
-        /// <summary>Gets a value indicating whether the connection was cancelled via the token.</summary>
-        public bool WasCancelled { get; init; }
-    }
-
-    /// <summary>
-    /// Opens a single SSE connection, collects all events until the stream ends or an error occurs,
-    /// and returns them as a <see cref="SseConnectionResult"/>.
-    /// This method exists to work around the C# restriction that prevents <c>yield return</c>
-    /// inside a <c>try/catch</c> block.
-    /// </summary>
-    private async Task<SseConnectionResult> TryOpenSseConnectionAsync(CancellationToken ct)
-    {
-        var events = new List<ChatEvent>();
-
-        try
-        {
-            await foreach (var chatEvent in OpenSseConnectionAsync(ct).ConfigureAwait(false))
-            {
-                events.Add(chatEvent);
-            }
-
-            return new SseConnectionResult
-            {
-                Events = events,
-                ReceivedAtLeastOneEvent = events.Count > 0,
-                WasCancelled = false,
-            };
-        }
-        catch (OperationCanceledException)
-        {
-            return new SseConnectionResult
-            {
-                Events = events,
-                ReceivedAtLeastOneEvent = events.Count > 0,
-                WasCancelled = true,
-            };
-        }
-        catch (Exception)
-        {
-            return new SseConnectionResult
-            {
-                Events = events,
-                ReceivedAtLeastOneEvent = events.Count > 0,
-                WasCancelled = false,
-            };
-        }
     }
 
     /// <summary>

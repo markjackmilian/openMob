@@ -10,17 +10,18 @@
              x:DataType="viewmodels:ChatViewModel"
              Shell.NavBarIsVisible="False">
 
-  <Grid RowDefinitions="Auto,Auto,*">
+  <Grid RowDefinitions="Auto,Auto,Auto,*,Auto,Auto,Auto">
 
     <!-- ═══════════════════════════════════════════════════════════════
-         ROW 0 — Custom Topbar (56dp, background, bottom separator)
+         ROW 0 — Redesigned Header (REQ-017, REQ-018)
+         3-column: hamburger | session name (center) | context icon
          ═══════════════════════════════════════════════════════════════ -->
     <Grid Grid.Row="0"
-          ColumnDefinitions="Auto,*,Auto,Auto"
+          ColumnDefinitions="Auto,*,Auto"
           HeightRequest="56"
-           Padding="8,0"
-          BackgroundColor="{AppThemeBinding Light={StaticResource ColorBackgroundLight},
-                                            Dark={StaticResource ColorBackgroundDark}}">
+          Padding="8,0"
+          BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceLight},
+                                            Dark={StaticResource ColorSurfaceDark}}">
 
       <!-- Hamburger button (left) -->
       <ImageButton Grid.Column="0"
@@ -40,68 +41,33 @@
         </ImageButton.Source>
       </ImageButton>
 
-      <!-- Center: "openMob Sonnet >" — tappable model/title indicator -->
-      <HorizontalStackLayout Grid.Column="1"
-                             HorizontalOptions="Center"
-                             VerticalOptions="Center"
-                             Spacing="{StaticResource SpacingXs}">
-        <HorizontalStackLayout.GestureRecognizers>
-          <!-- Placeholder: will open ModelPickerSheet when command is available -->
-          <TapGestureRecognizer Command="{Binding ShowMoreMenuCommand}" />
-        </HorizontalStackLayout.GestureRecognizers>
+      <!-- Center: Session name (tappable to rename) -->
+      <Label Grid.Column="1"
+             Text="{Binding SessionName, FallbackValue='New chat'}"
+             Style="{StaticResource HeadlineLabel}"
+             HorizontalTextAlignment="Center"
+             VerticalTextAlignment="Center"
+             HorizontalOptions="Center"
+             VerticalOptions="Center"
+             LineBreakMode="TailTruncation"
+             MaximumWidthRequest="220"
+             AutomationId="ChatSessionName">
+        <Label.GestureRecognizers>
+          <TapGestureRecognizer Command="{Binding RenameSessionCommand}" />
+        </Label.GestureRecognizers>
+      </Label>
 
-        <Label Text="openMob"
-               FontFamily="InterSemiBold"
-               FontSize="{StaticResource FontSizeHeadline}"
-               TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight},
-                                            Dark={StaticResource ColorOnBackgroundDark}}"
-               VerticalOptions="Center" />
-
-        <!-- Model name — bound to SelectedModelName -->
-        <Label Text="{Binding SelectedModelName, TargetNullValue='Seleziona modello', FallbackValue='Seleziona modello'}"
-               FontFamily="InterSemiBold"
-               FontSize="{StaticResource FontSizeHeadline}"
-               TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight},
-                                             Dark={StaticResource ColorOnBackgroundDark}}"
-               VerticalOptions="Center" />
-
-        <!-- Chevron right disclosure indicator -->
-        <Label Text="{x:Static helpers:MaterialIcons.ChevronRight}"
-               FontFamily="MaterialSymbols"
-               FontSize="18"
-               TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
-                                            Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
-               VerticalOptions="Center" />
-      </HorizontalStackLayout>
-
-      <!-- New Chat button -->
+      <!-- Context icon (right) — opens Context Sheet -->
       <ImageButton Grid.Column="2"
-                   Command="{Binding NewChatCommand}"
+                   Command="{Binding OpenContextSheetCommand}"
                    WidthRequest="{StaticResource MinTouchTarget}"
                    HeightRequest="{StaticResource MinTouchTarget}"
                    BackgroundColor="Transparent"
-                   AutomationId="ChatNewChatButton"
-                   SemanticProperties.Description="Start a new chat">
+                   AutomationId="ChatContextButton"
+                   SemanticProperties.Description="Open context settings">
         <ImageButton.Source>
           <FontImageSource FontFamily="MaterialSymbols"
-                           Glyph="{x:Static helpers:MaterialIcons.Edit}"
-                           Size="24"
-                           Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight},
-                                                    Dark={StaticResource ColorOnBackgroundDark}}" />
-        </ImageButton.Source>
-      </ImageButton>
-
-      <!-- More Menu button -->
-      <ImageButton Grid.Column="3"
-                   Command="{Binding ShowMoreMenuCommand}"
-                   WidthRequest="{StaticResource MinTouchTarget}"
-                   HeightRequest="{StaticResource MinTouchTarget}"
-                   BackgroundColor="Transparent"
-                   AutomationId="ChatMoreMenuButton"
-                   SemanticProperties.Description="More options">
-        <ImageButton.Source>
-          <FontImageSource FontFamily="MaterialSymbols"
-                           Glyph="{x:Static helpers:MaterialIcons.MoreVert}"
+                           Glyph="{x:Static helpers:MaterialIcons.Tune}"
                            Size="24"
                            Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight},
                                                     Dark={StaticResource ColorOnBackgroundDark}}" />
@@ -118,41 +84,48 @@
                                       Dark={StaticResource ColorSeparatorDark}}" />
 
     <!-- ═══════════════════════════════════════════════════════════════
-         ROW 1 — Status Banner (visible only when StatusBanner != null)
+         ROW 1 — Context Status Bar (REQ-019 through REQ-022)
          ═══════════════════════════════════════════════════════════════ -->
-    <controls:StatusBannerView Grid.Row="1"
+    <controls:ContextStatusBarView Grid.Row="1"
+                                    x:Name="ContextStatusBar"
+                                    ProjectName="{Binding ProjectName}"
+                                    ModelName="{Binding SelectedModelName, TargetNullValue='No model', FallbackValue='No model'}"
+                                    ThinkingLevel="{Binding ThinkingLevel}"
+                                    TapCommand="{Binding OpenContextSheetCommand}" />
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         ROW 2 — Status Banner (existing, unchanged)
+         ═══════════════════════════════════════════════════════════════ -->
+    <controls:StatusBannerView Grid.Row="2"
                                IsVisible="{Binding StatusBanner, Converter={StaticResource NullToVisibilityConverter}}"
                                Message="{Binding StatusBanner.Message, FallbackValue='', TargetNullValue=''}"
                                ActionLabel="{Binding StatusBanner.ActionLabel, FallbackValue='', TargetNullValue=''}"
                                BannerType="{Binding StatusBanner.Type, FallbackValue=None}" />
 
     <!-- ═══════════════════════════════════════════════════════════════
-         ROW 2 — Body (message area + suggestion chips + input bar)
+         ROW 3 — Message area (star row)
          ═══════════════════════════════════════════════════════════════ -->
-    <Grid Grid.Row="2"
-          RowDefinitions="*,Auto,Auto,Auto"
+    <Grid Grid.Row="3"
+          RowDefinitions="*,Auto"
           BackgroundColor="{AppThemeBinding Light={StaticResource ColorBackgroundLight},
                                             Dark={StaticResource ColorBackgroundDark}}">
 
-      <!-- ─────────────────────────────────────────────────────────────
-           Row 0: Empty State — visible when IsEmpty = true
-           ───────────────────────────────────────────────────────────── -->
+      <!-- Empty State — visible when IsEmpty = true -->
       <controls:EmptyStateView Grid.Row="0"
                                IsVisible="{Binding IsEmpty}"
                                Title="How can I help you?" />
 
-      <!-- ─────────────────────────────────────────────────────────────
-           Row 0: Message CollectionView — visible when IsEmpty = false
-           ───────────────────────────────────────────────────────────── -->
+      <!-- Message CollectionView — visible when IsEmpty = false -->
       <CollectionView Grid.Row="0"
                       x:Name="MessagesCollectionView"
                       ItemsSource="{Binding Messages}"
                       ItemsUpdatingScrollMode="KeepLastItemInView"
                       SelectionMode="None"
+                      Scrolled="OnMessagesScrolled"
                       IsVisible="{Binding IsEmpty, Converter={StaticResource InvertedBoolConverter}}">
         <CollectionView.ItemTemplate>
           <DataTemplate x:DataType="models:ChatMessage">
-            <controls:MessageBubbleView
+            <controls:MessageBlockView
                 TextContent="{Binding TextContent}"
                 IsFromUser="{Binding IsFromUser}"
                 Timestamp="{Binding Timestamp}"
@@ -160,16 +133,93 @@
                 IsFirstInGroup="{Binding IsFirstInGroup}"
                 IsLastInGroup="{Binding IsLastInGroup}"
                 IsStreaming="{Binding IsStreaming}"
-                BubbleMaxWidth="{Binding Source={x:Reference ChatPageRoot}, Path=BubbleMaxWidth}" />
+                SenderType="{Binding SenderType}"
+                SenderName="{Binding SenderName}" />
           </DataTemplate>
         </CollectionView.ItemTemplate>
       </CollectionView>
 
       <!-- ─────────────────────────────────────────────────────────────
-           Row 1: Error Banner — visible when HasError = true
+           Row 1: Typing Indicator — visible when IsAiResponding = true
+           Positioned below the last message, left-aligned like an AI bubble.
            ───────────────────────────────────────────────────────────── -->
-      <Border Grid.Row="1"
-              IsVisible="{Binding HasError}"
+      <Grid Grid.Row="1"
+            x:Name="TypingIndicatorRow"
+            IsVisible="{Binding IsAiResponding}"
+            ColumnDefinitions="Auto,Auto"
+            ColumnSpacing="{StaticResource SpacingSm}"
+            HorizontalOptions="Start"
+            Padding="{StaticResource SpacingSm}"
+            AutomationId="TypingIndicator"
+            SemanticProperties.Description="AI assistant is typing">
+
+        <!-- Avatar (matches MessageBlockView avatar size) -->
+        <Border Grid.Column="0"
+                WidthRequest="{StaticResource SizeAvatarSmall}"
+                HeightRequest="{StaticResource SizeAvatarSmall}"
+                StrokeShape="RoundRectangle 14"
+                StrokeThickness="0"
+                BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceSecondaryLight},
+                                                 Dark={StaticResource ColorSurfaceSecondaryDark}}"
+                VerticalOptions="End"
+                Padding="0">
+          <Label Text="{x:Static helpers:MaterialIcons.SmartToy}"
+                 FontFamily="MaterialSymbols"
+                 FontSize="{StaticResource FontSizeCallout}"
+                 TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
+                                             Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
+                 HorizontalOptions="Center"
+                 VerticalOptions="Center"
+                 SemanticProperties.Description="AI assistant" />
+        </Border>
+
+        <!-- Bubble with three pulsing dots -->
+        <Border Grid.Column="1"
+                Style="{StaticResource MessageBubbleReceivedBorder}"
+                VerticalOptions="End">
+          <HorizontalStackLayout Spacing="{StaticResource SpacingXs}"
+                                 Padding="0,2,0,2">
+            <Ellipse x:Name="TypingDot1"
+                     WidthRequest="6"
+                     HeightRequest="6"
+                     Fill="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
+                                           Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
+                     Opacity="0.3" />
+            <Ellipse x:Name="TypingDot2"
+                     WidthRequest="6"
+                     HeightRequest="6"
+                     Fill="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
+                                           Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
+                     Opacity="0.3" />
+            <Ellipse x:Name="TypingDot3"
+                     WidthRequest="6"
+                     HeightRequest="6"
+                     Fill="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
+                                           Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
+                     Opacity="0.3" />
+          </HorizontalStackLayout>
+        </Border>
+
+      </Grid>
+
+    </Grid>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         ROW 4 — Subagent indicator (REQ-032)
+         ═══════════════════════════════════════════════════════════════ -->
+    <controls:SubagentIndicatorView Grid.Row="4"
+                                    SubagentName="{Binding SubagentName}"
+                                    IsActive="{Binding IsSubagentActive}"
+                                    StatusText="Working..."
+                                    IsVisible="{Binding IsSubagentActive}" />
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         ROW 5 — Error banner + Suggestion chips (existing, unchanged)
+         ═══════════════════════════════════════════════════════════════ -->
+    <VerticalStackLayout Grid.Row="5" Spacing="0">
+
+      <!-- Error Banner — visible when HasError = true -->
+      <Border IsVisible="{Binding HasError}"
               BackgroundColor="{AppThemeBinding Light={StaticResource ColorErrorContainerLight},
                                                Dark={StaticResource ColorErrorContainerDark}}"
               StrokeThickness="0"
@@ -202,11 +252,8 @@
         </Grid>
       </Border>
 
-      <!-- ─────────────────────────────────────────────────────────────
-           Row 2: Suggestion Chips — visible when IsEmpty = true
-           ───────────────────────────────────────────────────────────── -->
-      <CollectionView Grid.Row="2"
-                      ItemsSource="{Binding SuggestionChips}"
+      <!-- Suggestion Chips — visible when IsEmpty = true -->
+      <CollectionView ItemsSource="{Binding SuggestionChips}"
                       SelectionMode="None"
                       IsVisible="{Binding IsEmpty}"
                       HeightRequest="80"
@@ -226,16 +273,17 @@
         </CollectionView.ItemTemplate>
       </CollectionView>
 
-      <!-- ─────────────────────────────────────────────────────────────
-           Row 3: Input Bar — fixed at bottom
-           ───────────────────────────────────────────────────────────── -->
-      <controls:InputBarView Grid.Row="3"
-                              Text="{Binding InputText, Mode=TwoWay}"
-                              SendCommand="{Binding SendMessageCommand}"
-                              IsInputEnabled="{Binding IsAiResponding, Converter={StaticResource InvertedBoolConverter}}"
-                              Placeholder="Message..." />
+    </VerticalStackLayout>
 
-    </Grid>
+    <!-- ═══════════════════════════════════════════════════════════════
+         ROW 6 — Input Bar (modified with command palette button)
+         ═══════════════════════════════════════════════════════════════ -->
+    <controls:InputBarView Grid.Row="6"
+                            Text="{Binding InputText, Mode=TwoWay}"
+                            SendCommand="{Binding SendMessageCommand}"
+                            IsInputEnabled="{Binding IsAiResponding, Converter={StaticResource InvertedBoolConverter}}"
+                            OpenCommandPaletteCommand="{Binding OpenCommandPaletteCommand}"
+                            Placeholder="Message..." />
 
   </Grid>
 

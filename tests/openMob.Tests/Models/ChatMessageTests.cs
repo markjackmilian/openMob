@@ -26,10 +26,9 @@ public sealed class ChatMessageTests
             ? new { created = 1710576000000L, completed = 1710576030000L }
             : (object)new { created = 1710576000000L };
         var timeJson = JsonSerializer.SerializeToElement(timeObj);
-        var textPayload = JsonSerializer.SerializeToElement(new { type = "text", text });
 
         var info = new MessageInfoDto(Id: id, SessionId: sessionId, Role: role, Time: timeJson);
-        var part = new PartDto(Id: $"part-{id}", SessionId: sessionId, MessageId: id, Type: "text", Payload: textPayload);
+        var part = new PartDto(Id: $"part-{id}", SessionId: sessionId, MessageId: id, Type: "text", Text: text);
         return new MessageWithPartsDto(Info: info, Parts: new[] { part });
     }
 
@@ -42,10 +41,9 @@ public sealed class ChatMessageTests
         string role = "assistant")
     {
         var timeJson = JsonSerializer.SerializeToElement(new { created = 1710576000000L, completed = 1710576030000L });
-        var toolPayload = JsonSerializer.SerializeToElement(new { type = "tool", name = "read_file" });
 
         var info = new MessageInfoDto(Id: id, SessionId: sessionId, Role: role, Time: timeJson);
-        var part = new PartDto(Id: $"part-{id}", SessionId: sessionId, MessageId: id, Type: "tool", Payload: toolPayload);
+        var part = new PartDto(Id: $"part-{id}", SessionId: sessionId, MessageId: id, Type: "tool");
         return new MessageWithPartsDto(Info: info, Parts: new[] { part });
     }
 
@@ -84,14 +82,12 @@ public sealed class ChatMessageTests
     {
         // Arrange
         var timeJson = JsonSerializer.SerializeToElement(new { created = 1710576000000L });
-        var payload1 = JsonSerializer.SerializeToElement(new { type = "text", text = "Hello " });
-        var payload2 = JsonSerializer.SerializeToElement(new { type = "text", text = "World" });
 
         var info = new MessageInfoDto(Id: "msg-1", SessionId: "sess-1", Role: "user", Time: timeJson);
         var parts = new[]
         {
-            new PartDto(Id: "p1", SessionId: "sess-1", MessageId: "msg-1", Type: "text", Payload: payload1),
-            new PartDto(Id: "p2", SessionId: "sess-1", MessageId: "msg-1", Type: "text", Payload: payload2),
+            new PartDto(Id: "p1", SessionId: "sess-1", MessageId: "msg-1", Type: "text", Text: "Hello "),
+            new PartDto(Id: "p2", SessionId: "sess-1", MessageId: "msg-1", Type: "text", Text: "World"),
         };
         var dto = new MessageWithPartsDto(Info: info, Parts: parts);
 
@@ -255,5 +251,81 @@ public sealed class ChatMessageTests
 
         // Assert
         result.Should().BeEmpty();
+    }
+
+    // ─── FromDto — SenderType mapping [Chat Page Redesign] ───────────────────
+
+    [Fact]
+    public void FromDto_WhenRoleIsUser_SetsSenderTypeToUser()
+    {
+        // Arrange
+        var dto = BuildMessageDto(role: "user");
+
+        // Act
+        var result = ChatMessage.FromDto(dto);
+
+        // Assert
+        result.SenderType.Should().Be(SenderType.User);
+    }
+
+    [Fact]
+    public void FromDto_WhenRoleIsAssistant_SetsSenderTypeToAgent()
+    {
+        // Arrange
+        var dto = BuildMessageDto(role: "assistant");
+
+        // Act
+        var result = ChatMessage.FromDto(dto);
+
+        // Assert
+        result.SenderType.Should().Be(SenderType.Agent);
+    }
+
+    [Fact]
+    public void FromDto_WhenRoleIsUser_SetsSenderNameToYou()
+    {
+        // Arrange
+        var dto = BuildMessageDto(role: "user");
+
+        // Act
+        var result = ChatMessage.FromDto(dto);
+
+        // Assert
+        result.SenderName.Should().Be("You");
+    }
+
+    [Fact]
+    public void FromDto_WhenRoleIsAssistant_SetsSenderNameToAssistant()
+    {
+        // Arrange
+        var dto = BuildMessageDto(role: "assistant");
+
+        // Act
+        var result = ChatMessage.FromDto(dto);
+
+        // Assert
+        result.SenderName.Should().Be("Assistant");
+    }
+
+    // ─── CreateOptimistic — SenderType [Chat Page Redesign] ──────────────────
+
+    [Fact]
+    public void CreateOptimistic_SetsSenderTypeToUser()
+    {
+        // Act
+        var result = ChatMessage.CreateOptimistic("sess-1", "Hello");
+
+        // Assert
+        result.SenderType.Should().Be(SenderType.User);
+    }
+
+    [Fact]
+    public void CreateOptimistic_SetsSenderNameToYou()
+    {
+        // Act
+        var result = ChatMessage.CreateOptimistic("sess-1", "Hello");
+
+        // Assert
+        result.SenderName.Should().Be("You");
     }
 }

@@ -179,6 +179,32 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     /// <summary>Gets whether an error message is currently displayed.</summary>
     public bool HasError => ErrorMessage is not null;
 
+    // ─── Chat Page Redesign Properties [REQ-019, REQ-022, REQ-028, REQ-032] ──
+
+    /// <summary>Gets or sets the current thinking/reasoning level, synced from Context Sheet.</summary>
+    [ObservableProperty]
+    private ThinkingLevel _thinkingLevel = ThinkingLevel.Medium;
+
+    /// <summary>Gets or sets whether auto-accept is enabled for agent suggestions.</summary>
+    [ObservableProperty]
+    private bool _autoAccept;
+
+    /// <summary>Gets or sets whether a subagent is currently active (streaming messages).</summary>
+    [ObservableProperty]
+    private bool _isSubagentActive;
+
+    /// <summary>Gets or sets the display name of the active subagent.</summary>
+    [ObservableProperty]
+    private string _subagentName = string.Empty;
+
+    /// <summary>
+    /// Gets or sets whether the context status bar is visible (REQ-022).
+    /// Collapses when scrolling down, reappears when scrolling up or at top.
+    /// Always visible when the message list is empty (REQ-037).
+    /// </summary>
+    [ObservableProperty]
+    private bool _isContextBarVisible = true;
+
     // ─── Session Navigation [REQ-005] ─────────────────────────────────────────
 
     /// <summary>
@@ -500,17 +526,20 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
             {
                 optimisticMessage.DeliveryStatus = MessageDeliveryStatus.Error;
                 ErrorMessage = MapChatServiceError(result.Error);
+                IsAiResponding = false;
             }
         }
         catch (OperationCanceledException)
         {
             // Expected when the operation is cancelled.
             optimisticMessage.DeliveryStatus = MessageDeliveryStatus.Error;
+            IsAiResponding = false;
         }
         catch (Exception ex)
         {
             optimisticMessage.DeliveryStatus = MessageDeliveryStatus.Error;
             ErrorMessage = "Failed to send message. Please try again.";
+            IsAiResponding = false;
             SentryHelper.CaptureException(ex, new Dictionary<string, object>
             {
                 ["context"] = "ChatViewModel.SendMessageAsync",
@@ -575,6 +604,57 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     private void DismissError()
     {
         ErrorMessage = null;
+    }
+
+    // ─── Chat Page Redesign Commands [REQ-023, REQ-025, REQ-029, REQ-022] ────
+
+    /// <summary>
+    /// Renames the current session (REQ-023). Opens a rename dialog pre-filled
+    /// with the current session name, then updates via the session service.
+    /// </summary>
+    /// <param name="ct">Cancellation token.</param>
+    [RelayCommand]
+    private async Task RenameSessionAsync(CancellationToken ct)
+    {
+        await HandleRenameSessionAsync(ct);
+    }
+
+    /// <summary>
+    /// Opens the Context Sheet bottom sheet (REQ-025).
+    /// </summary>
+    /// <param name="ct">Cancellation token.</param>
+    [RelayCommand]
+    private async Task OpenContextSheetAsync(CancellationToken ct)
+    {
+        await _popupService.ShowContextSheetAsync(ct);
+    }
+
+    /// <summary>
+    /// Opens the Command Palette bottom sheet (REQ-029).
+    /// </summary>
+    /// <param name="ct">Cancellation token.</param>
+    [RelayCommand]
+    private async Task OpenCommandPaletteAsync(CancellationToken ct)
+    {
+        await _popupService.ShowCommandPaletteAsync(ct);
+    }
+
+    /// <summary>
+    /// Handles scroll direction changes to show/hide the context status bar (REQ-022).
+    /// When scrolling down and messages exist, the bar collapses.
+    /// When scrolling up or at the top, the bar reappears.
+    /// When the message list is empty, the bar always remains visible (REQ-037).
+    /// </summary>
+    /// <param name="isScrollingDown"><c>true</c> if the user is scrolling down; <c>false</c> if scrolling up or at top.</param>
+    public void OnScrollDirectionChanged(bool isScrollingDown)
+    {
+        if (IsEmpty)
+        {
+            IsContextBarVisible = true;
+            return;
+        }
+
+        IsContextBarVisible = !isScrollingDown;
     }
 
     // ─── SSE Subscription [REQ-011] ───────────────────────────────────────────
@@ -666,6 +746,22 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
             {
                 IsAiResponding = false;
             }
+
+            // Subagent detection: if the message is from a subagent sender,
+            // track the active subagent state. When the message completes
+            // (has a completed timestamp), clear the subagent indicator.
+            if (existing.SenderType == SenderType.Subagent)
+            {
+                if (existing.IsStreaming)
+                {
+                    IsSubagentActive = true;
+                    SubagentName = existing.SenderName;
+                }
+                else
+                {
+                    IsSubagentActive = false;
+                }
+            }
         });
     }
 
@@ -686,11 +782,10 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
             if (existing is not null &&
                 string.Equals(e.Part.Type, "text", StringComparison.OrdinalIgnoreCase))
             {
-                // Extract text from the part payload
-                if (e.Part.Payload.ValueKind == JsonValueKind.Object &&
-                    e.Part.Payload.TryGetProperty("text", out var textEl))
+                // The opencode server returns text directly in the "text" field of the part DTO.
+                if (!string.IsNullOrEmpty(e.Part.Text))
                 {
-                    existing.TextContent = textEl.GetString() ?? string.Empty;
+                    existing.TextContent = e.Part.Text;
                 }
 
                 existing.IsStreaming = true;

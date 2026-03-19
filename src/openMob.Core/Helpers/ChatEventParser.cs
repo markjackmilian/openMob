@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using openMob.Core.Infrastructure.Http.Dtos.Opencode;
 using openMob.Core.Models;
@@ -26,20 +27,43 @@ internal sealed class ChatEventParser
         // so dto.EventType is always "unknown". The real event type is in data.payload.type
         // and the event data is in data.payload.properties.
         if (dto.Data is not { } envelope)
+        {
+#if DEBUG
+            Debug.WriteLine("[SSE_PARSER] dto.Data is null — returning UnknownEvent");
+#endif
             return MakeUnknown(dto);
+        }
+
+#if DEBUG
+        Debug.WriteLine($"[SSE_PARSER] raw envelope JSON: {envelope}");
+#endif
 
         if (!envelope.TryGetProperty("payload", out var payloadEl) ||
             payloadEl.ValueKind != JsonValueKind.Object)
+        {
+#if DEBUG
+            Debug.WriteLine($"[SSE_PARSER] no 'payload' object found in envelope — top-level keys: {string.Join(", ", envelope.EnumerateObject().Select(p => p.Name))}");
+#endif
             return MakeUnknown(dto);
+        }
 
         if (!payloadEl.TryGetProperty("type", out var typeEl) ||
             typeEl.ValueKind != JsonValueKind.String)
+        {
+#if DEBUG
+            Debug.WriteLine($"[SSE_PARSER] no 'type' string in payload — payload keys: {string.Join(", ", payloadEl.EnumerateObject().Select(p => p.Name))}");
+#endif
             return MakeUnknown(dto);
+        }
 
         var eventType = typeEl.GetString() ?? string.Empty;
 
         // Extract properties element (may be absent for events with no payload)
         payloadEl.TryGetProperty("properties", out var propertiesEl);
+
+#if DEBUG
+        Debug.WriteLine($"[SSE_PARSER] eventType='{eventType}' hasProperties={propertiesEl.ValueKind != JsonValueKind.Undefined}");
+#endif
 
         // Build a synthetic DTO with the unwrapped type and properties as Data
         var unwrapped = new OpencodeEventDto(
@@ -47,7 +71,7 @@ internal sealed class ChatEventParser
             EventId: dto.EventId,
             Data: propertiesEl.ValueKind == JsonValueKind.Undefined ? null : propertiesEl);
 
-        return eventType switch
+        var result = eventType switch
         {
             "server.connected" => new ServerConnectedEvent
             {
@@ -69,6 +93,12 @@ internal sealed class ChatEventParser
                 RawData = dto.Data,
             },
         };
+
+#if DEBUG
+        Debug.WriteLine($"[SSE_PARSER] parsed as {result.GetType().Name} (Type={result.Type})");
+#endif
+
+        return result;
     }
 
     private static ChatEvent ParseMessageUpdated(OpencodeEventDto dto)

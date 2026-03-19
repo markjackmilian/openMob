@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -676,13 +677,20 @@ internal sealed class OpencodeApiClient : IOpencodeApiClient
                 }
                 else if (line.StartsWith("data:", StringComparison.Ordinal))
                 {
-                    dataLines.AppendLine(line["data:".Length..].Trim());
+                    var dataChunk = line["data:".Length..].Trim();
+#if DEBUG
+                    System.Diagnostics.Debug.WriteLine($"[SSE_RAW] data chunk: {dataChunk}");
+#endif
+                    dataLines.AppendLine(dataChunk);
                 }
                 else if (line.Length == 0 && (eventType is not null || dataLines.Length > 0))
                 {
                     // Blank line signals end of event — dispatch it
                     JsonElement? data = null;
                     var dataStr = dataLines.ToString().Trim();
+#if DEBUG
+                    System.Diagnostics.Debug.WriteLine($"[SSE_RAW] event boundary — type='{eventType ?? "(none)"}' id='{eventId ?? "(none)"}' data={dataStr}");
+#endif
 
                     if (!string.IsNullOrEmpty(dataStr))
                     {

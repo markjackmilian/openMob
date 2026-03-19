@@ -71,6 +71,10 @@ public sealed partial class ServerManagementViewModel : ObservableObject
     [ObservableProperty]
     private bool _scanCompleted;
 
+    /// <summary>Gets or sets the error message from the last failed <see cref="LoadAsync"/> call. <c>null</c> when no error has occurred.</summary>
+    [ObservableProperty]
+    private string? _loadError;
+
     /// <summary>Gets whether any servers were discovered in the last scan.</summary>
     public bool HasDiscoveredServers => DiscoveredServers.Count > 0;
 
@@ -85,6 +89,7 @@ public sealed partial class ServerManagementViewModel : ObservableObject
     private async Task LoadAsync(CancellationToken ct)
     {
         IsLoading = true;
+        LoadError = null;
 
         try
         {
@@ -95,6 +100,7 @@ public sealed partial class ServerManagementViewModel : ObservableObject
         }
         catch (Exception ex)
         {
+            LoadError = "Could not load servers. Please try again.";
             SentryHelper.CaptureException(ex, new Dictionary<string, object>
             {
                 ["context"] = "ServerManagementViewModel.LoadAsync",

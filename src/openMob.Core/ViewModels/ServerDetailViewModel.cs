@@ -495,6 +495,7 @@ public sealed partial class ServerDetailViewModel : ObservableObject
         }
         catch (Exception ex)
         {
+            ValidationError = $"Delete failed: {ex.Message}";
             SentryHelper.CaptureException(ex, new Dictionary<string, object>
             {
                 ["context"] = "ServerDetailViewModel.DeleteCommand",

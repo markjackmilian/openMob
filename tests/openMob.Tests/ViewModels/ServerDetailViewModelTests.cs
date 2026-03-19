@@ -1,4 +1,5 @@
 using System.Net;
+using NSubstitute.ExceptionExtensions;
 using openMob.Core.Services;
 using openMob.Core.ViewModels;
 using openMob.Tests.Helpers;
@@ -790,5 +791,34 @@ public sealed class ServerDetailViewModelTests
         // Assert
         await _repository.Received(1).DeleteAsync("id1", Arg.Any<CancellationToken>());
         await _navigationService.Received(1).PopAsync(Arg.Any<CancellationToken>());
+        sut.IsDeleting.Should().BeFalse();
+        sut.ValidationError.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task DeleteCommand_WhenRepositoryThrows_SetsValidationErrorAndDoesNotNavigate()
+    {
+        // Arrange
+        var dto = TestDataBuilder.CreateServerConnectionDto("id1");
+        _repository.GetByIdAsync("id1", Arg.Any<CancellationToken>())
+            .Returns(dto);
+        _repository.DeleteAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .ThrowsAsync(new InvalidOperationException("DB error"));
+        _popupService.ShowConfirmDeleteAsync(
+                Arg.Any<string>(),
+                Arg.Any<string>(),
+                Arg.Any<CancellationToken>())
+            .Returns(true);
+
+        var sut = CreateSut();
+        await sut.InitialiseAsync("id1");
+
+        // Act
+        await sut.DeleteCommand.ExecuteAsync(null);
+
+        // Assert
+        sut.ValidationError.Should().Be("Delete failed: DB error");
+        await _navigationService.DidNotReceive().PopAsync(Arg.Any<CancellationToken>());
+        sut.IsDeleting.Should().BeFalse();
     }
 }

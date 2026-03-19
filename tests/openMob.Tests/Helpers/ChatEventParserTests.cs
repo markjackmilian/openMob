@@ -98,8 +98,6 @@ public sealed class ChatEventParserTests
 
     // ─── server.connected ─────────────────────────────────────────────────────
 
-    // ─── server.connected ─────────────────────────────────────────────────────
-
     [Fact]
     public void Parse_WhenEventTypeIsServerConnected_ReturnsServerConnectedEvent()
     {

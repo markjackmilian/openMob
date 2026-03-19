@@ -735,7 +735,14 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
 
             if (existing is not null)
             {
-                existing.TextContent = ChatMessage.ExtractTextContent(e.Message.Parts ?? []);
+                // Only overwrite TextContent if the event carries actual text parts.
+                // When Parts is null or empty (intermediate streaming events), preserve
+                // the text already accumulated via message.part.delta events.
+                var extractedText = ChatMessage.ExtractTextContent(e.Message.Parts ?? []);
+                if (!string.IsNullOrEmpty(extractedText))
+                {
+                    existing.TextContent = extractedText;
+                }
                 existing.IsStreaming = !existing.IsFromUser && !ChatMessage.HasCompletedTimestamp(e.Message.Info.Time);
                 existing.DeliveryStatus = MessageDeliveryStatus.Sent;
             }

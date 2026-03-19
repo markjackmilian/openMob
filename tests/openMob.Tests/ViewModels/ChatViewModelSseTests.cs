@@ -412,4 +412,80 @@ public sealed class ChatViewModelSseTests
         var msg = _sut.Messages.First(m => m.Id == "msg-1");
         msg.TextContent.Should().Be("Hello World");
     }
+
+    // ─── Optimistic message reconciliation ───────────────────────────────────────
+
+    [Fact]
+    public async Task HandleMessageUpdated_WhenUserMessageArrivesWithServerIdAndOptimisticExists_ReplacesOptimisticMessage()
+    {
+        // Arrange
+        _chatService
+            .GetMessagesAsync("sess-1", Arg.Any<int?>(), Arg.Any<CancellationToken>())
+            .Returns(ChatServiceResult<IReadOnlyList<MessageWithPartsDto>>.Ok(new List<MessageWithPartsDto>()));
+
+        var timeJson = JsonSerializer.SerializeToElement(new { created = 1710576000000L });
+        var info = new MessageInfoDto(Id: "server-msg-1", SessionId: "sess-1", Role: "user", Time: timeJson);
+        var part = new PartDto(Id: "part-1", SessionId: "sess-1", MessageId: "server-msg-1", Type: "text", Text: "hello");
+        var dto = new MessageWithPartsDto(Info: info, Parts: new[] { part });
+        var messageUpdatedEvent = new MessageUpdatedEvent { Message = dto };
+
+        _chatService
+            .SubscribeToEventsAsync(Arg.Any<CancellationToken>())
+            .Returns(YieldEventsWithDelay(100, messageUpdatedEvent));
+
+        // Act — start session, then add optimistic message before SSE fires
+        _sut.SetSession("sess-1");
+
+        var optimistic = ChatMessage.CreateOptimistic("sess-1", "hello");
+        _sut.Messages.Add(optimistic);
+
+        await Task.Delay(300); // wait for SSE to fire and be processed
+
+        // Assert — optimistic placeholder replaced in-place; no duplicate
+        _sut.Messages.Should().HaveCount(1);
+        _sut.Messages.First().Id.Should().Be("server-msg-1");
+    }
+
+    [Fact]
+    public async Task HandleMessageUpdated_WhenUserMessageArrivesWithServerIdAndNoOptimisticExists_AddsMessage()
+    {
+        // Arrange — no existing messages, no optimistic placeholder
+        _chatService
+            .GetMessagesAsync("sess-1", Arg.Any<int?>(), Arg.Any<CancellationToken>())
+            .Returns(ChatServiceResult<IReadOnlyList<MessageWithPartsDto>>.Ok(new List<MessageWithPartsDto>()));
+
+        var timeJson = JsonSerializer.SerializeToElement(new { created = 1710576000000L });
+        var info = new MessageInfoDto(Id: "server-msg-1", SessionId: "sess-1", Role: "user", Time: timeJson);
+        var part = new PartDto(Id: "part-1", SessionId: "sess-1", MessageId: "server-msg-1", Type: "text", Text: "hello");
+        var dto = new MessageWithPartsDto(Info: info, Parts: new[] { part });
+        var messageUpdatedEvent = new MessageUpdatedEvent { Message = dto };
+
+        _chatService
+            .SubscribeToEventsAsync(Arg.Any<CancellationToken>())
+            .Returns(YieldEventsWithDelay(100, messageUpdatedEvent));
+
+        // Act
+        _sut.SetSession("sess-1");
+
+        await Task.Delay(300); // wait for SSE to fire and be processed
+
+        // Assert — message added normally; exactly one entry
+        _sut.Messages.Should().HaveCount(1);
+        _sut.Messages.First().Id.Should().Be("server-msg-1");
+    }
+
+    /// <summary>
+    /// Produces an <see cref="IAsyncEnumerable{ChatEvent}"/> that waits
+    /// <paramref name="delayMs"/> milliseconds before yielding each event.
+    /// Used to simulate SSE events arriving after an optimistic message is added.
+    /// </summary>
+    private static async IAsyncEnumerable<ChatEvent> YieldEventsWithDelay(int delayMs, params ChatEvent[] events)
+    {
+        await Task.Delay(delayMs);
+        foreach (var e in events)
+        {
+            yield return e;
+            await Task.Yield();
+        }
+    }
 }

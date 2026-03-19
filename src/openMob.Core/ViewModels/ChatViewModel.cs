@@ -676,7 +676,10 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
             await foreach (var chatEvent in _chatService.SubscribeToEventsAsync(ct).ConfigureAwait(false))
             {
                 // Diagnostic: log every SSE event received
-                System.Diagnostics.Debug.WriteLine($"[SSE] event received: {chatEvent.GetType().Name} (type={chatEvent.Type})");
+                var rawInfo = chatEvent is openMob.Core.Models.UnknownEvent unk
+                    ? $" rawType='{unk.RawType}' rawData={unk.RawData?.ToString()?.Substring(0, Math.Min(200, unk.RawData?.ToString()?.Length ?? 0))}"
+                    : string.Empty;
+                System.Diagnostics.Debug.WriteLine($"[SSE] event received: {chatEvent.GetType().Name} (type={chatEvent.Type}){rawInfo}");
 
                 switch (chatEvent)
                 {

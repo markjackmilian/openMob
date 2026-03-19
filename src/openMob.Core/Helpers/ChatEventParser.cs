@@ -20,6 +20,10 @@ internal sealed class ChatEventParser
     /// </returns>
     internal static ChatEvent Parse(OpencodeEventDto dto)
     {
+        // Diagnostic: log every raw event type received from the server
+        System.Diagnostics.Debug.WriteLine(
+            $"[ChatEventParser] EventType='{dto.EventType}' EventId='{dto.EventId}' Data={dto.Data?.ToString()?.Substring(0, Math.Min(300, dto.Data?.ToString()?.Length ?? 0))}");
+
         return dto.EventType switch
         {
             "server.connected" => new ServerConnectedEvent

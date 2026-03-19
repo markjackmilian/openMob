@@ -284,7 +284,7 @@ public sealed class ChatViewModelSseTests
         // Arrange
         var existingMessages = new List<MessageWithPartsDto>
         {
-            BuildMessageDto(id: "msg-1", sessionId: "sess-1", role: "assistant", text: "existing"),
+            BuildMessageDto(id: "msg-1", sessionId: "sess-1", role: "assistant", text: "existing", completed: true),
         };
         var partDto = new PartDto(
             Id: "part-1",

@@ -447,6 +447,40 @@ public sealed class ChatViewModelSseTests
     }
 
     [Fact]
+    public async Task HandleMessageUpdated_WhenUserMessageArrivesWithNullPartsAndOptimisticExists_ReplacesOptimisticMessage()
+    {
+        // Arrange — simulate the real production scenario:
+        // server sends message.updated for user message with Parts = null
+        _chatService
+            .GetMessagesAsync("sess-1", Arg.Any<int?>(), Arg.Any<CancellationToken>())
+            .Returns(ChatServiceResult<IReadOnlyList<MessageWithPartsDto>>.Ok(new List<MessageWithPartsDto>()));
+
+        var timeJson = JsonSerializer.SerializeToElement(new { created = 1710576000000L });
+        var info = new MessageInfoDto(Id: "server-msg-1", SessionId: "sess-1", Role: "user", Time: timeJson);
+        // Parts = null — this is what the server actually sends
+        var emptyPartsDto = new MessageWithPartsDto(Info: info, Parts: null);
+        var messageUpdatedEvent = new MessageUpdatedEvent { Message = emptyPartsDto };
+
+        _chatService
+            .SubscribeToEventsAsync(Arg.Any<CancellationToken>())
+            .Returns(YieldEventsWithDelay(100, messageUpdatedEvent));
+
+        // Act
+        _sut.SetSession("sess-1");
+
+        // Add optimistic message after session is set (simulating SendMessageAsync)
+        var optimistic = ChatMessage.CreateOptimistic("sess-1", "salutami con ciao bello");
+        _sut.Messages.Add(optimistic);
+
+        await Task.Delay(300);
+
+        // Assert — optimistic placeholder replaced, not duplicated
+        _sut.Messages.Should().HaveCount(1);
+        _sut.Messages.First().Id.Should().Be("server-msg-1");
+        _sut.Messages.First().IsOptimistic.Should().BeFalse();
+    }
+
+    [Fact]
     public async Task HandleMessageUpdated_WhenUserMessageArrivesWithServerIdAndNoOptimisticExists_AddsMessage()
     {
         // Arrange — no existing messages, no optimistic placeholder

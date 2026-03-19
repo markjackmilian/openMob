@@ -375,11 +375,10 @@ public sealed class ChatServiceTests
     [Fact]
     public async Task SubscribeToEventsAsync_WhenServerConnectedEventReceived_SetsIsConnectedTrue()
     {
-        // Arrange
+        // Arrange — server sends envelope format: data: {"payload":{"type":"server.connected","properties":{}}}
         const string sseBody =
-            "event: server.connected\r\n" +
             "id: evt-1\r\n" +
-            "data: {}\r\n" +
+            "data: {\"payload\":{\"type\":\"server.connected\",\"properties\":{}}}\r\n" +
             "\r\n";
 
         SetupConnectionManager();
@@ -410,11 +409,10 @@ public sealed class ChatServiceTests
     [Fact]
     public async Task SubscribeToEventsAsync_WhenServerConnectedEventReceived_RaisesIsConnectedChangedWithTrue()
     {
-        // Arrange
+        // Arrange — server sends envelope format
         const string sseBody =
-            "event: server.connected\r\n" +
             "id: evt-1\r\n" +
-            "data: {}\r\n" +
+            "data: {\"payload\":{\"type\":\"server.connected\",\"properties\":{}}}\r\n" +
             "\r\n";
 
         SetupConnectionManager();
@@ -448,9 +446,8 @@ public sealed class ChatServiceTests
         // timeout CTS (500 ms) to stop the loop after the first reconnect attempt,
         // allowing SetConnected(false) to be called through the normal stream-end path.
         const string sseBody =
-            "event: server.connected\r\n" +
             "id: evt-1\r\n" +
-            "data: {}\r\n" +
+            "data: {\"payload\":{\"type\":\"server.connected\",\"properties\":{}}}\r\n" +
             "\r\n";
 
         SetupConnectionManager();
@@ -516,15 +513,13 @@ public sealed class ChatServiceTests
     [Fact]
     public async Task SubscribeToEventsAsync_YieldsTypedChatEvents()
     {
-        // Arrange — server.connected followed by message.updated
+        // Arrange — server.connected followed by message.updated, both in envelope format
         const string sseBody =
-            "event: server.connected\r\n" +
             "id: evt-1\r\n" +
-            "data: {}\r\n" +
+            "data: {\"payload\":{\"type\":\"server.connected\",\"properties\":{}}}\r\n" +
             "\r\n" +
-            "event: message.updated\r\n" +
             "id: evt-2\r\n" +
-            "data: {\"info\":{\"id\":\"msg1\",\"sessionID\":\"s1\",\"role\":\"user\",\"time\":{\"created\":0}},\"parts\":[]}\r\n" +
+            "data: {\"payload\":{\"type\":\"message.updated\",\"properties\":{\"info\":{\"id\":\"msg1\",\"sessionID\":\"s1\",\"role\":\"user\",\"time\":{\"created\":0}},\"parts\":[]}}}\r\n" +
             "\r\n";
 
         SetupConnectionManager();

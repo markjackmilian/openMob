@@ -117,6 +117,31 @@ public sealed record PermissionUpdatedEvent : ChatEvent
 }
 
 /// <summary>
+/// Raised when an incremental text delta arrives for a message part during streaming.
+/// This is the primary real-time streaming event — each delta contains a small chunk of text.
+/// </summary>
+public sealed record MessagePartDeltaEvent : ChatEvent
+{
+    /// <inheritdoc />
+    public override ChatEventType Type => ChatEventType.MessagePartDelta;
+
+    /// <summary>Gets the session ID this delta belongs to.</summary>
+    public required string SessionId { get; init; }
+
+    /// <summary>Gets the message ID this delta belongs to.</summary>
+    public required string MessageId { get; init; }
+
+    /// <summary>Gets the part ID this delta updates.</summary>
+    public required string PartId { get; init; }
+
+    /// <summary>Gets the field being updated (typically <c>"text"</c>).</summary>
+    public required string Field { get; init; }
+
+    /// <summary>Gets the incremental text chunk.</summary>
+    public required string Delta { get; init; }
+}
+
+/// <summary>
 /// Represents an unrecognised SSE event type. Raw data is preserved for diagnostics.
 /// </summary>
 public sealed record UnknownEvent : ChatEvent

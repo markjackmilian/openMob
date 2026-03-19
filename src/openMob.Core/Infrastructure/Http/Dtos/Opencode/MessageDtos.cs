@@ -58,5 +58,5 @@ public sealed record MessageInfoDto(
 /// <param name="Parts">The ordered list of parts that make up the message content.</param>
 public sealed record MessageWithPartsDto(
     [property: JsonPropertyName("info")] MessageInfoDto Info,
-    [property: JsonPropertyName("parts")] IReadOnlyList<PartDto> Parts
+    [property: JsonPropertyName("parts")] IReadOnlyList<PartDto>? Parts = null
 );

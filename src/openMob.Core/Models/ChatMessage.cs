@@ -64,7 +64,7 @@ public sealed partial class ChatMessage : ObservableObject
     /// <param name="timestamp">The creation timestamp.</param>
     /// <param name="deliveryStatus">The initial delivery status.</param>
     /// <param name="isStreaming">Whether the message is currently being streamed.</param>
-    private ChatMessage(
+    internal ChatMessage(
         string id,
         string sessionId,
         bool isFromUser,
@@ -99,8 +99,8 @@ public sealed partial class ChatMessage : ObservableObject
 
         var isFromUser = string.Equals(dto.Info.Role, "user", StringComparison.OrdinalIgnoreCase);
 
-        // Extract text content by concatenating all "text" parts
-        var textContent = ExtractTextContent(dto.Parts);
+        // Extract text content by concatenating all "text" parts (Parts may be null in streaming events)
+        var textContent = ExtractTextContent(dto.Parts ?? []);
 
         // Extract timestamp from the "created" field in the Time JSON
         var timestamp = ExtractTimestamp(dto.Info.Time);

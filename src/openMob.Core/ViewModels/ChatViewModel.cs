@@ -687,6 +687,10 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
                         HandleMessageUpdated(e);
                         break;
 
+                    case MessagePartDeltaEvent e:
+                        HandleMessagePartDelta(e);
+                        break;
+
                     case MessagePartUpdatedEvent e:
                         HandleMessagePartUpdated(e);
                         break;
@@ -738,7 +742,7 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
 
             if (existing is not null)
             {
-                existing.TextContent = ChatMessage.ExtractTextContent(e.Message.Parts);
+                existing.TextContent = ChatMessage.ExtractTextContent(e.Message.Parts ?? []);
                 existing.IsStreaming = !existing.IsFromUser && !ChatMessage.HasCompletedTimestamp(e.Message.Info.Time);
                 existing.DeliveryStatus = MessageDeliveryStatus.Sent;
             }
@@ -799,6 +803,48 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
                 }
 
                 existing.IsStreaming = true;
+            }
+        });
+    }
+
+    /// <summary>
+    /// Handles a <see cref="MessagePartDeltaEvent"/> from the SSE stream.
+    /// Appends an incremental text delta to the existing message's text content.
+    /// This is the primary real-time streaming event — each delta is a small chunk of text.
+    /// </summary>
+    /// <param name="e">The message part delta event.</param>
+    private void HandleMessagePartDelta(MessagePartDeltaEvent e)
+    {
+        if (e.SessionId != CurrentSessionId)
+            return;
+
+        if (!string.Equals(e.Field, "text", StringComparison.OrdinalIgnoreCase))
+            return;
+
+        _dispatcher.Dispatch(() =>
+        {
+            var existing = FindMessageById(e.MessageId);
+
+            if (existing is not null)
+            {
+                // Append the delta to the existing text content
+                existing.TextContent += e.Delta;
+                existing.IsStreaming = true;
+            }
+            else
+            {
+                // Message not yet in collection — create a placeholder assistant message
+                var placeholder = new ChatMessage(
+                    id: e.MessageId,
+                    sessionId: e.SessionId,
+                    isFromUser: false,
+                    textContent: e.Delta,
+                    timestamp: DateTimeOffset.UtcNow,
+                    deliveryStatus: MessageDeliveryStatus.Sent,
+                    isStreaming: true);
+                Messages.Add(placeholder);
+                RecalculateGrouping();
+                UpdateIsEmpty();
             }
         });
     }

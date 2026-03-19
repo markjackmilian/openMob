@@ -15,13 +15,31 @@ public sealed class ChatEventParserTests
 {
     // ─── Helpers ──────────────────────────────────────────────────────────────
 
-    /// <summary>Builds a minimal valid <see cref="MessageWithPartsDto"/> JSON element.</summary>
-    private static JsonElement BuildMessageWithPartsJson(
+    // ─── Envelope builder ─────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Wraps a payload in the opencode SSE envelope:
+    /// <c>{ "payload": { "type": "&lt;type&gt;", "properties": &lt;properties&gt; } }</c>.
+    /// </summary>
+    private static JsonElement BuildEnvelope(string type, object? properties = null)
+    {
+        return JsonSerializer.SerializeToElement(new
+        {
+            payload = new
+            {
+                type,
+                properties = properties ?? new { }
+            }
+        });
+    }
+
+    /// <summary>Builds a minimal valid <see cref="MessageWithPartsDto"/> properties object.</summary>
+    private static object BuildMessageWithPartsProperties(
         string id = "msg-1",
         string sessionId = "sess-1",
         string role = "user")
     {
-        return JsonSerializer.SerializeToElement(new
+        return new
         {
             info = new
             {
@@ -31,54 +49,63 @@ public sealed class ChatEventParserTests
                 time = new { created = 0L }
             },
             parts = Array.Empty<object>()
-        });
+        };
     }
 
-    /// <summary>Builds a minimal valid <see cref="PartDto"/> JSON element.</summary>
-    private static JsonElement BuildPartJson(
+    /// <summary>Builds a minimal valid <see cref="PartDto"/> properties object.</summary>
+    private static object BuildPartProperties(
         string id = "part-1",
         string sessionId = "sess-1",
         string messageId = "msg-1",
         string type = "text",
         string? text = null)
     {
-        return JsonSerializer.SerializeToElement(new
+        return new
         {
-            id,
-            sessionID = sessionId,
-            messageID = messageId,
-            type,
-            text,
-        });
+            part = new
+            {
+                id,
+                sessionID = sessionId,
+                messageID = messageId,
+                type,
+                text,
+            }
+        };
     }
 
-    /// <summary>Builds a minimal valid <see cref="SessionDto"/> JSON element.</summary>
-    private static JsonElement BuildSessionJson(
+    /// <summary>Builds a minimal valid <see cref="SessionDto"/> properties object.</summary>
+    private static object BuildSessionProperties(
         string id = "sess-1",
         string projectId = "proj-1")
     {
-        return JsonSerializer.SerializeToElement(new
+        return new
         {
-            id,
-            projectID = projectId,
-            directory = "/dir",
-            parentID = (string?)null,
-            summary = (object?)null,
-            share = (object?)null,
-            title = "Test Session",
-            version = "1.0",
-            time = new { created = 0L, updated = 0L, compacting = (long?)null },
-            revert = (object?)null
-        });
+            info = new
+            {
+                id,
+                projectID = projectId,
+                directory = "/dir",
+                parentID = (string?)null,
+                summary = (object?)null,
+                share = (object?)null,
+                title = "Test Session",
+                version = "1.0",
+                time = new { created = 0L, updated = 0L, compacting = (long?)null },
+                revert = (object?)null
+            }
+        };
     }
+
+    // ─── server.connected ─────────────────────────────────────────────────────
 
     // ─── server.connected ─────────────────────────────────────────────────────
 
     [Fact]
     public void Parse_WhenEventTypeIsServerConnected_ReturnsServerConnectedEvent()
     {
-        // Arrange
-        var dto = new OpencodeEventDto("server.connected", null, null);
+        // Arrange — server sends envelope with payload.type = "server.connected"
+        var data = BuildEnvelope("server.connected");
+        var dto = new OpencodeEventDto("unknown", null, data);
 
         // Act
         var result = ChatEventParser.Parse(dto);
@@ -94,8 +121,8 @@ public sealed class ChatEventParserTests
     public void Parse_WhenEventTypeIsMessageUpdated_WithValidData_ReturnsMessageUpdatedEvent()
     {
         // Arrange
-        var data = BuildMessageWithPartsJson();
-        var dto = new OpencodeEventDto("message.updated", "evt-1", data);
+        var data = BuildEnvelope("message.updated", BuildMessageWithPartsProperties());
+        var dto = new OpencodeEventDto("unknown", "evt-1", data);
 
         // Act
         var result = ChatEventParser.Parse(dto);
@@ -105,19 +132,11 @@ public sealed class ChatEventParserTests
         result.As<MessageUpdatedEvent>().Message.Should().NotBeNull();
     }
 
-    [Theory]
-    [InlineData("message.updated")]
-    [InlineData("message.part.updated")]
-    [InlineData("session.updated")]
-    [InlineData("session.error")]
-    [InlineData("permission.requested")]
-    [InlineData("permission.updated")]
-    public void Parse_WhenDataIsInvalidJsonStructure_ReturnsUnknownEvent(string eventType)
+    [Fact]
+    public void Parse_WhenDataIsNull_ReturnsUnknownEvent()
     {
-        // Arrange — a string JsonElement is valid JSON but not an object, so it will
-        // fail deserialization into any DTO type
-        var invalidData = JsonSerializer.SerializeToElement("this-is-not-an-object");
-        var dto = new OpencodeEventDto(eventType, null, invalidData);
+        // Arrange — no envelope at all
+        var dto = new OpencodeEventDto("unknown", null, null);
 
         // Act
         var result = ChatEventParser.Parse(dto);
@@ -127,10 +146,11 @@ public sealed class ChatEventParserTests
     }
 
     [Fact]
-    public void Parse_WhenDataIsNull_ForMessageUpdated_ReturnsUnknownEvent()
+    public void Parse_WhenEnvelopeMissingPayload_ReturnsUnknownEvent()
     {
-        // Arrange
-        var dto = new OpencodeEventDto("message.updated", null, null);
+        // Arrange — envelope without "payload" key
+        var data = JsonSerializer.SerializeToElement(new { directory = "/dir" });
+        var dto = new OpencodeEventDto("unknown", null, data);
 
         // Act
         var result = ChatEventParser.Parse(dto);
@@ -145,8 +165,8 @@ public sealed class ChatEventParserTests
     public void Parse_WhenEventTypeIsMessagePartUpdated_WithValidData_ReturnsMessagePartUpdatedEvent()
     {
         // Arrange
-        var data = BuildPartJson();
-        var dto = new OpencodeEventDto("message.part.updated", "evt-2", data);
+        var data = BuildEnvelope("message.part.updated", BuildPartProperties());
+        var dto = new OpencodeEventDto("unknown", "evt-2", data);
 
         // Act
         var result = ChatEventParser.Parse(dto);
@@ -156,14 +176,43 @@ public sealed class ChatEventParserTests
         result.As<MessagePartUpdatedEvent>().Part.Should().NotBeNull();
     }
 
+    // ─── message.part.delta ───────────────────────────────────────────────────
+
+    [Fact]
+    public void Parse_WhenEventTypeIsMessagePartDelta_WithValidData_ReturnsMessagePartDeltaEvent()
+    {
+        // Arrange
+        var data = BuildEnvelope("message.part.delta", new
+        {
+            sessionID = "sess-1",
+            messageID = "msg-1",
+            partID = "part-1",
+            field = "text",
+            delta = "Hello"
+        });
+        var dto = new OpencodeEventDto("unknown", "evt-delta", data);
+
+        // Act
+        var result = ChatEventParser.Parse(dto);
+
+        // Assert
+        result.Should().BeOfType<MessagePartDeltaEvent>();
+        var deltaEvent = result.As<MessagePartDeltaEvent>();
+        deltaEvent.SessionId.Should().Be("sess-1");
+        deltaEvent.MessageId.Should().Be("msg-1");
+        deltaEvent.PartId.Should().Be("part-1");
+        deltaEvent.Field.Should().Be("text");
+        deltaEvent.Delta.Should().Be("Hello");
+    }
+
     // ─── session.updated ──────────────────────────────────────────────────────
 
     [Fact]
     public void Parse_WhenEventTypeIsSessionUpdated_WithValidData_ReturnsSessionUpdatedEvent()
     {
         // Arrange
-        var data = BuildSessionJson();
-        var dto = new OpencodeEventDto("session.updated", "evt-3", data);
+        var data = BuildEnvelope("session.updated", BuildSessionProperties());
+        var dto = new OpencodeEventDto("unknown", "evt-3", data);
 
         // Act
         var result = ChatEventParser.Parse(dto);
@@ -179,12 +228,12 @@ public sealed class ChatEventParserTests
     public void Parse_WhenEventTypeIsSessionError_WithValidData_ReturnsSessionErrorEvent()
     {
         // Arrange
-        var data = JsonSerializer.SerializeToElement(new
+        var data = BuildEnvelope("session.error", new
         {
             sessionID = "sess-42",
             error = "Something went wrong"
         });
-        var dto = new OpencodeEventDto("session.error", "evt-4", data);
+        var dto = new OpencodeEventDto("unknown", "evt-4", data);
 
         // Act
         var result = ChatEventParser.Parse(dto);
@@ -202,12 +251,12 @@ public sealed class ChatEventParserTests
     public void Parse_WhenEventTypeIsPermissionRequested_WithValidData_ReturnsPermissionRequestedEvent()
     {
         // Arrange
-        var data = JsonSerializer.SerializeToElement(new
+        var data = BuildEnvelope("permission.requested", new
         {
             sessionID = "sess-1",
             permissionID = "perm-99"
         });
-        var dto = new OpencodeEventDto("permission.requested", "evt-5", data);
+        var dto = new OpencodeEventDto("unknown", "evt-5", data);
 
         // Act
         var result = ChatEventParser.Parse(dto);
@@ -225,12 +274,12 @@ public sealed class ChatEventParserTests
     public void Parse_WhenEventTypeIsPermissionUpdated_WithValidData_ReturnsPermissionUpdatedEvent()
     {
         // Arrange
-        var data = JsonSerializer.SerializeToElement(new
+        var data = BuildEnvelope("permission.updated", new
         {
             sessionID = "sess-1",
             permissionID = "perm-99"
         });
-        var dto = new OpencodeEventDto("permission.updated", "evt-6", data);
+        var dto = new OpencodeEventDto("unknown", "evt-6", data);
 
         // Act
         var result = ChatEventParser.Parse(dto);
@@ -245,10 +294,11 @@ public sealed class ChatEventParserTests
     // ─── unknown event type ───────────────────────────────────────────────────
 
     [Fact]
-    public void Parse_WhenEventTypeIsUnknown_ReturnsUnknownEvent()
+    public void Parse_WhenPayloadTypeIsUnknown_ReturnsUnknownEvent()
     {
         // Arrange
-        var dto = new OpencodeEventDto("some.unknown.type", null, null);
+        var data = BuildEnvelope("some.unknown.type");
+        var dto = new OpencodeEventDto("unknown", null, data);
 
         // Act
         var result = ChatEventParser.Parse(dto);
@@ -264,7 +314,8 @@ public sealed class ChatEventParserTests
     public void Parse_PreservesRawEventId_ForServerConnectedEvent()
     {
         // Arrange
-        var dto = new OpencodeEventDto("server.connected", "evt-123", null);
+        var data = BuildEnvelope("server.connected");
+        var dto = new OpencodeEventDto("unknown", "evt-123", data);
 
         // Act
         var result = ChatEventParser.Parse(dto);
@@ -277,7 +328,8 @@ public sealed class ChatEventParserTests
     public void Parse_PreservesRawEventId_ForUnknownEvent()
     {
         // Arrange
-        var dto = new OpencodeEventDto("some.unknown.type", "evt-123", null);
+        var data = BuildEnvelope("some.unknown.type");
+        var dto = new OpencodeEventDto("unknown", "evt-123", data);
 
         // Act
         var result = ChatEventParser.Parse(dto);
@@ -286,19 +338,13 @@ public sealed class ChatEventParserTests
         result.RawEventId.Should().Be("evt-123");
     }
 
-    // ─── null data guard for all data-requiring types ─────────────────────────
+    // ─── null data guard ──────────────────────────────────────────────────────
 
-    [Theory]
-    [InlineData("message.updated")]
-    [InlineData("message.part.updated")]
-    [InlineData("session.updated")]
-    [InlineData("session.error")]
-    [InlineData("permission.requested")]
-    [InlineData("permission.updated")]
-    public void Parse_WhenDataIsNull_ForKnownTypeThatRequiresData_ReturnsUnknownEvent(string eventType)
+    [Fact]
+    public void Parse_WhenDataIsNull_ForAnyEvent_ReturnsUnknownEvent()
     {
-        // Arrange
-        var dto = new OpencodeEventDto(eventType, null, null);
+        // Arrange — no envelope at all
+        var dto = new OpencodeEventDto("unknown", null, null);
 
         // Act
         var result = ChatEventParser.Parse(dto);
@@ -313,8 +359,8 @@ public sealed class ChatEventParserTests
     public void Parse_WhenSessionErrorMissingSessionId_ReturnsUnknownEvent()
     {
         // Arrange — only has "error", no "sessionID"
-        var data = JsonSerializer.SerializeToElement(new { error = "Something went wrong" });
-        var dto = new OpencodeEventDto("session.error", null, data);
+        var data = BuildEnvelope("session.error", new { error = "Something went wrong" });
+        var dto = new OpencodeEventDto("unknown", null, data);
 
         // Act
         var result = ChatEventParser.Parse(dto);
@@ -327,8 +373,8 @@ public sealed class ChatEventParserTests
     public void Parse_WhenSessionErrorMissingErrorMessage_ReturnsUnknownEvent()
     {
         // Arrange — only has "sessionID", no "error"
-        var data = JsonSerializer.SerializeToElement(new { sessionID = "sess-1" });
-        var dto = new OpencodeEventDto("session.error", null, data);
+        var data = BuildEnvelope("session.error", new { sessionID = "sess-1" });
+        var dto = new OpencodeEventDto("unknown", null, data);
 
         // Act
         var result = ChatEventParser.Parse(dto);
@@ -345,8 +391,8 @@ public sealed class ChatEventParserTests
     public void Parse_WhenPermissionEventMissingPermissionId_ReturnsUnknownEvent(string eventType)
     {
         // Arrange — only has "sessionID", no "permissionID"
-        var data = JsonSerializer.SerializeToElement(new { sessionID = "sess-1" });
-        var dto = new OpencodeEventDto(eventType, null, data);
+        var data = BuildEnvelope(eventType, new { sessionID = "sess-1" });
+        var dto = new OpencodeEventDto("unknown", null, data);
 
         // Act
         var result = ChatEventParser.Parse(dto);

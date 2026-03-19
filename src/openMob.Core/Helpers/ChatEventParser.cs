@@ -20,28 +20,51 @@ internal sealed class ChatEventParser
     /// </returns>
     internal static ChatEvent Parse(OpencodeEventDto dto)
     {
-        // Diagnostic: log every raw event type received from the server
-        System.Diagnostics.Debug.WriteLine(
-            $"[ChatEventParser] EventType='{dto.EventType}' EventId='{dto.EventId}' Data={dto.Data?.ToString()?.Substring(0, Math.Min(300, dto.Data?.ToString()?.Length ?? 0))}");
+        // The opencode server wraps all events in an envelope:
+        //   { "directory": "...", "payload": { "type": "<event-type>", "properties": { ... } } }
+        // The SSE "event:" field is always absent (or "unknown"), so we must read the real
+        // event type from data.payload.type and the payload from data.payload.properties.
+        if (dto.Data is not { } envelope)
+            return MakeUnknown(dto);
 
-        return dto.EventType switch
+        if (!envelope.TryGetProperty("payload", out var payloadEl) ||
+            payloadEl.ValueKind != JsonValueKind.Object)
+            return MakeUnknown(dto);
+
+        if (!payloadEl.TryGetProperty("type", out var typeEl) ||
+            typeEl.ValueKind != JsonValueKind.String)
+            return MakeUnknown(dto);
+
+        var eventType = typeEl.GetString() ?? string.Empty;
+
+        // Extract properties element (may be absent for events with no payload)
+        payloadEl.TryGetProperty("properties", out var propertiesEl);
+
+        // Build a synthetic DTO with the unwrapped type and properties as Data
+        var unwrapped = new OpencodeEventDto(
+            EventType: eventType,
+            EventId: dto.EventId,
+            Data: propertiesEl.ValueKind == JsonValueKind.Undefined ? null : propertiesEl);
+
+        return eventType switch
         {
             "server.connected" => new ServerConnectedEvent
             {
-                RawEventId = dto.EventId,
+                RawEventId = unwrapped.EventId,
             },
 
-            "message.updated" => ParseMessageUpdated(dto),
-            "message.part.updated" => ParseMessagePartUpdated(dto),
-            "session.updated" => ParseSessionUpdated(dto),
-            "session.error" => ParseSessionError(dto),
-            "permission.requested" => ParsePermissionRequested(dto),
-            "permission.updated" => ParsePermissionUpdated(dto),
+            "message.updated" => ParseMessageUpdated(unwrapped),
+            "message.part.updated" => ParseMessagePartUpdated(unwrapped),
+            "message.part.delta" => ParseMessagePartDelta(unwrapped),
+            "session.updated" => ParseSessionUpdated(unwrapped),
+            "session.error" => ParseSessionError(unwrapped),
+            "permission.requested" => ParsePermissionRequested(unwrapped),
+            "permission.updated" => ParsePermissionUpdated(unwrapped),
 
             _ => new UnknownEvent
             {
                 RawEventId = dto.EventId,
-                RawType = dto.EventType,
+                RawType = eventType,
                 RawData = dto.Data,
             },
         };
@@ -54,7 +77,21 @@ internal sealed class ChatEventParser
 
         try
         {
-            var message = JsonSerializer.Deserialize<MessageWithPartsDto>(data);
+            // Server sends: { "info": {...} } — parts may be absent in intermediate events.
+            // We deserialise MessageWithPartsDto directly; if "parts" is missing it defaults
+            // to an empty list via the DTO's default value.
+            MessageWithPartsDto? message;
+
+            if (data.TryGetProperty("info", out _))
+            {
+                // properties already has the right shape: { "info": {...}, "parts": [...] }
+                message = JsonSerializer.Deserialize<MessageWithPartsDto>(data);
+            }
+            else
+            {
+                return MakeUnknown(dto);
+            }
+
             if (message is null)
                 return MakeUnknown(dto);
 
@@ -77,14 +114,63 @@ internal sealed class ChatEventParser
 
         try
         {
-            var part = JsonSerializer.Deserialize<PartDto>(data);
-            if (part is null)
+            // Server sends: { "part": { <PartDto fields> } }
+            JsonElement partEl;
+            if (data.TryGetProperty("part", out partEl))
+            {
+                var part = JsonSerializer.Deserialize<PartDto>(partEl);
+                if (part is null)
+                    return MakeUnknown(dto);
+
+                return new MessagePartUpdatedEvent
+                {
+                    RawEventId = dto.EventId,
+                    Part = part,
+                };
+            }
+
+            // Fallback: try deserialising directly (old format or test data)
+            var directPart = JsonSerializer.Deserialize<PartDto>(data);
+            if (directPart is null)
                 return MakeUnknown(dto);
 
             return new MessagePartUpdatedEvent
             {
                 RawEventId = dto.EventId,
-                Part = part,
+                Part = directPart,
+            };
+        }
+        catch
+        {
+            return MakeUnknown(dto);
+        }
+    }
+
+    private static ChatEvent ParseMessagePartDelta(OpencodeEventDto dto)
+    {
+        if (dto.Data is not { } data)
+            return MakeUnknown(dto);
+
+        try
+        {
+            // Server sends: { "sessionID": "...", "messageID": "...", "partID": "...", "field": "text", "delta": "..." }
+            var sessionId = data.TryGetProperty("sessionID", out var sidProp) ? sidProp.GetString() : null;
+            var messageId = data.TryGetProperty("messageID", out var midProp) ? midProp.GetString() : null;
+            var partId = data.TryGetProperty("partID", out var pidProp) ? pidProp.GetString() : null;
+            var field = data.TryGetProperty("field", out var fieldProp) ? fieldProp.GetString() : null;
+            var delta = data.TryGetProperty("delta", out var deltaProp) ? deltaProp.GetString() : null;
+
+            if (sessionId is null || messageId is null || partId is null || field is null || delta is null)
+                return MakeUnknown(dto);
+
+            return new MessagePartDeltaEvent
+            {
+                RawEventId = dto.EventId,
+                SessionId = sessionId,
+                MessageId = messageId,
+                PartId = partId,
+                Field = field,
+                Delta = delta,
             };
         }
         catch
@@ -100,14 +186,30 @@ internal sealed class ChatEventParser
 
         try
         {
-            var session = JsonSerializer.Deserialize<SessionDto>(data);
-            if (session is null)
+            // Server sends: { "info": { <SessionDto fields> } }
+            JsonElement infoEl;
+            if (data.TryGetProperty("info", out infoEl))
+            {
+                var session = JsonSerializer.Deserialize<SessionDto>(infoEl);
+                if (session is null)
+                    return MakeUnknown(dto);
+
+                return new SessionUpdatedEvent
+                {
+                    RawEventId = dto.EventId,
+                    Session = session,
+                };
+            }
+
+            // Fallback: try deserialising directly (old format or test data)
+            var directSession = JsonSerializer.Deserialize<SessionDto>(data);
+            if (directSession is null)
                 return MakeUnknown(dto);
 
             return new SessionUpdatedEvent
             {
                 RawEventId = dto.EventId,
-                Session = session,
+                Session = directSession,
             };
         }
         catch

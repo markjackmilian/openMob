@@ -368,4 +368,48 @@ public sealed class ChatViewModelSseTests
         _sut.Messages.Should().HaveCount(1);
         _sut.Messages.First().TextContent.Should().Be("Original");
     }
+
+    [Fact]
+    public async Task HandleMessageUpdated_WhenPartsIsNull_PreservesExistingTextContent()
+    {
+        // Arrange — message already has text accumulated via deltas
+        var existingMessages = new List<MessageWithPartsDto>
+        {
+            BuildMessageDto(id: "msg-1", sessionId: "sess-1", role: "assistant", text: "Hello World", completed: false),
+        };
+
+        var timeJson = JsonSerializer.SerializeToElement(new { created = 1710576000000L });
+        var info = new MessageInfoDto(Id: "msg-1", SessionId: "sess-1", Role: "assistant", Time: timeJson);
+        var emptyPartsDto = new MessageWithPartsDto(Info: info, Parts: null);
+        var messageUpdatedEvent = new MessageUpdatedEvent { Message = emptyPartsDto };
+
+        // Act
+        await TriggerSseEvents(new ChatEvent[] { messageUpdatedEvent }, existingMessages);
+
+        // Assert — null Parts must not overwrite the accumulated text with ""
+        var msg = _sut.Messages.First(m => m.Id == "msg-1");
+        msg.TextContent.Should().Be("Hello World");
+    }
+
+    [Fact]
+    public async Task HandleMessageUpdated_WhenPartsIsEmpty_PreservesExistingTextContent()
+    {
+        // Arrange — message already has text accumulated via deltas
+        var existingMessages = new List<MessageWithPartsDto>
+        {
+            BuildMessageDto(id: "msg-1", sessionId: "sess-1", role: "assistant", text: "Hello World", completed: false),
+        };
+
+        var timeJson = JsonSerializer.SerializeToElement(new { created = 1710576000000L });
+        var info = new MessageInfoDto(Id: "msg-1", SessionId: "sess-1", Role: "assistant", Time: timeJson);
+        var emptyPartsDto = new MessageWithPartsDto(Info: info, Parts: Array.Empty<PartDto>());
+        var messageUpdatedEvent = new MessageUpdatedEvent { Message = emptyPartsDto };
+
+        // Act
+        await TriggerSseEvents(new ChatEvent[] { messageUpdatedEvent }, existingMessages);
+
+        // Assert — empty Parts must not overwrite the accumulated text with ""
+        var msg = _sut.Messages.First(m => m.Id == "msg-1");
+        msg.TextContent.Should().Be("Hello World");
+    }
 }

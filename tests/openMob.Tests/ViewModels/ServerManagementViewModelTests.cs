@@ -1,3 +1,4 @@
+using NSubstitute.ExceptionExtensions;
 using openMob.Core.Services;
 using openMob.Core.ViewModels;
 using openMob.Tests.Helpers;
@@ -134,6 +135,47 @@ public sealed class ServerManagementViewModelTests
         // Assert
         sut.DiscoveredServers.Should().BeEmpty();
         sut.ScanCompleted.Should().BeFalse();
+    }
+
+    // ─── LoadCommand — error path ─────────────────────────────────────────────
+
+    [Fact]
+    public async Task LoadCommand_WhenRepositoryThrows_SetsLoadError()
+    {
+        // Arrange
+        _repository.GetAllAsync(Arg.Any<CancellationToken>())
+            .ThrowsAsync(new InvalidOperationException("DB unavailable"));
+
+        var sut = CreateSut();
+
+        // Act
+        await sut.LoadCommand.ExecuteAsync(null);
+
+        // Assert
+        sut.LoadError.Should().Be("Could not load servers. Please try again.");
+        sut.IsLoading.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task LoadCommand_WhenCalledAfterError_ClearsLoadError()
+    {
+        // Arrange — first call throws
+        _repository.GetAllAsync(Arg.Any<CancellationToken>())
+            .ThrowsAsync(new InvalidOperationException("DB unavailable"));
+
+        var sut = CreateSut();
+        await sut.LoadCommand.ExecuteAsync(null);
+        sut.LoadError.Should().NotBeNull(); // precondition
+
+        // Arrange — second call succeeds
+        _repository.GetAllAsync(Arg.Any<CancellationToken>())
+            .Returns(new List<ServerConnectionDto>());
+
+        // Act
+        await sut.LoadCommand.ExecuteAsync(null);
+
+        // Assert
+        sut.LoadError.Should().BeNull();
     }
 
     // ─── ScanCommand — happy path ─────────────────────────────────────────────

@@ -375,27 +375,32 @@ public sealed class ChatServiceTests
     [Fact]
     public async Task SubscribeToEventsAsync_WhenServerConnectedEventReceived_SetsIsConnectedTrue()
     {
-        // Arrange
+        // Arrange — server sends envelope format: data: {"payload":{"type":"server.connected","properties":{}}}
         const string sseBody =
-            "event: server.connected\r\n" +
             "id: evt-1\r\n" +
-            "data: {}\r\n" +
+            "data: {\"payload\":{\"type\":\"server.connected\",\"properties\":{}}}\r\n" +
             "\r\n";
 
         SetupConnectionManager();
         _httpClientFactory.CreateClient("opencode-sse").Returns(BuildSseClient(sseBody));
 
         // Cancel after receiving the first event so the reconnect loop does not restart.
+        // With the Channel-based implementation, cancelling mid-iteration causes
+        // ReadAllAsync to throw OperationCanceledException — catch it gracefully.
         using var cts = new CancellationTokenSource();
 
         // Act — read the first event, then cancel to stop the loop
         bool? isConnectedDuringEvent = null;
-        await foreach (var e in _sut.SubscribeToEventsAsync(cts.Token))
+        try
         {
-            if (e is ServerConnectedEvent)
-                isConnectedDuringEvent = _sut.IsConnected;
-            cts.Cancel(); // stop after first event
+            await foreach (var e in _sut.SubscribeToEventsAsync(cts.Token))
+            {
+                if (e is ServerConnectedEvent)
+                    isConnectedDuringEvent = _sut.IsConnected;
+                cts.Cancel(); // stop after first event
+            }
         }
+        catch (OperationCanceledException) { /* expected */ }
 
         // Assert — IsConnected must have been true immediately after the ServerConnectedEvent
         isConnectedDuringEvent.Should().BeTrue();
@@ -404,11 +409,10 @@ public sealed class ChatServiceTests
     [Fact]
     public async Task SubscribeToEventsAsync_WhenServerConnectedEventReceived_RaisesIsConnectedChangedWithTrue()
     {
-        // Arrange
+        // Arrange — server sends envelope format
         const string sseBody =
-            "event: server.connected\r\n" +
             "id: evt-1\r\n" +
-            "data: {}\r\n" +
+            "data: {\"payload\":{\"type\":\"server.connected\",\"properties\":{}}}\r\n" +
             "\r\n";
 
         SetupConnectionManager();
@@ -418,11 +422,17 @@ public sealed class ChatServiceTests
         _sut.IsConnectedChanged += v => raisedValues.Add(v);
 
         // Cancel after receiving the first event so the reconnect loop does not restart.
+        // With the Channel-based implementation, cancelling mid-iteration causes
+        // ReadAllAsync to throw OperationCanceledException — catch it gracefully.
         using var cts = new CancellationTokenSource();
-        await foreach (var _ in _sut.SubscribeToEventsAsync(cts.Token))
+        try
         {
-            cts.Cancel(); // stop after first event
+            await foreach (var _ in _sut.SubscribeToEventsAsync(cts.Token))
+            {
+                cts.Cancel(); // stop after first event
+            }
         }
+        catch (OperationCanceledException) { /* expected */ }
 
         // Assert — the event must have been raised with true at least once
         raisedValues.Should().Contain(true);
@@ -431,26 +441,29 @@ public sealed class ChatServiceTests
     [Fact]
     public async Task SubscribeToEventsAsync_WhenStreamEnds_SetsIsConnectedFalse()
     {
-        // Arrange — one event then stream ends; after the stream ends the reconnect loop
-        // will try again. We cancel after the first event to prevent infinite reconnects.
+        // Arrange — one event then stream ends naturally. After the stream ends the
+        // reconnect loop will try again (and get the same body again). We use a short
+        // timeout CTS (500 ms) to stop the loop after the first reconnect attempt,
+        // allowing SetConnected(false) to be called through the normal stream-end path.
         const string sseBody =
-            "event: server.connected\r\n" +
             "id: evt-1\r\n" +
-            "data: {}\r\n" +
+            "data: {\"payload\":{\"type\":\"server.connected\",\"properties\":{}}}\r\n" +
             "\r\n";
 
         SetupConnectionManager();
         _httpClientFactory.CreateClient("opencode-sse").Returns(BuildSseClient(sseBody));
 
-        // Cancel after the first event so the loop exits via the cancellation path,
-        // which calls SetConnected(false) before yielding break.
-        using var cts = new CancellationTokenSource();
-        await foreach (var _ in _sut.SubscribeToEventsAsync(cts.Token))
+        // Use a timed CTS so the loop exits after the stream ends naturally.
+        // With the Channel-based implementation, cancelling mid-iteration causes
+        // ReadAllAsync to throw OperationCanceledException — catch it gracefully.
+        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(500));
+        try
         {
-            cts.Cancel();
+            await foreach (var _ in _sut.SubscribeToEventsAsync(cts.Token)) { }
         }
+        catch (OperationCanceledException) { /* expected */ }
 
-        // Assert — after cancellation the service must report IsConnected = false
+        // Assert — after the stream ends the service must report IsConnected = false
         _sut.IsConnected.Should().BeFalse();
     }
 
@@ -500,29 +513,33 @@ public sealed class ChatServiceTests
     [Fact]
     public async Task SubscribeToEventsAsync_YieldsTypedChatEvents()
     {
-        // Arrange — server.connected followed by message.updated
+        // Arrange — server.connected followed by message.updated, both in envelope format
         const string sseBody =
-            "event: server.connected\r\n" +
             "id: evt-1\r\n" +
-            "data: {}\r\n" +
+            "data: {\"payload\":{\"type\":\"server.connected\",\"properties\":{}}}\r\n" +
             "\r\n" +
-            "event: message.updated\r\n" +
             "id: evt-2\r\n" +
-            "data: {\"info\":{\"id\":\"msg1\",\"sessionID\":\"s1\",\"role\":\"user\",\"time\":{\"created\":0}},\"parts\":[]}\r\n" +
+            "data: {\"payload\":{\"type\":\"message.updated\",\"properties\":{\"info\":{\"id\":\"msg1\",\"sessionID\":\"s1\",\"role\":\"user\",\"time\":{\"created\":0}},\"parts\":[]}}}\r\n" +
             "\r\n";
 
         SetupConnectionManager();
         _httpClientFactory.CreateClient("opencode-sse").Returns(BuildSseClient(sseBody));
 
         // Cancel after receiving 2 events to prevent the reconnect loop from restarting.
+        // With the Channel-based implementation, cancelling mid-iteration causes
+        // ReadAllAsync to throw OperationCanceledException — catch it gracefully.
         using var cts = new CancellationTokenSource();
         var events = new List<ChatEvent>();
-        await foreach (var e in _sut.SubscribeToEventsAsync(cts.Token))
+        try
         {
-            events.Add(e);
-            if (events.Count >= 2)
-                cts.Cancel();
+            await foreach (var e in _sut.SubscribeToEventsAsync(cts.Token))
+            {
+                events.Add(e);
+                if (events.Count >= 2)
+                    cts.Cancel();
+            }
         }
+        catch (OperationCanceledException) { /* expected */ }
 
         // Assert — two events yielded in order
         events.Should().HaveCount(2);

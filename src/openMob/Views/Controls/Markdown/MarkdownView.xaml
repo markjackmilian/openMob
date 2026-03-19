@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:markdown="clr-namespace:openMob.Views.Controls.Markdown"
+             x:Class="openMob.Views.Controls.Markdown.MarkdownView"
+             x:Name="this"
+             x:DataType="markdown:MarkdownView">
+
+  <!-- Container for dynamically rendered Markdown content -->
+  <VerticalStackLayout x:Name="ContentContainer"
+                       Spacing="{StaticResource SpacingXs}" />
+
+</ContentView>

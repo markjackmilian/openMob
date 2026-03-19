@@ -31,6 +31,7 @@
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="*" />
     <PackageReference Include="Sentry" Version="*" />
     <PackageReference Include="Ulid" Version="*" />
+    <PackageReference Include="Markdig" Version="1.1.1" />
     <PackageReference Include="Zeroconf" Version="3.*" />
   </ItemGroup>
 </Project>

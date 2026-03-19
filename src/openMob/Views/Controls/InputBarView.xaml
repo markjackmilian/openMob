@@ -24,7 +24,7 @@
           Padding="{StaticResource SpacingSm}"
           ColumnSpacing="{StaticResource SpacingSm}">
 
-      <!-- + button (attachment placeholder, not connected) -->
+      <!-- Command palette button (replaces attach button) -->
       <Border Grid.Column="0"
               WidthRequest="44"
               HeightRequest="44"
@@ -36,8 +36,12 @@
               VerticalOptions="End"
               Padding="0"
               IsEnabled="{Binding IsInputEnabled, Source={x:Reference this}}"
-              SemanticProperties.Description="Attach file">
-        <Label Text="{x:Static helpers:MaterialIcons.Add}"
+              AutomationId="CommandPaletteButton"
+              SemanticProperties.Description="Open command palette">
+        <Border.GestureRecognizers>
+          <TapGestureRecognizer Command="{Binding OpenCommandPaletteCommand, Source={x:Reference this}}" />
+        </Border.GestureRecognizers>
+        <Label Text="{x:Static helpers:MaterialIcons.Terminal}"
                FontFamily="MaterialSymbols"
                FontSize="{StaticResource FontSizeTitle2}"
                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},

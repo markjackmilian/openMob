@@ -94,10 +94,9 @@ public sealed class ChatViewModelTests
             ? new { created = 1710576000000L, completed = 1710576030000L }
             : (object)new { created = 1710576000000L };
         var timeJson = JsonSerializer.SerializeToElement(timeObj);
-        var textPayload = JsonSerializer.SerializeToElement(new { type = "text", text });
 
         var info = new MessageInfoDto(Id: id, SessionId: sessionId, Role: role, Time: timeJson);
-        var part = new PartDto(Id: $"part-{id}", SessionId: sessionId, MessageId: id, Type: "text", Payload: textPayload);
+        var part = new PartDto(Id: $"part-{id}", SessionId: sessionId, MessageId: id, Type: "text", Text: text);
         return new MessageWithPartsDto(Info: info, Parts: new[] { part });
     }
 
@@ -941,8 +940,7 @@ public sealed class ChatViewModelTests
     {
         // Arrange — pre-load a message, then SSE updates a part
         var originalDto = BuildMessageDto(id: "msg-1", sessionId: "sess-1", role: "assistant", text: "Hello");
-        var partPayload = JsonSerializer.SerializeToElement(new { type = "text", text = "Hello, streaming..." });
-        var partDto = new PartDto(Id: "part-msg-1", SessionId: "sess-1", MessageId: "msg-1", Type: "text", Payload: partPayload);
+        var partDto = new PartDto(Id: "part-msg-1", SessionId: "sess-1", MessageId: "msg-1", Type: "text", Text: "Hello, streaming...");
         var events = new ChatEvent[]
         {
             new MessagePartUpdatedEvent { Part = partDto },

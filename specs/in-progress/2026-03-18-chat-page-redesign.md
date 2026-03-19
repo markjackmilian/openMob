@@ -4,7 +4,7 @@
 | Field   | Value                        |
 |---------|------------------------------|
 | Date    | 2026-03-18                   |
-| Status  | Draft                        |
+| Status  | In Progress                  |
 | Version | 1.0                          |
 
 ---
@@ -246,10 +246,10 @@ Redesign the chat page from a bilateral messenger-style layout to a **full-width
 
 | # | Question | Status | Answer / Decision |
 |---|----------|--------|-------------------|
-| 1 | Which approach for Markdown rendering in MAUI? Options: (a) custom parser building native Label/Layout views, (b) WebView with local HTML, (c) third-party library (e.g., Markdig + custom renderer). | Open | To be evaluated in Technical Analysis. Native rendering preferred for performance and theme consistency. |
-| 2 | Do commands from `GetCommandsAsync()` accept structured arguments, or are they name-only triggers? | Open | Depends on opencode API schema. If arguments are needed, the Command Palette must support an argument input step. |
-| 3 | How are thinking level and auto-accept communicated to the server? Via `UpdateConfigAsync` on the config API group? | Open | To be verified against opencode API. If not supported, these become local-only preferences. |
-| 4 | What SSE event types indicate subagent start/completion? | Open | Depends on opencode event schema. Fallback: detect from message metadata (sender field). |
+| 1 | Which approach for Markdown rendering in MAUI? Options: (a) custom parser building native Label/Layout views, (b) WebView with local HTML, (c) third-party library (e.g., Markdig + custom renderer). | **Resolved** | Option (a): Markdig v1.1.1 (NuGet) for parsing to AST in openMob.Core + custom MAUI renderer walking the AST to build native views. No WebView. Full theme integration. Markdig targets .NET 8+/netstandard2.0, zero dependencies on net10.0. |
+| 2 | Do commands from `GetCommandsAsync()` accept structured arguments, or are they name-only triggers? | **Resolved** | `SendCommandRequest` already supports `Name` + `Arguments` (string?). For v1, commands are name-only triggers (Arguments=null). Future enhancement can add argument input step for commands with Template placeholders. |
+| 3 | How are thinking level and auto-accept communicated to the server? Via `UpdateConfigAsync` on the config API group? | **Resolved** | `UpdateConfigAsync` exists and accepts raw `JsonElement` config. However, thinking level is not a direct ConfigDto field. For v1: local-only preferences via `IProjectPreferenceService`. Server sync via `UpdateConfigAsync` when API schema is confirmed. |
+| 4 | What SSE event types indicate subagent start/completion? | **Resolved** | No explicit subagent lifecycle SSE events exist. Detection via message metadata: `MessageInfoDto.Role` is always "assistant" but `AgentDto.Mode` = "subagent" identifies subagent-capable agents. For v1: heuristic detection from message sender metadata in `PartDto` payloads. |
 | 5 | Should the context status bar show the agent name or the model name? Current proposal shows model. | Resolved | Model name — the agent is implicit from the model. If the user needs agent info, they open the Context Sheet. |
 
 ---
@@ -320,3 +320,193 @@ Redesign the chat page from a bilateral messenger-style layout to a **full-width
 - As established in **chat-ui-completion** (2026-03-16): InputBarView uses TextChanged event (not binding) for reliable ViewModel propagation. BubbleMaxWidth is a BindableProperty on ChatPage.
 - As established in **minimalist-ui-redesign** (2026-03-16): Inter font family (4 weights), Material Symbols Outlined icons, green accent #10A37F/#1DB88E, MaterialIcons.cs centralized constants.
 - As established in **opencode-api-client** (2026-03-15): Full API client with GetAgentsAsync, GetCommandsAsync, UpdateConfigAsync, SSE streaming. OpencodeResult<T> pattern for all API responses.
+
+---
+
+## Technical Analysis
+
+> Added by: om-orchestrator | Date: 2026-03-18
+
+### Change Classification
+
+| Field | Value |
+|-------|-------|
+| Change type | Feature |
+| Git Flow branch | feature/chat-page-redesign |
+| Branches from | develop |
+| Estimated complexity | **High** |
+| Estimated agents involved | om-mobile-core, om-mobile-ui, om-tester, om-reviewer |
+
+### Layers Involved
+
+| Layer | Agent | Scope |
+|-------|-------|-------|
+| Business logic / Services | om-mobile-core | src/openMob.Core/Services/ |
+| ViewModels | om-mobile-core | src/openMob.Core/ViewModels/ |
+| Models | om-mobile-core | src/openMob.Core/Models/ |
+| Converters (Core) | om-mobile-core | src/openMob.Core/Converters/ |
+| Markdown parsing (Core) | om-mobile-core | src/openMob.Core/Services/Markdown/ |
+| XAML Views | om-mobile-ui | src/openMob/Views/Pages/, src/openMob/Views/Controls/ |
+| XAML Popups | om-mobile-ui | src/openMob/Views/Popups/ |
+| Styles / Theme | om-mobile-ui | src/openMob/Resources/Styles/ |
+| Converters (MAUI wrappers) | om-mobile-ui | src/openMob/Converters/ |
+| Markdown MAUI renderer | om-mobile-ui | src/openMob/Views/Controls/Markdown/ |
+| DI Registration | om-mobile-core + om-mobile-ui | src/openMob.Core/Infrastructure/DI/, src/openMob/MauiProgram.cs |
+| Unit Tests | om-tester | tests/openMob.Tests/ |
+| Code Review | om-reviewer | all of the above |
+
+### Architecture Decision: Markdown Rendering
+
+**Decision: Markdig AST + Custom MAUI Renderer (two-layer architecture)**
+
+The Markdown rendering follows the established layer separation pattern:
+
+1. **Core layer** (`openMob.Core`): Add Markdig v1.1.1 NuGet package. Create `IMarkdownParser` interface and `MarkdigMarkdownParser` implementation that parses Markdown text into an intermediate representation (`MarkdownNode` tree) — a simplified, MAUI-agnostic AST. This layer is fully testable.
+
+2. **MAUI layer** (`openMob`): Create `MarkdownRenderer` that walks the `MarkdownNode` tree and builds native MAUI views (`Label`, `VerticalStackLayout`, `Border`, `ScrollView`, `Grid`). This layer applies design tokens and theme bindings.
+
+**Why this approach:**
+- Markdig v1.1.1 targets net10.0 natively with zero dependencies — perfect for `openMob.Core`
+- The intermediate `MarkdownNode` tree decouples parsing from rendering, making the parser testable without MAUI
+- Full theme integration via AppThemeBinding on generated views
+- No WebView overhead (critical for scrolling performance in a chat with many messages)
+- Extensible: future syntax highlighting can be added by extending the renderer
+
+### Architecture Decision: Bottom Sheets
+
+**Decision: Modal ContentPage pattern (existing)**
+
+The project already uses modal `ContentPage` subclasses for sheets (AgentPickerSheet, ModelPickerSheet, ProjectSwitcherSheet). The Context Sheet and Command Palette will follow the same pattern:
+- New `ContentPage` subclasses pushed via `Navigation.PushModalAsync()`
+- New methods on `IAppPopupService`: `ShowContextSheetAsync()`, `ShowCommandPaletteAsync()`
+- Each sheet has its own ViewModel registered in DI
+
+### Architecture Decision: Subagent Detection
+
+**Decision: Message metadata heuristic (v1)**
+
+No explicit subagent SSE events exist. For v1:
+- Add `SenderType` enum to `ChatMessage` model: `User`, `Agent`, `Subagent`
+- Add `SenderName` property to `ChatMessage`
+- Detection logic in `ChatMessage.FromDto()`: inspect `PartDto` payloads for agent/subagent metadata
+- `IsSubagentActive` state tracked in `ChatViewModel` based on streaming messages from subagent senders
+
+### Files to Create
+
+**openMob.Core (om-mobile-core):**
+- `src/openMob.Core/Models/SenderType.cs` — enum: User, Agent, Subagent
+- `src/openMob.Core/Models/ThinkingLevel.cs` — enum: Low, Medium, High
+- `src/openMob.Core/Models/CommandItem.cs` — domain model for command palette items
+- `src/openMob.Core/Services/Markdown/IMarkdownParser.cs` — interface for Markdown → MarkdownNode tree
+- `src/openMob.Core/Services/Markdown/MarkdigMarkdownParser.cs` — Markdig-based implementation
+- `src/openMob.Core/Services/Markdown/MarkdownNode.cs` — intermediate AST node types (sealed record hierarchy)
+- `src/openMob.Core/Services/ICommandService.cs` — interface for command loading/caching/execution
+- `src/openMob.Core/Services/CommandService.cs` — implementation wrapping IOpencodeApiClient
+- `src/openMob.Core/ViewModels/ContextSheetViewModel.cs` — ViewModel for Context Sheet
+- `src/openMob.Core/ViewModels/CommandPaletteViewModel.cs` — ViewModel for Command Palette
+- `src/openMob.Core/Converters/SenderTypeToColorKeyConverter.cs` — maps SenderType → color key string
+- `src/openMob.Core/Converters/SenderTypeToLabelConverter.cs` — maps SenderType + SenderName → display label
+
+**openMob (om-mobile-ui):**
+- `src/openMob/Views/Controls/MessageBlockView.xaml` + `.xaml.cs` — replaces MessageBubbleView
+- `src/openMob/Views/Controls/ContextStatusBarView.xaml` + `.xaml.cs` — collapsible status bar
+- `src/openMob/Views/Controls/SubagentIndicatorView.xaml` + `.xaml.cs` — inline subagent activity card
+- `src/openMob/Views/Controls/Markdown/MarkdownView.xaml` + `.xaml.cs` — ContentView that renders MarkdownNode tree to native views
+- `src/openMob/Views/Popups/ContextSheet.xaml` + `.xaml.cs` — Context Sheet bottom sheet
+- `src/openMob/Views/Popups/CommandPaletteSheet.xaml` + `.xaml.cs` — Command Palette bottom sheet
+- `src/openMob/Converters/SenderTypeToColorConverter.cs` — MAUI wrapper resolving color key to actual Color
+- `src/openMob/Converters/SenderTypeToLabelMauiConverter.cs` — MAUI IValueConverter wrapper
+- `src/openMob/Helpers/MaterialIcons.cs` — add new icon constants (Terminal/Code)
+
+**Tests (om-tester):**
+- `tests/openMob.Tests/Services/Markdown/MarkdigMarkdownParserTests.cs`
+- `tests/openMob.Tests/Services/CommandServiceTests.cs`
+- `tests/openMob.Tests/ViewModels/ContextSheetViewModelTests.cs`
+- `tests/openMob.Tests/ViewModels/CommandPaletteViewModelTests.cs`
+- `tests/openMob.Tests/ViewModels/ChatViewModelRedesignTests.cs` — new tests for redesign-specific commands
+- `tests/openMob.Tests/Converters/SenderTypeToColorKeyConverterTests.cs`
+- `tests/openMob.Tests/Converters/SenderTypeToLabelConverterTests.cs`
+- `tests/openMob.Tests/Models/MarkdownNodeTests.cs`
+
+### Files to Modify
+
+**openMob.Core (om-mobile-core):**
+- `src/openMob.Core/openMob.Core.csproj` — add `<PackageReference Include="Markdig" Version="1.1.1" />`
+- `src/openMob.Core/Models/ChatMessage.cs` — add `SenderType` property, `SenderName` property; update `FromDto()` factory
+- `src/openMob.Core/ViewModels/ChatViewModel.cs` — add new observable properties (ThinkingLevel, AutoAccept, IsSubagentActive, SubagentName, Commands, IsContextBarVisible), new commands (RenameSessionCommand, OpenContextSheetCommand, OpenCommandPaletteCommand, ChangeThinkingLevelCommand, ToggleAutoAcceptCommand, ExecuteCommandCommand), scroll direction tracking for status bar collapse
+- `src/openMob.Core/Services/IAppPopupService.cs` — add `ShowContextSheetAsync()`, `ShowCommandPaletteAsync()` methods
+- `src/openMob.Core/Infrastructure/DI/CoreServiceExtensions.cs` — register IMarkdownParser, ICommandService, ContextSheetViewModel, CommandPaletteViewModel
+- `src/openMob.Core/ViewModels/AgentPickerViewModel.cs` — add `IsSubagentMode` property, change selection behavior based on mode
+
+**openMob (om-mobile-ui):**
+- `src/openMob/Views/Pages/ChatPage.xaml` — major redesign: new header, status bar, MessageBlockView DataTemplate, updated input bar
+- `src/openMob/Views/Pages/ChatPage.xaml.cs` — remove BubbleMaxWidth, add scroll direction detection, add context sheet/command palette triggers
+- `src/openMob/Views/Controls/InputBarView.xaml` — replace "+" attach button with command button icon
+- `src/openMob/Views/Controls/InputBarView.xaml.cs` — add OpenCommandPaletteCommand bindable property
+- `src/openMob/Views/Controls/EmptyStateView.xaml` — minor layout adjustment
+- `src/openMob/Views/Popups/AgentPickerSheet.xaml` — conditional title based on subagent mode
+- `src/openMob/Views/Popups/AgentPickerSheet.xaml.cs` — pass subagent mode parameter
+- `src/openMob/Resources/Styles/Colors.xaml` — add 6 new color token pairs (ColorAgentAccent, ColorSubagentAccent, ColorCodeInline, ColorCodeBlockBackground, ColorMessageUserBackground, ColorContextBar)
+- `src/openMob/Resources/Styles/Styles.xaml` — add new styles (MessageBlockStyle, ContextBarStyle, etc.) and sizing tokens
+- `src/openMob/Helpers/MaterialIcons.cs` — add Terminal, Code, Stop, ContentCopy icon constants
+- `src/openMob/Services/MauiPopupService.cs` — implement ShowContextSheetAsync(), ShowCommandPaletteAsync()
+- `src/openMob/MauiProgram.cs` — register ContextSheet, CommandPaletteSheet as transient pages
+
+### Technical Dependencies
+
+- **Markdig v1.1.1** (NuGet) — new dependency for `openMob.Core.csproj`. BSD-2-Clause license. Zero transitive dependencies on net10.0.
+- **IOpencodeApiClient.GetCommandsAsync()** — already implemented, returns `OpencodeResult<IReadOnlyList<CommandDto>>`
+- **IOpencodeApiClient.UpdateConfigAsync()** — already implemented, accepts `UpdateConfigRequest` with raw `JsonElement`
+- **IOpencodeApiClient.SendCommandAsync()** — already implemented, accepts `SendCommandRequest(Name, Arguments?)`
+- **ISessionService** — already has session CRUD; verify `RenameSessionAsync` or equivalent exists
+- **IAppPopupService.ShowRenameAsync()** — already exists for session rename modal
+- **AgentPickerViewModel** — already exists, needs subagent mode extension
+- No new EF Core migrations required
+- No new API endpoints required
+
+### Technical Risks
+
+1. **Markdown rendering performance**: Large agent messages with complex Markdown (many code blocks, tables) could generate hundreds of MAUI views. Mitigation: lazy rendering (only render visible messages), view recycling in CollectionView DataTemplate.
+
+2. **CollectionView + complex DataTemplate**: MessageBlockView with embedded Markdown views is significantly more complex than the current MessageBubbleView. CollectionView item sizing may struggle with variable-height Markdown content. Mitigation: use `ItemSizingStrategy="MeasureAllItems"` and test thoroughly on both platforms.
+
+3. **Collapsible status bar animation**: `CollectionView.Scrolled` event may fire inconsistently across platforms. Mitigation: debounce scroll direction detection, use simple `IsVisible` toggle with `FadeTo` animation rather than complex height animation.
+
+4. **Bottom sheet dismissal**: Modal ContentPage sheets don't have native drag-to-dismiss on all platforms. The existing pattern uses a close button. This is acceptable for v1 but may need a proper bottom sheet library in the future.
+
+5. **Subagent detection reliability**: Without explicit SSE events, heuristic detection from message metadata may miss edge cases. Mitigation: design the `SenderType` detection as a pluggable strategy that can be upgraded when the API adds explicit subagent events.
+
+6. **ChatViewModel constructor bloat**: Already has 10 dependencies. Adding ICommandService and IMarkdownParser brings it to 12. Mitigation: IMarkdownParser is not injected into ChatViewModel (it's used by the MAUI MarkdownView directly). ICommandService is injected into CommandPaletteViewModel, not ChatViewModel. ChatViewModel only gains IAppPopupService methods (already injected).
+
+### Execution Order
+
+> Steps that can run in parallel are marked with ⟳. Steps that must be sequential are numbered.
+
+1. **[Git Flow]** Create branch `feature/chat-page-redesign` from `develop`
+
+2. **[om-mobile-core — Phase A: Models & Interfaces]** Create SenderType enum, ThinkingLevel enum, CommandItem model, MarkdownNode AST types. Extend ChatMessage with SenderType/SenderName. Create IMarkdownParser, ICommandService interfaces. Create ContextSheetViewModel, CommandPaletteViewModel. Extend IAppPopupService. Update AgentPickerViewModel with subagent mode. Register new services in DI.
+
+3. **[om-mobile-core — Phase B: Implementations]** Implement MarkdigMarkdownParser (Markdig AST → MarkdownNode tree). Implement CommandService (load, cache, search, execute commands). Extend ChatViewModel with new properties and commands.
+
+4. ⟳ **[om-mobile-ui — Phase A: Design Tokens & Styles]** Add new color tokens to Colors.xaml. Add new styles and sizing tokens to Styles.xaml. Add new MaterialIcons constants. *(Can start immediately — no dependency on Core Phase B)*
+
+5. ⟳ **[om-mobile-ui — Phase B: Components]** Create MessageBlockView, ContextStatusBarView, SubagentIndicatorView, MarkdownView. Modify InputBarView (command button). *(Can start once Core Phase A defines the ViewModel binding surface)*
+
+6. **[om-mobile-ui — Phase C: Pages & Sheets]** Redesign ChatPage.xaml (header, status bar, message list, input bar). Create ContextSheet and CommandPaletteSheet. Extend AgentPickerSheet with subagent mode. Update MauiPopupService. Register new pages in MauiProgram.cs.
+
+7. **[om-tester]** Write unit tests for MarkdigMarkdownParser, CommandService, ContextSheetViewModel, CommandPaletteViewModel, ChatViewModel new commands, SenderType converters.
+
+8. **[om-reviewer]** Full review against spec — all 42 REQ and 11 AC.
+
+9. **[Fix loop if needed]** Address Critical and Major findings.
+
+10. **[Git Flow]** Finish branch and merge.
+
+### Definition of Done
+
+- [ ] All `[REQ-001]` through `[REQ-042]` requirements implemented
+- [ ] All `[AC-001]` through `[AC-011]` acceptance criteria satisfied
+- [ ] Unit tests written for MarkdigMarkdownParser, CommandService, ContextSheetViewModel, CommandPaletteViewModel, ChatViewModel extensions, new converters
+- [ ] `om-reviewer` verdict: ✅ Approved or ⚠️ Approved with remarks
+- [ ] Git Flow branch finished and deleted
+- [ ] Spec moved to `specs/done/` with Completed status

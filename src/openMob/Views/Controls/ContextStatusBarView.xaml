@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:openMob.Views.Controls"
+             x:Class="openMob.Views.Controls.ContextStatusBarView"
+             x:Name="this"
+             x:DataType="controls:ContextStatusBarView">
+
+  <!-- REQ-020: Priority-based hiding — thinking level hidden first, then model name,
+       project name always visible. Implemented via SizeChanged event in code-behind. -->
+  <Grid x:Name="RootGrid"
+        HeightRequest="{StaticResource SizeContextBarHeight}"
+        BackgroundColor="{AppThemeBinding Light={StaticResource ColorContextBarLight},
+                                          Dark={StaticResource ColorContextBarDark}}"
+        Padding="8,0"
+        ColumnDefinitions="*,Auto,Auto,Auto,Auto"
+        ColumnSpacing="0"
+        SizeChanged="OnRootGridSizeChanged"
+        AutomationId="ContextStatusBar">
+    <Grid.GestureRecognizers>
+      <TapGestureRecognizer Command="{Binding TapCommand, Source={x:Reference this}}" />
+    </Grid.GestureRecognizers>
+
+    <!-- Column 0: Project name (star column — always visible, truncates with ellipsis) -->
+    <Label Grid.Column="0"
+           Text="{Binding ProjectName, Source={x:Reference this}, FallbackValue='No project'}"
+           Style="{StaticResource ContextStatusBarLabel}"
+           TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
+                                       Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
+           LineBreakMode="TailTruncation"
+           HorizontalOptions="End"
+           VerticalOptions="Center"
+           SemanticProperties.Description="Current project" />
+
+    <!-- Column 1: Separator (hidden when model is hidden) -->
+    <Label Grid.Column="1"
+           x:Name="ModelSeparator"
+           Text=" · "
+           Style="{StaticResource ContextStatusBarLabel}"
+           TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
+                                       Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
+           VerticalOptions="Center" />
+
+    <!-- Column 2: Model name (hidden second on overflow) -->
+    <Label Grid.Column="2"
+           x:Name="ModelLabel"
+           Text="{Binding ModelName, Source={x:Reference this}, FallbackValue='No model'}"
+           Style="{StaticResource ContextStatusBarLabel}"
+           TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
+                                       Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
+           LineBreakMode="TailTruncation"
+           MaximumWidthRequest="120"
+           VerticalOptions="Center"
+           SemanticProperties.Description="Current model" />
+
+    <!-- Column 3: Separator (hidden when thinking level is hidden) -->
+    <Label Grid.Column="3"
+           x:Name="ThinkingSeparator"
+           Text=" · "
+           Style="{StaticResource ContextStatusBarLabel}"
+           TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
+                                       Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
+           VerticalOptions="Center" />
+
+    <!-- Column 4: Thinking level (lowest priority — hidden first on overflow) -->
+    <Label Grid.Column="4"
+           x:Name="ThinkingLabel"
+           Style="{StaticResource ContextStatusBarLabel}"
+           TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
+                                       Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
+           LineBreakMode="NoWrap"
+           VerticalOptions="Center"
+           SemanticProperties.Description="Current thinking level">
+      <Label.Text>
+        <MultiBinding StringFormat="thinking: {0}">
+          <Binding Path="ThinkingLevel" Source="{x:Reference this}" FallbackValue="Medium" />
+        </MultiBinding>
+      </Label.Text>
+    </Label>
+
+  </Grid>
+
+</ContentView>

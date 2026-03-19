@@ -24,6 +24,9 @@ public enum ChatEventType
     /// <summary>The state of a pending permission was updated.</summary>
     PermissionUpdated,
 
+    /// <summary>A delta (incremental text chunk) for a message part was received during streaming.</summary>
+    MessagePartDelta,
+
     /// <summary>An unrecognised event type was received; raw payload is preserved.</summary>
     Unknown,
 }

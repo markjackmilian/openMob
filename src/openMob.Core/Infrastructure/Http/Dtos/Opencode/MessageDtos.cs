@@ -4,22 +4,30 @@ using System.Text.Json.Serialization;
 namespace openMob.Core.Infrastructure.Http.Dtos.Opencode;
 
 /// <summary>
-/// Represents a single message part. The <see cref="Payload"/> field holds the full
-/// part object as raw JSON because the <c>Part</c> TypeScript type is a discriminated
-/// union of 11 subtypes — typed deserialization is deferred to a future spec.
+/// Represents a single message part. The opencode server returns parts as a
+/// discriminated union — the common fields (<c>id</c>, <c>sessionID</c>,
+/// <c>messageID</c>, <c>type</c>) are always present, while type-specific
+/// fields vary. For <c>type: "text"</c> parts, the text content is in the
+/// <c>text</c> field. The <see cref="Extras"/> property captures all remaining
+/// fields for flexible downstream processing.
 /// </summary>
 /// <param name="Id">The unique part identifier.</param>
 /// <param name="SessionId">The ID of the session this part belongs to.</param>
 /// <param name="MessageId">The ID of the message this part belongs to.</param>
 /// <param name="Type">The part type discriminator (e.g. <c>text</c>, <c>tool</c>, <c>file</c>).</param>
-/// <param name="Payload">The full part object as raw JSON for flexible downstream processing.</param>
+/// <param name="Text">The text content for <c>type: "text"</c> parts, or <c>null</c> for other types.</param>
 public sealed record PartDto(
     [property: JsonPropertyName("id")] string Id,
     [property: JsonPropertyName("sessionID")] string SessionId,
     [property: JsonPropertyName("messageID")] string MessageId,
     [property: JsonPropertyName("type")] string Type,
-    [property: JsonPropertyName("payload")] JsonElement Payload
-);
+    [property: JsonPropertyName("text")] string? Text = null
+)
+{
+    /// <summary>Any additional JSON properties not mapped to named fields.</summary>
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? Extras { get; init; }
+}
 
 /// <summary>
 /// Represents the common fields of a message (either a <c>UserMessage</c> or
@@ -50,5 +58,5 @@ public sealed record MessageInfoDto(
 /// <param name="Parts">The ordered list of parts that make up the message content.</param>
 public sealed record MessageWithPartsDto(
     [property: JsonPropertyName("info")] MessageInfoDto Info,
-    [property: JsonPropertyName("parts")] IReadOnlyList<PartDto> Parts
+    [property: JsonPropertyName("parts")] IReadOnlyList<PartDto>? Parts = null
 );

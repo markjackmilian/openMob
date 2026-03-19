@@ -179,6 +179,32 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     /// <summary>Gets whether an error message is currently displayed.</summary>
     public bool HasError => ErrorMessage is not null;
 
+    // ─── Chat Page Redesign Properties [REQ-019, REQ-022, REQ-028, REQ-032] ──
+
+    /// <summary>Gets or sets the current thinking/reasoning level, synced from Context Sheet.</summary>
+    [ObservableProperty]
+    private ThinkingLevel _thinkingLevel = ThinkingLevel.Medium;
+
+    /// <summary>Gets or sets whether auto-accept is enabled for agent suggestions.</summary>
+    [ObservableProperty]
+    private bool _autoAccept;
+
+    /// <summary>Gets or sets whether a subagent is currently active (streaming messages).</summary>
+    [ObservableProperty]
+    private bool _isSubagentActive;
+
+    /// <summary>Gets or sets the display name of the active subagent.</summary>
+    [ObservableProperty]
+    private string _subagentName = string.Empty;
+
+    /// <summary>
+    /// Gets or sets whether the context status bar is visible (REQ-022).
+    /// Collapses when scrolling down, reappears when scrolling up or at top.
+    /// Always visible when the message list is empty (REQ-037).
+    /// </summary>
+    [ObservableProperty]
+    private bool _isContextBarVisible = true;
+
     // ─── Session Navigation [REQ-005] ─────────────────────────────────────────
 
     /// <summary>
@@ -416,7 +442,10 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
                     UpdateIsEmpty();
                 });
 
-                // Start SSE subscription only after messages loaded successfully [REQ-011]
+                // Start SSE subscription only after messages loaded successfully [REQ-011].
+                // Fire-and-forget is safe here: the task is lifecycle-managed via _sseCts
+                // (cancelled on session change or Dispose) and all exceptions are caught
+                // internally within StartSseSubscriptionAsync.
                 _ = StartSseSubscriptionAsync();
             }
             else if (result.Error is not null)
@@ -500,17 +529,20 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
             {
                 optimisticMessage.DeliveryStatus = MessageDeliveryStatus.Error;
                 ErrorMessage = MapChatServiceError(result.Error);
+                IsAiResponding = false;
             }
         }
         catch (OperationCanceledException)
         {
             // Expected when the operation is cancelled.
             optimisticMessage.DeliveryStatus = MessageDeliveryStatus.Error;
+            IsAiResponding = false;
         }
         catch (Exception ex)
         {
             optimisticMessage.DeliveryStatus = MessageDeliveryStatus.Error;
             ErrorMessage = "Failed to send message. Please try again.";
+            IsAiResponding = false;
             SentryHelper.CaptureException(ex, new Dictionary<string, object>
             {
                 ["context"] = "ChatViewModel.SendMessageAsync",
@@ -577,6 +609,57 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
         ErrorMessage = null;
     }
 
+    // ─── Chat Page Redesign Commands [REQ-023, REQ-025, REQ-029, REQ-022] ────
+
+    /// <summary>
+    /// Renames the current session (REQ-023). Opens a rename dialog pre-filled
+    /// with the current session name, then updates via the session service.
+    /// </summary>
+    /// <param name="ct">Cancellation token.</param>
+    [RelayCommand]
+    private async Task RenameSessionAsync(CancellationToken ct)
+    {
+        await HandleRenameSessionAsync(ct);
+    }
+
+    /// <summary>
+    /// Opens the Context Sheet bottom sheet (REQ-025).
+    /// </summary>
+    /// <param name="ct">Cancellation token.</param>
+    [RelayCommand]
+    private async Task OpenContextSheetAsync(CancellationToken ct)
+    {
+        await _popupService.ShowContextSheetAsync(ct);
+    }
+
+    /// <summary>
+    /// Opens the Command Palette bottom sheet (REQ-029).
+    /// </summary>
+    /// <param name="ct">Cancellation token.</param>
+    [RelayCommand]
+    private async Task OpenCommandPaletteAsync(CancellationToken ct)
+    {
+        await _popupService.ShowCommandPaletteAsync(ct);
+    }
+
+    /// <summary>
+    /// Handles scroll direction changes to show/hide the context status bar (REQ-022).
+    /// When scrolling down and messages exist, the bar collapses.
+    /// When scrolling up or at the top, the bar reappears.
+    /// When the message list is empty, the bar always remains visible (REQ-037).
+    /// </summary>
+    /// <param name="isScrollingDown"><c>true</c> if the user is scrolling down; <c>false</c> if scrolling up or at top.</param>
+    public void OnScrollDirectionChanged(bool isScrollingDown)
+    {
+        if (IsEmpty)
+        {
+            IsContextBarVisible = true;
+            return;
+        }
+
+        IsContextBarVisible = !isScrollingDown;
+    }
+
     // ─── SSE Subscription [REQ-011] ───────────────────────────────────────────
 
     /// <summary>
@@ -599,6 +682,10 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
                 {
                     case MessageUpdatedEvent e:
                         HandleMessageUpdated(e);
+                        break;
+
+                    case MessagePartDeltaEvent e:
+                        HandleMessagePartDelta(e);
                         break;
 
                     case MessagePartUpdatedEvent e:
@@ -646,17 +733,64 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
         {
             var existing = FindMessageById(e.Message.Info.Id);
 
+#if DEBUG
+            System.Diagnostics.Debug.WriteLine($"[MSG_UPDATED] event id='{e.Message.Info.Id}' role='{e.Message.Info.Role}' sessionId='{e.Message.Info.SessionId}' currentSessionId='{CurrentSessionId}' existingFound={existing is not null}");
+#endif
+
             if (existing is not null)
             {
-                existing.TextContent = ChatMessage.ExtractTextContent(e.Message.Parts);
+                // Only overwrite TextContent if the event carries actual text parts.
+                // When Parts is null or empty (intermediate streaming events), preserve
+                // the text already accumulated via message.part.delta events.
+                var extractedText = ChatMessage.ExtractTextContent(e.Message.Parts ?? []);
+                if (!string.IsNullOrEmpty(extractedText))
+                {
+                    existing.TextContent = extractedText;
+                }
                 existing.IsStreaming = !existing.IsFromUser && !ChatMessage.HasCompletedTimestamp(e.Message.Info.Time);
                 existing.DeliveryStatus = MessageDeliveryStatus.Sent;
             }
             else
             {
                 var newMessage = ChatMessage.FromDto(e.Message);
-                Messages.Add(newMessage);
-                existing = newMessage;
+
+#if DEBUG
+                System.Diagnostics.Debug.WriteLine($"[MSG_UPDATED] no existing match for id='{e.Message.Info.Id}' role='{e.Message.Info.Role}' isFromUser={newMessage.IsFromUser} TextContent='{newMessage.TextContent}' PartsCount={e.Message.Parts?.Count ?? -1}");
+                if (e.Message.Parts != null)
+                {
+                    foreach (var p in e.Message.Parts)
+                        System.Diagnostics.Debug.WriteLine($"[MSG_UPDATED]   part id='{p.Id}' type='{p.Type}' text='{p.Text}' extras={p.Extras?.Count ?? 0}");
+                }
+                System.Diagnostics.Debug.WriteLine($"[MSG_UPDATED] Messages before reconciliation: {Messages.Count} items");
+                for (var dbgI = 0; dbgI < Messages.Count; dbgI++)
+                    System.Diagnostics.Debug.WriteLine($"[MSG_UPDATED]   [{dbgI}] id='{Messages[dbgI].Id}' isFromUser={Messages[dbgI].IsFromUser} text='{Messages[dbgI].TextContent}' status={Messages[dbgI].DeliveryStatus}");
+#endif
+
+                // Optimistic reconciliation: if this is a user message, find and replace
+                // the optimistic placeholder (which has a temporary GUID id) that matches
+                // by text content. This prevents the message from appearing twice.
+                if (newMessage.IsFromUser)
+                {
+                    var optimisticIndex = FindOptimisticUserMessageIndex();
+#if DEBUG
+                    System.Diagnostics.Debug.WriteLine($"[MSG_UPDATED] optimisticIndex={optimisticIndex} (IsOptimistic-based search)");
+#endif
+                    if (optimisticIndex >= 0)
+                    {
+                        Messages[optimisticIndex] = newMessage;
+                        existing = newMessage;
+                    }
+                    else
+                    {
+                        Messages.Add(newMessage);
+                        existing = newMessage;
+                    }
+                }
+                else
+                {
+                    Messages.Add(newMessage);
+                    existing = newMessage;
+                }
             }
 
             RecalculateGrouping();
@@ -665,6 +799,22 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
             if (!existing.IsFromUser && !existing.IsStreaming)
             {
                 IsAiResponding = false;
+            }
+
+            // Subagent detection: if the message is from a subagent sender,
+            // track the active subagent state. When the message completes
+            // (has a completed timestamp), clear the subagent indicator.
+            if (existing.SenderType == SenderType.Subagent)
+            {
+                if (existing.IsStreaming)
+                {
+                    IsSubagentActive = true;
+                    SubagentName = existing.SenderName;
+                }
+                else
+                {
+                    IsSubagentActive = false;
+                }
             }
         });
     }
@@ -686,14 +836,55 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
             if (existing is not null &&
                 string.Equals(e.Part.Type, "text", StringComparison.OrdinalIgnoreCase))
             {
-                // Extract text from the part payload
-                if (e.Part.Payload.ValueKind == JsonValueKind.Object &&
-                    e.Part.Payload.TryGetProperty("text", out var textEl))
+                // The opencode server returns text directly in the "text" field of the part DTO.
+                if (!string.IsNullOrEmpty(e.Part.Text))
                 {
-                    existing.TextContent = textEl.GetString() ?? string.Empty;
+                    existing.TextContent = e.Part.Text;
                 }
 
                 existing.IsStreaming = true;
+            }
+        });
+    }
+
+    /// <summary>
+    /// Handles a <see cref="MessagePartDeltaEvent"/> from the SSE stream.
+    /// Appends an incremental text delta to the existing message's text content.
+    /// This is the primary real-time streaming event — each delta is a small chunk of text.
+    /// </summary>
+    /// <param name="e">The message part delta event.</param>
+    private void HandleMessagePartDelta(MessagePartDeltaEvent e)
+    {
+        if (e.SessionId != CurrentSessionId)
+            return;
+
+        if (!string.Equals(e.Field, "text", StringComparison.OrdinalIgnoreCase))
+            return;
+
+        _dispatcher.Dispatch(() =>
+        {
+            var existing = FindMessageById(e.MessageId);
+
+            if (existing is not null)
+            {
+                // Append the delta to the existing text content
+                existing.TextContent += e.Delta;
+                existing.IsStreaming = true;
+            }
+            else
+            {
+                // Message not yet in collection — create a placeholder assistant message
+                var placeholder = new ChatMessage(
+                    id: e.MessageId,
+                    sessionId: e.SessionId,
+                    isFromUser: false,
+                    textContent: e.Delta,
+                    timestamp: DateTimeOffset.UtcNow,
+                    deliveryStatus: MessageDeliveryStatus.Sent,
+                    isStreaming: true);
+                Messages.Add(placeholder);
+                RecalculateGrouping();
+                UpdateIsEmpty();
             }
         });
     }
@@ -766,6 +957,23 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     private void UpdateIsEmpty() => IsEmpty = Messages.Count == 0;
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Finds the index of the most recent optimistic user message placeholder.
+    /// An optimistic message is identified by <see cref="ChatMessage.IsOptimistic"/> = true.
+    /// Searches from the end of the collection (most recent first).
+    /// </summary>
+    /// <returns>The zero-based index of the matching message, or -1 if not found.</returns>
+    private int FindOptimisticUserMessageIndex()
+    {
+        for (var i = Messages.Count - 1; i >= 0; i--)
+        {
+            if (Messages[i].IsFromUser && Messages[i].IsOptimistic)
+                return i;
+        }
+
+        return -1;
+    }
 
     /// <summary>Finds a message in the collection by its ID.</summary>
     /// <param name="messageId">The message ID to search for.</param>

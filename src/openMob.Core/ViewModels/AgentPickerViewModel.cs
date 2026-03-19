@@ -47,6 +47,27 @@ public sealed partial class AgentPickerViewModel : ObservableObject
     private bool _isEmpty;
 
     /// <summary>
+    /// Gets or sets whether the picker is in subagent invocation mode (REQ-031).
+    /// When <c>true</c>, selecting an agent invokes it as a subagent rather than
+    /// changing the primary agent.
+    /// </summary>
+    [ObservableProperty]
+    private bool _isSubagentMode;
+
+    /// <summary>
+    /// Gets the sheet title based on the current mode.
+    /// Returns "Invoke Subagent" in subagent mode, "Select Agent" otherwise.
+    /// </summary>
+    public string SheetTitle => IsSubagentMode ? "Invoke Subagent" : "Select Agent";
+
+    /// <summary>
+    /// Gets or sets the name of the agent selected for subagent invocation.
+    /// Only set when <see cref="IsSubagentMode"/> is <c>true</c>.
+    /// </summary>
+    [ObservableProperty]
+    private string? _selectedSubagentName;
+
+    /// <summary>
     /// Loads all available agents from the server and maps them to display models.
     /// </summary>
     /// <param name="ct">Cancellation token.</param>
@@ -87,8 +108,19 @@ public sealed partial class AgentPickerViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Selects an agent and closes the popup. The caller reads <see cref="SelectedAgentName"/>
-    /// to apply the selection.
+    /// Called by the source generator when <see cref="IsSubagentMode"/> changes.
+    /// Notifies the UI that <see cref="SheetTitle"/> has changed.
+    /// </summary>
+    /// <param name="value">The new value.</param>
+    partial void OnIsSubagentModeChanged(bool value)
+    {
+        OnPropertyChanged(nameof(SheetTitle));
+    }
+
+    /// <summary>
+    /// Selects an agent and closes the popup. In normal mode, the caller reads
+    /// <see cref="SelectedAgentName"/> to apply the selection. In subagent mode,
+    /// the caller reads <see cref="SelectedSubagentName"/> to invoke the subagent.
     /// </summary>
     /// <param name="agentName">The name of the agent to select.</param>
     /// <param name="ct">Cancellation token.</param>
@@ -97,7 +129,14 @@ public sealed partial class AgentPickerViewModel : ObservableObject
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(agentName);
 
-        SelectedAgentName = agentName;
+        if (IsSubagentMode)
+        {
+            SelectedSubagentName = agentName;
+        }
+        else
+        {
+            SelectedAgentName = agentName;
+        }
 
         // Update the IsSelected state in the collection
         var updatedItems = Agents.Select(a => a with { IsSelected = a.Name == agentName }).ToList();

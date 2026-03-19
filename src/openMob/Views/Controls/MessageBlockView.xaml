@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:openMob.Views.Controls"
+             xmlns:markdown="clr-namespace:openMob.Views.Controls.Markdown"
+             xmlns:helpers="clr-namespace:openMob.Helpers"
+             xmlns:models="clr-namespace:openMob.Core.Models;assembly=openMob.Core"
+             x:Class="openMob.Views.Controls.MessageBlockView"
+             x:Name="this"
+             x:DataType="controls:MessageBlockView">
+
+  <Grid Padding="{StaticResource SpacingXs}"
+        ColumnDefinitions="Auto,*"
+        ColumnSpacing="0">
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         Column 0: Left color bar (3pt wide, full height)
+         Color determined by SenderType via DataTriggers
+         ═══════════════════════════════════════════════════════════════ -->
+    <BoxView x:Name="LeftBar"
+             Grid.Column="0"
+             WidthRequest="{StaticResource SizeMessageBarWidth}"
+             VerticalOptions="Fill"
+             Color="{AppThemeBinding Light={StaticResource ColorPrimaryLight},
+                                     Dark={StaticResource ColorPrimaryDark}}">
+      <BoxView.Triggers>
+        <DataTrigger TargetType="BoxView"
+                     Binding="{Binding SenderType, Source={x:Reference this}}"
+                     Value="{x:Static models:SenderType.User}">
+          <Setter Property="Color"
+                  Value="{AppThemeBinding Light={StaticResource ColorPrimaryLight},
+                                          Dark={StaticResource ColorPrimaryDark}}" />
+        </DataTrigger>
+        <DataTrigger TargetType="BoxView"
+                     Binding="{Binding SenderType, Source={x:Reference this}}"
+                     Value="{x:Static models:SenderType.Agent}">
+          <Setter Property="Color"
+                  Value="{AppThemeBinding Light={StaticResource ColorAgentAccentLight},
+                                          Dark={StaticResource ColorAgentAccentDark}}" />
+        </DataTrigger>
+        <DataTrigger TargetType="BoxView"
+                     Binding="{Binding SenderType, Source={x:Reference this}}"
+                     Value="{x:Static models:SenderType.Subagent}">
+          <Setter Property="Color"
+                  Value="{AppThemeBinding Light={StaticResource ColorSubagentAccentLight},
+                                          Dark={StaticResource ColorSubagentAccentDark}}" />
+        </DataTrigger>
+      </BoxView.Triggers>
+    </BoxView>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         Column 1: Message content area
+         ═══════════════════════════════════════════════════════════════ -->
+    <VerticalStackLayout Grid.Column="1"
+                         Spacing="{StaticResource SpacingXs}"
+                         Padding="8,4,12,4">
+
+      <!-- Sender label — visible only when IsFirstInGroup=true (REQ-006) -->
+      <Label x:Name="SenderLabel"
+             Text="{Binding SenderName, Source={x:Reference this}, FallbackValue=''}"
+             Style="{StaticResource SenderLabel}"
+             IsVisible="{Binding IsFirstInGroup, Source={x:Reference this}}"
+             TextColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight},
+                                         Dark={StaticResource ColorPrimaryDark}}"
+             SemanticProperties.Description="Message sender">
+        <Label.Triggers>
+          <DataTrigger TargetType="Label"
+                       Binding="{Binding SenderType, Source={x:Reference this}}"
+                       Value="{x:Static models:SenderType.User}">
+            <Setter Property="TextColor"
+                    Value="{AppThemeBinding Light={StaticResource ColorPrimaryLight},
+                                            Dark={StaticResource ColorPrimaryDark}}" />
+          </DataTrigger>
+          <DataTrigger TargetType="Label"
+                       Binding="{Binding SenderType, Source={x:Reference this}}"
+                       Value="{x:Static models:SenderType.Agent}">
+            <Setter Property="TextColor"
+                    Value="{AppThemeBinding Light={StaticResource ColorAgentAccentLight},
+                                            Dark={StaticResource ColorAgentAccentDark}}" />
+          </DataTrigger>
+          <DataTrigger TargetType="Label"
+                       Binding="{Binding SenderType, Source={x:Reference this}}"
+                       Value="{x:Static models:SenderType.Subagent}">
+            <Setter Property="TextColor"
+                    Value="{AppThemeBinding Light={StaticResource ColorSubagentAccentLight},
+                                            Dark={StaticResource ColorSubagentAccentDark}}" />
+          </DataTrigger>
+        </Label.Triggers>
+      </Label>
+
+      <!-- Content area: User messages use plain Label, AI messages use MarkdownView -->
+
+      <!-- User message text (REQ-004) -->
+      <Border IsVisible="{Binding IsFromUser, Source={x:Reference this}}"
+              BackgroundColor="{AppThemeBinding Light={StaticResource ColorMessageUserBackgroundLight},
+                                                Dark={StaticResource ColorMessageUserBackgroundDark}}"
+              StrokeThickness="0"
+              StrokeShape="RoundRectangle 8"
+              Padding="{StaticResource SpacingSm}">
+        <Label Text="{Binding TextContent, Source={x:Reference this}, FallbackValue=''}"
+               Style="{StaticResource MessageBodyLabel}" />
+      </Border>
+
+      <!-- AI message content (REQ-005) — rendered via MarkdownView -->
+      <markdown:MarkdownView
+          IsVisible="{Binding IsFromUser, Source={x:Reference this}, Converter={StaticResource InvertedBoolConverter}}"
+          MarkdownText="{Binding TextContent, Source={x:Reference this}, FallbackValue=''}" />
+
+      <!-- Streaming indicator (pulsing dots) -->
+      <HorizontalStackLayout x:Name="StreamingDots"
+                             Spacing="{StaticResource SpacingXs}"
+                             IsVisible="{Binding IsStreaming, Source={x:Reference this}}"
+                             Padding="0,4,0,0">
+        <Ellipse x:Name="Dot1"
+                 WidthRequest="6"
+                 HeightRequest="6"
+                 Fill="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
+                                       Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
+                 Opacity="0.3" />
+        <Ellipse x:Name="Dot2"
+                 WidthRequest="6"
+                 HeightRequest="6"
+                 Fill="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
+                                       Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
+                 Opacity="0.3" />
+        <Ellipse x:Name="Dot3"
+                 WidthRequest="6"
+                 HeightRequest="6"
+                 Fill="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
+                                       Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
+                 Opacity="0.3" />
+      </HorizontalStackLayout>
+
+      <!-- Timestamp (REQ-007) — right-aligned, hidden during streaming -->
+      <Label Text="{Binding Timestamp, Source={x:Reference this}, Converter={StaticResource DateTimeToRelativeStringConverter}, FallbackValue=''}"
+             Style="{StaticResource TimestampLabel}"
+             TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
+                                         Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
+             IsVisible="{Binding IsStreaming, Source={x:Reference this}, Converter={StaticResource InvertedBoolConverter}}"
+             HorizontalOptions="End" />
+
+    </VerticalStackLayout>
+
+  </Grid>
+
+</ContentView>

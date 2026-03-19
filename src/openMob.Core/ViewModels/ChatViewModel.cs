@@ -733,6 +733,10 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
         {
             var existing = FindMessageById(e.Message.Info.Id);
 
+#if DEBUG
+            System.Diagnostics.Debug.WriteLine($"[MSG_UPDATED] event id='{e.Message.Info.Id}' role='{e.Message.Info.Role}' sessionId='{e.Message.Info.SessionId}' currentSessionId='{CurrentSessionId}' existingFound={existing is not null}");
+#endif
+
             if (existing is not null)
             {
                 // Only overwrite TextContent if the event carries actual text parts.
@@ -750,12 +754,27 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
             {
                 var newMessage = ChatMessage.FromDto(e.Message);
 
+#if DEBUG
+                System.Diagnostics.Debug.WriteLine($"[MSG_UPDATED] no existing match for id='{e.Message.Info.Id}' role='{e.Message.Info.Role}' isFromUser={newMessage.IsFromUser} TextContent='{newMessage.TextContent}' PartsCount={e.Message.Parts?.Count ?? -1}");
+                if (e.Message.Parts != null)
+                {
+                    foreach (var p in e.Message.Parts)
+                        System.Diagnostics.Debug.WriteLine($"[MSG_UPDATED]   part id='{p.Id}' type='{p.Type}' text='{p.Text}' extras={p.Extras?.Count ?? 0}");
+                }
+                System.Diagnostics.Debug.WriteLine($"[MSG_UPDATED] Messages before reconciliation: {Messages.Count} items");
+                for (var dbgI = 0; dbgI < Messages.Count; dbgI++)
+                    System.Diagnostics.Debug.WriteLine($"[MSG_UPDATED]   [{dbgI}] id='{Messages[dbgI].Id}' isFromUser={Messages[dbgI].IsFromUser} text='{Messages[dbgI].TextContent}' status={Messages[dbgI].DeliveryStatus}");
+#endif
+
                 // Optimistic reconciliation: if this is a user message, find and replace
                 // the optimistic placeholder (which has a temporary GUID id) that matches
                 // by text content. This prevents the message from appearing twice.
                 if (newMessage.IsFromUser)
                 {
                     var optimisticIndex = FindOptimisticUserMessageIndex(newMessage.TextContent);
+#if DEBUG
+                    System.Diagnostics.Debug.WriteLine($"[MSG_UPDATED] optimisticIndex={optimisticIndex} for TextContent='{newMessage.TextContent}'");
+#endif
                     if (optimisticIndex >= 0)
                     {
                         Messages[optimisticIndex] = newMessage;

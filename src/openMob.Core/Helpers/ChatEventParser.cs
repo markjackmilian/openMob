@@ -88,8 +88,9 @@ internal sealed class ChatEventParser
 
             _ => new UnknownEvent
             {
-                RawEventId = dto.EventId,
+                RawEventId = unwrapped.EventId,
                 RawType = eventType,
+                // Preserve the original envelope (not the unwrapped properties) for diagnostics.
                 RawData = dto.Data,
             },
         };

@@ -442,7 +442,10 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
                     UpdateIsEmpty();
                 });
 
-                // Start SSE subscription only after messages loaded successfully [REQ-011]
+                // Start SSE subscription only after messages loaded successfully [REQ-011].
+                // Fire-and-forget is safe here: the task is lifecycle-managed via _sseCts
+                // (cancelled on session change or Dispose) and all exceptions are caught
+                // internally within StartSseSubscriptionAsync.
                 _ = StartSseSubscriptionAsync();
             }
             else if (result.Error is not null)

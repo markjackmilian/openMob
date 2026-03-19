@@ -675,12 +675,6 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
         {
             await foreach (var chatEvent in _chatService.SubscribeToEventsAsync(ct).ConfigureAwait(false))
             {
-                // Diagnostic: log every SSE event received
-                var rawInfo = chatEvent is openMob.Core.Models.UnknownEvent unk
-                    ? $" rawType='{unk.RawType}' rawData={unk.RawData?.ToString()?.Substring(0, Math.Min(200, unk.RawData?.ToString()?.Length ?? 0))}"
-                    : string.Empty;
-                System.Diagnostics.Debug.WriteLine($"[SSE] event received: {chatEvent.GetType().Name} (type={chatEvent.Type}){rawInfo}");
-
                 switch (chatEvent)
                 {
                     case MessageUpdatedEvent e:
@@ -729,10 +723,6 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     /// <param name="e">The message updated event.</param>
     private void HandleMessageUpdated(MessageUpdatedEvent e)
     {
-        // Diagnostic: log session ID mismatch to help identify filtering issues
-        System.Diagnostics.Debug.WriteLine(
-            $"[SSE] message.updated — event.sessionId='{e.Message.Info.SessionId}' current='{CurrentSessionId}' match={e.Message.Info.SessionId == CurrentSessionId}");
-
         if (e.Message.Info.SessionId != CurrentSessionId)
             return;
 

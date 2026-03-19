@@ -20,10 +20,11 @@ internal sealed class ChatEventParser
     /// </returns>
     internal static ChatEvent Parse(OpencodeEventDto dto)
     {
-        // The opencode server wraps all events in an envelope:
+        // The opencode server wraps all SSE events in an envelope:
         //   { "directory": "...", "payload": { "type": "<event-type>", "properties": { ... } } }
-        // The SSE "event:" field is always absent (or "unknown"), so we must read the real
-        // event type from data.payload.type and the payload from data.payload.properties.
+        // The SSE wire-level "event:" field is always absent (the server never sets it),
+        // so dto.EventType is always "unknown". The real event type is in data.payload.type
+        // and the event data is in data.payload.properties.
         if (dto.Data is not { } envelope)
             return MakeUnknown(dto);
 

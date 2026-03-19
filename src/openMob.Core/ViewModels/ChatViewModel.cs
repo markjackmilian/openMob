@@ -749,8 +749,29 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
             else
             {
                 var newMessage = ChatMessage.FromDto(e.Message);
-                Messages.Add(newMessage);
-                existing = newMessage;
+
+                // Optimistic reconciliation: if this is a user message, find and replace
+                // the optimistic placeholder (which has a temporary GUID id) that matches
+                // by text content. This prevents the message from appearing twice.
+                if (newMessage.IsFromUser)
+                {
+                    var optimisticIndex = FindOptimisticUserMessageIndex(newMessage.TextContent);
+                    if (optimisticIndex >= 0)
+                    {
+                        Messages[optimisticIndex] = newMessage;
+                        existing = newMessage;
+                    }
+                    else
+                    {
+                        Messages.Add(newMessage);
+                        existing = newMessage;
+                    }
+                }
+                else
+                {
+                    Messages.Add(newMessage);
+                    existing = newMessage;
+                }
             }
 
             RecalculateGrouping();
@@ -917,6 +938,31 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     private void UpdateIsEmpty() => IsEmpty = Messages.Count == 0;
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Finds the index of an optimistic user message placeholder that matches the given text content.
+    /// An optimistic message is identified by <see cref="ChatMessage.IsFromUser"/> = true and
+    /// <see cref="ChatMessage.DeliveryStatus"/> = <see cref="MessageDeliveryStatus.Sending"/> or
+    /// <see cref="MessageDeliveryStatus.Sent"/> (before server confirmation).
+    /// </summary>
+    /// <param name="textContent">The text content to match against.</param>
+    /// <returns>The zero-based index of the matching message, or -1 if not found.</returns>
+    private int FindOptimisticUserMessageIndex(string textContent)
+    {
+        for (var i = Messages.Count - 1; i >= 0; i--)
+        {
+            var msg = Messages[i];
+            if (msg.IsFromUser &&
+                msg.TextContent == textContent &&
+                (msg.DeliveryStatus == MessageDeliveryStatus.Sending ||
+                 msg.DeliveryStatus == MessageDeliveryStatus.Sent))
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
 
     /// <summary>Finds a message in the collection by its ID.</summary>
     /// <param name="messageId">The message ID to search for.</param>

@@ -69,10 +69,10 @@ public sealed class AgentPickerViewModelTests
     [Fact]
     public async Task LoadAgentsCommand_WhenServiceReturnsEmpty_SetsIsEmptyTrue()
     {
-        // Arrange — primary mode: even with no agents, Default entry is prepended (count = 1)
-        // IsEmpty is based on Agents.Count == 0, which is false when Default is present.
-        // The ViewModel sets IsEmpty = Agents.Count == 0, so with Default entry it is false.
-        // We test the subagent mode for the truly-empty case.
+        // Arrange — subagent mode: no agents returned, no Default entry prepended.
+        // In primary mode the same would apply: with zero agents from the service,
+        // Agents is empty and IsEmpty is true.
+        // We use subagent mode here for simplicity (avoids mocking GetPrimaryAgentsAsync).
         _sut.IsSubagentMode = true;
         _agentService.GetAgentsAsync(Arg.Any<CancellationToken>())
             .Returns(new List<AgentDto>());
@@ -95,7 +95,7 @@ public sealed class AgentPickerViewModelTests
         // Act
         await _sut.LoadAgentsCommand.ExecuteAsync(null);
 
-        // Assert — collection contains the mapped agent (plus the Default entry at index 0)
+        // Assert — collection contains only the mapped agent (no synthetic Default entry)
         _sut.Agents.Should().Contain(a => a.Name == "claude" && a.Description == "Claude AI");
     }
 

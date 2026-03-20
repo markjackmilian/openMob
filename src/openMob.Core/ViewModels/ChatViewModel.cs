@@ -114,6 +114,10 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
 
                     // Update agent properties [REQ-007]
                     SelectedAgentName = pref.AgentName;
+
+                    // Update thinking level and auto-accept [REQ-003, REQ-005]
+                    ThinkingLevel = pref.ThinkingLevel;
+                    AutoAccept = pref.AutoAccept;
                 });
             });
 
@@ -318,6 +322,10 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
 
                 // Load agent name from preference [REQ-007]
                 SelectedAgentName = pref?.AgentName;
+
+                // Load thinking level and auto-accept from preference [REQ-003, REQ-005]
+                ThinkingLevel = pref?.ThinkingLevel ?? ThinkingLevel.Medium;
+                AutoAccept = pref?.AutoAccept ?? false;
             }
             else
             {

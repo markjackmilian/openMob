@@ -164,6 +164,139 @@ public sealed class AgentServiceTests
             Hidden: hidden);
     }
 
+    // ─── GetSubagentAgentsAsync ───────────────────────────────────────────────
+
+    [Fact]
+    public async Task GetSubagentAgentsAsync_WhenApiReturnsMixedModes_ReturnsOnlySubagentAndAll()
+    {
+        // Arrange
+        var agents = new List<AgentDto>
+        {
+            BuildAgentWithMode("primary-agent", "primary"),
+            BuildAgentWithMode("subagent-agent", "subagent"),
+            BuildAgentWithMode("all-agent", "all"),
+            BuildAgentWithMode("another-primary", "primary"),
+        };
+        _apiClient.GetAgentsAsync(Arg.Any<CancellationToken>())
+            .Returns(OpencodeResult<IReadOnlyList<AgentDto>>.Success(agents));
+
+        // Act
+        var result = await _sut.GetSubagentAgentsAsync();
+
+        // Assert
+        result.Should().HaveCount(2);
+        result.Should().Contain(a => a.Name == "subagent-agent");
+        result.Should().Contain(a => a.Name == "all-agent");
+    }
+
+    [Fact]
+    public async Task GetSubagentAgentsAsync_WhenApiReturnsOnlyPrimaryAgents_ReturnsEmptyList()
+    {
+        // Arrange
+        var agents = new List<AgentDto>
+        {
+            BuildAgentWithMode("primary-1", "primary"),
+            BuildAgentWithMode("primary-2", "primary"),
+        };
+        _apiClient.GetAgentsAsync(Arg.Any<CancellationToken>())
+            .Returns(OpencodeResult<IReadOnlyList<AgentDto>>.Success(agents));
+
+        // Act
+        var result = await _sut.GetSubagentAgentsAsync();
+
+        // Assert
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetSubagentAgentsAsync_WhenApiReturnsEmptyList_ReturnsEmptyList()
+    {
+        // Arrange
+        _apiClient.GetAgentsAsync(Arg.Any<CancellationToken>())
+            .Returns(OpencodeResult<IReadOnlyList<AgentDto>>.Success(new List<AgentDto>()));
+
+        // Act
+        var result = await _sut.GetSubagentAgentsAsync();
+
+        // Assert
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetSubagentAgentsAsync_WhenAgentModeIsAll_IncludesItInResult()
+    {
+        // Arrange
+        var agents = new List<AgentDto>
+        {
+            BuildAgentWithMode("universal-agent", "all"),
+        };
+        _apiClient.GetAgentsAsync(Arg.Any<CancellationToken>())
+            .Returns(OpencodeResult<IReadOnlyList<AgentDto>>.Success(agents));
+
+        // Act
+        var result = await _sut.GetSubagentAgentsAsync();
+
+        // Assert
+        result.Should().ContainSingle(a => a.Name == "universal-agent");
+    }
+
+    [Fact]
+    public async Task GetSubagentAgentsAsync_WhenAgentModeIsSubagent_IncludesItInResult()
+    {
+        // Arrange
+        var agents = new List<AgentDto>
+        {
+            BuildAgentWithMode("coder-subagent", "subagent"),
+        };
+        _apiClient.GetAgentsAsync(Arg.Any<CancellationToken>())
+            .Returns(OpencodeResult<IReadOnlyList<AgentDto>>.Success(agents));
+
+        // Act
+        var result = await _sut.GetSubagentAgentsAsync();
+
+        // Assert
+        result.Should().ContainSingle(a => a.Name == "coder-subagent");
+    }
+
+    [Fact]
+    public async Task GetSubagentAgentsAsync_WhenAgentModeIsPrimary_ExcludesItFromResult()
+    {
+        // Arrange
+        var agents = new List<AgentDto>
+        {
+            BuildAgentWithMode("primary-only", "primary"),
+        };
+        _apiClient.GetAgentsAsync(Arg.Any<CancellationToken>())
+            .Returns(OpencodeResult<IReadOnlyList<AgentDto>>.Success(agents));
+
+        // Act
+        var result = await _sut.GetSubagentAgentsAsync();
+
+        // Assert
+        result.Should().NotContain(a => a.Name == "primary-only");
+    }
+
+    [Fact]
+    public async Task GetSubagentAgentsAsync_WhenAgentIsHidden_StillIncludesItIfModeIsSubagent()
+    {
+        // Arrange — unlike GetPrimaryAgentsAsync, hidden agents are NOT excluded from subagent list
+        var agents = new List<AgentDto>
+        {
+            BuildAgentWithMode("hidden-subagent", "subagent", hidden: true),
+            BuildAgentWithMode("visible-subagent", "subagent", hidden: false),
+        };
+        _apiClient.GetAgentsAsync(Arg.Any<CancellationToken>())
+            .Returns(OpencodeResult<IReadOnlyList<AgentDto>>.Success(agents));
+
+        // Act
+        var result = await _sut.GetSubagentAgentsAsync();
+
+        // Assert
+        result.Should().HaveCount(2);
+        result.Should().Contain(a => a.Name == "hidden-subagent");
+        result.Should().Contain(a => a.Name == "visible-subagent");
+    }
+
     // ─── GetPrimaryAgentsAsync — Hidden filter ────────────────────────────────
 
     [Fact]

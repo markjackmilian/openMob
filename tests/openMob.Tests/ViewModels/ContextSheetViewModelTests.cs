@@ -19,6 +19,7 @@ public sealed class ContextSheetViewModelTests : IDisposable
     private readonly IProjectService _projectService;
     private readonly IProjectPreferenceService _preferenceService;
     private readonly IAppPopupService _popupService;
+    private readonly IAgentService _agentService;
     private readonly ContextSheetViewModel _sut;
 
     public ContextSheetViewModelTests()
@@ -26,11 +27,17 @@ public sealed class ContextSheetViewModelTests : IDisposable
         _projectService = Substitute.For<IProjectService>();
         _preferenceService = Substitute.For<IProjectPreferenceService>();
         _popupService = Substitute.For<IAppPopupService>();
+        _agentService = Substitute.For<IAgentService>();
+
+        // Default: return empty subagent list so InvokeSubagentCommand.CanExecute = false
+        _agentService.GetSubagentAgentsAsync(Arg.Any<CancellationToken>())
+            .Returns(Array.Empty<AgentDto>());
 
         _sut = new ContextSheetViewModel(
             _projectService,
             _preferenceService,
-            _popupService);
+            _popupService,
+            _agentService);
     }
 
     public void Dispose()
@@ -64,6 +71,23 @@ public sealed class ContextSheetViewModelTests : IDisposable
             ThinkingLevel = thinkingLevel,
             AutoAccept = autoAccept,
         };
+
+    private static AgentDto BuildSubagentDto(string name = "coder")
+        => new AgentDto(
+            Name: name,
+            Description: $"{name} subagent",
+            Mode: "subagent",
+            BuiltIn: false,
+            TopP: null,
+            Temperature: null,
+            Color: null,
+            Model: null,
+            Prompt: null,
+            Tools: default,
+            Options: default,
+            MaxSteps: null,
+            Permission: default,
+            Hidden: false);
 
     /// <summary>
     /// Configures the preference service to return a default preference for "proj-1"
@@ -591,21 +615,324 @@ public sealed class ContextSheetViewModelTests : IDisposable
         _sut.ThinkingLevel.Should().Be(level);
     }
 
+    // ─── Commands — ToggleAutoAcceptCommand ───────────────────────────────────
+
+    [Fact]
+    public async Task ToggleAutoAcceptCommand_WhenAutoAcceptIsFalse_TogglesItToTrue()
+    {
+        // Arrange — initialize with autoAccept = false (default)
+        await InitializeWithDefaultsAsync();
+        _preferenceService.SetAutoAcceptAsync("proj-1", true, Arg.Any<CancellationToken>())
+            .Returns(true);
+        _preferenceService.GetOrDefaultAsync("proj-1", Arg.Any<CancellationToken>())
+            .Returns(BuildPreference(autoAccept: true));
+
+        // Act
+        await _sut.ToggleAutoAcceptCommand.ExecuteAsync(null);
+
+        // Assert
+        _sut.AutoAccept.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ToggleAutoAcceptCommand_WhenAutoAcceptIsTrue_TogglesItToFalse()
+    {
+        // Arrange — initialize with autoAccept = true
+        var project = BuildProject("proj-1");
+        _projectService.GetProjectByIdAsync("proj-1", Arg.Any<CancellationToken>())
+            .Returns(project);
+        _preferenceService.GetOrDefaultAsync("proj-1", Arg.Any<CancellationToken>())
+            .Returns(BuildPreference(autoAccept: true));
+        await _sut.InitializeAsync("proj-1", "sess-1");
+
+        _preferenceService.SetAutoAcceptAsync("proj-1", false, Arg.Any<CancellationToken>())
+            .Returns(true);
+        _preferenceService.GetOrDefaultAsync("proj-1", Arg.Any<CancellationToken>())
+            .Returns(BuildPreference(autoAccept: false));
+
+        // Act
+        await _sut.ToggleAutoAcceptCommand.ExecuteAsync(null);
+
+        // Assert
+        _sut.AutoAccept.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ToggleAutoAcceptCommand_WhenSaveSucceeds_PublishesProjectPreferenceChangedMessage()
+    {
+        // Arrange
+        await InitializeWithDefaultsAsync();
+        _preferenceService.SetAutoAcceptAsync("proj-1", true, Arg.Any<CancellationToken>())
+            .Returns(true);
+        _preferenceService.GetOrDefaultAsync("proj-1", Arg.Any<CancellationToken>())
+            .Returns(BuildPreference(autoAccept: true));
+
+        ProjectPreferenceChangedMessage? receivedMessage = null;
+        WeakReferenceMessenger.Default.Register<ProjectPreferenceChangedMessage>(
+            this,
+            (_, msg) => receivedMessage = msg);
+
+        // Act
+        await _sut.ToggleAutoAcceptCommand.ExecuteAsync(null);
+
+        // Assert
+        receivedMessage.Should().NotBeNull();
+        receivedMessage!.ProjectId.Should().Be("proj-1");
+    }
+
+    [Fact]
+    public async Task ToggleAutoAcceptCommand_WhenSaveSucceeds_CallsSetAutoAcceptAsyncWithNewValue()
+    {
+        // Arrange — initial AutoAccept = false, so new value = true
+        await InitializeWithDefaultsAsync();
+        _preferenceService.SetAutoAcceptAsync("proj-1", true, Arg.Any<CancellationToken>())
+            .Returns(true);
+        _preferenceService.GetOrDefaultAsync("proj-1", Arg.Any<CancellationToken>())
+            .Returns(BuildPreference(autoAccept: true));
+
+        // Act
+        await _sut.ToggleAutoAcceptCommand.ExecuteAsync(null);
+
+        // Assert
+        await _preferenceService.Received(1).SetAutoAcceptAsync(
+            "proj-1",
+            true,
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ToggleAutoAcceptCommand_WhenSaveFails_RevertsAutoAcceptToPreviousValue()
+    {
+        // Arrange — initial AutoAccept = false
+        await InitializeWithDefaultsAsync();
+        _preferenceService.SetAutoAcceptAsync("proj-1", true, Arg.Any<CancellationToken>())
+            .Returns(false); // save fails
+
+        // Act
+        await _sut.ToggleAutoAcceptCommand.ExecuteAsync(null);
+
+        // Assert — reverted to original false
+        _sut.AutoAccept.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ToggleAutoAcceptCommand_WhenSaveFails_SetsErrorMessage()
+    {
+        // Arrange
+        await InitializeWithDefaultsAsync();
+        _preferenceService.SetAutoAcceptAsync("proj-1", true, Arg.Any<CancellationToken>())
+            .Returns(false);
+
+        // Act
+        await _sut.ToggleAutoAcceptCommand.ExecuteAsync(null);
+
+        // Assert
+        _sut.ErrorMessage.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task ToggleAutoAcceptCommand_WhenSaveFails_DoesNotPublishProjectPreferenceChangedMessage()
+    {
+        // Arrange
+        await InitializeWithDefaultsAsync();
+        _preferenceService.SetAutoAcceptAsync("proj-1", true, Arg.Any<CancellationToken>())
+            .Returns(false);
+
+        var messagePublished = false;
+        WeakReferenceMessenger.Default.Register<ProjectPreferenceChangedMessage>(
+            this,
+            (_, _) => messagePublished = true);
+
+        // Act
+        await _sut.ToggleAutoAcceptCommand.ExecuteAsync(null);
+
+        // Assert
+        messagePublished.Should().BeFalse();
+    }
+
     // ─── Commands — InvokeSubagentCommand ─────────────────────────────────────
 
     [Fact]
-    public async Task InvokeSubagentCommand_WhenExecuted_CallsShowAgentPickerSubagentMode()
+    public async Task InvokeSubagentCommand_WhenSubagentListIsEmpty_CannotExecute()
     {
-        // Arrange
-        _popupService.ShowAgentPickerSubagentModeAsync(Arg.Any<CancellationToken>())
+        // Arrange — default setup returns empty subagent list
+        await InitializeWithDefaultsAsync();
+
+        // Assert
+        _sut.InvokeSubagentCommand.CanExecute(null).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task InvokeSubagentCommand_WhenSubagentListIsNotEmpty_CanExecute()
+    {
+        // Arrange — initialize with subagents available
+        var project = BuildProject("proj-1");
+        _projectService.GetProjectByIdAsync("proj-1", Arg.Any<CancellationToken>())
+            .Returns(project);
+        _preferenceService.GetOrDefaultAsync("proj-1", Arg.Any<CancellationToken>())
+            .Returns(BuildPreference());
+        _agentService.GetSubagentAgentsAsync(Arg.Any<CancellationToken>())
+            .Returns(new List<AgentDto>
+            {
+                new AgentDto(
+                    Name: "coder",
+                    Description: "Coder subagent",
+                    Mode: "subagent",
+                    BuiltIn: false,
+                    TopP: null,
+                    Temperature: null,
+                    Color: null,
+                    Model: null,
+                    Prompt: null,
+                    Tools: default,
+                    Options: default,
+                    MaxSteps: null,
+                    Permission: default,
+                    Hidden: false),
+            });
+
+        await _sut.InitializeAsync("proj-1", "sess-1");
+
+        // Assert
+        _sut.InvokeSubagentCommand.CanExecute(null).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task InvokeSubagentCommand_WhenSubagentsAvailable_CallsShowSubagentPickerAsync()
+    {
+        // Arrange — initialize with subagents available so CanExecute = true
+        var subagents = new List<AgentDto>
+        {
+            new AgentDto(
+                Name: "sub-agent",
+                Description: "Sub Agent",
+                Mode: "subagent",
+                BuiltIn: false,
+                TopP: null,
+                Temperature: null,
+                Color: null,
+                Model: null,
+                Prompt: null,
+                Tools: default,
+                Options: default,
+                MaxSteps: null,
+                Permission: default,
+                Hidden: false),
+        };
+        _agentService.GetSubagentAgentsAsync(Arg.Any<CancellationToken>())
+            .Returns(subagents);
+        _popupService.ShowSubagentPickerAsync(Arg.Any<Action<string>>(), Arg.Any<CancellationToken>())
             .Returns(Task.CompletedTask);
+
+        await InitializeWithDefaultsAsync();
+
+        // Assert — [m-003]: ErrorMessage is null before execution (clean initial state)
+        _sut.ErrorMessage.Should().BeNull();
 
         // Act
         await _sut.InvokeSubagentCommand.ExecuteAsync(null);
 
         // Assert
-        await _popupService.Received(1).ShowAgentPickerSubagentModeAsync(
+        await _popupService.Received(1).ShowSubagentPickerAsync(
+            Arg.Any<Action<string>>(),
             Arg.Any<CancellationToken>());
+
+        // Assert — [m-003]: IsBusy is false after successful completion
+        _sut.IsBusy.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task InvokeSubagentCommand_WhenSubagentSelected_SetsNotSupportedErrorMessage()
+    {
+        // Arrange — initialize with subagents available so CanExecute = true
+        _agentService.GetSubagentAgentsAsync(Arg.Any<CancellationToken>())
+            .Returns(new List<AgentDto> { BuildSubagentDto("coder") });
+
+        // Simulate the popup invoking the callback synchronously with the selected agent name
+        _popupService.ShowSubagentPickerAsync(Arg.Any<Action<string>>(), Arg.Any<CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var callback = callInfo.Arg<Action<string>>();
+                callback("coder");
+                return Task.CompletedTask;
+            });
+
+        await InitializeWithDefaultsAsync();
+
+        // Act
+        await _sut.InvokeSubagentCommand.ExecuteAsync(null);
+
+        // Assert
+        _sut.ErrorMessage.Should().Contain("not supported");
+    }
+
+    [Fact]
+    public async Task InvokeSubagentCommand_WhenPopupThrows_SetsErrorMessage()
+    {
+        // Arrange — initialize with subagents available so CanExecute = true
+        _agentService.GetSubagentAgentsAsync(Arg.Any<CancellationToken>())
+            .Returns(new List<AgentDto> { BuildSubagentDto("coder") });
+
+        _popupService.ShowSubagentPickerAsync(Arg.Any<Action<string>>(), Arg.Any<CancellationToken>())
+            .ThrowsAsync(new InvalidOperationException("Popup failed"));
+
+        await InitializeWithDefaultsAsync();
+
+        // Act
+        await _sut.InvokeSubagentCommand.ExecuteAsync(null);
+
+        // Assert
+        _sut.ErrorMessage.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task InvokeSubagentCommand_WhenPopupThrows_IsBusyIsFalse()
+    {
+        // Arrange — initialize with subagents available so CanExecute = true
+        _agentService.GetSubagentAgentsAsync(Arg.Any<CancellationToken>())
+            .Returns(new List<AgentDto> { BuildSubagentDto("coder") });
+
+        _popupService.ShowSubagentPickerAsync(Arg.Any<Action<string>>(), Arg.Any<CancellationToken>())
+            .ThrowsAsync(new InvalidOperationException("Popup failed"));
+
+        await InitializeWithDefaultsAsync();
+
+        // Act
+        await _sut.InvokeSubagentCommand.ExecuteAsync(null);
+
+        // Assert
+        _sut.IsBusy.Should().BeFalse();
+    }
+
+    // ─── InitializeAsync — subagent loading ───────────────────────────────────
+
+    [Fact]
+    public async Task InitializeAsync_LoadsSubagentListForCanExecuteEvaluation()
+    {
+        // Arrange — subagents available
+        var project = BuildProject("proj-1");
+        _projectService.GetProjectByIdAsync("proj-1", Arg.Any<CancellationToken>())
+            .Returns(project);
+        _preferenceService.GetOrDefaultAsync("proj-1", Arg.Any<CancellationToken>())
+            .Returns(BuildPreference());
+        _agentService.GetSubagentAgentsAsync(Arg.Any<CancellationToken>())
+            .Returns(new List<AgentDto> { BuildSubagentDto("coder") });
+
+        // Act
+        await _sut.InitializeAsync("proj-1", "sess-1");
+
+        // Assert
+        _sut.InvokeSubagentCommand.CanExecute(null).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task InitializeAsync_WhenNoSubagentsAvailable_InvokeSubagentCommandCannotExecute()
+    {
+        // Arrange — default: empty subagent list
+        await InitializeWithDefaultsAsync();
+
+        // Assert
+        _sut.InvokeSubagentCommand.CanExecute(null).Should().BeFalse();
     }
 
     // ─── Commands — SelectAgentCommand ───────────────────────────────────────

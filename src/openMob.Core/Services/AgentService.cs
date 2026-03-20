@@ -45,4 +45,11 @@ internal sealed class AgentService : IAgentService
         var all = await GetAgentsAsync(ct).ConfigureAwait(false);
         return all.Where(a => (a.Mode is "primary" or "all") && !a.Hidden).ToList();
     }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<AgentDto>> GetSubagentAgentsAsync(CancellationToken ct = default)
+    {
+        var all = await GetAgentsAsync(ct).ConfigureAwait(false);
+        return all.Where(a => a.Mode is "subagent" or "all").ToList();
+    }
 }

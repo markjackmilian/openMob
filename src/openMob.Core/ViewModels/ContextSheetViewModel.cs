@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using openMob.Core.Data.Entities;
 using openMob.Core.Helpers;
+using openMob.Core.Infrastructure.Http.Dtos.Opencode;
 using openMob.Core.Infrastructure.Monitoring;
 using openMob.Core.Messages;
 using openMob.Core.Models;
@@ -29,6 +30,7 @@ public sealed partial class ContextSheetViewModel : ObservableObject
     private readonly IProjectService _projectService;
     private readonly IProjectPreferenceService _preferenceService;
     private readonly IAppPopupService _popupService;
+    private readonly IAgentService _agentService;
 
     /// <summary>Tracks the current project ID for save operations.</summary>
     private string? _currentProjectId;
@@ -39,22 +41,35 @@ public sealed partial class ContextSheetViewModel : ObservableObject
     /// </summary>
     private bool _isInitializing;
 
+    /// <summary>Cached list of available subagents, loaded during <see cref="InitializeAsync"/> for CanExecute evaluation.</summary>
+    private IReadOnlyList<AgentDto> _subagentAgents = [];
+
+    /// <summary>
+    /// Prevents <see cref="OnAutoAcceptChanged"/> from firing a save during
+    /// <see cref="ToggleAutoAcceptCommand"/> execution (including rollback).
+    /// </summary>
+    private bool _isTogglingAutoAccept;
+
     /// <summary>Initialises the ContextSheetViewModel with required dependencies.</summary>
     /// <param name="projectService">Service for project operations.</param>
     /// <param name="preferenceService">Service for per-project preference persistence.</param>
     /// <param name="popupService">Service for opening picker popups from the Core layer.</param>
+    /// <param name="agentService">Service for agent operations, used to load the subagent list for CanExecute evaluation.</param>
     public ContextSheetViewModel(
         IProjectService projectService,
         IProjectPreferenceService preferenceService,
-        IAppPopupService popupService)
+        IAppPopupService popupService,
+        IAgentService agentService)
     {
         ArgumentNullException.ThrowIfNull(projectService);
         ArgumentNullException.ThrowIfNull(preferenceService);
         ArgumentNullException.ThrowIfNull(popupService);
+        ArgumentNullException.ThrowIfNull(agentService);
 
         _projectService = projectService;
         _preferenceService = preferenceService;
         _popupService = popupService;
+        _agentService = agentService;
     }
 
     // ─── Observable Properties ────────────────────────────────────────────────
@@ -110,6 +125,7 @@ public sealed partial class ContextSheetViewModel : ObservableObject
 
     /// <summary>Gets or sets whether the sheet is currently loading preferences.</summary>
     [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(InvokeSubagentCommand))]
     private bool _isBusy;
 
     /// <summary>
@@ -153,6 +169,46 @@ public sealed partial class ContextSheetViewModel : ObservableObject
     }
 
     /// <summary>
+    /// Toggles the auto-accept setting. On success, publishes a <see cref="ProjectPreferenceChangedMessage"/>.
+    /// On failure, reverts <see cref="AutoAccept"/> to its previous value and sets <see cref="ErrorMessage"/>.
+    /// </summary>
+    /// <param name="ct">Cancellation token.</param>
+    [RelayCommand]
+    private async Task ToggleAutoAcceptAsync(CancellationToken ct)
+    {
+        if (_currentProjectId is null)
+            return;
+
+        var previousValue = AutoAccept;
+        var newValue = !AutoAccept;
+        var projectId = _currentProjectId;
+
+        _isTogglingAutoAccept = true;
+        AutoAccept = newValue;
+
+        try
+        {
+            var success = await _preferenceService
+                .SetAutoAcceptAsync(projectId, newValue, ct)
+                .ConfigureAwait(false);
+
+            if (success)
+            {
+                await PublishChangedMessageAsync(projectId).ConfigureAwait(false);
+            }
+            else
+            {
+                AutoAccept = previousValue;
+                ErrorMessage = "Failed to save auto-accept preference.";
+            }
+        }
+        finally
+        {
+            _isTogglingAutoAccept = false;
+        }
+    }
+
+    /// <summary>
     /// Changes the thinking level. The property change triggers auto-save
     /// via <see cref="OnThinkingLevelChanged"/>.
     /// </summary>
@@ -164,13 +220,48 @@ public sealed partial class ContextSheetViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Opens the agent picker in subagent invocation mode.
+    /// Opens the subagent picker. On selection, attempts to dispatch the subagent invocation.
+    /// Since the opencode API does not currently support subagent invocation, sets an informational error message.
     /// </summary>
     /// <param name="ct">Cancellation token.</param>
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanInvokeSubagent))]
     private async Task InvokeSubagentAsync(CancellationToken ct)
     {
-        await _popupService.ShowAgentPickerSubagentModeAsync(ct).ConfigureAwait(false);
+        IsBusy = true;
+        ErrorMessage = null;
+
+        try
+        {
+            await _popupService.ShowSubagentPickerAsync(OnSubagentSelected, ct).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            ErrorMessage = "Failed to open subagent picker.";
+            SentryHelper.CaptureException(ex, new Dictionary<string, object>
+            {
+                ["context"] = "ContextSheetViewModel.InvokeSubagentAsync",
+            });
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    /// <summary>Determines whether <see cref="InvokeSubagentCommand"/> can execute.</summary>
+    /// <returns><c>true</c> if not busy and at least one subagent is available.</returns>
+    private bool CanInvokeSubagent() => !IsBusy && _subagentAgents.Count > 0;
+
+    /// <summary>
+    /// Callback invoked when the user selects a subagent from the picker.
+    /// Since the opencode API does not currently support subagent invocation,
+    /// sets an informational error message.
+    /// </summary>
+    /// <param name="agentName">The selected subagent name.</param>
+    private void OnSubagentSelected(string agentName)
+    {
+        // REQ-010 fallback: no API endpoint available for subagent invocation.
+        ErrorMessage = "Subagent invocation not supported by this server version.";
     }
 
     // ─── Initialization ───────────────────────────────────────────────────────
@@ -206,6 +297,10 @@ public sealed partial class ContextSheetViewModel : ObservableObject
             SelectedModelId = pref.DefaultModelId;
             ThinkingLevel = pref.ThinkingLevel;
             AutoAccept = pref.AutoAccept;
+
+            // Load subagent list for InvokeSubagentCommand CanExecute evaluation [REQ-009]
+            _subagentAgents = await _agentService.GetSubagentAgentsAsync(ct).ConfigureAwait(false);
+            InvokeSubagentCommand.NotifyCanExecuteChanged();
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -263,10 +358,11 @@ public sealed partial class ContextSheetViewModel : ObservableObject
     /// <summary>
     /// Invoked by the CommunityToolkit source generator when <see cref="AutoAccept"/> changes.
     /// Skipped during <see cref="InitializeAsync"/> via the <c>_isInitializing</c> guard.
+    /// Skipped during <see cref="ToggleAutoAcceptCommand"/> execution (including rollback) via the <c>_isTogglingAutoAccept</c> guard.
     /// </summary>
     partial void OnAutoAcceptChanged(bool value)
     {
-        if (_isInitializing || _currentProjectId is null)
+        if (_isInitializing || _isTogglingAutoAccept || _currentProjectId is null)
             return;
 
         _ = SaveAutoAcceptAsync(value);

@@ -1,5 +1,6 @@
 using CommunityToolkit.Maui.Alerts;
 using CommunityToolkit.Maui.Core;
+using openMob.Core.Models;
 using openMob.Core.Services;
 using openMob.Core.ViewModels;
 using openMob.Views.Popups;
@@ -119,7 +120,7 @@ internal sealed class MauiPopupService : IAppPopupService
         if (sheet.BindingContext is AgentPickerViewModel vm)
         {
             vm.OnAgentSelected = onAgentSelected;
-            vm.IsSubagentMode = false;
+            vm.PickerMode = PickerMode.Primary;
         }
 
         // Present as a modal page
@@ -185,21 +186,28 @@ internal sealed class MauiPopupService : IAppPopupService
     }
 
     /// <inheritdoc />
-    public async Task ShowAgentPickerSubagentModeAsync(CancellationToken ct = default)
+    public async Task ShowSubagentPickerAsync(Action<string> onSubagentSelected, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
+        var navigation = Shell.Current?.Navigation;
+        if (navigation is null)
+            return;
+
         var sheet = _serviceProvider.GetRequiredService<AgentPickerSheet>();
+
         if (sheet.BindingContext is AgentPickerViewModel vm)
         {
-            vm.IsSubagentMode = true;
+            vm.PickerMode = PickerMode.Subagent;
+            // Wrap Action<string> into Action<string?> — the picker always passes a non-null name in subagent mode.
+            vm.OnAgentSelected = agentName =>
+            {
+                if (agentName is not null)
+                    onSubagentSelected(agentName);
+            };
         }
 
-        var page = GetCurrentPage();
-        if (page is not null)
-        {
-            await page.Navigation.PushModalAsync(sheet, animated: true);
-        }
+        await navigation.PushModalAsync(sheet, animated: true);
     }
 
     /// <summary>Gets the current visible page from Shell navigation.</summary>

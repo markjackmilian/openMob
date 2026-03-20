@@ -1,5 +1,6 @@
 using NSubstitute.ExceptionExtensions;
 using openMob.Core.Infrastructure.Http.Dtos.Opencode;
+using openMob.Core.Models;
 using openMob.Core.Services;
 using openMob.Core.ViewModels;
 
@@ -73,8 +74,8 @@ public sealed class AgentPickerViewModelTests
         // In primary mode the same would apply: with zero agents from the service,
         // Agents is empty and IsEmpty is true.
         // We use subagent mode here for simplicity (avoids mocking GetPrimaryAgentsAsync).
-        _sut.IsSubagentMode = true;
-        _agentService.GetAgentsAsync(Arg.Any<CancellationToken>())
+        _sut.PickerMode = PickerMode.Subagent;
+        _agentService.GetSubagentAgentsAsync(Arg.Any<CancellationToken>())
             .Returns(new List<AgentDto>());
 
         // Act
@@ -203,13 +204,13 @@ public sealed class AgentPickerViewModelTests
     public async Task LoadAgentsCommand_WhenSubagentMode_DoesNotPrependDefaultEntry()
     {
         // Arrange
-        _sut.IsSubagentMode = true;
+        _sut.PickerMode = PickerMode.Subagent;
         var agents = new List<AgentDto>
         {
             BuildAgent("coder"),
             BuildAgent("researcher"),
         };
-        _agentService.GetAgentsAsync(Arg.Any<CancellationToken>()).Returns(agents);
+        _agentService.GetSubagentAgentsAsync(Arg.Any<CancellationToken>()).Returns(agents);
 
         // Act
         await _sut.LoadAgentsCommand.ExecuteAsync(null);
@@ -220,18 +221,18 @@ public sealed class AgentPickerViewModelTests
     }
 
     [Fact]
-    public async Task LoadAgentsCommand_WhenSubagentMode_CallsGetAgentsAsyncNotGetPrimaryAgentsAsync()
+    public async Task LoadAgentsCommand_WhenSubagentMode_CallsGetSubagentAgentsAsyncNotGetPrimaryAgentsAsync()
     {
         // Arrange
-        _sut.IsSubagentMode = true;
-        _agentService.GetAgentsAsync(Arg.Any<CancellationToken>())
+        _sut.PickerMode = PickerMode.Subagent;
+        _agentService.GetSubagentAgentsAsync(Arg.Any<CancellationToken>())
             .Returns(new List<AgentDto>());
 
         // Act
         await _sut.LoadAgentsCommand.ExecuteAsync(null);
 
         // Assert
-        await _agentService.Received(1).GetAgentsAsync(Arg.Any<CancellationToken>());
+        await _agentService.Received(1).GetSubagentAgentsAsync(Arg.Any<CancellationToken>());
         await _agentService.DidNotReceive().GetPrimaryAgentsAsync(Arg.Any<CancellationToken>());
     }
 
@@ -241,7 +242,7 @@ public sealed class AgentPickerViewModelTests
     public async Task SelectAgentCommand_WhenPrimaryModeAndAgentSelected_InvokesCallback()
     {
         // Arrange
-        _sut.IsSubagentMode = false;
+        _sut.PickerMode = PickerMode.Primary;
         string? capturedAgentName = "not-set";
         _sut.OnAgentSelected = name => capturedAgentName = name;
 
@@ -256,7 +257,7 @@ public sealed class AgentPickerViewModelTests
     public async Task SelectAgentCommand_WhenPrimaryMode_CallsPopPopupAsync()
     {
         // Arrange
-        _sut.IsSubagentMode = false;
+        _sut.PickerMode = PickerMode.Primary;
         _sut.OnAgentSelected = _ => { };
 
         // Act
@@ -269,25 +270,25 @@ public sealed class AgentPickerViewModelTests
     // ─── SelectAgentCommand — subagent mode ───────────────────────────────────
 
     [Fact]
-    public async Task SelectAgentCommand_WhenSubagentMode_DoesNotInvokeCallback()
+    public async Task SelectAgentCommand_WhenSubagentMode_InvokesCallback()
     {
-        // Arrange
-        _sut.IsSubagentMode = true;
-        var callbackInvoked = false;
-        _sut.OnAgentSelected = _ => callbackInvoked = true;
+        // Arrange — [m-001]: callback is invoked in subagent mode too
+        _sut.PickerMode = PickerMode.Subagent;
+        string? capturedAgentName = null;
+        _sut.OnAgentSelected = name => capturedAgentName = name;
 
         // Act
         await _sut.SelectAgentCommand.ExecuteAsync("coder");
 
         // Assert
-        callbackInvoked.Should().BeFalse();
+        capturedAgentName.Should().Be("coder");
     }
 
     [Fact]
     public async Task SelectAgentCommand_WhenSubagentMode_SetsSelectedSubagentName()
     {
         // Arrange
-        _sut.IsSubagentMode = true;
+        _sut.PickerMode = PickerMode.Subagent;
 
         // Act
         await _sut.SelectAgentCommand.ExecuteAsync("coder");
@@ -297,10 +298,23 @@ public sealed class AgentPickerViewModelTests
     }
 
     [Fact]
+    public async Task SelectAgentCommand_WhenSubagentMode_CallsPopPopupAsync()
+    {
+        // Arrange
+        _sut.PickerMode = PickerMode.Subagent;
+
+        // Act
+        await _sut.SelectAgentCommand.ExecuteAsync("coder");
+
+        // Assert
+        await _popupService.Received(1).PopPopupAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task SelectAgentCommand_WhenCallbackIsNull_DoesNotThrow()
     {
         // Arrange
-        _sut.IsSubagentMode = false;
+        _sut.PickerMode = PickerMode.Primary;
         _sut.OnAgentSelected = null;
 
         // Act
@@ -314,12 +328,12 @@ public sealed class AgentPickerViewModelTests
     // ─── SheetTitle ───────────────────────────────────────────────────────────
 
     [Theory]
-    [InlineData(false, "Select Agent")]
-    [InlineData(true, "Invoke Subagent")]
-    public void SheetTitle_ReturnsCorrectTitleBasedOnMode(bool isSubagentMode, string expectedTitle)
+    [InlineData(PickerMode.Primary, "Select Agent")]
+    [InlineData(PickerMode.Subagent, "Invoke Subagent")]
+    public void SheetTitle_ReturnsCorrectTitleBasedOnMode(PickerMode pickerMode, string expectedTitle)
     {
         // Arrange
-        _sut.IsSubagentMode = isSubagentMode;
+        _sut.PickerMode = pickerMode;
 
         // Act
         var result = _sut.SheetTitle;

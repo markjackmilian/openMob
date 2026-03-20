@@ -70,7 +70,7 @@
                   Spacing="2"
                   VerticalOptions="Center">
                 <Label
-                    Text="{Binding Name, FallbackValue='Agent'}"
+                    Text="{Binding DisplayName}"
                     FontFamily="InterMedium"
                     FontSize="{StaticResource FontSizeBody}"
                     TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}" />

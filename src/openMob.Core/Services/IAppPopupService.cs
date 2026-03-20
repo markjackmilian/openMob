@@ -54,6 +54,23 @@ public interface IAppPopupService
     /// <param name="ct">Cancellation token.</param>
     Task ShowModelPickerAsync(Action<string> onModelSelected, CancellationToken ct = default);
 
+    /// <summary>
+    /// Opens the agent picker popup in primary-agent selection mode and invokes the callback
+    /// when an agent is selected.
+    /// </summary>
+    /// <remarks>
+    /// The MAUI implementation resolves <c>AgentPickerSheet</c> from DI, sets the callback on
+    /// <c>AgentPickerViewModel</c>, and presents the popup modally. Core ViewModels call this
+    /// method without touching any MAUI types.
+    /// This method is distinct from <see cref="ShowAgentPickerSubagentModeAsync"/> which opens
+    /// the picker in subagent invocation mode.
+    /// </remarks>
+    /// <param name="onAgentSelected">
+    /// Callback invoked with the selected agent name, or <c>null</c> if the user selects "Default".
+    /// </param>
+    /// <param name="ct">Cancellation token.</param>
+    Task ShowAgentPickerAsync(Action<string?> onAgentSelected, CancellationToken ct = default);
+
     /// <summary>Pushes a custom popup page onto the popup stack.</summary>
     /// <param name="popup">The popup page instance to display.</param>
     /// <param name="ct">Cancellation token.</param>

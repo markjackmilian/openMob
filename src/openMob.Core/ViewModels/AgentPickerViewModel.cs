@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
+using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using openMob.Core.Infrastructure.Http.Dtos.Opencode;
 using openMob.Core.Infrastructure.Monitoring;
 using openMob.Core.Models;
 using openMob.Core.Services;
@@ -68,7 +70,17 @@ public sealed partial class AgentPickerViewModel : ObservableObject
     private string? _selectedSubagentName;
 
     /// <summary>
-    /// Loads all available agents from the server and maps them to display models.
+    /// Gets or sets the callback invoked when the user selects an agent in primary-agent mode.
+    /// Receives the agent name, or <c>null</c> if the user selects "Default".
+    /// Set by the MAUI layer (via <see cref="IAppPopupService.ShowAgentPickerAsync"/>) before presenting the sheet.
+    /// Not invoked in subagent mode.
+    /// </summary>
+    public Action<string?>? OnAgentSelected { get; set; }
+
+    /// <summary>
+    /// Loads agents from the server and maps them to display models.
+    /// In primary mode, calls <see cref="IAgentService.GetPrimaryAgentsAsync"/> and prepends a "Default" entry.
+    /// In subagent mode, calls <see cref="IAgentService.GetAgentsAsync"/> with no Default entry.
     /// </summary>
     /// <param name="ct">Cancellation token.</param>
     [RelayCommand]
@@ -81,13 +93,28 @@ public sealed partial class AgentPickerViewModel : ObservableObject
 
         try
         {
-            var agents = await _agentService.GetAgentsAsync(ct);
+            IReadOnlyList<AgentDto> agents;
+
+            if (IsSubagentMode)
+                agents = await _agentService.GetAgentsAsync(ct).ConfigureAwait(false);
+            else
+                agents = await _agentService.GetPrimaryAgentsAsync(ct).ConfigureAwait(false);
 
             var items = agents.Select(a => new AgentItem(
                 Name: a.Name,
                 Description: a.Description,
                 IsSelected: a.Name == SelectedAgentName
             )).ToList();
+
+            // Prepend "Default" entry in primary mode only
+            if (!IsSubagentMode)
+            {
+                items.Insert(0, new AgentItem(
+                    Name: null,
+                    Description: null,
+                    IsSelected: SelectedAgentName is null
+                ));
+            }
 
             Agents = new ObservableCollection<AgentItem>(items);
             IsEmpty = Agents.Count == 0;
@@ -118,17 +145,15 @@ public sealed partial class AgentPickerViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Selects an agent and closes the popup. In normal mode, the caller reads
-    /// <see cref="SelectedAgentName"/> to apply the selection. In subagent mode,
-    /// the caller reads <see cref="SelectedSubagentName"/> to invoke the subagent.
+    /// Selects an agent and closes the popup.
+    /// In primary mode: updates <see cref="SelectedAgentName"/>, invokes <see cref="OnAgentSelected"/>, and pops the popup.
+    /// In subagent mode: sets <see cref="SelectedSubagentName"/> and pops the popup (callback not invoked).
     /// </summary>
-    /// <param name="agentName">The name of the agent to select.</param>
+    /// <param name="agentName">The name of the agent to select, or <c>null</c> for the "Default" entry.</param>
     /// <param name="ct">Cancellation token.</param>
     [RelayCommand]
-    private async Task SelectAgentAsync(string agentName, CancellationToken ct)
+    private async Task SelectAgentAsync(string? agentName, CancellationToken ct)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(agentName);
-
         if (IsSubagentMode)
         {
             SelectedSubagentName = agentName;
@@ -136,12 +161,13 @@ public sealed partial class AgentPickerViewModel : ObservableObject
         else
         {
             SelectedAgentName = agentName;
+            OnAgentSelected?.Invoke(agentName);
         }
 
         // Update the IsSelected state in the collection
         var updatedItems = Agents.Select(a => a with { IsSelected = a.Name == agentName }).ToList();
         Agents = new ObservableCollection<AgentItem>(updatedItems);
 
-        await _popupService.PopPopupAsync(ct);
+        await _popupService.PopPopupAsync(ct).ConfigureAwait(false);
     }
 }

@@ -109,6 +109,9 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
                     SelectedModelId = null;
                     SelectedModelName = null;
                 }
+
+                // Update agent properties [REQ-007]
+                SelectedAgentName = pref.AgentName;
             });
 
         // Populate default suggestion chips [REQ-017]
@@ -165,6 +168,22 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     /// </summary>
     [ObservableProperty]
     private string? _selectedModelName;
+
+    /// <summary>
+    /// Gets or sets the raw agent name from the project preference.
+    /// <c>null</c> means the default agent is active.
+    /// Updated during <see cref="LoadContextAsync"/> and when a
+    /// <see cref="ProjectPreferenceChangedMessage"/> arrives.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SelectedAgentDisplayName))]
+    private string? _selectedAgentName;
+
+    /// <summary>
+    /// Gets the display name for the selected agent.
+    /// Returns <c>"Default"</c> when <see cref="SelectedAgentName"/> is <c>null</c>.
+    /// </summary>
+    public string SelectedAgentDisplayName => SelectedAgentName ?? "Default";
 
     // ─── Chat Properties [REQ-004] ────────────────────────────────────────────
 
@@ -292,6 +311,9 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
                     SelectedModelId = pref.DefaultModelId;
                     SelectedModelName = ModelIdHelper.ExtractModelName(pref.DefaultModelId);
                 }
+
+                // Load agent name from preference [REQ-007]
+                SelectedAgentName = pref?.AgentName;
             }
             else
             {

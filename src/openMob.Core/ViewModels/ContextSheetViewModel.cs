@@ -137,18 +137,19 @@ public sealed partial class ContextSheetViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Opens the agent picker popup in primary agent selection mode.
+    /// Opens the agent picker popup in primary-agent selection mode.
+    /// On selection, <see cref="SelectedAgentName"/> is updated, which triggers
+    /// auto-save via <see cref="OnSelectedAgentNameChanged"/> and publishes
+    /// a <see cref="ProjectPreferenceChangedMessage"/>.
     /// </summary>
-    /// <remarks>
-    /// Signals intent to the View layer — the MAUI implementation handles the
-    /// <c>AgentPickerSheet</c> popup presentation.
-    /// </remarks>
     /// <param name="ct">Cancellation token.</param>
     [RelayCommand]
     private async Task OpenAgentPickerAsync(CancellationToken ct)
     {
-        // Signal intent — the View layer handles the AgentPickerSheet popup.
-        await Task.CompletedTask;
+        await _popupService.ShowAgentPickerAsync(agentName =>
+        {
+            SelectedAgentName = agentName;
+        }, ct).ConfigureAwait(false);
     }
 
     /// <summary>

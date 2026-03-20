@@ -99,19 +99,22 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
 
                 var pref = message.UpdatedPreference;
 
-                if (pref.DefaultModelId is not null)
+                _dispatcher.Dispatch(() =>
                 {
-                    SelectedModelId = pref.DefaultModelId;
-                    SelectedModelName = ModelIdHelper.ExtractModelName(pref.DefaultModelId);
-                }
-                else
-                {
-                    SelectedModelId = null;
-                    SelectedModelName = null;
-                }
+                    if (pref.DefaultModelId is not null)
+                    {
+                        SelectedModelId = pref.DefaultModelId;
+                        SelectedModelName = ModelIdHelper.ExtractModelName(pref.DefaultModelId);
+                    }
+                    else
+                    {
+                        SelectedModelId = null;
+                        SelectedModelName = null;
+                    }
 
-                // Update agent properties [REQ-007]
-                SelectedAgentName = pref.AgentName;
+                    // Update agent properties [REQ-007]
+                    SelectedAgentName = pref.AgentName;
+                });
             });
 
         // Populate default suggestion chips [REQ-017]
@@ -425,7 +428,12 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
                 break;
 
             case "Change agent":
-                // Signal intent — the View layer handles the AgentPickerSheet popup.
+                // Open the agent picker and update in-memory selection.
+                // No persistence to SQLite — this is a session-level override.
+                await _popupService.ShowAgentPickerAsync(agentName =>
+                {
+                    SelectedAgentName = agentName;
+                }, ct).ConfigureAwait(false);
                 break;
 
             case "Change model":

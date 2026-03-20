@@ -122,21 +122,6 @@ public sealed partial class ContextSheetViewModel : ObservableObject
     // ─── Commands ─────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Opens the project switcher popup.
-    /// </summary>
-    /// <remarks>
-    /// Signals intent to the View layer — the MAUI implementation handles the
-    /// <c>ProjectSwitcherSheet</c> popup presentation.
-    /// </remarks>
-    /// <param name="ct">Cancellation token.</param>
-    [RelayCommand]
-    private async Task OpenProjectSwitcherAsync(CancellationToken ct)
-    {
-        // Signal intent — the View layer handles the ProjectSwitcherSheet popup.
-        await Task.CompletedTask;
-    }
-
-    /// <summary>
     /// Opens the agent picker popup in primary-agent selection mode.
     /// On selection, <see cref="SelectedAgentName"/> is updated, which triggers
     /// auto-save via <see cref="OnSelectedAgentNameChanged"/> and publishes
@@ -144,7 +129,7 @@ public sealed partial class ContextSheetViewModel : ObservableObject
     /// </summary>
     /// <param name="ct">Cancellation token.</param>
     [RelayCommand]
-    private async Task OpenAgentPickerAsync(CancellationToken ct)
+    private async Task SelectAgentAsync(CancellationToken ct)
     {
         await _popupService.ShowAgentPickerAsync(agentName =>
         {
@@ -158,7 +143,7 @@ public sealed partial class ContextSheetViewModel : ObservableObject
     /// </summary>
     /// <param name="ct">Cancellation token.</param>
     [RelayCommand]
-    private async Task OpenModelPickerAsync(CancellationToken ct)
+    private async Task SelectModelAsync(CancellationToken ct)
     {
         await _popupService.ShowModelPickerAsync(modelId =>
         {

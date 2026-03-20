@@ -11,7 +11,7 @@ namespace openMob.Core.ViewModels;
 
 /// <summary>
 /// ViewModel for the AgentPickerSheet popup. Displays available agents
-/// and allows the user to select one (REQ-030).
+/// and allows the user to select one.
 /// </summary>
 public sealed partial class AgentPickerViewModel : ObservableObject
 {
@@ -49,7 +49,7 @@ public sealed partial class AgentPickerViewModel : ObservableObject
     private bool _isEmpty;
 
     /// <summary>
-    /// Gets or sets whether the picker is in subagent invocation mode (REQ-031).
+    /// Gets or sets whether the picker is in subagent invocation mode.
     /// When <c>true</c>, selecting an agent invokes it as a subagent rather than
     /// changing the primary agent.
     /// </summary>

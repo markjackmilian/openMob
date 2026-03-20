@@ -37,6 +37,15 @@ public interface IProjectPreferenceService
     Task<bool> SetDefaultModelAsync(string projectId, string modelId, CancellationToken ct = default);
 
     /// <summary>
+    /// Clears the default model for the specified project (sets it to null).
+    /// Creates a new preference record if one does not exist.
+    /// </summary>
+    /// <param name="projectId">The external project identifier.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns><c>true</c> if persisted successfully; <c>false</c> if persistence failed.</returns>
+    Task<bool> ClearDefaultModelAsync(string projectId, CancellationToken ct = default);
+
+    /// <summary>
     /// Sets or updates the agent name for the specified project.
     /// Creates a new preference record if one does not exist.
     /// </summary>

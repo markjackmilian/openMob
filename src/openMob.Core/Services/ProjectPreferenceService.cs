@@ -98,6 +98,45 @@ public sealed class ProjectPreferenceService : IProjectPreferenceService
     }
 
     /// <inheritdoc />
+    public async Task<bool> ClearDefaultModelAsync(string projectId, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(projectId);
+
+        try
+        {
+            var existing = await _db.ProjectPreferences
+                .FindAsync([projectId], ct)
+                .ConfigureAwait(false);
+
+            if (existing is not null)
+            {
+                existing.DefaultModelId = null;
+            }
+            else
+            {
+                _db.ProjectPreferences.Add(new ProjectPreference
+                {
+                    ProjectId = projectId,
+                    DefaultModelId = null,
+                    ThinkingLevel = ThinkingLevel.Medium,
+                });
+            }
+
+            await _db.SaveChangesAsync(ct).ConfigureAwait(false);
+            return true;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            SentryHelper.CaptureException(ex, new Dictionary<string, object>
+            {
+                ["projectId"] = projectId,
+                ["operation"] = "ClearDefaultModelAsync",
+            });
+            return false;
+        }
+    }
+
+    /// <inheritdoc />
     public async Task<bool> SetAgentAsync(string projectId, string? agentName, CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(projectId);

@@ -89,7 +89,7 @@
                VerticalOptions="Center" />
 
         <Label Grid.Column="2"
-               Text="{Binding AgentName, FallbackValue='Default'}"
+               Text="{Binding SelectedAgentDisplayName, FallbackValue='Default'}"
                FontFamily="InterRegular"
                FontSize="{StaticResource FontSizeCallout}"
                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
@@ -134,7 +134,7 @@
                VerticalOptions="Center" />
 
         <Label Grid.Column="2"
-               Text="{Binding ModelName, FallbackValue='No model'}"
+               Text="{Binding SelectedModelDisplayName, FallbackValue='No model'}"
                FontFamily="InterRegular"
                FontSize="{StaticResource FontSizeCallout}"
                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},

@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using openMob.Core.Data.Entities;
 using openMob.Core.Helpers;
@@ -27,6 +28,7 @@ public sealed partial class ContextSheetViewModel : ObservableObject
 {
     private readonly IProjectService _projectService;
     private readonly IProjectPreferenceService _preferenceService;
+    private readonly IAppPopupService _popupService;
 
     /// <summary>Tracks the current project ID for save operations.</summary>
     private string? _currentProjectId;
@@ -40,15 +42,19 @@ public sealed partial class ContextSheetViewModel : ObservableObject
     /// <summary>Initialises the ContextSheetViewModel with required dependencies.</summary>
     /// <param name="projectService">Service for project operations.</param>
     /// <param name="preferenceService">Service for per-project preference persistence.</param>
+    /// <param name="popupService">Service for opening picker popups from the Core layer.</param>
     public ContextSheetViewModel(
         IProjectService projectService,
-        IProjectPreferenceService preferenceService)
+        IProjectPreferenceService preferenceService,
+        IAppPopupService popupService)
     {
         ArgumentNullException.ThrowIfNull(projectService);
         ArgumentNullException.ThrowIfNull(preferenceService);
+        ArgumentNullException.ThrowIfNull(popupService);
 
         _projectService = projectService;
         _preferenceService = preferenceService;
+        _popupService = popupService;
     }
 
     // ─── Observable Properties ────────────────────────────────────────────────
@@ -112,6 +118,73 @@ public sealed partial class ContextSheetViewModel : ObservableObject
     /// </summary>
     [ObservableProperty]
     private string? _errorMessage;
+
+    // ─── Commands ─────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Opens the project switcher popup.
+    /// </summary>
+    /// <remarks>
+    /// Signals intent to the View layer — the MAUI implementation handles the
+    /// <c>ProjectSwitcherSheet</c> popup presentation.
+    /// </remarks>
+    /// <param name="ct">Cancellation token.</param>
+    [RelayCommand]
+    private async Task OpenProjectSwitcherAsync(CancellationToken ct)
+    {
+        // Signal intent — the View layer handles the ProjectSwitcherSheet popup.
+        await Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Opens the agent picker popup in primary agent selection mode.
+    /// </summary>
+    /// <remarks>
+    /// Signals intent to the View layer — the MAUI implementation handles the
+    /// <c>AgentPickerSheet</c> popup presentation.
+    /// </remarks>
+    /// <param name="ct">Cancellation token.</param>
+    [RelayCommand]
+    private async Task OpenAgentPickerAsync(CancellationToken ct)
+    {
+        // Signal intent — the View layer handles the AgentPickerSheet popup.
+        await Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Opens the model picker popup and updates <see cref="SelectedModelId"/> on selection.
+    /// The property change triggers auto-save via <see cref="OnSelectedModelIdChanged"/>.
+    /// </summary>
+    /// <param name="ct">Cancellation token.</param>
+    [RelayCommand]
+    private async Task OpenModelPickerAsync(CancellationToken ct)
+    {
+        await _popupService.ShowModelPickerAsync(modelId =>
+        {
+            SelectedModelId = modelId;
+        }, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Changes the thinking level. The property change triggers auto-save
+    /// via <see cref="OnThinkingLevelChanged"/>.
+    /// </summary>
+    /// <param name="level">The new thinking level.</param>
+    [RelayCommand]
+    private void ChangeThinkingLevel(ThinkingLevel level)
+    {
+        ThinkingLevel = level;
+    }
+
+    /// <summary>
+    /// Opens the agent picker in subagent invocation mode.
+    /// </summary>
+    /// <param name="ct">Cancellation token.</param>
+    [RelayCommand]
+    private async Task InvokeSubagentAsync(CancellationToken ct)
+    {
+        await _popupService.ShowAgentPickerSubagentModeAsync(ct).ConfigureAwait(false);
+    }
 
     // ─── Initialization ───────────────────────────────────────────────────────
 
@@ -219,7 +292,7 @@ public sealed partial class ContextSheetViewModel : ObservableObject
     {
         var projectId = _currentProjectId!;
         var success = await _preferenceService
-            .SetAgentAsync(projectId, agentName)
+            .SetAgentAsync(projectId, agentName, CancellationToken.None)
             .ConfigureAwait(false);
 
         if (success)
@@ -228,16 +301,24 @@ public sealed partial class ContextSheetViewModel : ObservableObject
             ErrorMessage = "Failed to save agent preference.";
     }
 
-    /// <summary>Persists the model ID and publishes a change message on success.</summary>
+    /// <summary>Persists the model ID (or clears it if null) and publishes a change message on success.</summary>
     private async Task SaveModelAsync(string? modelId)
     {
-        if (modelId is null)
-            return;
-
         var projectId = _currentProjectId!;
-        var success = await _preferenceService
-            .SetDefaultModelAsync(projectId, modelId)
-            .ConfigureAwait(false);
+        bool success;
+
+        if (modelId is not null)
+        {
+            success = await _preferenceService
+                .SetDefaultModelAsync(projectId, modelId, CancellationToken.None)
+                .ConfigureAwait(false);
+        }
+        else
+        {
+            success = await _preferenceService
+                .ClearDefaultModelAsync(projectId, CancellationToken.None)
+                .ConfigureAwait(false);
+        }
 
         if (success)
             await PublishChangedMessageAsync(projectId).ConfigureAwait(false);
@@ -250,7 +331,7 @@ public sealed partial class ContextSheetViewModel : ObservableObject
     {
         var projectId = _currentProjectId!;
         var success = await _preferenceService
-            .SetThinkingLevelAsync(projectId, level)
+            .SetThinkingLevelAsync(projectId, level, CancellationToken.None)
             .ConfigureAwait(false);
 
         if (success)
@@ -264,7 +345,7 @@ public sealed partial class ContextSheetViewModel : ObservableObject
     {
         var projectId = _currentProjectId!;
         var success = await _preferenceService
-            .SetAutoAcceptAsync(projectId, autoAccept)
+            .SetAutoAcceptAsync(projectId, autoAccept, CancellationToken.None)
             .ConfigureAwait(false);
 
         if (success)
@@ -280,7 +361,7 @@ public sealed partial class ContextSheetViewModel : ObservableObject
     private async Task PublishChangedMessageAsync(string projectId)
     {
         var updatedPref = await _preferenceService
-            .GetOrDefaultAsync(projectId)
+            .GetOrDefaultAsync(projectId, CancellationToken.None)
             .ConfigureAwait(false);
 
         WeakReferenceMessenger.Default.Send(

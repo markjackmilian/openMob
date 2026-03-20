@@ -2,10 +2,12 @@ using System.Collections.ObjectModel;
 using System.Text.Json;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
 using openMob.Core.Helpers;
 using openMob.Core.Infrastructure.Http;
 using openMob.Core.Infrastructure.Http.Dtos.Opencode;
 using openMob.Core.Infrastructure.Monitoring;
+using openMob.Core.Messages;
 using openMob.Core.Models;
 using openMob.Core.Services;
 
@@ -86,6 +88,28 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
         _chatService = chatService;
         _apiClient = apiClient;
         _dispatcher = dispatcher;
+
+        // Subscribe to project preference changes published by ContextSheetViewModel [REQ-009]
+        WeakReferenceMessenger.Default.Register<ProjectPreferenceChangedMessage>(
+            this,
+            (_, message) =>
+            {
+                if (message.ProjectId != CurrentProjectId)
+                    return;
+
+                var pref = message.UpdatedPreference;
+
+                if (pref.DefaultModelId is not null)
+                {
+                    SelectedModelId = pref.DefaultModelId;
+                    SelectedModelName = ModelIdHelper.ExtractModelName(pref.DefaultModelId);
+                }
+                else
+                {
+                    SelectedModelId = null;
+                    SelectedModelName = null;
+                }
+            });
 
         // Populate default suggestion chips [REQ-017]
         SuggestionChips = new ObservableCollection<SuggestionChip>
@@ -623,13 +647,21 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     }
 
     /// <summary>
-    /// Opens the Context Sheet bottom sheet (REQ-025).
+    /// Opens the Context Sheet bottom sheet for the current project (REQ-025, REQ-012).
+    /// Passes the current project and session identifiers so the sheet can load
+    /// the correct preferences.
     /// </summary>
     /// <param name="ct">Cancellation token.</param>
     [RelayCommand]
     private async Task OpenContextSheetAsync(CancellationToken ct)
     {
-        await _popupService.ShowContextSheetAsync(ct);
+        if (CurrentProjectId is null)
+            return;
+
+        await _popupService.ShowContextSheetAsync(
+            CurrentProjectId,
+            CurrentSessionId ?? string.Empty,
+            ct).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -1185,6 +1217,7 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     /// </summary>
     public void Dispose()
     {
+        WeakReferenceMessenger.Default.UnregisterAll(this);
         _connectionManager.StatusChanged -= OnConnectionStatusChanged;
         _sseCts?.Cancel();
         _sseCts?.Dispose();

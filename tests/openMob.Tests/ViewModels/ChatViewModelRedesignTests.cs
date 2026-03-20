@@ -13,7 +13,7 @@ namespace openMob.Tests.ViewModels;
 /// IsContextBarVisible), new commands (RenameSession, OpenContextSheet, OpenCommandPalette),
 /// and scroll direction handling.
 /// </summary>
-public sealed class ChatViewModelRedesignTests
+public sealed class ChatViewModelRedesignTests : IDisposable
 {
     private readonly IProjectService _projectService;
     private readonly ISessionService _sessionService;
@@ -58,6 +58,12 @@ public sealed class ChatViewModelRedesignTests
             _chatService,
             _apiClient,
             _dispatcher);
+    }
+
+    public void Dispose()
+    {
+        // Unregister the SUT from the messenger to avoid test pollution
+        _sut.Dispose();
     }
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -218,17 +224,20 @@ public sealed class ChatViewModelRedesignTests
     // ─── OpenContextSheetCommand ─────────────────────────────────────────────
 
     [Fact]
-    public async Task OpenContextSheetCommand_WhenExecuted_CallsPopupService()
+    public async Task OpenContextSheetCommand_WhenProjectIdIsSet_CallsPopupService()
     {
         // Arrange
-        _popupService.ShowContextSheetAsync(Arg.Any<CancellationToken>())
+        _sut.CurrentProjectId = "proj-1";
+        _popupService.ShowContextSheetAsync(
+                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(Task.CompletedTask);
 
         // Act
         await _sut.OpenContextSheetCommand.ExecuteAsync(null);
 
         // Assert
-        await _popupService.Received(1).ShowContextSheetAsync(Arg.Any<CancellationToken>());
+        await _popupService.Received(1).ShowContextSheetAsync(
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
     // ─── OpenCommandPaletteCommand ───────────────────────────────────────────

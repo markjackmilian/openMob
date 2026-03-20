@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using openMob.Core.Data.Entities;
+using openMob.Core.Models;
 
 namespace openMob.Core.Data;
 
@@ -58,6 +59,11 @@ public sealed class AppDbContext : DbContext
             entity.HasKey(e => e.ProjectId);
             entity.Property(e => e.ProjectId).IsRequired().HasMaxLength(500);
             entity.Property(e => e.DefaultModelId).HasMaxLength(500);
+            entity.Property(e => e.AgentName).HasMaxLength(500);
+            entity.Property(e => e.ThinkingLevel)
+                .HasConversion<int>()
+                .HasDefaultValue(ThinkingLevel.Medium);
+            entity.Property(e => e.AutoAccept).HasDefaultValue(false);
         });
     }
 }

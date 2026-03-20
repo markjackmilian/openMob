@@ -63,9 +63,15 @@ public interface IAppPopupService
     /// <param name="ct">Cancellation token.</param>
     Task PopPopupAsync(CancellationToken ct = default);
 
-    /// <summary>Shows the Context Sheet bottom sheet (REQ-025).</summary>
+    /// <summary>
+    /// Opens the Context Sheet bottom sheet for the specified project.
+    /// The MAUI implementation resolves <see cref="openMob.Core.ViewModels.ContextSheetViewModel"/>
+    /// from DI, calls <c>InitializeAsync</c>, then pushes the sheet modally.
+    /// </summary>
+    /// <param name="projectId">The project identifier to load preferences for.</param>
+    /// <param name="sessionId">The session identifier (reserved for future session-level overrides).</param>
     /// <param name="ct">Cancellation token.</param>
-    Task ShowContextSheetAsync(CancellationToken ct = default);
+    Task ShowContextSheetAsync(string projectId, string sessionId, CancellationToken ct = default);
 
     /// <summary>Shows the Command Palette bottom sheet (REQ-029).</summary>
     /// <param name="ct">Cancellation token.</param>

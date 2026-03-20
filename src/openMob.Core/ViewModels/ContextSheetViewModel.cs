@@ -1,43 +1,53 @@
 using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
+using openMob.Core.Data.Entities;
 using openMob.Core.Helpers;
 using openMob.Core.Infrastructure.Monitoring;
+using openMob.Core.Messages;
 using openMob.Core.Models;
 using openMob.Core.Services;
 
 namespace openMob.Core.ViewModels;
 
 /// <summary>
-/// ViewModel for the Context Sheet bottom sheet (REQ-025 through REQ-028).
-/// Provides read/write access to session-level settings: project, agent, model,
-/// thinking level, auto-accept, and subagent invocation.
+/// ViewModel for the Context Sheet bottom sheet.
+/// Loads per-project preferences via <see cref="IProjectPreferenceService.GetOrDefaultAsync"/>,
+/// exposes them as observable properties, and auto-saves every change.
+/// On successful save, publishes a <see cref="ProjectPreferenceChangedMessage"/>
+/// via <see cref="WeakReferenceMessenger.Default"/> so <see cref="ChatViewModel"/>
+/// can update its state without a page reload.
 /// </summary>
+/// <remarks>
+/// Registered as Transient — a new instance is created each time the sheet is opened.
+/// <see cref="InitializeAsync"/> must be called by the MAUI layer (via
+/// <see cref="openMob.Core.Services.IAppPopupService.ShowContextSheetAsync"/>) immediately
+/// after the sheet is resolved from DI and before it is pushed modally.
+/// </remarks>
 public sealed partial class ContextSheetViewModel : ObservableObject
 {
     private readonly IProjectService _projectService;
-    private readonly IProviderService _providerService;
-    private readonly IAppPopupService _popupService;
     private readonly IProjectPreferenceService _preferenceService;
+
+    /// <summary>Tracks the current project ID for save operations.</summary>
+    private string? _currentProjectId;
+
+    /// <summary>
+    /// Prevents auto-save partial methods from firing during <see cref="InitializeAsync"/>.
+    /// Set to true at the start of initialization, false when complete.
+    /// </summary>
+    private bool _isInitializing;
 
     /// <summary>Initialises the ContextSheetViewModel with required dependencies.</summary>
     /// <param name="projectService">Service for project operations.</param>
-    /// <param name="providerService">Service for AI provider operations.</param>
-    /// <param name="popupService">Service for popup/dialog operations.</param>
     /// <param name="preferenceService">Service for per-project preference persistence.</param>
     public ContextSheetViewModel(
         IProjectService projectService,
-        IProviderService providerService,
-        IAppPopupService popupService,
         IProjectPreferenceService preferenceService)
     {
         ArgumentNullException.ThrowIfNull(projectService);
-        ArgumentNullException.ThrowIfNull(providerService);
-        ArgumentNullException.ThrowIfNull(popupService);
         ArgumentNullException.ThrowIfNull(preferenceService);
 
         _projectService = projectService;
-        _providerService = providerService;
-        _popupService = popupService;
         _preferenceService = preferenceService;
     }
 
@@ -47,138 +57,233 @@ public sealed partial class ContextSheetViewModel : ObservableObject
     [ObservableProperty]
     private string _projectName = "No project";
 
-    /// <summary>Gets or sets the current project identifier.</summary>
+    /// <summary>
+    /// Gets or sets the current agent name. Null means the default agent.
+    /// Changing this property triggers auto-save via <see cref="OnSelectedAgentNameChanged"/>.
+    /// </summary>
     [ObservableProperty]
-    private string? _currentProjectId;
+    [NotifyPropertyChangedFor(nameof(SelectedAgentDisplayName))]
+    private string? _selectedAgentName;
 
-    /// <summary>Gets or sets the active agent display name.</summary>
+    /// <summary>
+    /// Gets the display name for the selected agent.
+    /// Returns "Default" when <see cref="SelectedAgentName"/> is null.
+    /// </summary>
+    public string SelectedAgentDisplayName => SelectedAgentName ?? "Default";
+
+    /// <summary>
+    /// Gets or sets the current model identifier in "providerId/modelId" format.
+    /// Null when no model is selected.
+    /// Changing this property triggers auto-save via <see cref="OnSelectedModelIdChanged"/>.
+    /// </summary>
     [ObservableProperty]
-    private string _agentName = "Default";
+    [NotifyPropertyChangedFor(nameof(SelectedModelDisplayName))]
+    private string? _selectedModelId;
 
-    /// <summary>Gets or sets the active model display name.</summary>
-    [ObservableProperty]
-    private string _modelName = "No model";
+    /// <summary>
+    /// Gets the display name for the selected model.
+    /// Returns "No model" when <see cref="SelectedModelId"/> is null.
+    /// </summary>
+    public string SelectedModelDisplayName =>
+        SelectedModelId is not null ? ModelIdHelper.ExtractModelName(SelectedModelId) : "No model";
 
-    /// <summary>Gets or sets the current thinking/reasoning level.</summary>
+    /// <summary>
+    /// Gets or sets the current thinking/reasoning level.
+    /// Changing this property triggers auto-save via <see cref="OnThinkingLevelChanged"/>.
+    /// </summary>
     [ObservableProperty]
     private ThinkingLevel _thinkingLevel = ThinkingLevel.Medium;
 
-    /// <summary>Gets or sets whether auto-accept is enabled for agent suggestions.</summary>
+    /// <summary>
+    /// Gets or sets whether auto-accept is enabled for agent tool suggestions.
+    /// Changing this property triggers auto-save via <see cref="OnAutoAcceptChanged"/>.
+    /// </summary>
     [ObservableProperty]
     private bool _autoAccept;
 
-    // ─── Commands ─────────────────────────────────────────────────────────────
+    /// <summary>Gets or sets whether the sheet is currently loading preferences.</summary>
+    [ObservableProperty]
+    private bool _isBusy;
 
     /// <summary>
-    /// Loads the current context (project, agent, model, thinking level, auto-accept)
-    /// from the respective services.
+    /// Gets or sets the last save error message.
+    /// Set when a preference save fails. The UI value is not rolled back on failure.
+    /// Null when no error has occurred.
     /// </summary>
+    [ObservableProperty]
+    private string? _errorMessage;
+
+    // ─── Initialization ───────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Loads preferences for the specified project and populates all observable properties.
+    /// Must be called by the MAUI layer before the sheet is presented.
+    /// </summary>
+    /// <param name="projectId">The project identifier to load preferences for.</param>
+    /// <param name="sessionId">The session identifier (reserved for future session-level overrides; currently unused).</param>
     /// <param name="ct">Cancellation token.</param>
-    [RelayCommand]
-    private async Task LoadContextAsync(CancellationToken ct)
+    public async Task InitializeAsync(string projectId, string sessionId, CancellationToken ct = default)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(projectId);
+
+        _isInitializing = true;
+        IsBusy = true;
+
         try
         {
-            // Load current project
-            var currentProject = await _projectService.GetCurrentProjectAsync(ct).ConfigureAwait(false);
-            if (currentProject is not null)
-            {
-                CurrentProjectId = currentProject.Id;
-                ProjectName = ProjectNameHelper.ExtractFromWorktree(currentProject.Worktree);
-            }
-            else
-            {
-                CurrentProjectId = null;
-                ProjectName = "No project";
-            }
+            _currentProjectId = projectId;
 
-            // Load model preference for this project
-            if (CurrentProjectId is not null)
-            {
-                var pref = await _preferenceService.GetAsync(CurrentProjectId, ct).ConfigureAwait(false);
-                if (pref?.DefaultModelId is not null)
-                {
-                    ModelName = ModelIdHelper.ExtractModelName(pref.DefaultModelId);
-                }
-                else
-                {
-                    ModelName = "No model";
-                }
-            }
+            // Load project display name
+            var project = await _projectService.GetProjectByIdAsync(projectId, ct).ConfigureAwait(false);
+            ProjectName = project is not null
+                ? ProjectNameHelper.ExtractFromWorktree(project.Worktree)
+                : "No project";
+
+            // Load preferences — returns global defaults if no row exists for this project
+            var pref = await _preferenceService.GetOrDefaultAsync(projectId, ct).ConfigureAwait(false);
+
+            SelectedAgentName = pref.AgentName;
+            SelectedModelId = pref.DefaultModelId;
+            ThinkingLevel = pref.ThinkingLevel;
+            AutoAccept = pref.AutoAccept;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             SentryHelper.CaptureException(ex, new Dictionary<string, object>
             {
-                ["context"] = "ContextSheetViewModel.LoadContextAsync",
+                ["context"] = "ContextSheetViewModel.InitializeAsync",
+                ["projectId"] = projectId,
             });
+        }
+        finally
+        {
+            _isInitializing = false;
+            IsBusy = false;
         }
     }
 
+    // ─── Auto-save via CommunityToolkit partial On*Changed methods ────────────
+
     /// <summary>
-    /// Opens the project switcher popup.
+    /// Invoked by the CommunityToolkit source generator when <see cref="SelectedAgentName"/> changes.
+    /// Skipped during <see cref="InitializeAsync"/> via the <c>_isInitializing</c> guard.
     /// </summary>
-    /// <param name="ct">Cancellation token.</param>
-    [RelayCommand]
-    private async Task OpenProjectSwitcherAsync(CancellationToken ct)
+    partial void OnSelectedAgentNameChanged(string? value)
     {
-        // Signal intent — the View layer handles the ProjectSwitcherSheet popup.
-        await Task.CompletedTask;
+        if (_isInitializing || _currentProjectId is null)
+            return;
+
+        _ = SaveAgentAsync(value);
     }
 
     /// <summary>
-    /// Opens the agent picker popup in primary agent mode.
+    /// Invoked by the CommunityToolkit source generator when <see cref="SelectedModelId"/> changes.
+    /// Skipped during <see cref="InitializeAsync"/> via the <c>_isInitializing</c> guard.
     /// </summary>
-    /// <param name="ct">Cancellation token.</param>
-    [RelayCommand]
-    private async Task OpenAgentPickerAsync(CancellationToken ct)
+    partial void OnSelectedModelIdChanged(string? value)
     {
-        // Signal intent — the View layer handles the AgentPickerSheet popup.
-        await Task.CompletedTask;
+        if (_isInitializing || _currentProjectId is null)
+            return;
+
+        _ = SaveModelAsync(value);
     }
 
     /// <summary>
-    /// Opens the model picker popup and updates the model name on selection.
+    /// Invoked by the CommunityToolkit source generator when <see cref="ThinkingLevel"/> changes.
+    /// Skipped during <see cref="InitializeAsync"/> via the <c>_isInitializing</c> guard.
     /// </summary>
-    /// <param name="ct">Cancellation token.</param>
-    [RelayCommand]
-    private async Task OpenModelPickerAsync(CancellationToken ct)
+    partial void OnThinkingLevelChanged(ThinkingLevel value)
     {
-        await _popupService.ShowModelPickerAsync(modelId =>
-        {
-            ModelName = ModelIdHelper.ExtractModelName(modelId);
-        }, ct).ConfigureAwait(false);
+        if (_isInitializing || _currentProjectId is null)
+            return;
+
+        _ = SaveThinkingLevelAsync(value);
     }
 
     /// <summary>
-    /// Changes the thinking level and persists the preference.
+    /// Invoked by the CommunityToolkit source generator when <see cref="AutoAccept"/> changes.
+    /// Skipped during <see cref="InitializeAsync"/> via the <c>_isInitializing</c> guard.
     /// </summary>
-    /// <param name="level">The new thinking level.</param>
-    [RelayCommand]
-    private void ChangeThinkingLevel(ThinkingLevel level)
+    partial void OnAutoAcceptChanged(bool value)
     {
-        ThinkingLevel = level;
-        // Persistence is local-only for v1 (see spec Open Question #3).
-        // Server sync via UpdateConfigAsync when API schema is confirmed.
+        if (_isInitializing || _currentProjectId is null)
+            return;
+
+        _ = SaveAutoAcceptAsync(value);
+    }
+
+    // ─── Private save helpers ─────────────────────────────────────────────────
+
+    /// <summary>Persists the agent name and publishes a change message on success.</summary>
+    private async Task SaveAgentAsync(string? agentName)
+    {
+        var projectId = _currentProjectId!;
+        var success = await _preferenceService
+            .SetAgentAsync(projectId, agentName)
+            .ConfigureAwait(false);
+
+        if (success)
+            await PublishChangedMessageAsync(projectId).ConfigureAwait(false);
+        else
+            ErrorMessage = "Failed to save agent preference.";
+    }
+
+    /// <summary>Persists the model ID and publishes a change message on success.</summary>
+    private async Task SaveModelAsync(string? modelId)
+    {
+        if (modelId is null)
+            return;
+
+        var projectId = _currentProjectId!;
+        var success = await _preferenceService
+            .SetDefaultModelAsync(projectId, modelId)
+            .ConfigureAwait(false);
+
+        if (success)
+            await PublishChangedMessageAsync(projectId).ConfigureAwait(false);
+        else
+            ErrorMessage = "Failed to save model preference.";
+    }
+
+    /// <summary>Persists the thinking level and publishes a change message on success.</summary>
+    private async Task SaveThinkingLevelAsync(ThinkingLevel level)
+    {
+        var projectId = _currentProjectId!;
+        var success = await _preferenceService
+            .SetThinkingLevelAsync(projectId, level)
+            .ConfigureAwait(false);
+
+        if (success)
+            await PublishChangedMessageAsync(projectId).ConfigureAwait(false);
+        else
+            ErrorMessage = "Failed to save thinking level preference.";
+    }
+
+    /// <summary>Persists the auto-accept setting and publishes a change message on success.</summary>
+    private async Task SaveAutoAcceptAsync(bool autoAccept)
+    {
+        var projectId = _currentProjectId!;
+        var success = await _preferenceService
+            .SetAutoAcceptAsync(projectId, autoAccept)
+            .ConfigureAwait(false);
+
+        if (success)
+            await PublishChangedMessageAsync(projectId).ConfigureAwait(false);
+        else
+            ErrorMessage = "Failed to save auto-accept preference.";
     }
 
     /// <summary>
-    /// Toggles the auto-accept setting and persists the preference.
+    /// Loads the latest preference state and publishes a <see cref="ProjectPreferenceChangedMessage"/>
+    /// so subscribers (e.g., <see cref="ChatViewModel"/>) can update their state.
     /// </summary>
-    [RelayCommand]
-    private void ToggleAutoAccept()
+    private async Task PublishChangedMessageAsync(string projectId)
     {
-        AutoAccept = !AutoAccept;
-        // Persistence is local-only for v1 (see spec Open Question #3).
-    }
+        var updatedPref = await _preferenceService
+            .GetOrDefaultAsync(projectId)
+            .ConfigureAwait(false);
 
-    /// <summary>
-    /// Opens the agent picker in subagent invocation mode (REQ-031).
-    /// </summary>
-    /// <param name="ct">Cancellation token.</param>
-    [RelayCommand]
-    private async Task InvokeSubagentAsync(CancellationToken ct)
-    {
-        await _popupService.ShowAgentPickerSubagentModeAsync(ct);
+        WeakReferenceMessenger.Default.Send(
+            new ProjectPreferenceChangedMessage(projectId, updatedPref));
     }
 }

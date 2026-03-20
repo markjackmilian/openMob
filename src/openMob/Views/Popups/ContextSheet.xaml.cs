@@ -4,7 +4,9 @@ namespace openMob.Views.Popups;
 
 /// <summary>
 /// Context Sheet bottom sheet — displays and allows editing of session-level settings:
-/// project, agent, model, thinking level, auto-accept, and subagent invocation (REQ-025 through REQ-028).
+/// project, agent, model, thinking level, auto-accept, and subagent invocation.
+/// Preferences are loaded by <see cref="openMob.Services.MauiPopupService.ShowContextSheetAsync"/>
+/// before this page is pushed modally.
 /// </summary>
 public partial class ContextSheet : ContentPage
 {
@@ -20,13 +22,10 @@ public partial class ContextSheet : ContentPage
     }
 
     /// <inheritdoc />
-    protected override async void OnAppearing()
+    protected override void OnAppearing()
     {
         base.OnAppearing();
-
-        if (_viewModel.LoadContextCommand.CanExecute(null))
-        {
-            await _viewModel.LoadContextCommand.ExecuteAsync(null);
-        }
+        // Initialization is performed by MauiPopupService.ShowContextSheetAsync
+        // before this page is pushed modally. No action needed here.
     }
 }

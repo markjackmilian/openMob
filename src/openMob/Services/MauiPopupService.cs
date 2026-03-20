@@ -129,11 +129,18 @@ internal sealed class MauiPopupService : IAppPopupService
     }
 
     /// <inheritdoc />
-    public async Task ShowContextSheetAsync(CancellationToken ct = default)
+    public async Task ShowContextSheetAsync(string projectId, string sessionId, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
         var sheet = _serviceProvider.GetRequiredService<ContextSheet>();
+
+        // Initialize the ViewModel with project preferences before presenting the sheet
+        if (sheet.BindingContext is ContextSheetViewModel vm)
+        {
+            await vm.InitializeAsync(projectId, sessionId, ct).ConfigureAwait(false);
+        }
+
         var page = GetCurrentPage();
         if (page is not null)
         {

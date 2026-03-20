@@ -4,7 +4,7 @@
 | Field   | Value                        |
 |---------|------------------------------|
 | Date    | 2026-03-20                   |
-| Status  | Draft                        |
+| Status  | In Progress                  |
 | Version | 1.0                          |
 
 ---
@@ -140,8 +140,8 @@ This feature introduces a structured debug logging infrastructure for the openMo
 
 | # | Question | Status | Answer / Decision |
 |---|----------|--------|-------------------|
-| 1 | `Android.Util.Log` is part of the Android SDK and cannot be referenced directly from `openMob.Core` (pure .NET library). The write mechanism must be abstracted — options: (a) a static `Action<string, string>` delegate on `DebugLogger` initialised at app startup in `MauiProgram.cs`; (b) a thin `ILogWriter` interface registered via DI. Option (a) is preferred for minimal invasiveness. | Open | To be decided during Technical Analysis |
-| 2 | `INavigationService` implementation location: if it lives in `openMob` (MAUI project), log calls go there; if in `openMob.Core`, they go in Core. Must be confirmed during Technical Analysis. | Open | To be verified |
+| 1 | `Android.Util.Log` is part of the Android SDK and cannot be referenced directly from `openMob.Core` (pure .NET library). The write mechanism must be abstracted — options: (a) a static `Action<string, string>` delegate on `DebugLogger` initialised at app startup in `MauiProgram.cs`; (b) a thin `ILogWriter` interface registered via DI. Option (a) is preferred for minimal invasiveness. | **Resolved** | **Option (a) adopted**: `DebugLogger.WriteAction` static delegate, defaulting to no-op. Wired in `MauiProgram.cs` inside `#if DEBUG` and `#if ANDROID` guards. |
+| 2 | `INavigationService` implementation location: if it lives in `openMob` (MAUI project), log calls go there; if in `openMob.Core`, they go in Core. Must be confirmed during Technical Analysis. | **Resolved** | `MauiNavigationService` lives in `src/openMob/Services/MauiNavigationService.cs` (MAUI project). Log calls for navigation go in that file. |
 
 ---
 
@@ -200,3 +200,134 @@ This feature introduces a structured debug logging infrastructure for the openMo
 - `src/openMob.Core/Data/Repositories/` — repository implementations
 - `src/openMob/MauiProgram.cs` — `WriteAction` wiring (Android, DEBUG only)
 - `src/openMob.Core/Infrastructure/DI/CoreServiceExtensions.cs` — verify if any DI change is needed
+
+---
+
+## Technical Analysis
+
+> Added by: om-orchestrator | Date: 2026-03-20
+
+### Open Questions — Resolved
+
+**Q1 — Android write abstraction:** Confirmed **Option (a)**: a static `Action<string, string> WriteAction` delegate on `DebugLogger`, defaulting to `(_, _) => { }` (no-op). Wired in `MauiProgram.cs` inside `#if DEBUG` + `#if ANDROID` guards:
+```csharp
+#if DEBUG && ANDROID
+DebugLogger.WriteAction = (tag, msg) => Android.Util.Log.Debug(tag, msg);
+#endif
+```
+This requires zero DI changes and zero new interfaces. `CoreServiceExtensions.cs` is **not modified**.
+
+**Q2 — INavigationService location:** Confirmed. `MauiNavigationService` lives in `src/openMob/Services/MauiNavigationService.cs` (MAUI project). Navigation log calls go in that file, not in Core.
+
+---
+
+### Change Classification
+
+| Field | Value |
+|-------|-------|
+| Change type | Feature |
+| Git Flow branch | `feature/debug-logging` |
+| Branches from | `develop` |
+| Estimated complexity | Medium |
+| Estimated agents involved | om-mobile-core, om-tester, om-reviewer |
+
+> **Note:** `om-mobile-ui` is **not involved** — this feature has no XAML or UI component. Navigation log calls go in `MauiNavigationService.cs` (MAUI project, code-behind only), which is handled by `om-mobile-core` as it is pure C# service logic.
+
+---
+
+### Layers Involved
+
+| Layer | Agent | Scope |
+|-------|-------|-------|
+| New `DebugLogger` static class | om-mobile-core | `src/openMob.Core/Infrastructure/Logging/DebugLogger.cs` |
+| HTTP + SSE instrumentation | om-mobile-core | `src/openMob.Core/Infrastructure/Http/OpencodeApiClient.cs` |
+| ViewModel command instrumentation | om-mobile-core | `src/openMob.Core/ViewModels/*.cs` (15 files) |
+| Navigation instrumentation | om-mobile-core | `src/openMob/Services/MauiNavigationService.cs` |
+| Repository instrumentation | om-mobile-core | `src/openMob.Core/Data/Repositories/ServerConnectionRepository.cs` |
+| Connection manager instrumentation | om-mobile-core | `src/openMob.Core/Infrastructure/Http/OpencodeConnectionManager.cs` |
+| Discovery service instrumentation | om-mobile-core | `src/openMob.Core/Infrastructure/Discovery/OpencodeDiscoveryService.cs` |
+| MauiProgram WriteAction wiring | om-mobile-core | `src/openMob/MauiProgram.cs` |
+| Unit Tests | om-tester | `tests/openMob.Tests/Infrastructure/Logging/DebugLoggerTests.cs` |
+| Code Review | om-reviewer | All of the above |
+
+---
+
+### Files to Create
+
+- `src/openMob.Core/Infrastructure/Logging/DebugLogger.cs` — new static class, entire body in `#if DEBUG`
+
+### Files to Modify
+
+| File | Reason |
+|------|--------|
+| `src/openMob.Core/Infrastructure/Http/OpencodeApiClient.cs` | Add `LogHttp` in `ExecuteAsync<T>` and `LogSse` in `SubscribeToEventsAsync` |
+| `src/openMob.Core/ViewModels/SplashViewModel.cs` | Add `LogCommand` to `InitializeAsync` |
+| `src/openMob.Core/ViewModels/OnboardingViewModel.cs` | Add `LogCommand` to 5 command methods |
+| `src/openMob.Core/ViewModels/ProjectsViewModel.cs` | Add `LogCommand` to 4 command methods |
+| `src/openMob.Core/ViewModels/ProjectDetailViewModel.cs` | Add `LogCommand` to 6 command methods |
+| `src/openMob.Core/ViewModels/AddProjectViewModel.cs` | Add `LogCommand` to 2 command methods |
+| `src/openMob.Core/ViewModels/ChatViewModel.cs` | Add `LogCommand` to 12 command methods |
+| `src/openMob.Core/ViewModels/FlyoutViewModel.cs` | Add `LogCommand` to 4 command methods |
+| `src/openMob.Core/ViewModels/SettingsViewModel.cs` | Add `LogCommand` to 2 command methods |
+| `src/openMob.Core/ViewModels/ServerManagementViewModel.cs` | Add `LogCommand` to 5 command methods |
+| `src/openMob.Core/ViewModels/ServerDetailViewModel.cs` | Add `LogCommand` to 4 command methods |
+| `src/openMob.Core/ViewModels/ProjectSwitcherViewModel.cs` | Add `LogCommand` to 3 command methods |
+| `src/openMob.Core/ViewModels/AgentPickerViewModel.cs` | Add `LogCommand` to 2 command methods |
+| `src/openMob.Core/ViewModels/ModelPickerViewModel.cs` | Add `LogCommand` to 3 command methods |
+| `src/openMob.Core/ViewModels/ContextSheetViewModel.cs` | Add `LogCommand` to 5 command methods |
+| `src/openMob.Core/ViewModels/CommandPaletteViewModel.cs` | Add `LogCommand` to 3 command methods |
+| `src/openMob.Core/Data/Repositories/ServerConnectionRepository.cs` | Add `LogDatabase` to all 7 public async methods |
+| `src/openMob.Core/Infrastructure/Http/OpencodeConnectionManager.cs` | Add `LogConnection` to `IsServerReachableAsync` and `SetConnectionStatus` |
+| `src/openMob.Core/Infrastructure/Discovery/OpencodeDiscoveryService.cs` | Add `LogConnection` (discovery_result) to `ScanAsync` |
+| `src/openMob/Services/MauiNavigationService.cs` | Add `LogNavigation` to `GoToAsync` (both overloads) and `PopAsync` |
+| `src/openMob/MauiProgram.cs` | Wire `DebugLogger.WriteAction` inside `#if DEBUG && ANDROID` |
+
+---
+
+### Technical Dependencies
+
+- No new NuGet packages required
+- No EF Core migrations required
+- `Android.Util.Log` accessed only from `openMob` (MAUI project) via the `WriteAction` delegate — never from `openMob.Core`
+- `System.Text.Json` already available in .NET 10 — no additional package needed
+- `System.Diagnostics.Stopwatch` already available — no additional package needed
+
+---
+
+### Technical Risks
+
+1. **Volume of ViewModel changes (15 files, ~60 command methods):** Each method requires 3–4 lines of `#if DEBUG` instrumentation. Risk of copy-paste errors or missed methods. Mitigation: agent must enumerate all commands from the spec's complete list.
+2. **`OpencodeApiClient.ExecuteAsync<T>` is the HTTP chokepoint:** All non-SSE HTTP calls flow through it. Logging here covers all 35+ API methods without touching each individually. Risk: the method signature and retry loop must be understood precisely to place `Stopwatch` correctly.
+3. **SSE chunk counter state:** `SubscribeToEventsAsync` is an `async IAsyncEnumerable` — a local `int chunkIndex` variable inside the iterator is sufficient (no `[ThreadStatic]` needed since each call is a single enumeration). Risk: counter must reset per stream invocation, not be static.
+4. **`MauiNavigationService` is in the MAUI project:** The `openMob.Core` namespace `using` for `DebugLogger` must be added to this file. Since `openMob` references `openMob.Core`, this is valid.
+5. **`#if DEBUG && ANDROID` in MauiProgram.cs:** The `ANDROID` preprocessor symbol is defined by the MAUI SDK for `net10.0-android` targets only. This is the correct guard to prevent iOS build failures.
+
+---
+
+### Execution Order
+
+> Steps that can run in parallel are marked with ⟳. Steps that must be sequential are numbered.
+
+1. **[Git Flow]** Create branch `feature/debug-logging` from `develop`
+2. **[om-mobile-core]** Create `DebugLogger.cs` + instrument all call sites (all files listed above)
+3. **[om-tester]** Write unit tests for `DebugLogger` (can start once `DebugLogger.cs` is implemented)
+4. **[om-reviewer]** Full review against spec
+5. **[Fix loop if needed]** Address Critical and Major findings
+6. **[Git Flow]** Finish branch and merge into `develop`
+
+> `om-mobile-core` and `om-tester` are **sequential** — tests require the implementation to exist.
+> `om-mobile-ui` is **not involved** in this feature.
+
+---
+
+### Definition of Done
+
+- [ ] All `[REQ-001]` through `[REQ-013]` requirements implemented
+- [ ] All `[AC-001]` through `[AC-009]` acceptance criteria satisfied
+- [ ] Unit tests written for `DebugLogger` covering all 6 log methods
+- [ ] `om-reviewer` verdict: ✅ Approved or ⚠️ Approved with remarks
+- [ ] `dotnet build src/openMob.Core/openMob.Core.csproj` — zero errors, zero warnings
+- [ ] `dotnet build src/openMob/openMob.csproj -f net10.0-android` — zero errors, zero warnings
+- [ ] `dotnet test tests/openMob.Tests/openMob.Tests.csproj` — all tests pass
+- [ ] Git Flow branch finished and deleted
+- [ ] Spec moved to `specs/done/` with Completed status

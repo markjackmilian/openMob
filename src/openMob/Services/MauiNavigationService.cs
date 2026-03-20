@@ -1,3 +1,4 @@
+using openMob.Core.Infrastructure.Logging;
 using openMob.Core.Services;
 
 namespace openMob.Services;
@@ -12,6 +13,9 @@ internal sealed class MauiNavigationService : INavigationService
     public async Task GoToAsync(string route, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
+#if DEBUG
+        DebugLogger.LogNavigation(route);
+#endif
         await Shell.Current.GoToAsync(route, true);
     }
 
@@ -19,6 +23,9 @@ internal sealed class MauiNavigationService : INavigationService
     public async Task GoToAsync(string route, IDictionary<string, object> parameters, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
+#if DEBUG
+        DebugLogger.LogNavigation(route, parameters);
+#endif
         await Shell.Current.GoToAsync(route, true, parameters);
     }
 
@@ -26,6 +33,9 @@ internal sealed class MauiNavigationService : INavigationService
     public async Task PopAsync(CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
+#if DEBUG
+        DebugLogger.LogNavigation("..");
+#endif
         await Shell.Current.GoToAsync("..", true);
     }
 }

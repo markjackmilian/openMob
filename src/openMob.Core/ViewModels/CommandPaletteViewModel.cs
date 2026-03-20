@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using openMob.Core.Infrastructure.Logging;
 using openMob.Core.Infrastructure.Monitoring;
 using openMob.Core.Models;
 using openMob.Core.Services;
@@ -72,6 +74,12 @@ public sealed partial class CommandPaletteViewModel : ObservableObject
     [RelayCommand]
     private async Task LoadCommandsAsync(CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(LoadCommandsAsync), "start");
+        try
+        {
+#endif
         IsLoading = true;
 
         try
@@ -92,6 +100,17 @@ public sealed partial class CommandPaletteViewModel : ObservableObject
             IsLoading = false;
             OnPropertyChanged(nameof(IsEmpty));
         }
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(LoadCommandsAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(LoadCommandsAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 
     /// <summary>
@@ -102,6 +121,12 @@ public sealed partial class CommandPaletteViewModel : ObservableObject
     [RelayCommand]
     private async Task ExecuteCommandAsync(CommandItem command, CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(ExecuteCommandAsync), "start");
+        try
+        {
+#endif
         ArgumentNullException.ThrowIfNull(command);
 
         if (CurrentSessionId is null)
@@ -130,6 +155,17 @@ public sealed partial class CommandPaletteViewModel : ObservableObject
         }
 
         await _popupService.PopPopupAsync(ct);
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(ExecuteCommandAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(ExecuteCommandAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 
     /// <summary>
@@ -139,8 +175,25 @@ public sealed partial class CommandPaletteViewModel : ObservableObject
     [RelayCommand]
     private async Task RefreshCommandsAsync(CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(RefreshCommandsAsync), "start");
+        try
+        {
+#endif
         _commandService.InvalidateCache();
         await LoadCommandsAsync(ct);
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(RefreshCommandsAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(RefreshCommandsAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 
     /// <summary>

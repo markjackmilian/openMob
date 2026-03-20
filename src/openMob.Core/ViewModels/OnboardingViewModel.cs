@@ -1,10 +1,12 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using openMob.Core.Data.Repositories;
 using openMob.Core.Infrastructure.Dtos;
 using openMob.Core.Infrastructure.Http;
 using openMob.Core.Infrastructure.Http.Dtos.Opencode;
+using openMob.Core.Infrastructure.Logging;
 using openMob.Core.Infrastructure.Monitoring;
 using openMob.Core.Infrastructure.Security;
 using openMob.Core.Services;
@@ -155,6 +157,12 @@ public sealed partial class OnboardingViewModel : ObservableObject
     [RelayCommand]
     private async Task NextStepAsync(CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(NextStepAsync), "start");
+        try
+        {
+#endif
         if (CurrentStep == 3 && !string.IsNullOrWhiteSpace(SelectedProviderId) && !string.IsNullOrWhiteSpace(ProviderApiKey))
         {
             // Save provider API key before advancing
@@ -174,14 +182,31 @@ public sealed partial class OnboardingViewModel : ObservableObject
         {
             await LoadProvidersAsync(ct);
         }
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(NextStepAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(NextStepAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 
     /// <summary>Goes back to the previous onboarding step.</summary>
     [RelayCommand]
     private void PreviousStep()
     {
+#if DEBUG
+        DebugLogger.LogCommand(nameof(PreviousStep), "start");
+#endif
         if (CurrentStep > 1)
             CurrentStep--;
+#if DEBUG
+        DebugLogger.LogCommand(nameof(PreviousStep), "complete");
+#endif
     }
 
     /// <summary>Skips the current optional step and advances to the next one.</summary>
@@ -189,6 +214,12 @@ public sealed partial class OnboardingViewModel : ObservableObject
     [RelayCommand]
     private async Task SkipStepAsync(CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(SkipStepAsync), "start");
+        try
+        {
+#endif
         if (CurrentStep >= TotalSteps)
         {
             await CompleteOnboardingAsync(ct);
@@ -201,6 +232,17 @@ public sealed partial class OnboardingViewModel : ObservableObject
         {
             await LoadProvidersAsync(ct);
         }
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(SkipStepAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(SkipStepAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 
     /// <summary>
@@ -211,6 +253,12 @@ public sealed partial class OnboardingViewModel : ObservableObject
     [RelayCommand]
     private async Task TestConnectionAsync(CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(TestConnectionAsync), "start");
+        try
+        {
+#endif
         if (IsTestingConnection)
             return;
 
@@ -320,6 +368,17 @@ public sealed partial class OnboardingViewModel : ObservableObject
         {
             await _popupService.ShowErrorAsync("Connection Failed", ConnectionStatusMessage, ct);
         }
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(TestConnectionAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(TestConnectionAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 
     /// <summary>
@@ -329,8 +388,25 @@ public sealed partial class OnboardingViewModel : ObservableObject
     [RelayCommand]
     private async Task CompleteOnboardingAsync(CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(CompleteOnboardingAsync), "start");
+        try
+        {
+#endif
         SentryHelper.AddBreadcrumb("Onboarding completed — navigating to chat", "onboarding");
         await _navigationService.GoToAsync("//chat", ct);
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(CompleteOnboardingAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(CompleteOnboardingAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 
     // ─── Private helpers ──────────────────────────────────────────────────────

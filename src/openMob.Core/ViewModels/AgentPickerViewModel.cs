@@ -1,8 +1,10 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using openMob.Core.Infrastructure.Http.Dtos.Opencode;
+using openMob.Core.Infrastructure.Logging;
 using openMob.Core.Infrastructure.Monitoring;
 using openMob.Core.Models;
 using openMob.Core.Services;
@@ -89,6 +91,12 @@ public sealed partial class AgentPickerViewModel : ObservableObject
     [RelayCommand]
     private async Task LoadAgentsAsync(CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(LoadAgentsAsync), "start");
+        try
+        {
+#endif
         if (IsLoading)
             return;
 
@@ -125,6 +133,17 @@ public sealed partial class AgentPickerViewModel : ObservableObject
         {
             IsLoading = false;
         }
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(LoadAgentsAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(LoadAgentsAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 
     /// <summary>
@@ -137,6 +156,12 @@ public sealed partial class AgentPickerViewModel : ObservableObject
     [RelayCommand]
     private async Task SelectAgentAsync(string agentName, CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(SelectAgentAsync), "start");
+        try
+        {
+#endif
         ArgumentException.ThrowIfNullOrWhiteSpace(agentName);
 
         if (PickerMode == PickerMode.Subagent)
@@ -155,5 +180,16 @@ public sealed partial class AgentPickerViewModel : ObservableObject
         Agents = new ObservableCollection<AgentItem>(updatedItems);
 
         await _popupService.PopPopupAsync(ct).ConfigureAwait(false);
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(SelectAgentAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(SelectAgentAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 }

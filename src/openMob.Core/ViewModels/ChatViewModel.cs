@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Text.Json;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -6,6 +7,7 @@ using CommunityToolkit.Mvvm.Messaging;
 using openMob.Core.Helpers;
 using openMob.Core.Infrastructure.Http;
 using openMob.Core.Infrastructure.Http.Dtos.Opencode;
+using openMob.Core.Infrastructure.Logging;
 using openMob.Core.Infrastructure.Monitoring;
 using openMob.Core.Messages;
 using openMob.Core.Models;
@@ -299,6 +301,12 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private async Task LoadContextAsync(CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(LoadContextAsync), "start");
+        try
+        {
+#endif
         try
         {
             // Subscribe to connection status changes for status banner updates
@@ -360,6 +368,17 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
                 ["context"] = "ChatViewModel.LoadContextAsync",
             });
         }
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(LoadContextAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(LoadContextAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 
     /// <summary>
@@ -370,9 +389,26 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private async Task OpenProjectSwitcherAsync(CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(OpenProjectSwitcherAsync), "start");
+        try
+        {
+#endif
         // The View layer creates and pushes the ProjectSwitcherSheet popup.
         // This command signals the intent for testability.
         await Task.CompletedTask;
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(OpenProjectSwitcherAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(OpenProjectSwitcherAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 
     /// <summary>
@@ -383,6 +419,12 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private async Task NewChatAsync(CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(NewChatAsync), "start");
+        try
+        {
+#endif
         try
         {
             var session = await _sessionService.CreateSessionAsync(null, ct).ConfigureAwait(false);
@@ -405,6 +447,17 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
             });
             await _popupService.ShowErrorAsync("Error", "Failed to create a new session.", ct);
         }
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(NewChatAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(NewChatAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 
     /// <summary>
@@ -415,6 +468,12 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private async Task ShowMoreMenuAsync(CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(ShowMoreMenuAsync), "start");
+        try
+        {
+#endif
         var options = new List<string>
         {
             "Rename session",
@@ -467,6 +526,17 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
                 await HandleDeleteAsync(ct);
                 break;
         }
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(ShowMoreMenuAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(ShowMoreMenuAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 
     // ─── Chat Commands [REQ-006 through REQ-010] ──────────────────────────────
@@ -480,6 +550,12 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private async Task LoadMessagesAsync(CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(LoadMessagesAsync), "start");
+        try
+        {
+#endif
         if (CurrentSessionId is null)
             return;
 
@@ -533,6 +609,17 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
         {
             IsBusy = false;
         }
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(LoadMessagesAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(LoadMessagesAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 
     /// <summary>
@@ -545,6 +632,12 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     [RelayCommand(CanExecute = nameof(CanSendMessage))]
     private async Task SendMessageAsync(CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(SendMessageAsync), "start");
+        try
+        {
+#endif
         if (CurrentSessionId is null)
             return;
 
@@ -612,6 +705,17 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
                 ["sessionId"] = CurrentSessionId ?? "null",
             });
         }
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(SendMessageAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(SendMessageAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 
     /// <summary>Determines whether <see cref="SendMessageCommand"/> can execute.</summary>
@@ -628,6 +732,12 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     [RelayCommand(CanExecute = nameof(IsAiResponding))]
     private async Task CancelResponseAsync(CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(CancelResponseAsync), "start");
+        try
+        {
+#endif
         if (CurrentSessionId is null)
             return;
 
@@ -647,6 +757,17 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
         {
             IsAiResponding = false;
         }
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(CancelResponseAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(CancelResponseAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 
     /// <summary>
@@ -657,10 +778,27 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private async Task SelectSuggestionChipAsync(SuggestionChip chip)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(SelectSuggestionChipAsync), "start");
+        try
+        {
+#endif
         ArgumentNullException.ThrowIfNull(chip);
 
         InputText = chip.PromptText;
         await SendMessageCommand.ExecuteAsync(null);
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(SelectSuggestionChipAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(SelectSuggestionChipAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 
     /// <summary>
@@ -669,7 +807,13 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private void DismissError()
     {
+#if DEBUG
+        DebugLogger.LogCommand(nameof(DismissError), "start");
+#endif
         ErrorMessage = null;
+#if DEBUG
+        DebugLogger.LogCommand(nameof(DismissError), "complete");
+#endif
     }
 
     // ─── Chat Page Redesign Commands [REQ-023, REQ-025, REQ-029, REQ-022] ────
@@ -682,7 +826,24 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private async Task RenameSessionAsync(CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(RenameSessionAsync), "start");
+        try
+        {
+#endif
         await HandleRenameSessionAsync(ct);
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(RenameSessionAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(RenameSessionAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 
     /// <summary>
@@ -694,6 +855,12 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private async Task OpenContextSheetAsync(CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(OpenContextSheetAsync), "start");
+        try
+        {
+#endif
         if (CurrentProjectId is null)
             return;
 
@@ -701,6 +868,17 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
             CurrentProjectId,
             CurrentSessionId ?? string.Empty,
             ct).ConfigureAwait(false);
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(OpenContextSheetAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(OpenContextSheetAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 
     /// <summary>
@@ -710,7 +888,24 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private async Task OpenCommandPaletteAsync(CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(OpenCommandPaletteAsync), "start");
+        try
+        {
+#endif
         await _popupService.ShowCommandPaletteAsync(ct);
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(OpenCommandPaletteAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(OpenCommandPaletteAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 
     /// <summary>

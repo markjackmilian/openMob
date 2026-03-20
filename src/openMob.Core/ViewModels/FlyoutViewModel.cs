@@ -1,8 +1,10 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using openMob.Core.Helpers;
 using openMob.Core.Infrastructure.Http.Dtos.Opencode;
+using openMob.Core.Infrastructure.Logging;
 using openMob.Core.Infrastructure.Monitoring;
 using openMob.Core.Models;
 using openMob.Core.Services;
@@ -71,6 +73,12 @@ public sealed partial class FlyoutViewModel : ObservableObject
     [RelayCommand]
     private async Task LoadSessionsAsync(CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(LoadSessionsAsync), "start");
+        try
+        {
+#endif
         if (IsLoading)
             return;
 
@@ -116,6 +124,17 @@ public sealed partial class FlyoutViewModel : ObservableObject
         {
             IsLoading = false;
         }
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(LoadSessionsAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(LoadSessionsAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 
     /// <summary>
@@ -126,12 +145,29 @@ public sealed partial class FlyoutViewModel : ObservableObject
     [RelayCommand]
     private async Task SelectSessionAsync(string sessionId, CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(SelectSessionAsync), "start");
+        try
+        {
+#endif
         ArgumentException.ThrowIfNullOrWhiteSpace(sessionId);
 
         await _navigationService.GoToAsync("//chat", new Dictionary<string, object>
         {
             ["sessionId"] = sessionId,
         }, ct);
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(SelectSessionAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(SelectSessionAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 
     /// <summary>
@@ -143,6 +179,12 @@ public sealed partial class FlyoutViewModel : ObservableObject
     [RelayCommand]
     private async Task DeleteSessionAsync(string sessionId, CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(DeleteSessionAsync), "start");
+        try
+        {
+#endif
         ArgumentException.ThrowIfNullOrWhiteSpace(sessionId);
 
         var confirmed = await _popupService.ShowConfirmDeleteAsync(
@@ -176,6 +218,17 @@ public sealed partial class FlyoutViewModel : ObservableObject
             });
             await _popupService.ShowErrorAsync("Error", "Failed to delete the session.", ct);
         }
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(DeleteSessionAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(DeleteSessionAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 
     /// <summary>
@@ -185,6 +238,12 @@ public sealed partial class FlyoutViewModel : ObservableObject
     [RelayCommand]
     private async Task NewChatAsync(CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(NewChatAsync), "start");
+        try
+        {
+#endif
         try
         {
             var session = await _sessionService.CreateSessionAsync(null, ct).ConfigureAwait(false);
@@ -209,5 +268,16 @@ public sealed partial class FlyoutViewModel : ObservableObject
             });
             await _popupService.ShowErrorAsync("Error", "Failed to create a new session.", ct);
         }
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(NewChatAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(NewChatAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 }

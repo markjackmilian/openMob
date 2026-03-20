@@ -1,7 +1,9 @@
+using System.Diagnostics;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using openMob.Core.Data.Repositories;
 using openMob.Core.Infrastructure.Http;
+using openMob.Core.Infrastructure.Logging;
 using openMob.Core.Infrastructure.Monitoring;
 using openMob.Core.Services;
 
@@ -64,6 +66,12 @@ public sealed partial class SplashViewModel : ObservableObject
     [RelayCommand]
     private async Task InitializeAsync(CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(InitializeAsync), "start");
+        try
+        {
+#endif
         if (IsLoading)
             return;
 
@@ -155,5 +163,16 @@ public sealed partial class SplashViewModel : ObservableObject
         {
             IsLoading = false;
         }
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(InitializeAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(InitializeAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 }

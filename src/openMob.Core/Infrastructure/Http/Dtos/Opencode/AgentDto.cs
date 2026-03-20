@@ -19,6 +19,7 @@ namespace openMob.Core.Infrastructure.Http.Dtos.Opencode;
 /// <param name="Options">Raw additional options.</param>
 /// <param name="MaxSteps">Maximum number of agentic iterations, or <c>null</c>.</param>
 /// <param name="Permission">Raw permission configuration.</param>
+/// <param name="Hidden">Whether this agent is hidden from user-facing pickers. Hidden agents run automatically and are not selectable by the user.</param>
 public sealed record AgentDto(
     [property: JsonPropertyName("name")] string Name,
     [property: JsonPropertyName("description")] string? Description,
@@ -32,5 +33,6 @@ public sealed record AgentDto(
     [property: JsonPropertyName("tools")] JsonElement Tools,
     [property: JsonPropertyName("options")] JsonElement Options,
     [property: JsonPropertyName("maxSteps")] int? MaxSteps,
-    [property: JsonPropertyName("permission")] JsonElement Permission
+    [property: JsonPropertyName("permission")] JsonElement Permission,
+    [property: JsonPropertyName("hidden")] bool Hidden
 );

@@ -71,7 +71,8 @@ public sealed partial class AgentPickerViewModel : ObservableObject
 
     /// <summary>
     /// Gets or sets the callback invoked when the user selects an agent in primary-agent mode.
-    /// Receives the agent name, or <c>null</c> if the user selects "Default".
+    /// Receives the selected agent name. May receive <c>null</c> if a reset is triggered externally,
+    /// but the picker itself always passes a non-null name.
     /// Set by the MAUI layer (via <see cref="IAppPopupService.ShowAgentPickerAsync"/>) before presenting the sheet.
     /// Not invoked in subagent mode.
     /// </summary>
@@ -79,8 +80,8 @@ public sealed partial class AgentPickerViewModel : ObservableObject
 
     /// <summary>
     /// Loads agents from the server and maps them to display models.
-    /// In primary mode, calls <see cref="IAgentService.GetPrimaryAgentsAsync"/> and prepends a "Default" entry.
-    /// In subagent mode, calls <see cref="IAgentService.GetAgentsAsync"/> with no Default entry.
+    /// In primary mode, calls <see cref="IAgentService.GetPrimaryAgentsAsync"/> (hidden agents excluded).
+    /// In subagent mode, calls <see cref="IAgentService.GetAgentsAsync"/> with no filtering.
     /// </summary>
     /// <param name="ct">Cancellation token.</param>
     [RelayCommand]
@@ -105,16 +106,6 @@ public sealed partial class AgentPickerViewModel : ObservableObject
                 Description: a.Description,
                 IsSelected: a.Name == SelectedAgentName
             )).ToList();
-
-            // Prepend "Default" entry in primary mode only
-            if (!IsSubagentMode)
-            {
-                items.Insert(0, new AgentItem(
-                    Name: null,
-                    Description: null,
-                    IsSelected: SelectedAgentName is null
-                ));
-            }
 
             Agents = new ObservableCollection<AgentItem>(items);
             IsEmpty = Agents.Count == 0;
@@ -149,11 +140,13 @@ public sealed partial class AgentPickerViewModel : ObservableObject
     /// In primary mode: updates <see cref="SelectedAgentName"/>, invokes <see cref="OnAgentSelected"/>, and pops the popup.
     /// In subagent mode: sets <see cref="SelectedSubagentName"/> and pops the popup (callback not invoked).
     /// </summary>
-    /// <param name="agentName">The name of the agent to select, or <c>null</c> for the "Default" entry.</param>
+    /// <param name="agentName">The name of the agent to select.</param>
     /// <param name="ct">Cancellation token.</param>
     [RelayCommand]
-    private async Task SelectAgentAsync(string? agentName, CancellationToken ct)
+    private async Task SelectAgentAsync(string agentName, CancellationToken ct)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(agentName);
+
         if (IsSubagentMode)
         {
             SelectedSubagentName = agentName;

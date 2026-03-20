@@ -73,9 +73,10 @@ public sealed partial class ContextSheetViewModel : ObservableObject
 
     /// <summary>
     /// Gets the display name for the selected agent.
-    /// Returns "Default" when <see cref="SelectedAgentName"/> is null.
+    /// Returns <c>"build"</c> when <see cref="SelectedAgentName"/> is <c>null</c>,
+    /// reflecting the opencode server default agent.
     /// </summary>
-    public string SelectedAgentDisplayName => SelectedAgentName ?? "Default";
+    public string SelectedAgentDisplayName => SelectedAgentName ?? "build";
 
     /// <summary>
     /// Gets or sets the current model identifier in "providerId/modelId" format.

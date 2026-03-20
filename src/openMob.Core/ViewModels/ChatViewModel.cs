@@ -184,9 +184,10 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
 
     /// <summary>
     /// Gets the display name for the selected agent.
-    /// Returns <c>"Default"</c> when <see cref="SelectedAgentName"/> is <c>null</c>.
+    /// Returns <c>"build"</c> when <see cref="SelectedAgentName"/> is <c>null</c>,
+    /// reflecting the opencode server default agent.
     /// </summary>
-    public string SelectedAgentDisplayName => SelectedAgentName ?? "Default";
+    public string SelectedAgentDisplayName => SelectedAgentName ?? "build";
 
     // ─── Chat Properties [REQ-004] ────────────────────────────────────────────
 

@@ -14,8 +14,9 @@ public interface IAgentService
     Task<IReadOnlyList<AgentDto>> GetAgentsAsync(CancellationToken ct = default);
 
     /// <summary>
-    /// Gets only primary-mode agents from the opencode server.
-    /// Returns agents where <c>Mode == "primary"</c> or <c>Mode == "all"</c>.
+    /// Gets only primary-mode agents that are visible to the user.
+    /// Returns agents where <c>Mode == "primary"</c> or <c>Mode == "all"</c>,
+    /// excluding agents with <c>Hidden == true</c> (system agents like compaction, title, summary).
     /// The unfiltered list is available via <see cref="GetAgentsAsync"/>.
     /// </summary>
     /// <param name="ct">Cancellation token.</param>

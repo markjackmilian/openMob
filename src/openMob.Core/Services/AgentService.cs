@@ -43,6 +43,6 @@ internal sealed class AgentService : IAgentService
     public async Task<IReadOnlyList<AgentDto>> GetPrimaryAgentsAsync(CancellationToken ct = default)
     {
         var all = await GetAgentsAsync(ct).ConfigureAwait(false);
-        return all.Where(a => a.Mode is "primary" or "all").ToList();
+        return all.Where(a => (a.Mode is "primary" or "all") && !a.Hidden).ToList();
     }
 }

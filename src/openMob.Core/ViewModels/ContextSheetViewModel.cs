@@ -1,9 +1,11 @@
+using System.Diagnostics;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using openMob.Core.Data.Entities;
 using openMob.Core.Helpers;
 using openMob.Core.Infrastructure.Http.Dtos.Opencode;
+using openMob.Core.Infrastructure.Logging;
 using openMob.Core.Infrastructure.Monitoring;
 using openMob.Core.Messages;
 using openMob.Core.Models;
@@ -148,10 +150,27 @@ public sealed partial class ContextSheetViewModel : ObservableObject
     [RelayCommand]
     private async Task SelectAgentAsync(CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(SelectAgentAsync), "start");
+        try
+        {
+#endif
         await _popupService.ShowAgentPickerAsync(agentName =>
         {
             SelectedAgentName = agentName;
         }, ct).ConfigureAwait(false);
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(SelectAgentAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(SelectAgentAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 
     /// <summary>
@@ -162,10 +181,27 @@ public sealed partial class ContextSheetViewModel : ObservableObject
     [RelayCommand]
     private async Task SelectModelAsync(CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(SelectModelAsync), "start");
+        try
+        {
+#endif
         await _popupService.ShowModelPickerAsync(modelId =>
         {
             SelectedModelId = modelId;
         }, ct).ConfigureAwait(false);
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(SelectModelAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(SelectModelAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 
     /// <summary>
@@ -176,6 +212,12 @@ public sealed partial class ContextSheetViewModel : ObservableObject
     [RelayCommand]
     private async Task ToggleAutoAcceptAsync(CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(ToggleAutoAcceptAsync), "start");
+        try
+        {
+#endif
         if (_currentProjectId is null)
             return;
 
@@ -206,6 +248,17 @@ public sealed partial class ContextSheetViewModel : ObservableObject
         {
             _isTogglingAutoAccept = false;
         }
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(ToggleAutoAcceptAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(ToggleAutoAcceptAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 
     /// <summary>
@@ -216,7 +269,13 @@ public sealed partial class ContextSheetViewModel : ObservableObject
     [RelayCommand]
     private void ChangeThinkingLevel(ThinkingLevel level)
     {
+#if DEBUG
+        DebugLogger.LogCommand(nameof(ChangeThinkingLevel), "start");
+#endif
         ThinkingLevel = level;
+#if DEBUG
+        DebugLogger.LogCommand(nameof(ChangeThinkingLevel), "complete");
+#endif
     }
 
     /// <summary>
@@ -227,6 +286,12 @@ public sealed partial class ContextSheetViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanInvokeSubagent))]
     private async Task InvokeSubagentAsync(CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(InvokeSubagentAsync), "start");
+        try
+        {
+#endif
         IsBusy = true;
         ErrorMessage = null;
 
@@ -246,6 +311,17 @@ public sealed partial class ContextSheetViewModel : ObservableObject
         {
             IsBusy = false;
         }
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(InvokeSubagentAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(InvokeSubagentAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 
     /// <summary>Determines whether <see cref="InvokeSubagentCommand"/> can execute.</summary>

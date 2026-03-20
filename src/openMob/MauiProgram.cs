@@ -24,6 +24,11 @@ public static class MauiProgram
     {
         var builder = MauiApp.CreateBuilder();
 
+#if DEBUG && ANDROID
+        openMob.Core.Infrastructure.Logging.DebugLogger.WriteAction =
+            (tag, msg) => Android.Util.Log.Debug(tag, msg);
+#endif
+
         builder
             .UseMauiApp<App>()
             .UseMauiCommunityToolkit()

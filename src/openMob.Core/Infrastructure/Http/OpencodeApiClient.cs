@@ -8,6 +8,7 @@ using System.Text;
 using System.Text.Json;
 using openMob.Core.Infrastructure.Http.Dtos.Opencode;
 using openMob.Core.Infrastructure.Http.Dtos.Opencode.Requests;
+using openMob.Core.Infrastructure.Logging;
 using openMob.Core.Infrastructure.Settings;
 
 namespace openMob.Core.Infrastructure.Http;
@@ -141,14 +142,37 @@ internal sealed class OpencodeApiClient : IOpencodeApiClient
                     using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
                     cts.CancelAfter(TimeSpan.FromSeconds(timeoutSeconds));
 
+#if DEBUG
+                    var sw = Stopwatch.StartNew();
+#endif
                     using var response = await requestFactory(client, baseUrl, cts.Token)
                         .ConfigureAwait(false);
+#if DEBUG
+                    sw.Stop();
+                    string? reqBody = null;
+                    string? resBody = null;
+                    try
+                    {
+                        if (response.RequestMessage?.Content is not null)
+                            reqBody = await response.RequestMessage.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+                    }
+                    catch { /* best-effort — do not fail the request */ }
+#endif
 
                     // ── Map HTTP status codes ──────────────────────────────────
                     if (response.IsSuccessStatusCode)
                     {
                         if (response.StatusCode == HttpStatusCode.NoContent)
                         {
+#if DEBUG
+                            DebugLogger.LogHttp(
+                                response.RequestMessage?.Method.Method ?? "?",
+                                response.RequestMessage?.RequestUri?.ToString() ?? "",
+                                reqBody,
+                                (int)response.StatusCode,
+                                null,
+                                sw.ElapsedMilliseconds);
+#endif
                             // 204 No Content — for bool methods return true; for others return default
                             if (typeof(T) == typeof(bool))
                                 return OpencodeResult<T>.Success((T)(object)true);
@@ -160,6 +184,16 @@ internal sealed class OpencodeApiClient : IOpencodeApiClient
                             .ReadFromJsonAsync<T>(ct)
                             .ConfigureAwait(false);
 
+#if DEBUG
+                        try { resBody = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false); } catch { }
+                        DebugLogger.LogHttp(
+                            response.RequestMessage?.Method.Method ?? "?",
+                            response.RequestMessage?.RequestUri?.ToString() ?? "",
+                            reqBody,
+                            (int)response.StatusCode,
+                            resBody,
+                            sw.ElapsedMilliseconds);
+#endif
                         return OpencodeResult<T>.Success(value!);
                     }
 
@@ -167,6 +201,15 @@ internal sealed class OpencodeApiClient : IOpencodeApiClient
 
                     if (statusCode == 401)
                     {
+#if DEBUG
+                        DebugLogger.LogHttp(
+                            response.RequestMessage?.Method.Method ?? "?",
+                            response.RequestMessage?.RequestUri?.ToString() ?? "",
+                            reqBody,
+                            statusCode,
+                            null,
+                            sw.ElapsedMilliseconds);
+#endif
                         return OpencodeResult<T>.Failure(new OpencodeApiError(
                             ErrorKind.Unauthorized,
                             "Authentication failed. Check your server credentials.",
@@ -176,6 +219,15 @@ internal sealed class OpencodeApiClient : IOpencodeApiClient
 
                     if (statusCode == 404)
                     {
+#if DEBUG
+                        DebugLogger.LogHttp(
+                            response.RequestMessage?.Method.Method ?? "?",
+                            response.RequestMessage?.RequestUri?.ToString() ?? "",
+                            reqBody,
+                            statusCode,
+                            null,
+                            sw.ElapsedMilliseconds);
+#endif
                         return OpencodeResult<T>.Failure(new OpencodeApiError(
                             ErrorKind.NotFound,
                             "The requested resource was not found on the server.",
@@ -187,6 +239,15 @@ internal sealed class OpencodeApiClient : IOpencodeApiClient
                     {
                         // Other 4xx — no retry
                         var body = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+#if DEBUG
+                        DebugLogger.LogHttp(
+                            response.RequestMessage?.Method.Method ?? "?",
+                            response.RequestMessage?.RequestUri?.ToString() ?? "",
+                            reqBody,
+                            statusCode,
+                            body,
+                            sw.ElapsedMilliseconds);
+#endif
                         return OpencodeResult<T>.Failure(new OpencodeApiError(
                             ErrorKind.Unknown,
                             $"Server returned {statusCode}: {body}",
@@ -198,6 +259,15 @@ internal sealed class OpencodeApiClient : IOpencodeApiClient
                     {
                         // 5xx — eligible for retry
                         var body = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+#if DEBUG
+                        DebugLogger.LogHttp(
+                            response.RequestMessage?.Method.Method ?? "?",
+                            response.RequestMessage?.RequestUri?.ToString() ?? "",
+                            reqBody,
+                            statusCode,
+                            body,
+                            sw.ElapsedMilliseconds);
+#endif
                         lastError = new OpencodeApiError(
                             ErrorKind.ServerError,
                             $"Server error {statusCode}: {body}",
@@ -649,6 +719,12 @@ internal sealed class OpencodeApiClient : IOpencodeApiClient
             yield break;
         }
 
+#if DEBUG
+        var sseChunkIndex = 0;
+        var sseStreamStartMs = Stopwatch.GetTimestamp();
+        DebugLogger.LogSse("open", $"{baseUrl}/global/event");
+#endif
+
         using (response)
         {
             await using var stream = await response.Content
@@ -661,9 +737,39 @@ internal sealed class OpencodeApiClient : IOpencodeApiClient
             string? eventId = null;
             var dataLines = new StringBuilder();
 
+            // pendingEvent holds a fully-parsed event ready to yield.
+            // We cannot yield inside a try/catch block in C# iterators,
+            // so we stage the event here and yield it outside the try.
+            OpencodeEventDto? pendingEvent = null;
+#if DEBUG
+            string? pendingChunkData = null;
+#endif
+
             while (!cancellationToken.IsCancellationRequested)
             {
-                var line = await reader.ReadLineAsync(cancellationToken).ConfigureAwait(false);
+                // Read the next line — catch exceptions here so we can log them
+                // before the iterator exits.
+                string? line;
+                try
+                {
+                    line = await reader.ReadLineAsync(cancellationToken).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+#if DEBUG
+                    var closeDurationMs = (long)((Stopwatch.GetTimestamp() - sseStreamStartMs) * 1000.0 / Stopwatch.Frequency);
+                    DebugLogger.LogSse("close", null, totalChunks: sseChunkIndex, streamDurationMs: closeDurationMs);
+#endif
+                    yield break;
+                }
+                catch (Exception ex)
+                {
+#if DEBUG
+                    DebugLogger.LogSse("error", ex.Message);
+#endif
+                    throw;
+                }
+
                 if (line is null)
                     break; // End of stream
 
@@ -678,9 +784,6 @@ internal sealed class OpencodeApiClient : IOpencodeApiClient
                 else if (line.StartsWith("data:", StringComparison.Ordinal))
                 {
                     var dataChunk = line["data:".Length..].Trim();
-#if DEBUG
-                    System.Diagnostics.Debug.WriteLine($"[SSE_RAW] data chunk: {dataChunk}");
-#endif
                     dataLines.AppendLine(dataChunk);
                 }
                 else if (line.Length == 0 && (eventType is not null || dataLines.Length > 0))
@@ -689,7 +792,7 @@ internal sealed class OpencodeApiClient : IOpencodeApiClient
                     JsonElement? data = null;
                     var dataStr = dataLines.ToString().Trim();
 #if DEBUG
-                    System.Diagnostics.Debug.WriteLine($"[SSE_RAW] event boundary — type='{eventType ?? "(none)"}' id='{eventId ?? "(none)"}' data={dataStr}");
+                    pendingChunkData = dataStr;
 #endif
 
                     if (!string.IsNullOrEmpty(dataStr))
@@ -704,7 +807,7 @@ internal sealed class OpencodeApiClient : IOpencodeApiClient
                         }
                     }
 
-                    yield return new OpencodeEventDto(
+                    pendingEvent = new OpencodeEventDto(
                         EventType: eventType ?? "unknown",
                         EventId: eventId,
                         Data: data);
@@ -713,7 +816,24 @@ internal sealed class OpencodeApiClient : IOpencodeApiClient
                     eventId = null;
                     dataLines.Clear();
                 }
+
+                // Yield the staged event outside any try/catch block (C# iterator constraint).
+                if (pendingEvent is not null)
+                {
+#if DEBUG
+                    sseChunkIndex++;
+                    DebugLogger.LogSse("chunk", pendingChunkData, chunkIndex: sseChunkIndex);
+                    pendingChunkData = null;
+#endif
+                    yield return pendingEvent;
+                    pendingEvent = null;
+                }
             }
         }
+
+#if DEBUG
+        var finalDurationMs = (long)((Stopwatch.GetTimestamp() - sseStreamStartMs) * 1000.0 / Stopwatch.Frequency);
+        DebugLogger.LogSse("close", null, totalChunks: sseChunkIndex, streamDurationMs: finalDurationMs);
+#endif
     }
 }

@@ -1,5 +1,7 @@
+using System.Diagnostics;
 using System.Text;
 using openMob.Core.Data.Repositories;
+using openMob.Core.Infrastructure.Logging;
 using openMob.Core.Infrastructure.Security;
 
 namespace openMob.Core.Infrastructure.Http;
@@ -85,6 +87,11 @@ internal sealed class OpencodeConnectionManager : IOpencodeConnectionManager
         if (baseUrl is null)
             return false;
 
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+#endif
+        bool isReachable;
+
         try
         {
             // Use the "discovery-probe" client (5-second timeout, no resilience pipeline)
@@ -92,21 +99,37 @@ internal sealed class OpencodeConnectionManager : IOpencodeConnectionManager
             // Repeated failed probes (e.g. server scan) must not open the circuit for real API calls.
             var client = _httpClientFactory.CreateClient("discovery-probe");
             using var response = await client.GetAsync($"{baseUrl}/global/health", ct).ConfigureAwait(false);
-            var reachable = response.IsSuccessStatusCode;
-            ConnectionStatus = reachable ? ServerConnectionStatus.Connected : ServerConnectionStatus.Error;
-            return reachable;
+            isReachable = response.IsSuccessStatusCode;
+            ConnectionStatus = isReachable ? ServerConnectionStatus.Connected : ServerConnectionStatus.Error;
         }
         catch (OperationCanceledException)
         {
+#if DEBUG
+            sw.Stop();
+            DebugLogger.LogConnection("health_check", $"url={baseUrl} status=cancelled", sw.ElapsedMilliseconds);
+#endif
             throw;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+#if DEBUG
+            sw.Stop();
+            DebugLogger.LogConnection("health_check", $"url={baseUrl} status=error ex={ex.Message}", sw.ElapsedMilliseconds);
+#endif
             SetConnectionStatus(ServerConnectionStatus.Error);
             return false;
         }
+
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogConnection("health_check", $"url={baseUrl} status={isReachable}", sw.ElapsedMilliseconds);
+#endif
+        return isReachable;
     }
 
     /// <inheritdoc />
-    public void SetConnectionStatus(ServerConnectionStatus status) => ConnectionStatus = status;
+    public void SetConnectionStatus(ServerConnectionStatus status)
+    {
+        ConnectionStatus = status;
+    }
 }

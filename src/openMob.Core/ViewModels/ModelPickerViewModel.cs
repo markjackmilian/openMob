@@ -1,7 +1,9 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Text.Json;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using openMob.Core.Infrastructure.Logging;
 using openMob.Core.Infrastructure.Monitoring;
 using openMob.Core.Models;
 using openMob.Core.Services;
@@ -72,6 +74,12 @@ public sealed partial class ModelPickerViewModel : ObservableObject
     [RelayCommand]
     private async Task LoadModelsAsync(CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(LoadModelsAsync), "start");
+        try
+        {
+#endif
         if (IsLoading)
             return;
         IsLoading = true;
@@ -104,6 +112,17 @@ public sealed partial class ModelPickerViewModel : ObservableObject
         {
             IsLoading = false;
         }
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(LoadModelsAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(LoadModelsAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 
     /// <summary>
@@ -115,6 +134,12 @@ public sealed partial class ModelPickerViewModel : ObservableObject
     [RelayCommand]
     private async Task SelectModelAsync(string modelId, CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(SelectModelAsync), "start");
+        try
+        {
+#endif
         ArgumentException.ThrowIfNullOrWhiteSpace(modelId);
 
         SelectedModelId = modelId;
@@ -126,6 +151,17 @@ public sealed partial class ModelPickerViewModel : ObservableObject
         OnModelSelected?.Invoke(SelectedModelId);
 
         await _popupService.PopPopupAsync(ct).ConfigureAwait(false);
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(SelectModelAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(SelectModelAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 
     /// <summary>
@@ -135,8 +171,25 @@ public sealed partial class ModelPickerViewModel : ObservableObject
     [RelayCommand]
     private async Task ConfigureProvidersAsync(CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(ConfigureProvidersAsync), "start");
+        try
+        {
+#endif
         await _popupService.PopPopupAsync(ct).ConfigureAwait(false);
         await _navigationService.GoToAsync("settings", ct).ConfigureAwait(false);
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(ConfigureProvidersAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(ConfigureProvidersAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 
     // ─── Private helpers ──────────────────────────────────────────────────────

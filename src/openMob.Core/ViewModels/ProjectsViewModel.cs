@@ -1,7 +1,9 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using openMob.Core.Helpers;
+using openMob.Core.Infrastructure.Logging;
 using openMob.Core.Infrastructure.Monitoring;
 using openMob.Core.Models;
 using openMob.Core.Services;
@@ -60,6 +62,12 @@ public sealed partial class ProjectsViewModel : ObservableObject
     [RelayCommand]
     private async Task LoadProjectsAsync(CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(LoadProjectsAsync), "start");
+        try
+        {
+#endif
         if (IsLoading)
             return;
 
@@ -95,6 +103,17 @@ public sealed partial class ProjectsViewModel : ObservableObject
         {
             IsLoading = false;
         }
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(LoadProjectsAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(LoadProjectsAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 
     /// <summary>
@@ -105,12 +124,29 @@ public sealed partial class ProjectsViewModel : ObservableObject
     [RelayCommand]
     private async Task SelectProjectAsync(string projectId, CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(SelectProjectAsync), "start");
+        try
+        {
+#endif
         ArgumentException.ThrowIfNullOrWhiteSpace(projectId);
 
         await _navigationService.GoToAsync("project-detail", new Dictionary<string, object>
         {
             ["projectId"] = projectId,
         }, ct);
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(SelectProjectAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(SelectProjectAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 
     /// <summary>
@@ -121,6 +157,12 @@ public sealed partial class ProjectsViewModel : ObservableObject
     [RelayCommand]
     private async Task DeleteProjectAsync(string projectId, CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(DeleteProjectAsync), "start");
+        try
+        {
+#endif
         ArgumentException.ThrowIfNullOrWhiteSpace(projectId);
 
         var confirmed = await _popupService.ShowConfirmDeleteAsync(
@@ -136,6 +178,17 @@ public sealed partial class ProjectsViewModel : ObservableObject
         // a toast indicating the limitation.
         await _popupService.ShowToastAsync("Project deletion is managed by the server.", ct);
         await LoadProjectsAsync(ct);
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(DeleteProjectAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(DeleteProjectAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 
     /// <summary>
@@ -145,9 +198,26 @@ public sealed partial class ProjectsViewModel : ObservableObject
     [RelayCommand]
     private async Task ShowAddProjectAsync(CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(ShowAddProjectAsync), "start");
+        try
+        {
+#endif
         // The popup instance is created and pushed by the MAUI layer.
         // This command signals the intent; the View layer handles the popup lifecycle.
         await _popupService.ShowToastAsync("Add project sheet requested.", ct);
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(ShowAddProjectAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(ShowAddProjectAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 
 }

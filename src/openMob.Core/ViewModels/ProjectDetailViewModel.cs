@@ -1,7 +1,9 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using openMob.Core.Helpers;
+using openMob.Core.Infrastructure.Logging;
 using openMob.Core.Infrastructure.Monitoring;
 using openMob.Core.Models;
 using openMob.Core.Services;
@@ -95,6 +97,12 @@ public sealed partial class ProjectDetailViewModel : ObservableObject
     [RelayCommand]
     private async Task LoadProjectAsync(string id, CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(LoadProjectAsync), "start");
+        try
+        {
+#endif
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
 
         if (IsLoading)
@@ -154,6 +162,17 @@ public sealed partial class ProjectDetailViewModel : ObservableObject
         {
             IsLoading = false;
         }
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(LoadProjectAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(LoadProjectAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 
     /// <summary>
@@ -163,11 +182,28 @@ public sealed partial class ProjectDetailViewModel : ObservableObject
     [RelayCommand]
     private async Task SetActiveAsync(CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(SetActiveAsync), "start");
+        try
+        {
+#endif
         // Note: The opencode server manages the "current project" concept.
         // Setting active is done by switching the working directory context.
         // For now, mark as active in the UI and show a toast.
         IsActiveProject = true;
         await _popupService.ShowToastAsync($"'{ProjectName}' set as active project.", ct);
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(SetActiveAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(SetActiveAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 
     /// <summary>
@@ -177,6 +213,12 @@ public sealed partial class ProjectDetailViewModel : ObservableObject
     [RelayCommand]
     private async Task NewSessionAsync(CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(NewSessionAsync), "start");
+        try
+        {
+#endif
         var session = await _sessionService.CreateSessionAsync(null, ct);
 
         if (session is not null)
@@ -190,6 +232,17 @@ public sealed partial class ProjectDetailViewModel : ObservableObject
         {
             await _popupService.ShowErrorAsync("Error", "Failed to create a new session.", ct);
         }
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(NewSessionAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(NewSessionAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 
     /// <summary>
@@ -199,9 +252,26 @@ public sealed partial class ProjectDetailViewModel : ObservableObject
     [RelayCommand]
     private async Task ChangeAgentAsync(CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(ChangeAgentAsync), "start");
+        try
+        {
+#endif
         // The View layer handles creating and pushing the AgentPickerSheet popup.
         // This command signals the intent.
         await Task.CompletedTask;
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(ChangeAgentAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(ChangeAgentAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 
     /// <summary>
@@ -213,6 +283,12 @@ public sealed partial class ProjectDetailViewModel : ObservableObject
     [RelayCommand]
     private async Task ChangeModelAsync(CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(ChangeModelAsync), "start");
+        try
+        {
+#endif
         string? selectedModelId = null;
         var previousModelName = DefaultModelName;
 
@@ -235,6 +311,17 @@ public sealed partial class ProjectDetailViewModel : ObservableObject
             await _popupService.ShowToastAsync(
                 "Failed to save model preference. Please try again.", ct).ConfigureAwait(false);
         }
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(ChangeModelAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(ChangeModelAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 
     /// <summary>
@@ -245,6 +332,12 @@ public sealed partial class ProjectDetailViewModel : ObservableObject
     [RelayCommand]
     private async Task DeleteProjectAsync(CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(DeleteProjectAsync), "start");
+        try
+        {
+#endif
         var confirmed = await _popupService.ShowConfirmDeleteAsync(
             "Delete Project",
             $"Are you sure you want to delete '{ProjectName}'? This action cannot be undone.",
@@ -257,6 +350,17 @@ public sealed partial class ProjectDetailViewModel : ObservableObject
         // directly supported via the API in the current version.
         await _popupService.ShowToastAsync("Project deletion is managed by the server.", ct);
         await _navigationService.PopAsync(ct);
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(DeleteProjectAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(DeleteProjectAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 
 }

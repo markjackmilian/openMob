@@ -1,5 +1,7 @@
+using System.Diagnostics;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using openMob.Core.Infrastructure.Logging;
 using openMob.Core.Services;
 
 namespace openMob.Core.ViewModels;
@@ -48,8 +50,25 @@ public sealed partial class AddProjectViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanAdd))]
     private async Task AddProjectAsync(CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(AddProjectAsync), "start");
+        try
+        {
+#endif
         await _popupService.PopPopupAsync(ct);
         await _popupService.ShowToastAsync($"Project '{ProjectName}' added.", ct);
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(AddProjectAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(AddProjectAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 
     /// <summary>Cancels the add project operation and closes the popup.</summary>
@@ -57,6 +76,23 @@ public sealed partial class AddProjectViewModel : ObservableObject
     [RelayCommand]
     private async Task CancelAsync(CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(CancelAsync), "start");
+        try
+        {
+#endif
         await _popupService.PopPopupAsync(ct);
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(CancelAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(CancelAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 }

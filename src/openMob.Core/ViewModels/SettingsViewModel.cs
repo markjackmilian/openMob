@@ -1,5 +1,7 @@
+using System.Diagnostics;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using openMob.Core.Infrastructure.Logging;
 using openMob.Core.Infrastructure.Settings;
 using openMob.Core.Services;
 
@@ -59,8 +61,25 @@ public sealed partial class SettingsViewModel : ObservableObject
     [RelayCommand]
     private async Task ApplyThemeAsync(AppThemePreference preference, CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(ApplyThemeAsync), "start");
+        try
+        {
+#endif
         await _themeService.SetThemeAsync(preference, ct).ConfigureAwait(false);
         SelectedThemeLabel = MapToLabel(preference);
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(ApplyThemeAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(ApplyThemeAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 
     /// <summary>Navigates to the Server Management page.</summary>
@@ -68,7 +87,24 @@ public sealed partial class SettingsViewModel : ObservableObject
     [RelayCommand]
     private async Task NavigateToServerManagementAsync(CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(NavigateToServerManagementAsync), "start");
+        try
+        {
+#endif
         await _navigationService.GoToAsync("server-management", ct).ConfigureAwait(false);
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(NavigateToServerManagementAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(NavigateToServerManagementAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 
     /// <summary>

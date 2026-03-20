@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -5,6 +6,7 @@ using openMob.Core.Data.Repositories;
 using openMob.Core.Infrastructure.Dtos;
 using openMob.Core.Infrastructure.Helpers;
 using openMob.Core.Infrastructure.Http;
+using openMob.Core.Infrastructure.Logging;
 using openMob.Core.Infrastructure.Monitoring;
 using openMob.Core.Infrastructure.Security;
 using openMob.Core.Services;
@@ -242,6 +244,12 @@ public sealed partial class ServerDetailViewModel : ObservableObject
     [RelayCommand]
     private async Task SaveAsync(CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(SaveAsync), "start");
+        try
+        {
+#endif
         ValidationError = null;
 
         // Validate Name
@@ -324,6 +332,17 @@ public sealed partial class ServerDetailViewModel : ObservableObject
         {
             IsSaving = false;
         }
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(SaveAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(SaveAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 
     /// <summary>
@@ -341,6 +360,12 @@ public sealed partial class ServerDetailViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanTestConnection))]
     private async Task TestConnectionAsync(CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(TestConnectionAsync), "start");
+        try
+        {
+#endif
         if (!ServerUrlHelper.TryParse(Url, out var host, out var port, out var useHttps))
         {
             IsConnectionTested = true;
@@ -424,6 +449,17 @@ public sealed partial class ServerDetailViewModel : ObservableObject
             IsTesting = false;
             IsConnectionTested = true;
         }
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(TestConnectionAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(TestConnectionAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 
     /// <summary>
@@ -437,6 +473,12 @@ public sealed partial class ServerDetailViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(IsSaved))]
     private async Task SetActiveAsync(CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(SetActiveAsync), "start");
+        try
+        {
+#endif
         IsActivating = true;
         ActivationStatusMessage = null;
 
@@ -463,6 +505,17 @@ public sealed partial class ServerDetailViewModel : ObservableObject
         {
             IsActivating = false;
         }
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(SetActiveAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(SetActiveAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 
     /// <summary>
@@ -478,6 +531,12 @@ public sealed partial class ServerDetailViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(IsEditMode))]
     private async Task DeleteAsync(CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(DeleteAsync), "start");
+        try
+        {
+#endif
         IsDeleting = true;
 
         try
@@ -505,6 +564,17 @@ public sealed partial class ServerDetailViewModel : ObservableObject
         {
             IsDeleting = false;
         }
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(DeleteAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(DeleteAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 
     // ─── CanExecute helpers ───────────────────────────────────────────────────

@@ -2,6 +2,7 @@ using System.Runtime.CompilerServices;
 using System.Text.Json;
 using openMob.Core.Data.Repositories;
 using openMob.Core.Infrastructure.Dtos;
+using openMob.Core.Infrastructure.Logging;
 using Zeroconf;
 
 namespace openMob.Core.Infrastructure.Discovery;
@@ -95,11 +96,16 @@ public sealed class OpencodeDiscoveryService : IOpencodeDiscoveryService
             if (!seen.Add(key))
                 continue;
 
-            yield return new DiscoveredServerDto(
+            var discovered = new DiscoveredServerDto(
                 Name: host.DisplayName,
                 Host: host.IPAddress,
                 Port: port,
                 DiscoveredAt: DateTimeOffset.UtcNow);
+
+#if DEBUG
+            DebugLogger.LogConnection("discovery_result", $"host={discovered.Host}:{discovered.Port} name={discovered.Name}");
+#endif
+            yield return discovered;
         }
     }
 

@@ -1,7 +1,9 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using openMob.Core.Helpers;
+using openMob.Core.Infrastructure.Logging;
 using openMob.Core.Infrastructure.Monitoring;
 using openMob.Core.Models;
 using openMob.Core.Services;
@@ -64,6 +66,12 @@ public sealed partial class ProjectSwitcherViewModel : ObservableObject
     [RelayCommand]
     private async Task LoadProjectsAsync(CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(LoadProjectsAsync), "start");
+        try
+        {
+#endif
         if (IsLoading)
             return;
 
@@ -97,6 +105,17 @@ public sealed partial class ProjectSwitcherViewModel : ObservableObject
         {
             IsLoading = false;
         }
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(LoadProjectsAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(LoadProjectsAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 
     /// <summary>
@@ -108,6 +127,12 @@ public sealed partial class ProjectSwitcherViewModel : ObservableObject
     [RelayCommand]
     private async Task SelectProjectAsync(string projectId, CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(SelectProjectAsync), "start");
+        try
+        {
+#endif
         ArgumentException.ThrowIfNullOrWhiteSpace(projectId);
 
         try
@@ -152,6 +177,17 @@ public sealed partial class ProjectSwitcherViewModel : ObservableObject
                 ["projectId"] = projectId,
             });
         }
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(SelectProjectAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(SelectProjectAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 
     /// <summary>
@@ -161,8 +197,25 @@ public sealed partial class ProjectSwitcherViewModel : ObservableObject
     [RelayCommand]
     private async Task ManageProjectsAsync(CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(ManageProjectsAsync), "start");
+        try
+        {
+#endif
         await _popupService.PopPopupAsync(ct);
         await _navigationService.GoToAsync("projects", ct);
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(ManageProjectsAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(ManageProjectsAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 
 }

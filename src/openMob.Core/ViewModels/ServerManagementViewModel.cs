@@ -1,9 +1,11 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using openMob.Core.Data.Repositories;
 using openMob.Core.Infrastructure.Discovery;
 using openMob.Core.Infrastructure.Dtos;
+using openMob.Core.Infrastructure.Logging;
 using openMob.Core.Infrastructure.Monitoring;
 using openMob.Core.Services;
 
@@ -88,6 +90,12 @@ public sealed partial class ServerManagementViewModel : ObservableObject
     [RelayCommand]
     private async Task LoadAsync(CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(LoadAsync), "start");
+        try
+        {
+#endif
         IsLoading = true;
         LoadError = null;
 
@@ -110,6 +118,17 @@ public sealed partial class ServerManagementViewModel : ObservableObject
         {
             IsLoading = false;
         }
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(LoadAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(LoadAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 
     /// <summary>
@@ -120,6 +139,12 @@ public sealed partial class ServerManagementViewModel : ObservableObject
     [RelayCommand]
     private async Task ScanAsync(CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(ScanAsync), "start");
+        try
+        {
+#endif
         IsScanning = true;
         ScanCompleted = false;
         DiscoveredServers = [];
@@ -154,6 +179,17 @@ public sealed partial class ServerManagementViewModel : ObservableObject
             ScanCompleted = true;
             OnPropertyChanged(nameof(HasDiscoveredServers));
         }
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(ScanAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(ScanAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 
     /// <summary>
@@ -163,7 +199,24 @@ public sealed partial class ServerManagementViewModel : ObservableObject
     [RelayCommand]
     private async Task NavigateToAddAsync(CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(NavigateToAddAsync), "start");
+        try
+        {
+#endif
         await _navigationService.GoToAsync("server-detail", ct).ConfigureAwait(false);
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(NavigateToAddAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(NavigateToAddAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 
     /// <summary>
@@ -174,10 +227,27 @@ public sealed partial class ServerManagementViewModel : ObservableObject
     [RelayCommand]
     private async Task NavigateToEditAsync(ServerConnectionDto dto, CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(NavigateToEditAsync), "start");
+        try
+        {
+#endif
         await _navigationService.GoToAsync("server-detail", new Dictionary<string, object>
         {
             ["serverId"] = dto.Id,
         }, ct).ConfigureAwait(false);
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(NavigateToEditAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(NavigateToEditAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 
     /// <summary>
@@ -188,11 +258,28 @@ public sealed partial class ServerManagementViewModel : ObservableObject
     [RelayCommand]
     private async Task NavigateToDiscoveredAsync(DiscoveredServerDto dto, CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(NavigateToDiscoveredAsync), "start");
+        try
+        {
+#endif
         await _navigationService.GoToAsync("server-detail", new Dictionary<string, object>
         {
             ["discoveredHost"] = dto.Host,
             ["discoveredPort"] = dto.Port.ToString(),
             ["discoveredName"] = dto.Name,
         }, ct).ConfigureAwait(false);
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(NavigateToDiscoveredAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(NavigateToDiscoveredAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 }

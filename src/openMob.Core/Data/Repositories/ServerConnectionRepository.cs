@@ -1,6 +1,8 @@
+using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using openMob.Core.Data.Entities;
 using openMob.Core.Infrastructure.Dtos;
+using openMob.Core.Infrastructure.Logging;
 using openMob.Core.Infrastructure.Security;
 
 namespace openMob.Core.Data.Repositories;
@@ -39,6 +41,9 @@ internal sealed class ServerConnectionRepository : IServerConnectionRepository
     /// <inheritdoc />
     public async Task<IReadOnlyList<ServerConnectionDto>> GetAllAsync(CancellationToken cancellationToken = default)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+#endif
         var entities = await _context.ServerConnections
             .AsNoTracking()
             .OrderBy(sc => sc.CreatedAt)
@@ -54,42 +59,78 @@ internal sealed class ServerConnectionRepository : IServerConnectionRepository
             dtos.Add(MapToDto(entities[i], hasPassword: passwords[i] is not null));
         }
 
-        return dtos.AsReadOnly();
+        var result = dtos.AsReadOnly();
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogDatabase("GetAll", "ServerConnection", null, sw.ElapsedMilliseconds);
+#endif
+        return result;
     }
 
     /// <inheritdoc />
     public async Task<ServerConnectionDto?> GetActiveAsync(CancellationToken cancellationToken = default)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+#endif
         var entity = await _context.ServerConnections
             .AsNoTracking()
             .FirstOrDefaultAsync(sc => sc.IsActive, cancellationToken)
             .ConfigureAwait(false);
 
         if (entity is null)
+        {
+#if DEBUG
+            sw.Stop();
+            DebugLogger.LogDatabase("Get", "ServerConnection", "active", sw.ElapsedMilliseconds);
+#endif
             return null;
+        }
 
         var password = await _credentialStore.GetPasswordAsync(entity.Id, cancellationToken).ConfigureAwait(false);
-        return MapToDto(entity, hasPassword: password is not null);
+        var result = MapToDto(entity, hasPassword: password is not null);
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogDatabase("Get", "ServerConnection", "active", sw.ElapsedMilliseconds);
+#endif
+        return result;
     }
 
     /// <inheritdoc />
     public async Task<ServerConnectionDto?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+#endif
         var entity = await _context.ServerConnections
             .AsNoTracking()
             .FirstOrDefaultAsync(sc => sc.Id == id, cancellationToken)
             .ConfigureAwait(false);
 
         if (entity is null)
+        {
+#if DEBUG
+            sw.Stop();
+            DebugLogger.LogDatabase("Get", "ServerConnection", id, sw.ElapsedMilliseconds);
+#endif
             return null;
+        }
 
         var password = await _credentialStore.GetPasswordAsync(entity.Id, cancellationToken).ConfigureAwait(false);
-        return MapToDto(entity, hasPassword: password is not null);
+        var result = MapToDto(entity, hasPassword: password is not null);
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogDatabase("Get", "ServerConnection", id, sw.ElapsedMilliseconds);
+#endif
+        return result;
     }
 
     /// <inheritdoc />
     public async Task<ServerConnectionDto> AddAsync(ServerConnectionDto dto, CancellationToken cancellationToken = default)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+#endif
         var now = DateTime.UtcNow;
 
         var entity = new ServerConnection
@@ -110,12 +151,20 @@ internal sealed class ServerConnectionRepository : IServerConnectionRepository
         await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         var password = await _credentialStore.GetPasswordAsync(entity.Id, cancellationToken).ConfigureAwait(false);
-        return MapToDto(entity, hasPassword: password is not null);
+        var result = MapToDto(entity, hasPassword: password is not null);
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogDatabase("Add", "ServerConnection", entity.Id, sw.ElapsedMilliseconds);
+#endif
+        return result;
     }
 
     /// <inheritdoc />
     public async Task<ServerConnectionDto> UpdateAsync(ServerConnectionDto dto, CancellationToken cancellationToken = default)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+#endif
         var entity = await _context.ServerConnections
             .FirstOrDefaultAsync(sc => sc.Id == dto.Id, cancellationToken)
             .ConfigureAwait(false);
@@ -136,18 +185,32 @@ internal sealed class ServerConnectionRepository : IServerConnectionRepository
         await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         var password = await _credentialStore.GetPasswordAsync(entity.Id, cancellationToken).ConfigureAwait(false);
-        return MapToDto(entity, hasPassword: password is not null);
+        var result = MapToDto(entity, hasPassword: password is not null);
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogDatabase("Update", "ServerConnection", dto.Id, sw.ElapsedMilliseconds);
+#endif
+        return result;
     }
 
     /// <inheritdoc />
     public async Task<bool> DeleteAsync(string id, CancellationToken cancellationToken = default)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+#endif
         var entity = await _context.ServerConnections
             .FirstOrDefaultAsync(sc => sc.Id == id, cancellationToken)
             .ConfigureAwait(false);
 
         if (entity is null)
+        {
+#if DEBUG
+            sw.Stop();
+            DebugLogger.LogDatabase("Delete", "ServerConnection", id, sw.ElapsedMilliseconds);
+#endif
             return false;
+        }
 
         // Delete credential FIRST — idempotent (no-op if missing), so if the subsequent
         // DB delete fails, the worst case is a missing password (acceptable).
@@ -157,12 +220,19 @@ internal sealed class ServerConnectionRepository : IServerConnectionRepository
         _context.ServerConnections.Remove(entity);
         await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogDatabase("Delete", "ServerConnection", id, sw.ElapsedMilliseconds);
+#endif
         return true;
     }
 
     /// <inheritdoc />
     public async Task<bool> SetActiveAsync(string id, CancellationToken cancellationToken = default)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+#endif
         await using var transaction = await _context.Database
             .BeginTransactionAsync(cancellationToken)
             .ConfigureAwait(false);
@@ -180,6 +250,10 @@ internal sealed class ServerConnectionRepository : IServerConnectionRepository
         if (entity is null)
         {
             await transaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
+#if DEBUG
+            sw.Stop();
+            DebugLogger.LogDatabase("SetActive", "ServerConnection", id, sw.ElapsedMilliseconds);
+#endif
             return false;
         }
 
@@ -189,6 +263,11 @@ internal sealed class ServerConnectionRepository : IServerConnectionRepository
         await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
 
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogDatabase("SetActive", "ServerConnection", id, sw.ElapsedMilliseconds);
+        DebugLogger.LogConnection("server_changed", $"id={id} name={entity.Name}");
+#endif
         return true;
     }
 

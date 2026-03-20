@@ -28,7 +28,8 @@ public sealed class AgentServiceTests
         return new AgentDto(
             Name: name, Description: description, Mode: "primary", BuiltIn: builtIn,
             TopP: null, Temperature: null, Color: null, Model: null, Prompt: null,
-            Tools: default, Options: default, MaxSteps: null, Permission: default);
+            Tools: default, Options: default, MaxSteps: null, Permission: default,
+            Hidden: false);
     }
 
     // ─── GetAgentsAsync ───────────────────────────────────────────────────────
@@ -154,11 +155,52 @@ public sealed class AgentServiceTests
         result.Should().ContainSingle(a => a.Name == "universal-agent");
     }
 
-    private static AgentDto BuildAgentWithMode(string name, string mode)
+    private static AgentDto BuildAgentWithMode(string name, string mode, bool hidden = false)
     {
         return new AgentDto(
             Name: name, Description: null, Mode: mode, BuiltIn: true,
             TopP: null, Temperature: null, Color: null, Model: null, Prompt: null,
-            Tools: default, Options: default, MaxSteps: null, Permission: default);
+            Tools: default, Options: default, MaxSteps: null, Permission: default,
+            Hidden: hidden);
+    }
+
+    // ─── GetPrimaryAgentsAsync — Hidden filter ────────────────────────────────
+
+    [Fact]
+    public async Task GetPrimaryAgentsAsync_WhenAgentIsHidden_ExcludesItFromResult()
+    {
+        // Arrange
+        var agents = new List<AgentDto>
+        {
+            BuildAgentWithMode("visible-primary", "primary", hidden: false),
+            BuildAgentWithMode("hidden-primary", "primary", hidden: true),
+        };
+        _apiClient.GetAgentsAsync(Arg.Any<CancellationToken>())
+            .Returns(OpencodeResult<IReadOnlyList<AgentDto>>.Success(agents));
+
+        // Act
+        var result = await _sut.GetPrimaryAgentsAsync();
+
+        // Assert
+        result.Should().ContainSingle(a => a.Name == "visible-primary");
+        result.Should().NotContain(a => a.Name == "hidden-primary");
+    }
+
+    [Fact]
+    public async Task GetPrimaryAgentsAsync_WhenAgentIsNotHidden_IncludesItInResult()
+    {
+        // Arrange
+        var agents = new List<AgentDto>
+        {
+            BuildAgentWithMode("visible-primary", "primary", hidden: false),
+        };
+        _apiClient.GetAgentsAsync(Arg.Any<CancellationToken>())
+            .Returns(OpencodeResult<IReadOnlyList<AgentDto>>.Success(agents));
+
+        // Act
+        var result = await _sut.GetPrimaryAgentsAsync();
+
+        // Assert
+        result.Should().ContainSingle(a => a.Name == "visible-primary");
     }
 }

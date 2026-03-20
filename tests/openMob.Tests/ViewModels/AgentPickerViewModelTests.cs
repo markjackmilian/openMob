@@ -29,7 +29,8 @@ public sealed class AgentPickerViewModelTests
         return new AgentDto(
             Name: name, Description: description, Mode: "primary", BuiltIn: true,
             TopP: null, Temperature: null, Color: null, Model: null, Prompt: null,
-            Tools: default, Options: default, MaxSteps: null, Permission: default);
+            Tools: default, Options: default, MaxSteps: null, Permission: default,
+            Hidden: false);
     }
 
     // ─── Constructor ──────────────────────────────────────────────────────────
@@ -49,7 +50,7 @@ public sealed class AgentPickerViewModelTests
     [Fact]
     public async Task LoadAgentsCommand_WhenServiceReturnsAgents_PopulatesCollection()
     {
-        // Arrange — primary mode (default): ViewModel calls GetPrimaryAgentsAsync and prepends Default entry
+        // Arrange — primary mode (default): ViewModel calls GetPrimaryAgentsAsync
         var agents = new List<AgentDto>
         {
             BuildAgent("claude", "Claude AI"),
@@ -60,8 +61,8 @@ public sealed class AgentPickerViewModelTests
         // Act
         await _sut.LoadAgentsCommand.ExecuteAsync(null);
 
-        // Assert — 2 real agents + 1 Default entry = 3 total
-        _sut.Agents.Should().HaveCount(3);
+        // Assert — 2 real agents (no Default entry)
+        _sut.Agents.Should().HaveCount(2);
         _sut.IsEmpty.Should().BeFalse();
     }
 
@@ -113,7 +114,7 @@ public sealed class AgentPickerViewModelTests
         // Act
         await _sut.LoadAgentsCommand.ExecuteAsync(null);
 
-        // Assert — claude is selected, gpt is not; Default entry (index 0) is also not selected
+        // Assert — claude is selected, gpt is not
         _sut.Agents.Should().Contain(a => a.Name == "claude" && a.IsSelected);
         _sut.Agents.Should().Contain(a => a.Name == "gpt" && !a.IsSelected);
     }
@@ -196,63 +197,6 @@ public sealed class AgentPickerViewModelTests
         await _popupService.Received(1).PopPopupAsync(Arg.Any<CancellationToken>());
     }
 
-    // ─── LoadAgentsCommand — primary mode (Default entry) ─────────────────────
-
-    [Fact]
-    public async Task LoadAgentsCommand_WhenPrimaryMode_PrependsDefaultEntry()
-    {
-        // Arrange
-        _sut.IsSubagentMode = false;
-        _sut.SelectedAgentName = null;
-        var agents = new List<AgentDto>
-        {
-            BuildAgent("coder", "Coding agent"),
-            BuildAgent("researcher", "Research agent"),
-        };
-        _agentService.GetPrimaryAgentsAsync(Arg.Any<CancellationToken>()).Returns(agents);
-
-        // Act
-        await _sut.LoadAgentsCommand.ExecuteAsync(null);
-
-        // Assert
-        _sut.Agents.Should().HaveCount(3);
-        _sut.Agents[0].Name.Should().BeNull();
-        _sut.Agents[0].DisplayName.Should().Be("Default");
-    }
-
-    [Fact]
-    public async Task LoadAgentsCommand_WhenPrimaryModeAndNoAgentSelected_DefaultEntryIsSelected()
-    {
-        // Arrange
-        _sut.IsSubagentMode = false;
-        _sut.SelectedAgentName = null;
-        var agents = new List<AgentDto> { BuildAgent("coder") };
-        _agentService.GetPrimaryAgentsAsync(Arg.Any<CancellationToken>()).Returns(agents);
-
-        // Act
-        await _sut.LoadAgentsCommand.ExecuteAsync(null);
-
-        // Assert
-        _sut.Agents[0].IsSelected.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task LoadAgentsCommand_WhenPrimaryModeAndAgentSelected_DefaultEntryIsNotSelected()
-    {
-        // Arrange
-        _sut.IsSubagentMode = false;
-        _sut.SelectedAgentName = "coder";
-        var agents = new List<AgentDto> { BuildAgent("coder") };
-        _agentService.GetPrimaryAgentsAsync(Arg.Any<CancellationToken>()).Returns(agents);
-
-        // Act
-        await _sut.LoadAgentsCommand.ExecuteAsync(null);
-
-        // Assert
-        _sut.Agents[0].IsSelected.Should().BeFalse();
-        _sut.Agents[1].IsSelected.Should().BeTrue();
-    }
-
     // ─── LoadAgentsCommand — subagent mode (no Default entry) ─────────────────
 
     [Fact]
@@ -306,21 +250,6 @@ public sealed class AgentPickerViewModelTests
 
         // Assert
         capturedAgentName.Should().Be("coder");
-    }
-
-    [Fact]
-    public async Task SelectAgentCommand_WhenPrimaryModeAndNullSelected_InvokesCallbackWithNull()
-    {
-        // Arrange
-        _sut.IsSubagentMode = false;
-        string? capturedAgentName = "not-set";
-        _sut.OnAgentSelected = name => capturedAgentName = name;
-
-        // Act
-        await _sut.SelectAgentCommand.ExecuteAsync(null);
-
-        // Assert
-        capturedAgentName.Should().BeNull();
     }
 
     [Fact]

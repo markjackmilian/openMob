@@ -88,7 +88,7 @@ public sealed class ContextSheetViewModelTests : IDisposable
         // Assert
         _sut.ProjectName.Should().Be("No project");
         _sut.SelectedAgentName.Should().BeNull();
-        _sut.SelectedAgentDisplayName.Should().Be("Default");
+        _sut.SelectedAgentDisplayName.Should().Be("build");
         _sut.SelectedModelId.Should().BeNull();
         _sut.SelectedModelDisplayName.Should().Be("No model");
         _sut.ThinkingLevel.Should().Be(ThinkingLevel.Medium);
@@ -483,7 +483,7 @@ public sealed class ContextSheetViewModelTests : IDisposable
     // ─── Computed properties — SelectedAgentDisplayName ───────────────────────
 
     [Fact]
-    public void SelectedAgentDisplayName_WhenAgentNameIsNull_ReturnsDefault()
+    public void SelectedAgentDisplayName_WhenAgentNameIsNull_ReturnsBuild()
     {
         // Arrange
         _sut.SelectedAgentName = null;
@@ -492,7 +492,7 @@ public sealed class ContextSheetViewModelTests : IDisposable
         var result = _sut.SelectedAgentDisplayName;
 
         // Assert
-        result.Should().Be("Default");
+        result.Should().Be("build");
     }
 
     [Fact]

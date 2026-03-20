@@ -92,7 +92,7 @@ public sealed class ChatViewModelAgentTests : IDisposable
     // ─── SelectedAgentDisplayName — computed property ─────────────────────────
 
     [Theory]
-    [InlineData(null, "Default")]
+    [InlineData(null, "build")]
     [InlineData("coder", "coder")]
     public void SelectedAgentDisplayName_ReturnsExpectedValue(string? agentName, string expectedDisplay)
     {
@@ -157,7 +157,7 @@ public sealed class ChatViewModelAgentTests : IDisposable
     }
 
     [Fact]
-    public async Task LoadContextCommand_WhenPreferenceHasNullAgentName_SelectedAgentDisplayNameIsDefault()
+    public async Task LoadContextCommand_WhenPreferenceHasNullAgentName_SelectedAgentDisplayNameIsBuild()
     {
         // Arrange
         var project = BuildProject("proj-1");
@@ -169,7 +169,7 @@ public sealed class ChatViewModelAgentTests : IDisposable
         await _sut.LoadContextCommand.ExecuteAsync(null);
 
         // Assert
-        _sut.SelectedAgentDisplayName.Should().Be("Default");
+        _sut.SelectedAgentDisplayName.Should().Be("build");
     }
 
     // ─── ProjectPreferenceChangedMessage — agent updates ─────────────────────
@@ -224,7 +224,7 @@ public sealed class ChatViewModelAgentTests : IDisposable
     }
 
     [Fact]
-    public void ProjectPreferenceChangedMessage_WhenAgentNameIsNull_SelectedAgentDisplayNameIsDefault()
+    public void ProjectPreferenceChangedMessage_WhenAgentNameIsNull_SelectedAgentDisplayNameIsBuild()
     {
         // Arrange
         _sut.CurrentProjectId = "agent-proj-A";
@@ -236,7 +236,7 @@ public sealed class ChatViewModelAgentTests : IDisposable
         WeakReferenceMessenger.Default.Send(message);
 
         // Assert
-        _sut.SelectedAgentDisplayName.Should().Be("Default");
+        _sut.SelectedAgentDisplayName.Should().Be("build");
     }
 
     [Fact]

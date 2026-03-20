@@ -49,39 +49,41 @@ public sealed partial class AgentPickerViewModel : ObservableObject
     private bool _isEmpty;
 
     /// <summary>
-    /// Gets or sets whether the picker is in subagent invocation mode.
-    /// When <c>true</c>, selecting an agent invokes it as a subagent rather than
-    /// changing the primary agent.
+    /// Gets or sets the operating mode of the picker.
+    /// <see cref="PickerMode.Primary"/> loads primary agents and prepends a "Default" entry.
+    /// <see cref="PickerMode.Subagent"/> loads subagent-mode agents only, with no "Default" entry.
     /// </summary>
     [ObservableProperty]
-    private bool _isSubagentMode;
+    [NotifyPropertyChangedFor(nameof(SheetTitle))]
+    private PickerMode _pickerMode = PickerMode.Primary;
 
     /// <summary>
     /// Gets the sheet title based on the current mode.
     /// Returns "Invoke Subagent" in subagent mode, "Select Agent" otherwise.
     /// </summary>
-    public string SheetTitle => IsSubagentMode ? "Invoke Subagent" : "Select Agent";
+    public string SheetTitle => PickerMode == PickerMode.Subagent ? "Invoke Subagent" : "Select Agent";
 
     /// <summary>
     /// Gets or sets the name of the agent selected for subagent invocation.
-    /// Only set when <see cref="IsSubagentMode"/> is <c>true</c>.
+    /// Only set when <see cref="PickerMode"/> is <see cref="PickerMode.Subagent"/>.
     /// </summary>
     [ObservableProperty]
     private string? _selectedSubagentName;
 
     /// <summary>
-    /// Gets or sets the callback invoked when the user selects an agent in primary-agent mode.
+    /// Gets or sets the callback invoked when the user selects an agent.
     /// Receives the selected agent name. May receive <c>null</c> if a reset is triggered externally,
     /// but the picker itself always passes a non-null name.
-    /// Set by the MAUI layer (via <see cref="IAppPopupService.ShowAgentPickerAsync"/>) before presenting the sheet.
-    /// Not invoked in subagent mode.
+    /// Set by the MAUI layer (via <see cref="IAppPopupService.ShowAgentPickerAsync"/> or
+    /// <see cref="IAppPopupService.ShowSubagentPickerAsync"/>) before presenting the sheet.
+    /// Invoked in both <see cref="PickerMode.Primary"/> and <see cref="PickerMode.Subagent"/> modes.
     /// </summary>
     public Action<string?>? OnAgentSelected { get; set; }
 
     /// <summary>
     /// Loads agents from the server and maps them to display models.
     /// In primary mode, calls <see cref="IAgentService.GetPrimaryAgentsAsync"/> (hidden agents excluded).
-    /// In subagent mode, calls <see cref="IAgentService.GetAgentsAsync"/> with no filtering.
+    /// In subagent mode, calls <see cref="IAgentService.GetSubagentAgentsAsync"/> (filtered to subagent/all modes).
     /// </summary>
     /// <param name="ct">Cancellation token.</param>
     [RelayCommand]
@@ -96,8 +98,8 @@ public sealed partial class AgentPickerViewModel : ObservableObject
         {
             IReadOnlyList<AgentDto> agents;
 
-            if (IsSubagentMode)
-                agents = await _agentService.GetAgentsAsync(ct).ConfigureAwait(false);
+            if (PickerMode == PickerMode.Subagent)
+                agents = await _agentService.GetSubagentAgentsAsync(ct).ConfigureAwait(false);
             else
                 agents = await _agentService.GetPrimaryAgentsAsync(ct).ConfigureAwait(false);
 
@@ -126,19 +128,9 @@ public sealed partial class AgentPickerViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Called by the source generator when <see cref="IsSubagentMode"/> changes.
-    /// Notifies the UI that <see cref="SheetTitle"/> has changed.
-    /// </summary>
-    /// <param name="value">The new value.</param>
-    partial void OnIsSubagentModeChanged(bool value)
-    {
-        OnPropertyChanged(nameof(SheetTitle));
-    }
-
-    /// <summary>
     /// Selects an agent and closes the popup.
     /// In primary mode: updates <see cref="SelectedAgentName"/>, invokes <see cref="OnAgentSelected"/>, and pops the popup.
-    /// In subagent mode: sets <see cref="SelectedSubagentName"/> and pops the popup (callback not invoked).
+    /// In subagent mode: sets <see cref="SelectedSubagentName"/>, invokes <see cref="OnAgentSelected"/>, and pops the popup.
     /// </summary>
     /// <param name="agentName">The name of the agent to select.</param>
     /// <param name="ct">Cancellation token.</param>
@@ -147,9 +139,10 @@ public sealed partial class AgentPickerViewModel : ObservableObject
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(agentName);
 
-        if (IsSubagentMode)
+        if (PickerMode == PickerMode.Subagent)
         {
             SelectedSubagentName = agentName;
+            OnAgentSelected?.Invoke(agentName);
         }
         else
         {

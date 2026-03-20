@@ -22,4 +22,13 @@ public interface IAgentService
     /// <param name="ct">Cancellation token.</param>
     /// <returns>A read-only list of primary agents, or an empty list on failure.</returns>
     Task<IReadOnlyList<AgentDto>> GetPrimaryAgentsAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Gets only subagent-mode agents.
+    /// Returns agents where <c>Mode == "subagent"</c> or <c>Mode == "all"</c>.
+    /// Hidden agents are NOT excluded (subagents may be hidden from primary picker but still invocable).
+    /// </summary>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>A read-only list of subagent agents, or an empty list on failure.</returns>
+    Task<IReadOnlyList<AgentDto>> GetSubagentAgentsAsync(CancellationToken ct = default);
 }

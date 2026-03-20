@@ -68,15 +68,90 @@ public sealed class ChatViewModelPreferenceTests : IDisposable
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
 
+    private static ProjectDto BuildProject(string id = "proj-1", string worktree = "/home/user/myproject")
+    {
+        var time = new ProjectTimeDto(Created: 1710000000000, Initialized: null);
+        return new ProjectDto(Id: id, Worktree: worktree, VcsDir: null, Vcs: "git", Time: time);
+    }
+
     private static ProjectPreference BuildPreference(
         string projectId = "proj-1",
-        string? defaultModelId = null)
+        string? defaultModelId = null,
+        ThinkingLevel thinkingLevel = ThinkingLevel.Medium,
+        bool autoAccept = false)
         => new()
         {
             ProjectId = projectId,
             DefaultModelId = defaultModelId,
-            ThinkingLevel = ThinkingLevel.Medium,
+            ThinkingLevel = thinkingLevel,
+            AutoAccept = autoAccept,
         };
+
+    // ─── LoadContextCommand — ThinkingLevel and AutoAccept loading ────────────
+
+    [Fact]
+    public async Task LoadContextAsync_WhenPreferenceHasThinkingLevelHigh_SetsThinkingLevelHigh()
+    {
+        // Arrange
+        var project = BuildProject("proj-1");
+        _projectService.GetCurrentProjectAsync(Arg.Any<CancellationToken>()).Returns(project);
+        _preferenceService.GetAsync("proj-1", Arg.Any<CancellationToken>())
+            .Returns(BuildPreference("proj-1", thinkingLevel: ThinkingLevel.High));
+
+        // Act
+        await _sut.LoadContextCommand.ExecuteAsync(null);
+
+        // Assert
+        _sut.ThinkingLevel.Should().Be(ThinkingLevel.High);
+    }
+
+    [Fact]
+    public async Task LoadContextAsync_WhenPreferenceHasAutoAcceptTrue_SetsAutoAcceptTrue()
+    {
+        // Arrange
+        var project = BuildProject("proj-1");
+        _projectService.GetCurrentProjectAsync(Arg.Any<CancellationToken>()).Returns(project);
+        _preferenceService.GetAsync("proj-1", Arg.Any<CancellationToken>())
+            .Returns(BuildPreference("proj-1", autoAccept: true));
+
+        // Act
+        await _sut.LoadContextCommand.ExecuteAsync(null);
+
+        // Assert
+        _sut.AutoAccept.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task LoadContextAsync_WhenPreferenceIsNull_UsesDefaultThinkingLevelMedium()
+    {
+        // Arrange
+        var project = BuildProject("proj-1");
+        _projectService.GetCurrentProjectAsync(Arg.Any<CancellationToken>()).Returns(project);
+        _preferenceService.GetAsync("proj-1", Arg.Any<CancellationToken>())
+            .Returns((ProjectPreference?)null);
+
+        // Act
+        await _sut.LoadContextCommand.ExecuteAsync(null);
+
+        // Assert
+        _sut.ThinkingLevel.Should().Be(ThinkingLevel.Medium);
+    }
+
+    [Fact]
+    public async Task LoadContextAsync_WhenPreferenceIsNull_UsesDefaultAutoAcceptFalse()
+    {
+        // Arrange
+        var project = BuildProject("proj-1");
+        _projectService.GetCurrentProjectAsync(Arg.Any<CancellationToken>()).Returns(project);
+        _preferenceService.GetAsync("proj-1", Arg.Any<CancellationToken>())
+            .Returns((ProjectPreference?)null);
+
+        // Act
+        await _sut.LoadContextCommand.ExecuteAsync(null);
+
+        // Assert
+        _sut.AutoAccept.Should().BeFalse();
+    }
 
     // ─── ProjectPreferenceChangedMessage — matching project ───────────────────
 
@@ -158,6 +233,70 @@ public sealed class ChatViewModelPreferenceTests : IDisposable
 
         // Assert
         _sut.SelectedModelId.Should().Be("anthropic/old-model");
+    }
+
+    // ─── ProjectPreferenceChangedMessage — ThinkingLevel and AutoAccept ─────────
+
+    [Fact]
+    public void ProjectPreferenceChangedMessage_WhenProjectIdMatches_UpdatesThinkingLevel()
+    {
+        // Arrange
+        _sut.CurrentProjectId = "proj-1";
+        var pref = BuildPreference("proj-1", thinkingLevel: ThinkingLevel.High);
+        var message = new ProjectPreferenceChangedMessage("proj-1", pref);
+
+        // Act
+        WeakReferenceMessenger.Default.Send(message);
+
+        // Assert
+        _sut.ThinkingLevel.Should().Be(ThinkingLevel.High);
+    }
+
+    [Fact]
+    public void ProjectPreferenceChangedMessage_WhenProjectIdMatches_UpdatesAutoAccept()
+    {
+        // Arrange
+        _sut.CurrentProjectId = "proj-1";
+        var pref = BuildPreference("proj-1", autoAccept: true);
+        var message = new ProjectPreferenceChangedMessage("proj-1", pref);
+
+        // Act
+        WeakReferenceMessenger.Default.Send(message);
+
+        // Assert
+        _sut.AutoAccept.Should().BeTrue();
+    }
+
+    [Fact]
+    public void ProjectPreferenceChangedMessage_WhenProjectIdDoesNotMatch_DoesNotUpdateThinkingLevel()
+    {
+        // Arrange
+        _sut.CurrentProjectId = "proj-1";
+        _sut.ThinkingLevel = ThinkingLevel.Low;
+        var pref = BuildPreference("proj-OTHER", thinkingLevel: ThinkingLevel.High);
+        var message = new ProjectPreferenceChangedMessage("proj-OTHER", pref);
+
+        // Act
+        WeakReferenceMessenger.Default.Send(message);
+
+        // Assert
+        _sut.ThinkingLevel.Should().Be(ThinkingLevel.Low);
+    }
+
+    [Fact]
+    public void ProjectPreferenceChangedMessage_WhenProjectIdDoesNotMatch_DoesNotUpdateAutoAccept()
+    {
+        // Arrange
+        _sut.CurrentProjectId = "proj-1";
+        _sut.AutoAccept = false;
+        var pref = BuildPreference("proj-OTHER", autoAccept: true);
+        var message = new ProjectPreferenceChangedMessage("proj-OTHER", pref);
+
+        // Act
+        WeakReferenceMessenger.Default.Send(message);
+
+        // Assert
+        _sut.AutoAccept.Should().BeFalse();
     }
 
     // ─── OpenContextSheetCommand ──────────────────────────────────────────────

@@ -59,11 +59,9 @@ public interface IAppPopupService
     /// when an agent is selected.
     /// </summary>
     /// <remarks>
-    /// The MAUI implementation resolves <c>AgentPickerSheet</c> from DI, sets the callback on
-    /// <c>AgentPickerViewModel</c>, and presents the popup modally. Core ViewModels call this
-    /// method without touching any MAUI types.
-    /// This method is distinct from <see cref="ShowAgentPickerSubagentModeAsync"/> which opens
-    /// the picker in subagent invocation mode.
+    /// The MAUI implementation resolves <c>AgentPickerSheet</c> from DI, sets
+    /// <c>PickerMode = PickerMode.Primary</c> and the callback on <c>AgentPickerViewModel</c>,
+    /// and presents the popup modally. Core ViewModels call this method without touching any MAUI types.
     /// </remarks>
     /// <param name="onAgentSelected">
     /// Callback invoked with the selected agent name, or <c>null</c> if the user selects "Default".
@@ -94,7 +92,16 @@ public interface IAppPopupService
     /// <param name="ct">Cancellation token.</param>
     Task ShowCommandPaletteAsync(CancellationToken ct = default);
 
-    /// <summary>Shows the agent picker in subagent invocation mode (REQ-031).</summary>
+    /// <summary>
+    /// Opens the agent picker popup in subagent invocation mode (<see cref="openMob.Core.Models.PickerMode.Subagent"/>)
+    /// and invokes the callback when a subagent is selected.
+    /// </summary>
+    /// <remarks>
+    /// The MAUI implementation resolves <c>AgentPickerSheet</c> from DI, sets
+    /// <c>PickerMode = PickerMode.Subagent</c> and <c>OnAgentSelected = onSubagentSelected</c>
+    /// on <c>AgentPickerViewModel</c>, then presents the popup modally.
+    /// </remarks>
+    /// <param name="onSubagentSelected">Callback invoked with the selected subagent name.</param>
     /// <param name="ct">Cancellation token.</param>
-    Task ShowAgentPickerSubagentModeAsync(CancellationToken ct = default);
+    Task ShowSubagentPickerAsync(Action<string> onSubagentSelected, CancellationToken ct = default);
 }

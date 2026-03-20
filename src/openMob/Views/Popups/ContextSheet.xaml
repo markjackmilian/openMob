@@ -22,11 +22,8 @@
            Project row
            ═══════════════════════════════════════════════════════════════ -->
       <Grid Style="{StaticResource SheetRowGrid}"
-            ColumnDefinitions="Auto,*,Auto,Auto"
+            ColumnDefinitions="Auto,*,Auto"
             ColumnSpacing="{StaticResource SpacingMd}">
-        <Grid.GestureRecognizers>
-          <TapGestureRecognizer Command="{Binding OpenProjectSwitcherCommand}" />
-        </Grid.GestureRecognizers>
 
         <Label Grid.Column="0"
                Text="{x:Static helpers:MaterialIcons.Folder}"
@@ -54,13 +51,6 @@
                LineBreakMode="TailTruncation"
                MaximumWidthRequest="160" />
 
-        <Label Grid.Column="3"
-               Text="{x:Static helpers:MaterialIcons.ChevronRight}"
-               FontFamily="MaterialSymbols"
-               FontSize="20"
-               TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
-                                            Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
-               VerticalOptions="Center" />
       </Grid>
 
       <!-- ═══════════════════════════════════════════════════════════════
@@ -70,7 +60,7 @@
             ColumnDefinitions="Auto,*,Auto,Auto"
             ColumnSpacing="{StaticResource SpacingMd}">
         <Grid.GestureRecognizers>
-          <TapGestureRecognizer Command="{Binding OpenAgentPickerCommand}" />
+          <TapGestureRecognizer Command="{Binding SelectAgentCommand}" />
         </Grid.GestureRecognizers>
 
         <Label Grid.Column="0"
@@ -115,7 +105,7 @@
             ColumnDefinitions="Auto,*,Auto,Auto"
             ColumnSpacing="{StaticResource SpacingMd}">
         <Grid.GestureRecognizers>
-          <TapGestureRecognizer Command="{Binding OpenModelPickerCommand}" />
+          <TapGestureRecognizer Command="{Binding SelectModelCommand}" />
         </Grid.GestureRecognizers>
 
         <Label Grid.Column="0"

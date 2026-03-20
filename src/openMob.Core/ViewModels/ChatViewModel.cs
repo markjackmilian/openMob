@@ -99,16 +99,22 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
 
                 var pref = message.UpdatedPreference;
 
-                if (pref.DefaultModelId is not null)
+                _dispatcher.Dispatch(() =>
                 {
-                    SelectedModelId = pref.DefaultModelId;
-                    SelectedModelName = ModelIdHelper.ExtractModelName(pref.DefaultModelId);
-                }
-                else
-                {
-                    SelectedModelId = null;
-                    SelectedModelName = null;
-                }
+                    if (pref.DefaultModelId is not null)
+                    {
+                        SelectedModelId = pref.DefaultModelId;
+                        SelectedModelName = ModelIdHelper.ExtractModelName(pref.DefaultModelId);
+                    }
+                    else
+                    {
+                        SelectedModelId = null;
+                        SelectedModelName = null;
+                    }
+
+                    // Update agent properties [REQ-007]
+                    SelectedAgentName = pref.AgentName;
+                });
             });
 
         // Populate default suggestion chips [REQ-017]
@@ -165,6 +171,23 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     /// </summary>
     [ObservableProperty]
     private string? _selectedModelName;
+
+    /// <summary>
+    /// Gets or sets the raw agent name from the project preference.
+    /// <c>null</c> means the default agent is active.
+    /// Updated during <see cref="LoadContextAsync"/> and when a
+    /// <see cref="ProjectPreferenceChangedMessage"/> arrives.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SelectedAgentDisplayName))]
+    private string? _selectedAgentName;
+
+    /// <summary>
+    /// Gets the display name for the selected agent.
+    /// Returns <c>"build"</c> when <see cref="SelectedAgentName"/> is <c>null</c>,
+    /// reflecting the opencode server default agent.
+    /// </summary>
+    public string SelectedAgentDisplayName => SelectedAgentName ?? "build";
 
     // ─── Chat Properties [REQ-004] ────────────────────────────────────────────
 
@@ -292,6 +315,9 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
                     SelectedModelId = pref.DefaultModelId;
                     SelectedModelName = ModelIdHelper.ExtractModelName(pref.DefaultModelId);
                 }
+
+                // Load agent name from preference [REQ-007]
+                SelectedAgentName = pref?.AgentName;
             }
             else
             {
@@ -403,7 +429,12 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
                 break;
 
             case "Change agent":
-                // Signal intent — the View layer handles the AgentPickerSheet popup.
+                // Open the agent picker and update in-memory selection.
+                // No persistence to SQLite — this is a session-level override.
+                await _popupService.ShowAgentPickerAsync(agentName =>
+                {
+                    SelectedAgentName = agentName;
+                }, ct).ConfigureAwait(false);
                 break;
 
             case "Change model":

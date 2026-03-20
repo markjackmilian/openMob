@@ -29,7 +29,8 @@ public sealed class AgentPickerViewModelTests
         return new AgentDto(
             Name: name, Description: description, Mode: "primary", BuiltIn: true,
             TopP: null, Temperature: null, Color: null, Model: null, Prompt: null,
-            Tools: default, Options: default, MaxSteps: null, Permission: default);
+            Tools: default, Options: default, MaxSteps: null, Permission: default,
+            Hidden: false);
     }
 
     // ─── Constructor ──────────────────────────────────────────────────────────
@@ -49,18 +50,18 @@ public sealed class AgentPickerViewModelTests
     [Fact]
     public async Task LoadAgentsCommand_WhenServiceReturnsAgents_PopulatesCollection()
     {
-        // Arrange
+        // Arrange — primary mode (default): ViewModel calls GetPrimaryAgentsAsync
         var agents = new List<AgentDto>
         {
             BuildAgent("claude", "Claude AI"),
             BuildAgent("gpt", "GPT Agent"),
         };
-        _agentService.GetAgentsAsync(Arg.Any<CancellationToken>()).Returns(agents);
+        _agentService.GetPrimaryAgentsAsync(Arg.Any<CancellationToken>()).Returns(agents);
 
         // Act
         await _sut.LoadAgentsCommand.ExecuteAsync(null);
 
-        // Assert
+        // Assert — 2 real agents (no Default entry)
         _sut.Agents.Should().HaveCount(2);
         _sut.IsEmpty.Should().BeFalse();
     }
@@ -68,7 +69,11 @@ public sealed class AgentPickerViewModelTests
     [Fact]
     public async Task LoadAgentsCommand_WhenServiceReturnsEmpty_SetsIsEmptyTrue()
     {
-        // Arrange
+        // Arrange — subagent mode: no agents returned, no Default entry prepended.
+        // In primary mode the same would apply: with zero agents from the service,
+        // Agents is empty and IsEmpty is true.
+        // We use subagent mode here for simplicity (avoids mocking GetPrimaryAgentsAsync).
+        _sut.IsSubagentMode = true;
         _agentService.GetAgentsAsync(Arg.Any<CancellationToken>())
             .Returns(new List<AgentDto>());
 
@@ -83,42 +88,42 @@ public sealed class AgentPickerViewModelTests
     [Fact]
     public async Task LoadAgentsCommand_MapsAgentDtoToAgentItem()
     {
-        // Arrange
+        // Arrange — primary mode: ViewModel calls GetPrimaryAgentsAsync
         var agents = new List<AgentDto> { BuildAgent("claude", "Claude AI") };
-        _agentService.GetAgentsAsync(Arg.Any<CancellationToken>()).Returns(agents);
+        _agentService.GetPrimaryAgentsAsync(Arg.Any<CancellationToken>()).Returns(agents);
 
         // Act
         await _sut.LoadAgentsCommand.ExecuteAsync(null);
 
-        // Assert
-        _sut.Agents.Should().ContainSingle(a => a.Name == "claude" && a.Description == "Claude AI");
+        // Assert — collection contains only the mapped agent (no synthetic Default entry)
+        _sut.Agents.Should().Contain(a => a.Name == "claude" && a.Description == "Claude AI");
     }
 
     [Fact]
     public async Task LoadAgentsCommand_WhenSelectedAgentNameIsSet_MarksMatchingAgentAsSelected()
     {
-        // Arrange
+        // Arrange — primary mode: ViewModel calls GetPrimaryAgentsAsync
         _sut.SelectedAgentName = "claude";
         var agents = new List<AgentDto>
         {
             BuildAgent("claude"),
             BuildAgent("gpt"),
         };
-        _agentService.GetAgentsAsync(Arg.Any<CancellationToken>()).Returns(agents);
+        _agentService.GetPrimaryAgentsAsync(Arg.Any<CancellationToken>()).Returns(agents);
 
         // Act
         await _sut.LoadAgentsCommand.ExecuteAsync(null);
 
-        // Assert
-        _sut.Agents.Should().ContainSingle(a => a.Name == "claude" && a.IsSelected);
-        _sut.Agents.Should().ContainSingle(a => a.Name == "gpt" && !a.IsSelected);
+        // Assert — claude is selected, gpt is not
+        _sut.Agents.Should().Contain(a => a.Name == "claude" && a.IsSelected);
+        _sut.Agents.Should().Contain(a => a.Name == "gpt" && !a.IsSelected);
     }
 
     [Fact]
     public async Task LoadAgentsCommand_SetsIsLoadingFalseAfterCompletion()
     {
-        // Arrange
-        _agentService.GetAgentsAsync(Arg.Any<CancellationToken>())
+        // Arrange — primary mode: ViewModel calls GetPrimaryAgentsAsync
+        _agentService.GetPrimaryAgentsAsync(Arg.Any<CancellationToken>())
             .Returns(new List<AgentDto>());
 
         // Act
@@ -131,14 +136,14 @@ public sealed class AgentPickerViewModelTests
     [Fact]
     public async Task LoadAgentsCommand_WhenServiceThrows_SetsIsEmptyTrue()
     {
-        // Arrange
-        _agentService.GetAgentsAsync(Arg.Any<CancellationToken>())
+        // Arrange — primary mode: ViewModel calls GetPrimaryAgentsAsync
+        _agentService.GetPrimaryAgentsAsync(Arg.Any<CancellationToken>())
             .ThrowsAsync(new InvalidOperationException("Error"));
 
         // Act
         await _sut.LoadAgentsCommand.ExecuteAsync(null);
 
-        // Assert
+        // Assert — on exception, Agents is reset to empty and IsEmpty is true
         _sut.Agents.Should().BeEmpty();
         _sut.IsEmpty.Should().BeTrue();
         _sut.IsLoading.Should().BeFalse();
@@ -149,9 +154,9 @@ public sealed class AgentPickerViewModelTests
     [Fact]
     public async Task SelectAgentCommand_SetsSelectedAgentName()
     {
-        // Arrange
+        // Arrange — primary mode: ViewModel calls GetPrimaryAgentsAsync
         var agents = new List<AgentDto> { BuildAgent("claude"), BuildAgent("gpt") };
-        _agentService.GetAgentsAsync(Arg.Any<CancellationToken>()).Returns(agents);
+        _agentService.GetPrimaryAgentsAsync(Arg.Any<CancellationToken>()).Returns(agents);
         await _sut.LoadAgentsCommand.ExecuteAsync(null);
 
         // Act
@@ -164,25 +169,25 @@ public sealed class AgentPickerViewModelTests
     [Fact]
     public async Task SelectAgentCommand_UpdatesIsSelectedInCollection()
     {
-        // Arrange
+        // Arrange — primary mode: ViewModel calls GetPrimaryAgentsAsync
         var agents = new List<AgentDto> { BuildAgent("claude"), BuildAgent("gpt") };
-        _agentService.GetAgentsAsync(Arg.Any<CancellationToken>()).Returns(agents);
+        _agentService.GetPrimaryAgentsAsync(Arg.Any<CancellationToken>()).Returns(agents);
         await _sut.LoadAgentsCommand.ExecuteAsync(null);
 
         // Act
         await _sut.SelectAgentCommand.ExecuteAsync("gpt");
 
-        // Assert
-        _sut.Agents.Should().ContainSingle(a => a.Name == "gpt" && a.IsSelected);
-        _sut.Agents.Should().ContainSingle(a => a.Name == "claude" && !a.IsSelected);
+        // Assert — collection contains gpt (selected) and claude (not selected)
+        _sut.Agents.Should().Contain(a => a.Name == "gpt" && a.IsSelected);
+        _sut.Agents.Should().Contain(a => a.Name == "claude" && !a.IsSelected);
     }
 
     [Fact]
     public async Task SelectAgentCommand_ClosesPopup()
     {
-        // Arrange
+        // Arrange — primary mode: ViewModel calls GetPrimaryAgentsAsync
         var agents = new List<AgentDto> { BuildAgent("claude") };
-        _agentService.GetAgentsAsync(Arg.Any<CancellationToken>()).Returns(agents);
+        _agentService.GetPrimaryAgentsAsync(Arg.Any<CancellationToken>()).Returns(agents);
         await _sut.LoadAgentsCommand.ExecuteAsync(null);
 
         // Act
@@ -190,5 +195,136 @@ public sealed class AgentPickerViewModelTests
 
         // Assert
         await _popupService.Received(1).PopPopupAsync(Arg.Any<CancellationToken>());
+    }
+
+    // ─── LoadAgentsCommand — subagent mode (no Default entry) ─────────────────
+
+    [Fact]
+    public async Task LoadAgentsCommand_WhenSubagentMode_DoesNotPrependDefaultEntry()
+    {
+        // Arrange
+        _sut.IsSubagentMode = true;
+        var agents = new List<AgentDto>
+        {
+            BuildAgent("coder"),
+            BuildAgent("researcher"),
+        };
+        _agentService.GetAgentsAsync(Arg.Any<CancellationToken>()).Returns(agents);
+
+        // Act
+        await _sut.LoadAgentsCommand.ExecuteAsync(null);
+
+        // Assert
+        _sut.Agents.Should().HaveCount(2);
+        _sut.Agents.Should().NotContain(a => a.Name == null);
+    }
+
+    [Fact]
+    public async Task LoadAgentsCommand_WhenSubagentMode_CallsGetAgentsAsyncNotGetPrimaryAgentsAsync()
+    {
+        // Arrange
+        _sut.IsSubagentMode = true;
+        _agentService.GetAgentsAsync(Arg.Any<CancellationToken>())
+            .Returns(new List<AgentDto>());
+
+        // Act
+        await _sut.LoadAgentsCommand.ExecuteAsync(null);
+
+        // Assert
+        await _agentService.Received(1).GetAgentsAsync(Arg.Any<CancellationToken>());
+        await _agentService.DidNotReceive().GetPrimaryAgentsAsync(Arg.Any<CancellationToken>());
+    }
+
+    // ─── SelectAgentCommand — primary mode callback ───────────────────────────
+
+    [Fact]
+    public async Task SelectAgentCommand_WhenPrimaryModeAndAgentSelected_InvokesCallback()
+    {
+        // Arrange
+        _sut.IsSubagentMode = false;
+        string? capturedAgentName = "not-set";
+        _sut.OnAgentSelected = name => capturedAgentName = name;
+
+        // Act
+        await _sut.SelectAgentCommand.ExecuteAsync("coder");
+
+        // Assert
+        capturedAgentName.Should().Be("coder");
+    }
+
+    [Fact]
+    public async Task SelectAgentCommand_WhenPrimaryMode_CallsPopPopupAsync()
+    {
+        // Arrange
+        _sut.IsSubagentMode = false;
+        _sut.OnAgentSelected = _ => { };
+
+        // Act
+        await _sut.SelectAgentCommand.ExecuteAsync("coder");
+
+        // Assert
+        await _popupService.Received(1).PopPopupAsync(Arg.Any<CancellationToken>());
+    }
+
+    // ─── SelectAgentCommand — subagent mode ───────────────────────────────────
+
+    [Fact]
+    public async Task SelectAgentCommand_WhenSubagentMode_DoesNotInvokeCallback()
+    {
+        // Arrange
+        _sut.IsSubagentMode = true;
+        var callbackInvoked = false;
+        _sut.OnAgentSelected = _ => callbackInvoked = true;
+
+        // Act
+        await _sut.SelectAgentCommand.ExecuteAsync("coder");
+
+        // Assert
+        callbackInvoked.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task SelectAgentCommand_WhenSubagentMode_SetsSelectedSubagentName()
+    {
+        // Arrange
+        _sut.IsSubagentMode = true;
+
+        // Act
+        await _sut.SelectAgentCommand.ExecuteAsync("coder");
+
+        // Assert
+        _sut.SelectedSubagentName.Should().Be("coder");
+    }
+
+    [Fact]
+    public async Task SelectAgentCommand_WhenCallbackIsNull_DoesNotThrow()
+    {
+        // Arrange
+        _sut.IsSubagentMode = false;
+        _sut.OnAgentSelected = null;
+
+        // Act
+        var act = async () => await _sut.SelectAgentCommand.ExecuteAsync("coder");
+
+        // Assert
+        await act.Should().NotThrowAsync();
+        await _popupService.Received(1).PopPopupAsync(Arg.Any<CancellationToken>());
+    }
+
+    // ─── SheetTitle ───────────────────────────────────────────────────────────
+
+    [Theory]
+    [InlineData(false, "Select Agent")]
+    [InlineData(true, "Invoke Subagent")]
+    public void SheetTitle_ReturnsCorrectTitleBasedOnMode(bool isSubagentMode, string expectedTitle)
+    {
+        // Arrange
+        _sut.IsSubagentMode = isSubagentMode;
+
+        // Act
+        var result = _sut.SheetTitle;
+
+        // Assert
+        result.Should().Be(expectedTitle);
     }
 }

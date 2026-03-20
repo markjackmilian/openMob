@@ -4,7 +4,7 @@
 | Field   | Value                        |
 |---------|------------------------------|
 | Date    | 2026-03-19                   |
-| Status  | Draft                        |
+| Status  | In Progress                  |
 | Version | 1.0                          |
 
 ---
@@ -175,3 +175,112 @@ This spec covers the **Agent** and **Model** sections of the Session Context She
 - As established in **app-navigation-structure** (2026-03-15): `AgentPickerSheet`, `ModelPickerSheet`, and `ProjectSwitcherSheet` exist as modal pages. `ModelPickerSheet` uses the `Action<string>` callback pattern — this spec replicates it for `AgentPickerSheet`.
 - As established in **chat-page-redesign** (2026-03-18): REQ-026 specifies that the Agent row opens `AgentPickerSheet` (existing) and the Model row opens `ModelPickerSheet` (existing). This spec implements that wiring.
 - As established in **session-context-sheet-1of3-core** (2026-03-19): `ProjectPreferenceChangedMessage` is the propagation mechanism. `ContextSheetViewModel.InitializeAsync` loads all preferences including `AgentName` and `DefaultModelId`.
+
+---
+
+## Technical Analysis
+
+> Added by: om-orchestrator | Date: 2026-03-20
+
+### Change Classification
+
+| Field | Value |
+|-------|-------|
+| Change type | Feature |
+| Git Flow branch | feature/session-context-sheet-agent-model |
+| Branches from | develop |
+| Estimated complexity | Medium |
+| Estimated agents involved | om-mobile-core, om-tester, om-reviewer |
+
+### Layers Involved
+
+| Layer | Agent | Scope |
+|-------|-------|-------|
+| Business logic / Services | om-mobile-core | `src/openMob.Core/Services/` |
+| ViewModels | om-mobile-core | `src/openMob.Core/ViewModels/` |
+| MAUI service implementation | om-mobile-core | `src/openMob/Services/MauiPopupService.cs` |
+| Unit Tests | om-tester | `tests/openMob.Tests/` |
+| Code Review | om-reviewer | all of the above |
+
+> **No om-mobile-ui work required.** The spec explicitly states that `AgentPickerSheet` XAML is reused as-is. The existing `AgentItem` record already has `Name`, `Description`, and `IsSelected` fields. The only XAML-adjacent change is that `AgentPickerSheet` binds to `AgentItem.Name` — the "Default" entry will use `Name = null` which requires a XAML `FallbackValue` already present (`FallbackValue='Agent'`). However, the spec requires the "Default" entry to display "Default" as its name — this means the `AgentItem` record needs a nullable `Name` and the XAML binding must handle null. **Decision**: Extend `AgentItem` to support a nullable `Name` and a `DisplayName` computed property, OR introduce a new `AgentPickerItem` record with `IsDefault` flag. Per spec notes, the latter is preferred. The XAML `DataTemplate` binds to `Name` — if we introduce `AgentPickerItem`, the XAML `x:DataType` must change. Since the spec says "no XAML changes expected", we will keep `AgentItem` but add `IsDefault` flag and change `Name` to nullable, with `DisplayName` computed. The XAML already uses `FallbackValue='Agent'` — we will update the XAML binding to use `DisplayName` instead of `Name`. This is a minimal XAML change (one binding update) that om-mobile-core can handle in the code-behind or om-mobile-ui can handle. **Final decision**: om-mobile-core handles the `AgentItem` model change and the single XAML binding update (from `Name` to `DisplayName`) since it is a 1-line change driven by the model change.
+
+### Codebase Investigation Findings
+
+**REQ-009 — DI registrations already exist:**
+- `AgentPickerSheet` is already registered as `Transient` in `MauiProgram.cs` (line 86).
+- `AgentPickerViewModel` is already registered as `Transient` in `CoreServiceExtensions.cs` (line 134).
+- No new DI registrations needed.
+
+**`AgentPickerViewModel` current state:**
+- Already has `SelectedAgentName` as an `[ObservableProperty]` (line 38-39) — this satisfies the "input property" requirement of REQ-003.
+- Already has `IsSubagentMode` property — the existing subagent mode uses `GetAgentsAsync()` (unfiltered). The new primary-agent mode (from `ContextSheetViewModel`) must use `GetPrimaryAgentsAsync()`.
+- `LoadAgentsAsync` currently calls `_agentService.GetAgentsAsync()` — this must be changed to call `GetPrimaryAgentsAsync()` when NOT in subagent mode. **Decision**: Add a boolean `IsPrimaryMode` property (or reuse `!IsSubagentMode`) to switch between `GetPrimaryAgentsAsync()` and `GetAgentsAsync()`. Since subagent mode is the only other mode, `!IsSubagentMode` maps to primary mode. The `LoadAgentsAsync` method will call `GetPrimaryAgentsAsync()` when `!IsSubagentMode` and `GetAgentsAsync()` when `IsSubagentMode`.
+- `SelectAgentAsync` currently uses `ArgumentException.ThrowIfNullOrWhiteSpace(agentName)` — this must be relaxed to allow `null` for the "Default" entry. The method signature must change to accept `string?`.
+- The "Default" entry: since `AgentItem` currently has `string Name` (non-nullable), we need to either: (a) change `AgentItem.Name` to `string?` and add `DisplayName`, or (b) introduce a new `AgentPickerItem` record. **Decision**: Modify `AgentItem` to have `string? Name` and add `string DisplayName => Name ?? "Default"`. The XAML binding changes from `{Binding Name}` to `{Binding DisplayName}` — one line. The `IsDefault` flag is implicit: `Name is null`.
+
+**`ContextSheetViewModel` current state:**
+- Already has `SelectedAgentName`, `SelectedAgentDisplayName`, `SelectedModelId`, `SelectedModelDisplayName` as observable properties (lines 70-94).
+- Already has `OpenAgentPickerAsync` command (lines 147-152) — a stub that does nothing. This must be replaced with a real `SelectAgentCommand` that calls `ShowAgentPickerAsync`.
+- Already has `OpenModelPickerAsync` command (lines 159-166) — already wired to `ShowModelPickerAsync`. This must be renamed to `SelectModelCommand` per spec REQ-004, OR the existing command can be kept and the spec's naming is aspirational. **Decision**: The spec says `SelectAgentCommand` and `SelectModelCommand`. The existing commands are `OpenAgentPickerCommand` and `OpenModelPickerCommand`. We will rename them to match the spec. The XAML `ContextSheet.xaml` binds to these commands — the XAML must be updated accordingly. Since om-mobile-ui owns XAML, we need to check if `ContextSheet.xaml` already uses these command names.
+- Already has `SaveAgentAsync` and `SaveModelAsync` private helpers that persist and publish the message — these are triggered by `OnSelectedAgentNameChanged` and `OnSelectedModelIdChanged` partial methods. The auto-save pattern is already in place. The spec's REQ-005 and REQ-006 describe the same flow. **No new save logic needed** — the existing auto-save via `OnSelectedAgentNameChanged` already calls `SaveAgentAsync` which calls `SetAgentAsync` and publishes the message.
+- **Key insight**: The `OpenAgentPickerAsync` stub just needs to be replaced with a real implementation that calls `ShowAgentPickerAsync` with a callback that sets `SelectedAgentName`. The auto-save partial method will handle persistence automatically.
+
+**`ChatViewModel` current state:**
+- The `ProjectPreferenceChangedMessage` handler (lines 93-112) already updates `SelectedModelId` and `SelectedModelName` but does NOT update agent properties — because `SelectedAgentName` doesn't exist yet.
+- `LoadContextAsync` (lines 273-329) loads `pref.DefaultModelId` but not `pref.AgentName`.
+- Two new properties needed: `SelectedAgentName` (`string?`) and `SelectedAgentDisplayName` (`string`).
+
+**`ContextSheet.xaml` command bindings:**
+- Need to verify what command names the XAML currently uses for the Agent and Model rows.
+
+### Files to Create
+
+_(None — all changes are extensions to existing files)_
+
+### Files to Modify
+
+- `src/openMob.Core/Models/AgentItem.cs` — change `Name` to `string?`, add `DisplayName` computed property
+- `src/openMob.Core/Services/IAgentService.cs` — add `GetPrimaryAgentsAsync` method signature
+- `src/openMob.Core/Services/AgentService.cs` — implement `GetPrimaryAgentsAsync` with LINQ filter
+- `src/openMob.Core/ViewModels/AgentPickerViewModel.cs` — add `OnAgentSelected` callback, prepend "Default" entry, switch `LoadAgentsAsync` to use `GetPrimaryAgentsAsync` in non-subagent mode, relax `SelectAgentAsync` to accept `string?`
+- `src/openMob.Core/Services/IAppPopupService.cs` — add `ShowAgentPickerAsync` method signature
+- `src/openMob/Services/MauiPopupService.cs` — implement `ShowAgentPickerAsync`
+- `src/openMob.Core/ViewModels/ContextSheetViewModel.cs` — replace `OpenAgentPickerAsync` stub with real `SelectAgentCommand` wired to `ShowAgentPickerAsync`; rename `OpenModelPickerCommand` to `SelectModelCommand`
+- `src/openMob.Core/ViewModels/ChatViewModel.cs` — add `SelectedAgentName` and `SelectedAgentDisplayName` properties; update `LoadContextAsync` to load `AgentName`; update `ProjectPreferenceChangedMessage` handler to update agent properties
+- `src/openMob/Views/Popups/AgentPickerSheet.xaml` — update `{Binding Name}` to `{Binding DisplayName}` in the agent name label (1-line change)
+- `src/openMob/Views/Popups/ContextSheet.xaml` — update command bindings if they reference `OpenAgentPickerCommand` / `OpenModelPickerCommand` (verify first)
+
+### Technical Dependencies
+
+- `session-context-sheet-1of3-core` — **already merged** (confirmed: `ContextSheetViewModel`, `IProjectPreferenceService.SetAgentAsync`, `ProjectPreferenceChangedMessage` all exist in codebase)
+- `IAgentService.GetPrimaryAgentsAsync` — new, introduced by this spec
+- `IAppPopupService.ShowAgentPickerAsync` — new, introduced by this spec
+
+### Technical Risks
+
+- **`AgentItem.Name` nullability change**: `AgentItem` is a `sealed record` with `string Name`. Changing to `string?` is a breaking change for all existing consumers. The only consumer is `AgentPickerViewModel` which uses `a.Name == SelectedAgentName` for selection comparison — this works fine with nullable strings. The XAML `CommandParameter="{Binding Name}"` passes `null` for the Default entry, which is the desired behaviour.
+- **`SelectAgentAsync` parameter type change**: Currently `string agentName` with `ThrowIfNullOrWhiteSpace`. Must change to `string? agentName` and remove the null guard. The XAML `CommandParameter="{Binding Name}"` will pass `null` for the Default entry.
+- **Command rename in `ContextSheetViewModel`**: `OpenAgentPickerCommand` → `SelectAgentCommand`, `OpenModelPickerCommand` → `SelectModelCommand`. Any XAML binding to the old names will break. Must verify `ContextSheet.xaml` bindings.
+- **No platform-specific concerns** — all changes are in Core or MAUI service layer, no iOS/Android conditionals needed.
+
+### Execution Order
+
+> Steps that can run in parallel are marked with ⟳. Steps that must be sequential are numbered.
+
+1. [Git Flow] Create branch `feature/session-context-sheet-agent-model`
+2. [om-mobile-core] Implement all Core and MAUI changes (all files listed above)
+3. [om-tester] Write unit tests for `AgentService.GetPrimaryAgentsAsync`, `AgentPickerViewModel` callback/Default entry, `ContextSheetViewModel` agent/model commands, `ChatViewModel` agent properties
+4. [om-reviewer] Full review against spec
+5. [Fix loop if needed] Address Critical and Major findings
+6. [Git Flow] Finish branch and merge
+
+> Note: om-mobile-ui is not required for this spec. The single XAML binding change (`Name` → `DisplayName` in `AgentPickerSheet.xaml`) is handled by om-mobile-core as part of the model change. The `ContextSheet.xaml` command binding verification is also handled by om-mobile-core.
+
+### Definition of Done
+
+- [ ] All `[REQ-001]` through `[REQ-009]` requirements implemented
+- [ ] All `[AC-001]` through `[AC-007]` acceptance criteria satisfied
+- [ ] Unit tests written for all modified Services and ViewModels
+- [ ] `om-reviewer` verdict: ✅ Approved or ⚠️ Approved with remarks
+- [ ] Git Flow branch finished and deleted
+- [ ] Spec moved to `specs/done/` with Completed status

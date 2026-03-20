@@ -104,6 +104,29 @@ internal sealed class MauiPopupService : IAppPopupService
     }
 
     /// <inheritdoc />
+    public async Task ShowAgentPickerAsync(Action<string?> onAgentSelected, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        var navigation = Shell.Current?.Navigation;
+        if (navigation is null)
+            return;
+
+        // Resolve the AgentPickerSheet from DI (registered as Transient)
+        var sheet = _serviceProvider.GetRequiredService<AgentPickerSheet>();
+
+        // Set the callback on the ViewModel before presenting; ensure primary mode
+        if (sheet.BindingContext is AgentPickerViewModel vm)
+        {
+            vm.OnAgentSelected = onAgentSelected;
+            vm.IsSubagentMode = false;
+        }
+
+        // Present as a modal page
+        await navigation.PushModalAsync(sheet, animated: true);
+    }
+
+    /// <inheritdoc />
     public Task PushPopupAsync(object popup, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();

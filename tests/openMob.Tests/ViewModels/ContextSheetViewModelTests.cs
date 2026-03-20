@@ -88,7 +88,7 @@ public sealed class ContextSheetViewModelTests : IDisposable
         // Assert
         _sut.ProjectName.Should().Be("No project");
         _sut.SelectedAgentName.Should().BeNull();
-        _sut.SelectedAgentDisplayName.Should().Be("Default");
+        _sut.SelectedAgentDisplayName.Should().Be("build");
         _sut.SelectedModelId.Should().BeNull();
         _sut.SelectedModelDisplayName.Should().Be("No model");
         _sut.ThinkingLevel.Should().Be(ThinkingLevel.Medium);
@@ -483,7 +483,7 @@ public sealed class ContextSheetViewModelTests : IDisposable
     // ─── Computed properties — SelectedAgentDisplayName ───────────────────────
 
     [Fact]
-    public void SelectedAgentDisplayName_WhenAgentNameIsNull_ReturnsDefault()
+    public void SelectedAgentDisplayName_WhenAgentNameIsNull_ReturnsBuild()
     {
         // Arrange
         _sut.SelectedAgentName = null;
@@ -492,7 +492,7 @@ public sealed class ContextSheetViewModelTests : IDisposable
         var result = _sut.SelectedAgentDisplayName;
 
         // Assert
-        result.Should().Be("Default");
+        result.Should().Be("build");
     }
 
     [Fact]
@@ -536,17 +536,17 @@ public sealed class ContextSheetViewModelTests : IDisposable
         result.Should().Be("claude-sonnet-4-5");
     }
 
-    // ─── Commands — OpenModelPickerCommand ────────────────────────────────────
+    // ─── Commands — SelectModelCommand ────────────────────────────────────────
 
     [Fact]
-    public async Task OpenModelPickerCommand_WhenExecuted_CallsShowModelPickerAsync()
+    public async Task SelectModelCommand_WhenExecuted_CallsShowModelPickerAsync()
     {
         // Arrange
         _popupService.ShowModelPickerAsync(Arg.Any<Action<string>>(), Arg.Any<CancellationToken>())
             .Returns(Task.CompletedTask);
 
         // Act
-        await _sut.OpenModelPickerCommand.ExecuteAsync(null);
+        await _sut.SelectModelCommand.ExecuteAsync(null);
 
         // Assert
         await _popupService.Received(1).ShowModelPickerAsync(
@@ -555,7 +555,7 @@ public sealed class ContextSheetViewModelTests : IDisposable
     }
 
     [Fact]
-    public async Task OpenModelPickerCommand_WhenModelSelected_UpdatesSelectedModelId()
+    public async Task SelectModelCommand_WhenModelSelected_UpdatesSelectedModelId()
     {
         // Arrange
         const string selectedModelId = "anthropic/claude-opus-4-5";
@@ -570,7 +570,7 @@ public sealed class ContextSheetViewModelTests : IDisposable
             });
 
         // Act
-        await _sut.OpenModelPickerCommand.ExecuteAsync(null);
+        await _sut.SelectModelCommand.ExecuteAsync(null);
 
         // Assert
         _sut.SelectedModelId.Should().Be(selectedModelId);
@@ -606,5 +606,63 @@ public sealed class ContextSheetViewModelTests : IDisposable
         // Assert
         await _popupService.Received(1).ShowAgentPickerSubagentModeAsync(
             Arg.Any<CancellationToken>());
+    }
+
+    // ─── Commands — SelectAgentCommand ───────────────────────────────────────
+
+    [Fact]
+    public async Task SelectAgentCommand_WhenExecuted_CallsShowAgentPickerAsync()
+    {
+        // Arrange
+        _popupService.ShowAgentPickerAsync(Arg.Any<Action<string?>>(), Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+
+        // Act
+        await _sut.SelectAgentCommand.ExecuteAsync(null);
+
+        // Assert
+        await _popupService.Received(1).ShowAgentPickerAsync(
+            Arg.Any<Action<string?>>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task SelectAgentCommand_WhenCallbackInvokedWithAgentName_UpdatesSelectedAgentName()
+    {
+        // Arrange
+        _popupService.ShowAgentPickerAsync(Arg.Any<Action<string?>>(), Arg.Any<CancellationToken>())
+            .Returns(callInfo =>
+            {
+                // Invoke the callback synchronously to simulate the user picking an agent
+                var callback = callInfo.Arg<Action<string?>>();
+                callback("coder");
+                return Task.CompletedTask;
+            });
+
+        // Act
+        await _sut.SelectAgentCommand.ExecuteAsync(null);
+
+        // Assert
+        _sut.SelectedAgentName.Should().Be("coder");
+    }
+
+    [Fact]
+    public async Task SelectAgentCommand_WhenCallbackInvokedWithNull_SetsSelectedAgentNameToNull()
+    {
+        // Arrange
+        _sut.SelectedAgentName = "previous-agent";
+        _popupService.ShowAgentPickerAsync(Arg.Any<Action<string?>>(), Arg.Any<CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var callback = callInfo.Arg<Action<string?>>();
+                callback(null);
+                return Task.CompletedTask;
+            });
+
+        // Act
+        await _sut.SelectAgentCommand.ExecuteAsync(null);
+
+        // Assert
+        _sut.SelectedAgentName.Should().BeNull();
     }
 }

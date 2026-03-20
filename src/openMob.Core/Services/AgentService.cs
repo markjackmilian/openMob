@@ -1,3 +1,4 @@
+using System.Linq;
 using openMob.Core.Infrastructure.Http;
 using openMob.Core.Infrastructure.Http.Dtos.Opencode;
 using openMob.Core.Infrastructure.Monitoring;
@@ -36,5 +37,12 @@ internal sealed class AgentService : IAgentService
         }
 
         return [];
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<AgentDto>> GetPrimaryAgentsAsync(CancellationToken ct = default)
+    {
+        var all = await GetAgentsAsync(ct).ConfigureAwait(false);
+        return all.Where(a => (a.Mode is "primary" or "all") && !a.Hidden).ToList();
     }
 }

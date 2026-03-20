@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
+using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using openMob.Core.Infrastructure.Http.Dtos.Opencode;
 using openMob.Core.Infrastructure.Monitoring;
 using openMob.Core.Models;
 using openMob.Core.Services;
@@ -9,7 +11,7 @@ namespace openMob.Core.ViewModels;
 
 /// <summary>
 /// ViewModel for the AgentPickerSheet popup. Displays available agents
-/// and allows the user to select one (REQ-030).
+/// and allows the user to select one.
 /// </summary>
 public sealed partial class AgentPickerViewModel : ObservableObject
 {
@@ -47,7 +49,7 @@ public sealed partial class AgentPickerViewModel : ObservableObject
     private bool _isEmpty;
 
     /// <summary>
-    /// Gets or sets whether the picker is in subagent invocation mode (REQ-031).
+    /// Gets or sets whether the picker is in subagent invocation mode.
     /// When <c>true</c>, selecting an agent invokes it as a subagent rather than
     /// changing the primary agent.
     /// </summary>
@@ -68,7 +70,18 @@ public sealed partial class AgentPickerViewModel : ObservableObject
     private string? _selectedSubagentName;
 
     /// <summary>
-    /// Loads all available agents from the server and maps them to display models.
+    /// Gets or sets the callback invoked when the user selects an agent in primary-agent mode.
+    /// Receives the selected agent name. May receive <c>null</c> if a reset is triggered externally,
+    /// but the picker itself always passes a non-null name.
+    /// Set by the MAUI layer (via <see cref="IAppPopupService.ShowAgentPickerAsync"/>) before presenting the sheet.
+    /// Not invoked in subagent mode.
+    /// </summary>
+    public Action<string?>? OnAgentSelected { get; set; }
+
+    /// <summary>
+    /// Loads agents from the server and maps them to display models.
+    /// In primary mode, calls <see cref="IAgentService.GetPrimaryAgentsAsync"/> (hidden agents excluded).
+    /// In subagent mode, calls <see cref="IAgentService.GetAgentsAsync"/> with no filtering.
     /// </summary>
     /// <param name="ct">Cancellation token.</param>
     [RelayCommand]
@@ -81,7 +94,12 @@ public sealed partial class AgentPickerViewModel : ObservableObject
 
         try
         {
-            var agents = await _agentService.GetAgentsAsync(ct);
+            IReadOnlyList<AgentDto> agents;
+
+            if (IsSubagentMode)
+                agents = await _agentService.GetAgentsAsync(ct).ConfigureAwait(false);
+            else
+                agents = await _agentService.GetPrimaryAgentsAsync(ct).ConfigureAwait(false);
 
             var items = agents.Select(a => new AgentItem(
                 Name: a.Name,
@@ -118,9 +136,9 @@ public sealed partial class AgentPickerViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Selects an agent and closes the popup. In normal mode, the caller reads
-    /// <see cref="SelectedAgentName"/> to apply the selection. In subagent mode,
-    /// the caller reads <see cref="SelectedSubagentName"/> to invoke the subagent.
+    /// Selects an agent and closes the popup.
+    /// In primary mode: updates <see cref="SelectedAgentName"/>, invokes <see cref="OnAgentSelected"/>, and pops the popup.
+    /// In subagent mode: sets <see cref="SelectedSubagentName"/> and pops the popup (callback not invoked).
     /// </summary>
     /// <param name="agentName">The name of the agent to select.</param>
     /// <param name="ct">Cancellation token.</param>
@@ -136,12 +154,13 @@ public sealed partial class AgentPickerViewModel : ObservableObject
         else
         {
             SelectedAgentName = agentName;
+            OnAgentSelected?.Invoke(agentName);
         }
 
         // Update the IsSelected state in the collection
         var updatedItems = Agents.Select(a => a with { IsSelected = a.Name == agentName }).ToList();
         Agents = new ObservableCollection<AgentItem>(updatedItems);
 
-        await _popupService.PopPopupAsync(ct);
+        await _popupService.PopPopupAsync(ct).ConfigureAwait(false);
     }
 }

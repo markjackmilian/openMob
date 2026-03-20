@@ -4,7 +4,7 @@
 | Field   | Value                        |
 |---------|------------------------------|
 | Date    | 2026-03-19                   |
-| Status  | Draft                        |
+| Status  | In Progress                  |
 | Version | 1.0                          |
 
 ---
@@ -131,7 +131,7 @@ This spec covers the three remaining functional sections of the Session Context 
 
 | # | Question | Status | Answer / Decision |
 |---|----------|--------|-------------------|
-| 1 | Which opencode API endpoint handles subagent invocation within a session? | **Open** | Must be investigated during Technical Analysis. See REQ-010 for candidate approaches and fallback behaviour. |
+| 1 | Which opencode API endpoint handles subagent invocation within a session? | **Resolved** | No dedicated endpoint exists in the current opencode API client. `SendPromptRequest` has no `agent` field. Per REQ-010 fallback: `InvokeSubagentCommand` opens the picker, and on selection sets `ErrorMessage = "Subagent invocation not supported by this server version"`. The picker UX is preserved for future API support. |
 | 2 | Does the opencode server use the `AutoAccept` preference to automatically approve tool calls / file writes, or is it purely a client-side UX hint? | **Open** | To be verified against opencode API. If server-side: `UpdateConfigAsync` may need to be called with the auto-accept value when the session starts. If client-side only: the preference is stored locally and used by the app to auto-dismiss confirmation dialogs (future spec). |
 | 3 | Should `ThinkingLevel` affect the prompt sent to the model (e.g., as a system prompt modifier or a model parameter), or is it a server-side config? | **Open** | Deferred to a future spec on thinking level model integration. For this spec, `ThinkingLevel` is stored locally only and has no effect on API calls. |
 | 4 | If `GetSubagentAgentsAsync()` returns an empty list, should `InvokeSubagentCommand` be disabled or should it open an empty picker? | Resolved | Disable `InvokeSubagentCommand` (via `CanExecute`) when the subagent list is empty. Show a tooltip or subtitle "No subagents available" on the row. |
@@ -202,5 +202,108 @@ This spec covers the three remaining functional sections of the Session Context 
 
 - As established in **chat-page-redesign** (2026-03-18): REQ-026 specifies Thinking Level as a segmented control (Low/Medium/High) and Auto-Accept as a toggle, both applied immediately with no save button. REQ-031 specifies Invoke Subagent as a one-shot action opening `AgentPickerSheet` in subagent mode.
 - As established in **session-context-sheet-1of3-core** (2026-03-19): `ThinkingLevel` enum (`Low=0`, `Medium=1`, `High=2`) and `AutoAccept` bool are stored in `ProjectPreference`. `ProjectPreferenceChangedMessage` is the propagation mechanism. Default values: `ThinkingLevel.Medium`, `AutoAccept = false`.
-- As established in **session-context-sheet-2of3-agent-model** (2026-03-19): `AgentPickerViewModel` callback pattern (`OnAgentSelected: Action<string?>?`) and `PickerMode` enum are introduced in that spec. This spec extends `PickerMode` with the `Subagent` value.
+- As established in **session-context-sheet-2of3-agent-model** (2026-03-19): `AgentPickerViewModel` callback pattern (`OnAgentSelected: Action<string?>?`) and `PickerMode` builds on it. This spec extends `PickerMode` with the `Subagent` value.
 - As established in **opencode-api-client** (2026-03-15): All API calls use `OpencodeResult<T>` pattern. New endpoints must follow the same pattern. `SendPromptRequest` carries optional `ModelId` and `ProviderId` — check if an `AgentName` field can be added for subagent invocation.
+
+---
+
+## Technical Analysis
+
+> Added by: om-orchestrator | Date: 2026-03-20
+
+### Subagent Invocation API Research (REQ-010)
+
+**Investigation performed:**
+- Reviewed `IOpencodeApiClient` (339 lines) — no subagent-specific endpoint exists
+- Reviewed `SendPromptRequest` — fields: `Parts`, `ModelId`, `ProviderId` only; no `agent` or `subagent` field
+- Searched entire codebase for "subagent" references — found only UI/display code, no API endpoints
+- No `POST /session/{id}/subagent` or similar endpoint in the client
+
+**Decision: Fallback approach (REQ-010, option 3 fallback)**
+The opencode API client does not expose a subagent invocation endpoint. Per REQ-010: `InvokeSubagentCommand` opens the picker (preserving the UX intent), and on agent selection sets `ErrorMessage = "Subagent invocation not supported by this server version"`. No API call is made. `IOpencodeApiClient` is **not extended** by this spec.
+
+### Current Implementation State vs Spec Gaps
+
+| Component | Current State | Gap / Action Required |
+|-----------|--------------|----------------------|
+| `ContextSheetViewModel.ChangeThinkingLevelCommand` | ✅ Exists (sets property, auto-save via `OnThinkingLevelChanged`) | None — already compliant with REQ-001 |
+| `ContextSheetViewModel.ToggleAutoAcceptCommand` | ❌ Missing — only `OnAutoAcceptChanged` fire-and-forget | Add `[AsyncRelayCommand]` with rollback on failure (REQ-004) |
+| `ContextSheetViewModel.InvokeSubagentCommand` | ⚠️ Partial — calls `ShowAgentPickerSubagentModeAsync` (no callback, no `CanExecute`, no `IsBusy`) | Rewrite to use `ShowSubagentPickerAsync` with callback, add `CanExecute`, add `IsBusy` management (REQ-009) |
+| `ContextSheetViewModel` — subagent list for `CanExecute` | ❌ Missing | Add `_subagentAgents` list loaded in `InitializeAsync`; add `IAgentService` dependency |
+| `ChatViewModel.ThinkingLevel` | ⚠️ Property exists but not loaded from preferences | Load in `LoadContextAsync`; update via `ProjectPreferenceChangedMessage` (REQ-003) |
+| `ChatViewModel.AutoAccept` | ⚠️ Property exists but not loaded from preferences | Load in `LoadContextAsync`; update via `ProjectPreferenceChangedMessage` (REQ-005) |
+| `IAgentService.GetSubagentAgentsAsync` | ❌ Missing | Add method (REQ-006) |
+| `AgentService.GetSubagentAgentsAsync` | ❌ Missing | Implement with LINQ filter: `Mode == "subagent" \|\| Mode == "all"` (REQ-006) |
+| `AgentPickerViewModel` — subagent mode source | ⚠️ Uses `GetAgentsAsync()` (unfiltered) in subagent mode | Change to `GetSubagentAgentsAsync()` (REQ-007) |
+| `IAppPopupService.ShowSubagentPickerAsync` | ❌ Missing — has `ShowAgentPickerSubagentModeAsync` (no callback) | Add `ShowSubagentPickerAsync(Action<string> onSubagentSelected, ct)` (REQ-008) |
+| `MauiPopupService.ShowSubagentPickerAsync` | ❌ Missing | Implement: resolve `AgentPickerSheet`, set `IsSubagentMode = true`, set `OnAgentSelected = onSubagentSelected`, push modal (REQ-008) |
+
+### Change Classification
+
+| Field | Value |
+|-------|-------|
+| Change type | Feature |
+| Git Flow branch | `feature/session-context-sheet-3of3` |
+| Branches from | `develop` |
+| Estimated complexity | Medium |
+| Estimated agents involved | om-mobile-core, om-tester, om-reviewer |
+
+### Layers Involved
+
+| Layer | Agent | Scope |
+|-------|-------|-------|
+| Services | om-mobile-core | `src/openMob.Core/Services/IAgentService.cs`, `AgentService.cs` |
+| ViewModels | om-mobile-core | `src/openMob.Core/ViewModels/ContextSheetViewModel.cs`, `ChatViewModel.cs`, `AgentPickerViewModel.cs` |
+| Popup Service Interface | om-mobile-core | `src/openMob.Core/Services/IAppPopupService.cs` |
+| Popup Service MAUI impl | om-mobile-core | `src/openMob/Services/MauiPopupService.cs` |
+| Unit Tests | om-tester | `tests/openMob.Tests/` |
+| Code Review | om-reviewer | all of the above |
+
+### Files to Modify
+
+- `src/openMob.Core/Services/IAgentService.cs` — add `GetSubagentAgentsAsync()` method
+- `src/openMob.Core/Services/AgentService.cs` — implement `GetSubagentAgentsAsync()` with LINQ filter
+- `src/openMob.Core/ViewModels/ContextSheetViewModel.cs` — add `ToggleAutoAcceptCommand` with rollback; rewrite `InvokeSubagentCommand` with `CanExecute` and `IsBusy`; add `IAgentService` dependency; load subagent list in `InitializeAsync`
+- `src/openMob.Core/ViewModels/ChatViewModel.cs` — load `ThinkingLevel` and `AutoAccept` in `LoadContextAsync`; update both via `ProjectPreferenceChangedMessage`
+- `src/openMob.Core/ViewModels/AgentPickerViewModel.cs` — change subagent mode to call `GetSubagentAgentsAsync()` instead of `GetAgentsAsync()`
+- `src/openMob.Core/Services/IAppPopupService.cs` — add `ShowSubagentPickerAsync(Action<string>, CancellationToken)` method
+- `src/openMob/Services/MauiPopupService.cs` — implement `ShowSubagentPickerAsync`
+
+### Files to Create
+
+- None (all changes are extensions to existing files)
+
+### Technical Dependencies
+
+- `session-context-sheet-1of3-core` ✅ Done — `ThinkingLevel` enum, `ProjectPreference.ThinkingLevel`/`AutoAccept`, `IProjectPreferenceService.SetThinkingLevelAsync`/`SetAutoAcceptAsync`, `ProjectPreferenceChangedMessage`
+- `session-context-sheet-2of3-agent-model` ✅ Done — `AgentPickerViewModel.OnAgentSelected`, `IsSubagentMode`, `IAppPopupService.ShowAgentPickerAsync`
+- No new NuGet packages required
+- No EF Core migrations required (no new entity fields)
+- No new API endpoints required (subagent invocation uses fallback error message)
+
+### Technical Risks
+
+- **`ContextSheetViewModel` constructor change**: Adding `IAgentService` as a new dependency changes the constructor signature. All DI registrations and test constructors must be updated.
+- **`ToggleAutoAcceptCommand` rollback**: The rollback re-assigns `AutoAccept` to its previous value, which fires `OnAutoAcceptChanged` again. The `_isInitializing` guard does not apply here (it's only set during `InitializeAsync`). The rollback assignment will trigger another `SaveAutoAcceptAsync` call — this must be prevented. Solution: add a `_isRollingBack` guard flag, or check that the rollback assignment does not re-enter the save path. **Preferred approach**: use a dedicated `[AsyncRelayCommand]` method that manages the toggle directly without relying on `OnAutoAcceptChanged` for the save path. The `OnAutoAcceptChanged` partial method should be a no-op when the change originates from `ToggleAutoAcceptCommand`.
+- **`IAppPopupService` interface change**: Adding `ShowSubagentPickerAsync` is a breaking change to the interface. All mock implementations in tests must be updated (NSubstitute handles this automatically for interface mocks).
+- **Thread safety for `ProjectPreferenceChangedMessage` handler in `ChatViewModel`**: The message is published from `ContextSheetViewModel` after a background `await`. The handler in `ChatViewModel` already uses `_dispatcher.Dispatch()` for model/agent updates — `ThinkingLevel` and `AutoAccept` must also be dispatched.
+
+### Execution Order
+
+> Steps that can run in parallel are marked with ⟳. Steps that must be sequential are numbered.
+
+1. [Git Flow] Create branch `feature/session-context-sheet-3of3`
+2. [om-mobile-core] Implement all changes (services, ViewModels, popup service)
+3. [om-tester] Write unit tests (after om-mobile-core completes)
+4. [om-reviewer] Full review against spec
+5. [Fix loop if needed] Address Critical and Major findings
+6. [Git Flow] Finish branch and merge
+
+### Definition of Done
+
+- [ ] All `[REQ-001]` through `[REQ-011]` requirements implemented
+- [ ] All `[AC-001]` through `[AC-009]` acceptance criteria satisfied
+- [ ] Unit tests written for all modified Services and ViewModels
+- [ ] `om-reviewer` verdict: ✅ Approved or ⚠️ Approved with remarks
+- [ ] Git Flow branch finished and deleted
+- [ ] Spec moved to `specs/done/` with Completed status

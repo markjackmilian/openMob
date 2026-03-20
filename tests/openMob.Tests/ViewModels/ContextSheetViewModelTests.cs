@@ -607,4 +607,62 @@ public sealed class ContextSheetViewModelTests : IDisposable
         await _popupService.Received(1).ShowAgentPickerSubagentModeAsync(
             Arg.Any<CancellationToken>());
     }
+
+    // ─── Commands — OpenAgentPickerCommand ────────────────────────────────────
+
+    [Fact]
+    public async Task OpenAgentPickerCommand_WhenExecuted_CallsShowAgentPickerAsync()
+    {
+        // Arrange
+        _popupService.ShowAgentPickerAsync(Arg.Any<Action<string?>>(), Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+
+        // Act
+        await _sut.OpenAgentPickerCommand.ExecuteAsync(null);
+
+        // Assert
+        await _popupService.Received(1).ShowAgentPickerAsync(
+            Arg.Any<Action<string?>>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task OpenAgentPickerCommand_WhenCallbackInvokedWithAgentName_UpdatesSelectedAgentName()
+    {
+        // Arrange
+        _popupService.ShowAgentPickerAsync(Arg.Any<Action<string?>>(), Arg.Any<CancellationToken>())
+            .Returns(callInfo =>
+            {
+                // Invoke the callback synchronously to simulate the user picking an agent
+                var callback = callInfo.Arg<Action<string?>>();
+                callback("coder");
+                return Task.CompletedTask;
+            });
+
+        // Act
+        await _sut.OpenAgentPickerCommand.ExecuteAsync(null);
+
+        // Assert
+        _sut.SelectedAgentName.Should().Be("coder");
+    }
+
+    [Fact]
+    public async Task OpenAgentPickerCommand_WhenCallbackInvokedWithNull_SetsSelectedAgentNameToNull()
+    {
+        // Arrange
+        _sut.SelectedAgentName = "previous-agent";
+        _popupService.ShowAgentPickerAsync(Arg.Any<Action<string?>>(), Arg.Any<CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var callback = callInfo.Arg<Action<string?>>();
+                callback(null);
+                return Task.CompletedTask;
+            });
+
+        // Act
+        await _sut.OpenAgentPickerCommand.ExecuteAsync(null);
+
+        // Assert
+        _sut.SelectedAgentName.Should().BeNull();
+    }
 }

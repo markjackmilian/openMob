@@ -76,4 +76,89 @@ public sealed class AgentServiceTests
         // Assert
         await _apiClient.Received(1).GetAgentsAsync(Arg.Any<CancellationToken>());
     }
+
+    // ─── GetPrimaryAgentsAsync ────────────────────────────────────────────────
+
+    [Fact]
+    public async Task GetPrimaryAgentsAsync_WhenApiReturnsMixedModes_ReturnsOnlyPrimaryAndAll()
+    {
+        // Arrange
+        var agents = new List<AgentDto>
+        {
+            BuildAgentWithMode("primary-agent", "primary"),
+            BuildAgentWithMode("subagent-agent", "subagent"),
+            BuildAgentWithMode("all-agent", "all"),
+            BuildAgentWithMode("another-primary", "primary"),
+        };
+        _apiClient.GetAgentsAsync(Arg.Any<CancellationToken>())
+            .Returns(OpencodeResult<IReadOnlyList<AgentDto>>.Success(agents));
+
+        // Act
+        var result = await _sut.GetPrimaryAgentsAsync();
+
+        // Assert
+        result.Should().HaveCount(3);
+        result.Should().Contain(a => a.Name == "primary-agent");
+        result.Should().Contain(a => a.Name == "all-agent");
+        result.Should().Contain(a => a.Name == "another-primary");
+    }
+
+    [Fact]
+    public async Task GetPrimaryAgentsAsync_WhenApiReturnsOnlySubagents_ReturnsEmptyList()
+    {
+        // Arrange
+        var agents = new List<AgentDto>
+        {
+            BuildAgentWithMode("sub1", "subagent"),
+            BuildAgentWithMode("sub2", "subagent"),
+        };
+        _apiClient.GetAgentsAsync(Arg.Any<CancellationToken>())
+            .Returns(OpencodeResult<IReadOnlyList<AgentDto>>.Success(agents));
+
+        // Act
+        var result = await _sut.GetPrimaryAgentsAsync();
+
+        // Assert
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetPrimaryAgentsAsync_WhenApiReturnsEmptyList_ReturnsEmptyList()
+    {
+        // Arrange
+        _apiClient.GetAgentsAsync(Arg.Any<CancellationToken>())
+            .Returns(OpencodeResult<IReadOnlyList<AgentDto>>.Success(new List<AgentDto>()));
+
+        // Act
+        var result = await _sut.GetPrimaryAgentsAsync();
+
+        // Assert
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetPrimaryAgentsAsync_WhenApiReturnsAllModeAgent_IncludesItInResult()
+    {
+        // Arrange
+        var agents = new List<AgentDto>
+        {
+            BuildAgentWithMode("universal-agent", "all"),
+        };
+        _apiClient.GetAgentsAsync(Arg.Any<CancellationToken>())
+            .Returns(OpencodeResult<IReadOnlyList<AgentDto>>.Success(agents));
+
+        // Act
+        var result = await _sut.GetPrimaryAgentsAsync();
+
+        // Assert
+        result.Should().ContainSingle(a => a.Name == "universal-agent");
+    }
+
+    private static AgentDto BuildAgentWithMode(string name, string mode)
+    {
+        return new AgentDto(
+            Name: name, Description: null, Mode: mode, BuiltIn: true,
+            TopP: null, Temperature: null, Color: null, Model: null, Prompt: null,
+            Tools: default, Options: default, MaxSteps: null, Permission: default);
+    }
 }

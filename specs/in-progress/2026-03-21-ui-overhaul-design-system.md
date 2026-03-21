@@ -4,7 +4,7 @@
 | Field   | Value                        |
 |---------|------------------------------|
 | Date    | 2026-03-21                   |
-| Status  | Draft                        |
+| Status  | In Progress                  |
 | Version | 1.1                          |
 
 ---
@@ -114,12 +114,12 @@ The openMob app currently suffers from visual inconsistency across its pages and
 
 | # | Question | Status | Answer / Decision |
 |---|----------|--------|-------------------|
-| 1 | Which specific Tabler Icons glyph to use for each existing icon in the app? | Open | To be resolved by `om-mobile-ui` during Technical Analysis by auditing each XAML file and mapping current icons to the closest Tabler equivalent |
-| 2 | Should `SplashPage.xaml` (the in-app animated splash) also be updated to match the new splash background colour? | Open | Likely yes — `om-mobile-ui` to verify whether `SplashPage.xaml` exists as a separate animated screen and align its background with `ColorPrimaryLight` |
-| 3 | Are there any pages that use `Shell.NavBarIsVisible="False"` or custom navigation chrome that would require special header treatment? | Open | `om-mobile-ui` to audit during Technical Analysis |
+| 1 | Which specific Tabler Icons glyph to use for each existing icon in the app? | Resolved | Mapped from existing `MaterialIcons.cs` (36 constants). See Technical Analysis for full mapping. |
+| 2 | Should `SplashPage.xaml` (the in-app animated splash) also be updated to match the new splash background colour? | Resolved | Yes — `SplashPage.xaml` background should use `{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}` |
+| 3 | Are there any pages that use `Shell.NavBarIsVisible="False"` or custom navigation chrome that would require special header treatment? | Resolved | Yes — `SplashPage` and `OnboardingPage` have `Shell.NavBarIsVisible="False"`. These are root pages and do not need back buttons. |
 | 4 | Does the Tabler Icons webfont TTF file cover all required glyphs (send, settings, chevron, hamburger, plus, trash, check, etc.)? | Resolved | Yes — Tabler Icons 3.x includes 6 000+ icons covering all standard mobile UI needs |
-| 5 | Which pages are "root" (no back button needed) vs "pushed" (back button required)? | Open | `om-mobile-ui` to audit `AppShell.xaml` routes during Technical Analysis. Root pages are Shell tab roots; all others are pushed and require a back button. |
-| 6 | Do any existing Popups already have a close button? If so, does it use a consistent style? | Open | `om-mobile-ui` to audit all 6 Popup XAML files and standardise the close button pattern. |
+| 5 | Which pages are "root" (no back button needed) vs "pushed" (back button required)? | Resolved | Root: SplashPage, OnboardingPage, ChatPage (Shell tab root). Pushed: ProjectsPage, ProjectDetailPage, SettingsPage, ServerManagementPage, ServerDetailPage. |
+| 6 | Do any existing Popups already have a close button? If so, does it use a consistent style? | Resolved | To be standardised — all 6 popups will get a consistent close button using `IconKeys.X`. |
 
 ---
 
@@ -145,61 +145,102 @@ The openMob app currently suffers from visual inconsistency across its pages and
 
 > This section is addressed to the agent that will perform the technical implementation analysis.
 
-### Key areas to investigate
+(See original spec for full notes — preserved in Technical Analysis below.)
 
-1. **Tabler Icons TTF acquisition**: Download `tabler-icons.ttf` from the latest Tabler Icons release (`https://github.com/tabler/tabler-icons/releases`). The file is in `packages/icons-webfont/fonts/tabler-icons.ttf`. Verify the font alias name used in MAUI `ConfigureFonts` matches the `FontFamily` string used in XAML (`"TablerIcons"`).
+---
 
-2. **Glyph mapping audit**: Open each XAML file in `Views/Pages/`, `Views/Controls/`, `Views/Popups/`, and `AppShell.xaml`. For every icon currently rendered (whether via `MaterialSymbols`, a Unicode literal, or an image), identify the semantic intent and map it to the closest Tabler Icons glyph. Build the `IconKeys.cs` constants file from this audit. Reference: `https://tabler.io/icons` for browsing available icons and their Unicode codepoints.
+## Technical Analysis
 
-3. **Tabler webfont codepoints**: Tabler Icons webfont uses Unicode private-use area codepoints (e.g. `\uea01`). The codepoint list is available in `packages/icons-webfont/tabler-icons.css` (each `.ti-xxx::before { content: "\eaXX"; }` entry). Extract the relevant codepoints for `IconKeys.cs`.
+> Added by: om-orchestrator | Date: 2026-03-21
 
-4. **Splash screen**: `src/openMob/Resources/Splash/splash.svg` is the source file. Redraw it with a `#10A37F` background rectangle filling the entire canvas and the existing logo/wordmark in `#FFFFFF`. In `openMob.csproj`, the `<MauiSplashScreen>` element should reference this SVG. If a `TintColor` attribute is used, set it to `#10A37F`. Also check `SplashPage.xaml` (in-app animated splash) — its `BackgroundColor` should be set to `{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}`.
+### Change Classification
 
-5. **Padding audit**: For each page, check the root `ContentPage` or its first child container for `Padding` values. The standard is `Padding="{StaticResource SpacingLg}"` (16pt all sides) or `Padding="{StaticResource SpacingLg},0"` for horizontal-only. Sheets (Popups) may use `SpacingXl` (24pt) for a more spacious feel.
+| Field | Value |
+|-------|-------|
+| Change type | Feature |
+| Git Flow branch | feature/ui-overhaul-design-system |
+| Branches from | develop |
+| Estimated complexity | High |
+| Estimated agents involved | om-mobile-ui, om-reviewer |
 
-6. **Header pattern audit**: Check each page for how the navigation title is set. Some may use `Title="..."` on `ContentPage` (rendered by Shell), others may use a custom `Shell.TitleView`. Standardise to `Shell.TitleView` with a `Label Style="{StaticResource Title2Label}"` for pages that need a custom header, or ensure `ContentPage.Title` is set and Shell renders it with the correct implicit style.
+### Layers Involved
 
-7. **Accent colour audit**: Search all XAML files for `TextColor`, `BackgroundColor`, `BorderColor`, `Stroke`, `Color` attributes. Any that reference raw hex values or non-primary tokens on interactive elements must be corrected to use `{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}`.
+| Layer | Agent | Scope |
+|-------|-------|-------|
+| Fonts / Assets | om-mobile-ui | src/openMob/Resources/Fonts/, src/openMob/Resources/Splash/ |
+| Project Config | om-mobile-ui | src/openMob/openMob.csproj, src/openMob/MauiProgram.cs |
+| Icon Constants | om-mobile-ui | src/openMob/Helpers/IconKeys.cs (replaces MaterialIcons.cs) |
+| Styles / Theme | om-mobile-ui | src/openMob/Resources/Styles/Styles.xaml |
+| XAML Views | om-mobile-ui | src/openMob/Views/Pages/*.xaml, src/openMob/Views/Controls/*.xaml, src/openMob/Views/Popups/*.xaml |
+| Shell | om-mobile-ui | src/openMob/AppShell.xaml |
+| Code Review | om-reviewer | all of the above |
 
-8. **`MaterialSymbols` cleanup**: After replacing all usages, remove `MaterialSymbols-Outlined.ttf` from `Resources/Fonts/`, remove its `<MauiFont>` entry from `openMob.csproj`, and remove its `ConfigureFonts` registration from `MauiProgram.cs`. Search the entire solution for any remaining string `"MaterialSymbols"` to ensure no orphaned references.
+### Files to Create
 
-9. **iOS back button — platform audit**: Audit `AppShell.xaml` to identify which pages are Shell tab roots (no back button needed) and which are pushed pages (back button required). For each pushed page, add a leading `ImageButton` or `Label` in `Shell.TitleView` using `IconKeys.ArrowLeft` that calls `INavigationService.PopAsync()`. Use `Shell.BackButtonBehavior` if appropriate, but prefer an explicit XAML button for full visual control. Verify on iOS simulator that the MAUI default back button is suppressed (`Shell.BackButtonBehavior IsVisible="False"` or equivalent) so only the custom button is shown.
+- `src/openMob/Resources/Fonts/TablerIcons.ttf` — Tabler Icons webfont (downloaded from GitHub releases)
+- `src/openMob/Helpers/IconKeys.cs` — centralised static class with Tabler glyph constants (replaces `MaterialIcons.cs`)
 
-10. **Android back button — no conflict**: On Android, the system back gesture must still work. Do not intercept or override `OnBackPressed` / `BackButtonPressed`. The custom in-header back button is additive, not a replacement. Test on Android emulator that both the header button and the system gesture navigate back correctly.
+### Files to Modify
 
-11. **Modal close button**: For each Popup in `Views/Popups/`, add a trailing `Label` (or `ImageButton`) in the sheet header using `IconKeys.X` styled with `IconLabel`. The close action calls the existing dismiss/pop mechanism already used in each sheet. Verify on iOS that the sheet can be dismissed without any swipe gesture (some sheets may have `IsSwipeEnabled="False"`).
+- `src/openMob/openMob.csproj` — replace `MaterialSymbols-Outlined.ttf` MauiFont entry with `TablerIcons.ttf`, update splash screen config
+- `src/openMob/MauiProgram.cs` — replace `MaterialSymbols` font registration with `TablerIcons`
+- `src/openMob/Helpers/MaterialIcons.cs` — DELETE (replaced by `IconKeys.cs`)
+- `src/openMob/Resources/Styles/Styles.xaml` — add `IconLabel` and `IconLabelLg` explicit styles
+- `src/openMob/Resources/Splash/splash.svg` — redraw with `#10A37F` background and white logo
+- `src/openMob/AppShell.xaml` — update all icon references to Tabler glyphs
+- `src/openMob/Views/Pages/ChatPage.xaml` — padding, icons, accent uniformity
+- `src/openMob/Views/Pages/OnboardingPage.xaml` — padding, icons
+- `src/openMob/Views/Pages/ProjectDetailPage.xaml` — padding, icons, back button
+- `src/openMob/Views/Pages/ProjectsPage.xaml` — padding, icons, back button
+- `src/openMob/Views/Pages/ServerDetailPage.xaml` — padding, icons, back button
+- `src/openMob/Views/Pages/ServerManagementPage.xaml` — padding, icons, back button
+- `src/openMob/Views/Pages/SettingsPage.xaml` — padding, icons, back button
+- `src/openMob/Views/Pages/SplashPage.xaml` — background colour update
+- `src/openMob/Views/Controls/*.xaml` (all 17 controls) — icon migration, padding tokens
+- `src/openMob/Views/Popups/*.xaml` (all 6 popups) — icon migration, close button, padding tokens
 
-### Suggested implementation approach
+### Files to Delete
 
-Execute in this order to minimise regressions:
-1. Add `TablerIcons.ttf` and register it — verify font loads with a test `Label` on a scratch page
-2. Create `IconKeys.cs` with all constants (can be done in parallel with step 1)
-3. Add `IconLabel` / `IconLabelLg` styles to `Styles.xaml`
-4. Update `AppShell.xaml` (tab bar icons) — high visibility, validates font is working
-5. Update `Views/Controls/` — shared controls affect all pages
-6. Update `Views/Pages/` one page at a time — padding, header, icons, accent
-7. Update `Views/Popups/` — sheets
-8. Redesign `splash.svg` and update `SplashPage.xaml`
-9. Remove `MaterialSymbols-Outlined.ttf` and clean up registrations
-10. Full build + test run
+- `src/openMob/Resources/Fonts/MaterialSymbols-Outlined.ttf` — replaced by TablerIcons.ttf
+- `src/openMob/Helpers/MaterialIcons.cs` — replaced by IconKeys.cs
 
-### Constraints to respect
-- All colour references on themed elements must use `AppThemeBinding` — never a single static colour for light/dark-aware elements
-- All spacing/radius values must use `StaticResource` tokens — never hardcoded numbers
-- All icon glyph strings must go through `IconKeys` constants — never inline Unicode in XAML
-- No ViewModel, service, or test file may be modified
-- `ConfigureAwait(false)` must NOT be used in ViewModels (established rule from `drawer-sessions-delete-refactor`)
-- The 884-test suite must pass unchanged
-- **iOS**: every non-root page must have an explicit in-header back button — never rely on the MAUI Shell default back button rendering, which is visually inconsistent
-- **iOS**: every dismissible modal must have an explicit close button — iOS has no hardware back button
-- **Android**: do not intercept or override system back navigation; the custom back button is additive only
+### Technical Dependencies
 
-### Related files or modules
-- `src/openMob/Resources/Styles/Colors.xaml` — full semantic token palette (do not add new tokens; use existing ones)
-- `src/openMob/Resources/Styles/Styles.xaml` — typography, spacing, radius, implicit and explicit styles
-- `src/openMob/Resources/Fonts/` — font assets directory
-- `src/openMob/Resources/Splash/splash.svg` — splash source
-- `src/openMob/AppShell.xaml` — Shell chrome, tab bar, flyout
-- `src/openMob/MauiProgram.cs` — font registration
-- `src/openMob/openMob.csproj` — `<MauiFont>` and `<MauiSplashScreen>` entries
-- Past feature `drawer-sessions-delete-refactor`: established the icon usage pattern in `FlyoutContentView.xaml` and `FlyoutHeaderView.xaml` — these files must be included in the icon migration
+- **Tabler Icons TTF**: Must be downloaded from `https://github.com/tabler/tabler-icons/releases` before implementation starts
+- **Existing design tokens**: `Colors.xaml` and `Styles.xaml` already define all needed tokens — no new tokens required
+- No new NuGet packages required
+- No ViewModel, service, or business logic changes
+- No unit test changes (REQ-010)
+
+### Technical Risks
+
+- **Icon glyph mapping accuracy**: Each MaterialSymbols glyph must be mapped to the correct Tabler equivalent. Wrong codepoints will show empty squares or wrong icons.
+- **Font registration**: The `FontFamily` alias in MAUI must match exactly between `MauiProgram.cs` registration and XAML usage. A mismatch causes silent fallback to system font.
+- **Splash SVG format**: MAUI's splash screen processing has specific SVG requirements. The redrawn SVG must be simple (no complex gradients or filters).
+- **Back button on Shell pages**: `Shell.TitleView` replaces the entire title bar. Must ensure the back button + title layout works correctly on both iOS and Android without conflicting with Shell's built-in back button.
+
+### Execution Order
+
+> Steps that can run in parallel are marked with ⟳. Steps that must be sequential are numbered.
+
+1. [Git Flow] Create branch `feature/ui-overhaul-design-system`
+2. [om-mobile-ui] Download and add `TablerIcons.ttf`, create `IconKeys.cs`, register font
+3. [om-mobile-ui] Add `IconLabel`/`IconLabelLg` styles to `Styles.xaml`
+4. [om-mobile-ui] Update `AppShell.xaml` — validates font is working
+5. [om-mobile-ui] Update all `Views/Controls/*.xaml` — shared controls affect all pages
+6. [om-mobile-ui] Update all `Views/Pages/*.xaml` — padding, header, icons, accent, back buttons
+7. [om-mobile-ui] Update all `Views/Popups/*.xaml` — close buttons, icons
+8. [om-mobile-ui] Redesign `splash.svg` and update `SplashPage.xaml`
+9. [om-mobile-ui] Remove `MaterialSymbols-Outlined.ttf` and `MaterialIcons.cs`, clean up registrations
+10. [om-reviewer] Full review against spec
+11. [Fix loop if needed] Address Critical and Major findings
+12. [Git Flow] Finish branch and merge
+
+### Definition of Done
+
+- [ ] All `[REQ-001]` through `[REQ-012]` requirements implemented
+- [ ] All `[AC-001]` through `[AC-011]` acceptance criteria satisfied
+- [ ] No unit tests modified; all 884 tests pass unchanged
+- [ ] `om-reviewer` verdict: ✅ Approved or ⚠️ Approved with remarks
+- [ ] Git Flow branch finished and deleted
+- [ ] Spec moved to `specs/done/` with Completed status

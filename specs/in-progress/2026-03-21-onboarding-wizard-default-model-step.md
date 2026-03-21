@@ -4,7 +4,7 @@
 | Field   | Value                        |
 |---------|------------------------------|
 | Date    | 2026-03-21                   |
-| Status  | Draft                        |
+| Status  | In Progress                  |
 | Version | 1.0                          |
 
 ---
@@ -85,7 +85,7 @@ Il wizard di onboarding (primo avvio, nessun server configurato) presenta attual
 ### Dependencies
 - Spec completata `session-context-sheet-2of3-agent-model` — definisce il pattern di fetch modelli e il `ModelPickerSheet` già esistente; da riutilizzare ove possibile
 - Spec completata `server-offline-startup-navigation` — definisce il flusso di startup; il caso "nessun server configurato → OnboardingPage" rimane invariato
-- API opencode `GET /model` (o endpoint equivalente) — da verificare in codebase (`OpencodeApiClient`)
+- API opencode `GET /provider` (o endpoint equivalente) — da verificare in codebase (`OpencodeApiClient`)
 
 ---
 
@@ -93,9 +93,9 @@ Il wizard di onboarding (primo avvio, nessun server configurato) presenta attual
 
 | # | Question | Status | Answer / Decision |
 |---|----------|--------|-------------------|
-| 1 | Qual è l'endpoint esatto per recuperare i modelli dal server opencode? (es. `GET /model`, `GET /models`) | Open | Da verificare in `OpencodeApiClient` o `IModelService` |
+| 1 | Qual è l'endpoint esatto per recuperare i modelli dal server opencode? (es. `GET /model`, `GET /models`) | Resolved | I modelli vengono estratti da `IProviderService.GetConfiguredProvidersAsync()` che chiama `GET /config/providers`. Ogni `ProviderDto` ha un campo `Models` (JsonElement) da cui si estraggono i modelli. Il pattern è già implementato in `ModelPickerViewModel.ExtractModelsFromProvider`. |
 | 2 | Il `Server.DefaultModelId` è pensato come fallback globale quando `ProjectPreference.DefaultModelId` è null, oppure è un concetto indipendente usato solo in fase di configurazione server? | Open | Impatta l'architettura di risoluzione del modello attivo — da decidere in una futura spec dedicata |
-| 3 | Il `ModelPickerSheet` già esistente (introdotto da `session-context-sheet-2of3-agent-model`) può essere riutilizzato direttamente nel wizard e nella `ServerDetailPage`, oppure richiede adattamenti? | Open | Da verificare durante l'analisi tecnica |
+| 3 | Il `ModelPickerSheet` già esistente (introdotto da `session-context-sheet-2of3-agent-model`) può essere riutilizzato direttamente nel wizard e nella `ServerDetailPage`, oppure richiede adattamenti? | Resolved | `ModelPickerViewModel` è già parametrizzabile tramite `OnModelSelected` callback e `SelectedModelId`. Può essere riutilizzato nella `ServerDetailPage` tramite `IAppPopupService.ShowModelPicker`. Per il wizard, la logica di model loading viene integrata direttamente in `OnboardingViewModel` (inline step, non popup). |
 
 ---
 
@@ -142,3 +142,85 @@ Il wizard di onboarding (primo avvio, nessun server configurato) presenta attual
 - **Constraint**: Tutto il salvataggio è locale (SQLite). Nessuna scrittura verso il server opencode. Il `DefaultModelId` è un campo dell'app, non del server.
 
 - **Relazione `Server.DefaultModelId` vs `ProjectPreference.DefaultModelId`**: La semantica di questa relazione (fallback vs indipendenza) è una open question — non implementare alcuna logica di fallback in questa spec. Limitarsi a salvare e leggere il valore sull'entità server.
+
+---
+
+## Technical Analysis
+
+> Added by: om-orchestrator | Date: 2026-03-21
+
+### Change Classification
+
+| Field | Value |
+|-------|-------|
+| Change type | Feature |
+| Git Flow branch | feature/onboarding-default-model |
+| Branches from | develop |
+| Estimated complexity | Medium |
+| Estimated agents involved | om-mobile-core, om-mobile-ui, om-tester, om-reviewer |
+
+### Layers Involved
+
+| Layer | Agent | Scope |
+|-------|-------|-------|
+| Data / EF Core | om-mobile-core | src/openMob.Core/Data/Entities/ServerConnection.cs, src/openMob.Core/Data/AppDbContext.cs, src/openMob.Core/Data/Migrations/ |
+| Repositories | om-mobile-core | src/openMob.Core/Data/Repositories/IServerConnectionRepository.cs, ServerConnectionRepository.cs |
+| ViewModels | om-mobile-core | src/openMob.Core/ViewModels/OnboardingViewModel.cs, src/openMob.Core/ViewModels/ServerDetailViewModel.cs |
+| XAML Views | om-mobile-ui | src/openMob/Views/Pages/OnboardingPage.xaml, src/openMob/Views/Controls/OnboardingModelSelectionView.xaml (new), src/openMob/Views/Pages/ServerDetailPage.xaml |
+| Unit Tests | om-tester | tests/openMob.Tests/ |
+| Code Review | om-reviewer | all of the above |
+
+### Files to Create
+
+- `src/openMob.Core/Data/Migrations/20260321010000_AddDefaultModelIdToServerConnections.cs` — EF Core migration adding `DefaultModelId TEXT NULL` to `ServerConnections` table
+- `src/openMob/Views/Controls/OnboardingModelSelectionView.xaml` + `.xaml.cs` — new onboarding step control for model selection (replaces provider setup step)
+- `tests/openMob.Tests/ViewModels/OnboardingViewModelDefaultModelTests.cs` — tests for the new model selection step logic
+
+### Files to Modify
+
+- `src/openMob.Core/Data/Entities/ServerConnection.cs` — add `DefaultModelId` property (`string?`, max 500)
+- `src/openMob.Core/Data/AppDbContext.cs` — configure `DefaultModelId` column in `OnModelCreating`
+- `src/openMob.Core/Data/Repositories/IServerConnectionRepository.cs` — add `GetDefaultModelAsync` and `SetDefaultModelAsync` methods
+- `src/openMob.Core/Data/Repositories/ServerConnectionRepository.cs` — implement new methods
+- `src/openMob.Core/Infrastructure/Dtos/ServerConnectionDto.cs` — add `DefaultModelId` field to DTO record
+- `src/openMob.Core/ViewModels/OnboardingViewModel.cs` — remove provider step (step 3), replace with model selection step, change TotalSteps from 5 to 4, add model loading/selection logic, save DefaultModelId on completion
+- `src/openMob.Core/ViewModels/ServerDetailViewModel.cs` — add `DefaultModelId` display property, add `ChangeDefaultModelCommand` that opens ModelPickerSheet
+- `src/openMob/Views/Pages/OnboardingPage.xaml` — remove `OnboardingProviderSetupView`, add `OnboardingModelSelectionView` at step 3
+- `src/openMob/Views/Pages/ServerDetailPage.xaml` — add "Default Model" row with current model display and tap-to-change
+- `src/openMob/Views/Controls/OnboardingProviderSetupView.xaml` — DELETE (no longer needed)
+- `src/openMob/Views/Controls/OnboardingProviderSetupView.xaml.cs` — DELETE
+
+### Technical Dependencies
+
+- `IProviderService.GetConfiguredProvidersAsync()` — already exists, returns providers with `Models` JsonElement
+- `ModelPickerViewModel.ExtractModelsFromProvider` — existing pattern for parsing models from provider JSON; reuse this logic in `OnboardingViewModel`
+- `IAppPopupService.ShowModelPicker` — for `ServerDetailPage` model picker (if this method exists; otherwise use `PushPopup` with `ModelPickerSheet`)
+- `IServerConnectionRepository` — existing repository, needs extension with 2 new methods
+- No new NuGet packages required
+
+### Technical Risks
+
+- **Wizard step renumbering**: Changing from 5 steps to 4 steps affects `CurrentStep` logic, `Progress` calculation, `CanGoNext`, `IsStepOptional`, and all step-dependent XAML visibility converters. Must be carefully tested.
+- **Model loading failure blocks wizard**: If the server is reachable but returns no configured providers (or models), the user is stuck. The spec explicitly says no skip — this is by design but could be a UX concern.
+- **ServerConnectionDto is a record**: Adding `DefaultModelId` to the DTO record requires updating all construction sites (OnboardingViewModel.TestConnectionAsync, ServerDetailViewModel.SaveAsync, TestDataBuilder).
+
+### Execution Order
+
+> Steps that can run in parallel are marked with ⟳. Steps that must be sequential are numbered.
+
+1. [Git Flow] Create branch `feature/onboarding-default-model`
+2. [om-mobile-core] Add `DefaultModelId` to entity, migration, repository extension, DTO update, OnboardingViewModel refactor, ServerDetailViewModel extension
+3. ⟳ [om-mobile-ui] Create `OnboardingModelSelectionView`, update `OnboardingPage.xaml` (remove provider step, add model step), update `ServerDetailPage.xaml` (can start once ViewModel binding surface is defined)
+4. [om-tester] Write unit tests for OnboardingViewModel model step, ServerDetailViewModel default model, repository extension
+5. [om-reviewer] Full review against spec
+6. [Fix loop if needed] Address Critical and Major findings
+7. [Git Flow] Finish branch and merge
+
+### Definition of Done
+
+- [ ] All `[REQ-001]` through `[REQ-012]` requirements implemented
+- [ ] All `[AC-001]` through `[AC-009]` acceptance criteria satisfied
+- [ ] Unit tests written for all new and modified ViewModels and repository methods
+- [ ] `om-reviewer` verdict: ✅ Approved or ⚠️ Approved with remarks
+- [ ] Git Flow branch finished and deleted
+- [ ] Spec moved to `specs/done/` with Completed status

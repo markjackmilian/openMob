@@ -4,7 +4,7 @@
 | Field   | Value                        |
 |---------|------------------------------|
 | Date    | 2026-03-21                   |
-| Status  | Draft                        |
+| Status  | In Progress                  |
 | Version | 1.0                          |
 
 ---
@@ -84,9 +84,9 @@ Attualmente, all'avvio dell'app, viene sempre selezionato un progetto di default
 
 | # | Question | Status | Answer / Decision |
 |---|----------|--------|-------------------|
-| 1 | Esiste già una tabella di configurazione globale in SQLite dove aggiungere una colonna, o va creata una nuova tabella `AppState`? | Open | Da verificare in fase di analisi tecnica |
-| 2 | Il cambio progetto avviene solo dal drawer (`FlyoutViewModel`), o ci sono altri punti nell'app (es. project switcher, onboarding)? | Open | Da verificare in fase di analisi tecnica |
-| 3 | Qual è l'ordinamento esatto restituito da `IProjectService.GetProjectsAsync`? (per nome, per data di creazione, ecc.) | Open | Delegato all'implementazione esistente; da documentare in analisi tecnica |
+| 1 | Esiste già una tabella di configurazione globale in SQLite dove aggiungere una colonna, o va creata una nuova tabella `AppState`? | Resolved | No, non esiste una tabella di configurazione globale. Le uniche tabelle sono `ServerConnections` e `ProjectPreferences`. Si crea una nuova tabella `AppState` con schema key-value: `Key TEXT PRIMARY KEY, Value TEXT NULL`. |
+| 2 | Il cambio progetto avviene solo dal drawer (`FlyoutViewModel`), o ci sono altri punti nell'app (es. project switcher, onboarding)? | Resolved | Il cambio progetto avviene in 3 punti: (1) `FlyoutViewModel.NewSessionAsync` (auto-select first project), (2) `ProjectSwitcherViewModel.SelectProjectAsync`, (3) `ProjectDetailViewModel`. Tutti usano `IActiveProjectService.SetActiveProjectAsync`. La soluzione migliore è integrare la persistenza direttamente in `ActiveProjectService.SetActiveProjectAsync` anziché in ogni singolo ViewModel. |
+| 3 | Qual è l'ordinamento esatto restituito da `IProjectService.GetProjectsAsync`? (per nome, per data di creazione, ecc.) | Resolved | `GetAllProjectsAsync` chiama `GET /project` sul server opencode. L'ordinamento è quello restituito dal server (non specificato, probabilmente per worktree path). Il fallback usa `projects.FirstOrDefault()`. |
 
 ---
 
@@ -128,3 +128,79 @@ Attualmente, all'avvio dell'app, viene sempre selezionato un progetto di default
   - `src/openMob/MauiProgram.cs` o `CoreServiceExtensions.cs`
   - `tests/openMob.Tests/ViewModels/SplashViewModelTests.cs`
   - `tests/openMob.Tests/Services/AppStateServiceTests.cs` (nuovo)
+
+---
+
+## Technical Analysis
+
+> Added by: om-orchestrator | Date: 2026-03-21
+
+### Change Classification
+
+| Field | Value |
+|-------|-------|
+| Change type | Feature |
+| Git Flow branch | feature/last-active-project-restore |
+| Branches from | develop |
+| Estimated complexity | Medium |
+| Estimated agents involved | om-mobile-core, om-tester, om-reviewer |
+
+### Layers Involved
+
+| Layer | Agent | Scope |
+|-------|-------|-------|
+| Data / EF Core | om-mobile-core | src/openMob.Core/Data/Entities/, src/openMob.Core/Data/AppDbContext.cs, src/openMob.Core/Data/Migrations/ |
+| Business logic / Services | om-mobile-core | src/openMob.Core/Services/ |
+| ViewModels | om-mobile-core | src/openMob.Core/ViewModels/SplashViewModel.cs, src/openMob.Core/ViewModels/ActiveProjectService.cs |
+| DI Registration | om-mobile-core | src/openMob.Core/Infrastructure/DI/CoreServiceExtensions.cs |
+| Unit Tests | om-tester | tests/openMob.Tests/ |
+| Code Review | om-reviewer | all of the above |
+
+### Files to Create
+
+- `src/openMob.Core/Data/Entities/AppState.cs` — EF Core entity with `Key` (string PK) and `Value` (string? nullable) for key-value global app state
+- `src/openMob.Core/Services/IAppStateService.cs` — interface with `GetLastActiveProjectIdAsync` and `SetLastActiveProjectIdAsync`
+- `src/openMob.Core/Services/AppStateService.cs` — implementation using `AppDbContext` with `IServiceScopeFactory` (since service is Singleton but DbContext is Scoped)
+- `src/openMob.Core/Data/Migrations/20260321000000_AddAppStateTable.cs` — EF Core migration for the new `AppState` table
+- `tests/openMob.Tests/Services/AppStateServiceTests.cs` — unit tests for AppStateService
+
+### Files to Modify
+
+- `src/openMob.Core/Data/AppDbContext.cs` — add `DbSet<AppState> AppStates` and configure entity in `OnModelCreating`
+- `src/openMob.Core/Services/ActiveProjectService.cs` — inject `IAppStateService`, call `SetLastActiveProjectIdAsync` inside `SetActiveProjectAsync` after successful project activation
+- `src/openMob.Core/ViewModels/SplashViewModel.cs` — inject `IActiveProjectService` and `IAppStateService`, add project restore logic after server reachability check and before navigation to ChatPage
+- `src/openMob.Core/Infrastructure/DI/CoreServiceExtensions.cs` — register `IAppStateService` as Singleton
+
+### Technical Dependencies
+
+- `IProjectService.GetAllProjectsAsync` — already exists, used for fallback project selection
+- `IActiveProjectService.SetActiveProjectAsync` — already exists, used to set the restored project as active
+- `AppDbContext` is registered as Scoped; `IAppStateService` is Singleton → must use `IServiceScopeFactory` to create scoped DbContext instances inside the Singleton service
+- No new NuGet packages required
+- No API endpoints involved (all local SQLite persistence)
+
+### Technical Risks
+
+- **Singleton + Scoped DbContext**: `IAppStateService` is Singleton but `AppDbContext` is Scoped. Must use `IServiceScopeFactory` to avoid captive dependency. This is the same pattern used by other Singleton services in the codebase.
+- **Race condition on startup**: `SplashViewModel.InitializeAsync` runs once. The project restore logic must complete before navigation. No race condition expected since it's sequential.
+- **Migration on existing databases**: The new `AppState` table is additive — no breaking changes to existing data. `AppState` starts empty; first `SetLastActiveProjectIdAsync` call creates the row.
+
+### Execution Order
+
+> Steps that can run in parallel are marked with ⟳. Steps that must be sequential are numbered.
+
+1. [Git Flow] Create branch `feature/last-active-project-restore`
+2. [om-mobile-core] Create `AppState` entity, migration, `IAppStateService`/`AppStateService`, modify `ActiveProjectService` and `SplashViewModel`, register in DI
+3. [om-tester] Write unit tests for `AppStateService`, updated `SplashViewModel`, updated `ActiveProjectService`
+4. [om-reviewer] Full review against spec
+5. [Fix loop if needed] Address Critical and Major findings
+6. [Git Flow] Finish branch and merge
+
+### Definition of Done
+
+- [ ] All `[REQ-001]` through `[REQ-007]` requirements implemented
+- [ ] All `[AC-001]` through `[AC-006]` acceptance criteria satisfied
+- [ ] Unit tests written for `AppStateService`, updated `SplashViewModel`, updated `ActiveProjectService`
+- [ ] `om-reviewer` verdict: ✅ Approved or ⚠️ Approved with remarks
+- [ ] Git Flow branch finished and deleted
+- [ ] Spec moved to `specs/done/` with Completed status

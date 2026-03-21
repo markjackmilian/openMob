@@ -4,7 +4,7 @@
 | Field   | Value                        |
 |---------|------------------------------|
 | Date    | 2026-03-21                   |
-| Status  | Draft                        |
+| Status  | In Progress                  |
 | Version | 1.0                          |
 
 ---
@@ -169,3 +169,98 @@ Attualmente, quando il server configurato è irraggiungibile all'avvio, l'app na
 - `OpencodeApiError.ErrorKind` include `Timeout`, `NetworkUnreachable`, `Unauthorized`, `ServerError` (spec `opencode-api-client`).
 - Il pattern `LoadError` + `ActivityIndicator` overlay è lo standard per gestire errori di caricamento nei ViewModel (spec `server-delete-navigation-bugfix`).
 - `INavigationService` è Singleton, registrato in `MauiProgram.cs`; non in `CoreServiceExtensions` (spec `app-navigation-structure`).
+
+---
+
+## Technical Analysis
+
+> Added by: om-orchestrator | Date: 2026-03-21
+
+### Open Questions — Resolved by Codebase Inspection
+
+Before proceeding, the three open questions from the spec have been resolved:
+
+| # | Question | Resolution |
+|---|----------|------------|
+| 1 | Testi esatti dei messaggi di errore | Accepted as proposed in REQ-003/004/005. Strings are hardcoded in Italian (no `.resx` localisation system found in the project). |
+| 2 | `//server-management` route assoluto? | **CRITICAL FINDING**: `server-management` is registered via `Routing.RegisterRoute` only (in `AppShell.xaml.cs`), NOT as a `ShellContent`. Absolute route `//server-management` will NOT work. A `ShellContent` with `FlyoutItemIsVisible="False"` must be added to `AppShell.xaml`, OR the spec's REQ-007 must be implemented differently. **Decision**: Add a `ShellContent` for `server-management` in `AppShell.xaml` with `FlyoutItemIsVisible="False"` and `Shell.NavBarIsVisible="False"` to enable `//server-management` absolute navigation. |
+| 3 | `ActionCommand` pattern | **Decision**: Expose a separate `[AsyncRelayCommand]` named `NavigateToServerManagementCommand` on `ChatViewModel`. `StatusBannerInfo` remains a pure data record. Bind `ActionCommand="{Binding NavigateToServerManagementCommand}"` in `ChatPage.xaml`. |
+
+### Additional Finding: `IsServerReachableAsync` Return Type
+
+The actual `IOpencodeConnectionManager.IsServerReachableAsync()` returns `Task<bool>` — **not** `Task<OpencodeResult<bool>>`. The spec's REQ-004 and REQ-005 differentiation (401 vs 5xx vs network error) is **not achievable** with the current interface. The implementation will use a simplified two-path approach:
+- `OperationCanceledException` (timeout) → REQ-003 message: *"Server non raggiungibile"*
+- `IsServerReachableAsync` returns `false` (any non-timeout failure) → REQ-005 message: *"Errore di connessione al server"*
+- REQ-004 (401 specific message) is **deferred** — the interface does not expose error kind. The generic error message covers this case.
+
+### Additional Finding: `ChatViewModel` Already Has `INavigationService`
+
+`ChatViewModel` already injects `INavigationService` (line 37, 66 of `ChatViewModel.cs`). REQ-009 is **already satisfied**. No constructor change needed. Only `UpdateStatusBanner()` and the new `NavigateToServerManagementCommand` need to be added.
+
+### Change Classification
+
+| Field | Value |
+|-------|-------|
+| Change type | Bug Fix / Feature Enhancement |
+| Git Flow branch | `feature/server-offline-startup-navigation` |
+| Branches from | `develop` |
+| Estimated complexity | Medium |
+| Estimated agents involved | om-mobile-core, om-mobile-ui, om-tester, om-reviewer |
+
+### Layers Involved
+
+| Layer | Agent | Scope |
+|-------|-------|-------|
+| ViewModels | om-mobile-core | `src/openMob.Core/ViewModels/SplashViewModel.cs`, `src/openMob.Core/ViewModels/ChatViewModel.cs` |
+| XAML Views | om-mobile-ui | `src/openMob/Views/Pages/SplashPage.xaml`, `src/openMob/Views/Pages/ChatPage.xaml`, `src/openMob/AppShell.xaml` |
+| Unit Tests | om-tester | `tests/openMob.Tests/ViewModels/SplashViewModelTests.cs`, `tests/openMob.Tests/ViewModels/ChatViewModelTests.cs` |
+| Code Review | om-reviewer | all of the above |
+
+### Files to Create
+
+- None — all changes are modifications to existing files.
+
+### Files to Modify
+
+- `src/openMob.Core/ViewModels/SplashViewModel.cs` — add `StatusMessage` property; reroute offline/error paths to `//server-management` with 2s delay; add `Task.Delay` injectable via `TimeProvider`
+- `src/openMob.Core/ViewModels/ChatViewModel.cs` — add `NavigateToServerManagementCommand`; update `UpdateStatusBanner()` to set `ActionLabel: "Gestisci server"` for `ServerOffline`
+- `src/openMob/Views/Pages/SplashPage.xaml` — add `StatusMessage` label below spinner
+- `src/openMob/Views/Pages/ChatPage.xaml` — add `ActionCommand="{Binding NavigateToServerManagementCommand}"` on `StatusBannerView`
+- `src/openMob/AppShell.xaml` — add `ShellContent` for `server-management` with `FlyoutItemIsVisible="False"` to enable `//server-management` absolute route
+- `tests/openMob.Tests/ViewModels/SplashViewModelTests.cs` — update existing offline tests (expect `//server-management`); add new tests for `StatusMessage` and 2s delay
+- `tests/openMob.Tests/ViewModels/ChatViewModelTests.cs` — add tests for `NavigateToServerManagementCommand` and `StatusBanner.ActionLabel`
+
+### Technical Dependencies
+
+- `INavigationService.GoToAsync(string)` — already exists, already injected in both ViewModels
+- `IOpencodeConnectionManager.IsServerReachableAsync()` — already exists, returns `Task<bool>`
+- `StatusBannerInfo` record — already has `ActionLabel` parameter, no model change needed
+- `StatusBannerView.ActionCommand` bindable property — already exists in code-behind, just missing XAML binding
+- `TimeProvider` (.NET 8+) — to be introduced in `SplashViewModel` for testable delays; injected as `TimeProvider` (abstract class, not interface) — `TimeProvider.System` as default, mockable in tests
+
+### Technical Risks
+
+- **`//server-management` absolute route**: Requires adding `ShellContent` to `AppShell.xaml`. If `ServerManagementPage` is already reachable via relative route from other pages (e.g. `SettingsPage`), adding it as `ShellContent` may affect navigation stack behaviour. Risk: Low — `FlyoutItemIsVisible="False"` prevents it appearing in the flyout.
+- **`Task.Delay` in tests**: Existing `SplashViewModelTests` will need to handle the 2s delay. Using `TimeProvider` injection allows tests to use `TimeProvider.System` with a very short delay or a fake provider. Risk: Medium — requires careful test design.
+- **Existing tests breaking**: 4 existing `SplashViewModelTests` expect navigation to `//chat` for offline scenarios — these must be updated to expect `//server-management`. Risk: Low — straightforward update.
+
+### Execution Order
+
+> Steps that can run in parallel are marked with ⟳.
+
+1. **[Git Flow]** Create branch `feature/server-offline-startup-navigation`
+2. **[om-mobile-core]** Implement `SplashViewModel` changes (StatusMessage, delay, rerouting) and `ChatViewModel` changes (NavigateToServerManagementCommand, UpdateStatusBanner fix)
+3. ⟳ **[om-mobile-ui]** Implement XAML changes (SplashPage label, ChatPage ActionCommand binding, AppShell ShellContent) — can start in parallel with om-mobile-core once the ViewModel binding surface is known (it is already defined above)
+4. **[om-tester]** Write/update unit tests — after om-mobile-core completes
+5. **[om-reviewer]** Full review against spec
+6. **[Fix loop if needed]** Address Critical and Major findings
+7. **[Git Flow]** Finish branch and merge
+
+### Definition of Done
+
+- [ ] All `[REQ-001]` through `[REQ-012]` requirements implemented (with REQ-004 simplified per finding above)
+- [ ] All `[AC-001]` through `[AC-010]` acceptance criteria satisfied
+- [ ] Unit tests written/updated for `SplashViewModel` and `ChatViewModel`
+- [ ] `om-reviewer` verdict: ✅ Approved or ⚠️ Approved with remarks
+- [ ] Git Flow branch finished and deleted
+- [ ] Spec moved to `specs/done/` with Completed status

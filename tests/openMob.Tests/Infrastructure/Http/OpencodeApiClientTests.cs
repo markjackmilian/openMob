@@ -19,7 +19,7 @@ public sealed class OpencodeApiClientTests
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IOpencodeConnectionManager _connectionManager;
     private readonly FakeOpencodeSettingsService _settingsService;
-    private readonly IActiveProjectService _activeProjectService;
+    private readonly Lazy<IActiveProjectService> _lazyActiveProjectService;
 
     public OpencodeApiClientTests()
     {
@@ -35,27 +35,28 @@ public sealed class OpencodeApiClientTests
 
         _settingsService = new FakeOpencodeSettingsService { TimeoutSeconds = 30 };
 
-        _activeProjectService = Substitute.For<IActiveProjectService>();
-        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>())
+        var activeProjectService = Substitute.For<IActiveProjectService>();
+        activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>())
             .Returns(new ProjectDto(
                 Id: "proj-1",
                 Worktree: "/home/user/myproject",
                 VcsDir: null,
                 Vcs: "git",
                 Time: new ProjectTimeDto(Created: 1710000000000, Initialized: null)));
+        _lazyActiveProjectService = new Lazy<IActiveProjectService>(() => activeProjectService);
     }
 
     /// <summary>
     /// Creates the SUT with production retry delays (for non-retry tests).
     /// </summary>
     private OpencodeApiClient CreateSut()
-        => new(_httpClientFactory, _connectionManager, _settingsService, _activeProjectService);
+        => new(_httpClientFactory, _connectionManager, _settingsService, _lazyActiveProjectService);
 
     /// <summary>
     /// Creates the SUT with zero retry delays so retry tests complete instantly.
     /// </summary>
     private OpencodeApiClient CreateSutWithZeroDelays()
-        => new(_httpClientFactory, _connectionManager, _settingsService, _activeProjectService,
+        => new(_httpClientFactory, _connectionManager, _settingsService, _lazyActiveProjectService,
             retryDelays: [TimeSpan.Zero, TimeSpan.Zero]);
 
     // ──────────────────────────────────────────────────────────────

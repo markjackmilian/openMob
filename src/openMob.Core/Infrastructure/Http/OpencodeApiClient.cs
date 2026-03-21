@@ -40,7 +40,7 @@ internal sealed class OpencodeApiClient : IOpencodeApiClient
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IOpencodeConnectionManager _connectionManager;
     private readonly IOpencodeSettingsService _settingsService;
-    private readonly IActiveProjectService _activeProjectService;
+    private readonly Lazy<IActiveProjectService> _activeProjectService;
     private readonly TimeSpan[] _retryDelays;
     private volatile bool _isWaitingForServer;
 
@@ -50,7 +50,11 @@ internal sealed class OpencodeApiClient : IOpencodeApiClient
     /// <param name="httpClientFactory">Factory for creating named HTTP clients.</param>
     /// <param name="connectionManager">Resolves the active server base URL and auth header.</param>
     /// <param name="settingsService">Provides the configured request timeout.</param>
-    /// <param name="activeProjectService">Provides the active project directory for the <c>x-opencode-directory</c> header.</param>
+    /// <param name="activeProjectService">
+    /// Lazy wrapper around <see cref="IActiveProjectService"/>. Deferred resolution breaks the
+    /// circular dependency chain: <c>OpencodeApiClient → IActiveProjectService → IProjectService → IOpencodeApiClient</c>.
+    /// The service is only resolved on first HTTP request, not at construction time.
+    /// </param>
     /// <param name="retryDelays">
     /// Optional override for inter-attempt retry delays. Defaults to [2s, 4s] (3 total attempts).
     /// Pass shorter delays in tests to avoid real-time waits.
@@ -59,7 +63,7 @@ internal sealed class OpencodeApiClient : IOpencodeApiClient
         IHttpClientFactory httpClientFactory,
         IOpencodeConnectionManager connectionManager,
         IOpencodeSettingsService settingsService,
-        IActiveProjectService activeProjectService,
+        Lazy<IActiveProjectService> activeProjectService,
         TimeSpan[]? retryDelays = null)
     {
         _httpClientFactory = httpClientFactory;
@@ -143,7 +147,7 @@ internal sealed class OpencodeApiClient : IOpencodeApiClient
 
                     // Inject the active project directory so the server uses the correct project context.
                     // The server reads this from the x-opencode-directory header on every request.
-                    var activeProject = await _activeProjectService.GetActiveProjectAsync(ct).ConfigureAwait(false);
+                    var activeProject = await _activeProjectService.Value.GetActiveProjectAsync(ct).ConfigureAwait(false);
                     if (activeProject?.Worktree is { Length: > 0 } worktree)
                         client.DefaultRequestHeaders.TryAddWithoutValidation("x-opencode-directory", worktree);
 
@@ -715,7 +719,7 @@ internal sealed class OpencodeApiClient : IOpencodeApiClient
         }
 
         // Inject the active project directory for SSE events too.
-        var activeProject = await _activeProjectService.GetActiveProjectAsync(cancellationToken).ConfigureAwait(false);
+        var activeProject = await _activeProjectService.Value.GetActiveProjectAsync(cancellationToken).ConfigureAwait(false);
         if (activeProject?.Worktree is { Length: > 0 } worktree)
             client.DefaultRequestHeaders.TryAddWithoutValidation("x-opencode-directory", worktree);
 

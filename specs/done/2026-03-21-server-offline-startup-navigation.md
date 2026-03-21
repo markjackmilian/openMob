@@ -1,11 +1,14 @@
 # Server Offline Detection — Startup & Runtime Navigation to Server Management
 
 ## Metadata
-| Field   | Value                        |
-|---------|------------------------------|
-| Date    | 2026-03-21                   |
-| Status  | In Progress                  |
-| Version | 1.0                          |
+| Field       | Value                                          |
+|-------------|------------------------------------------------|
+| Date        | 2026-03-21                                     |
+| Status      | **Completed**                                  |
+| Version     | 1.0                                            |
+| Completed   | 2026-03-21                                     |
+| Branch      | feature/server-offline-startup-navigation (merged) |
+| Merged into | develop                                        |
 
 ---
 

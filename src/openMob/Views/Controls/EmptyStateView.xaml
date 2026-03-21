@@ -15,8 +15,8 @@
                          Spacing="{StaticResource SpacingSm}">
 
       <!-- App icon -->
-      <Label Text="{x:Static helpers:MaterialIcons.SmartToy}"
-             FontFamily="MaterialSymbols"
+      <Label Text="{x:Static helpers:IconKeys.Robot}"
+             FontFamily="TablerIcons"
              FontSize="64"
              TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
                                          Dark={StaticResource ColorOnBackgroundTertiaryDark}}"

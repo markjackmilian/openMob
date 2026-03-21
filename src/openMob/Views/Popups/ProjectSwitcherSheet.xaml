@@ -21,13 +21,31 @@
         HorizontalOptions="Center"
         Margin="0,8,0,16" />
 
-    <!-- Title -->
-    <Label
-        Text="Switch Project"
-        FontFamily="InterSemiBold"
-        FontSize="{StaticResource FontSizeTitle3}"
-        TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}"
-        Margin="16,0,16,16" />
+    <!-- Header with title and close button -->
+    <Grid ColumnDefinitions="*,Auto"
+          Padding="{StaticResource SpacingLg},0,{StaticResource SpacingLg},{StaticResource SpacingLg}">
+      <Label
+          Grid.Column="0"
+          Text="Switch Project"
+          Style="{StaticResource Title3Label}"
+          VerticalOptions="Center" />
+      <ImageButton
+          Grid.Column="1"
+          Clicked="OnCloseButtonTapped"
+          MinimumHeightRequest="{StaticResource MinTouchTarget}"
+          MinimumWidthRequest="{StaticResource MinTouchTarget}"
+          BackgroundColor="Transparent"
+          AutomationId="ProjectSwitcherCloseButton"
+          SemanticProperties.Description="Close project switcher">
+        <ImageButton.Source>
+          <FontImageSource FontFamily="TablerIcons"
+                           Glyph="{x:Static helpers:IconKeys.X}"
+                           Size="24"
+                           Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight},
+                                                    Dark={StaticResource ColorOnBackgroundDark}}" />
+        </ImageButton.Source>
+      </ImageButton>
+    </Grid>
 
     <!-- Loading indicator -->
     <ActivityIndicator
@@ -58,8 +76,8 @@
               <!-- Project folder icon -->
               <Label
                   Grid.Column="0"
-                  FontFamily="MaterialSymbols"
-                  Text="{x:Static helpers:MaterialIcons.Folder}"
+                  FontFamily="TablerIcons"
+                  Text="{x:Static helpers:IconKeys.Folder}"
                   FontSize="24"
                   TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
                   VerticalOptions="Center"
@@ -85,8 +103,8 @@
               <!-- Checkmark for active project -->
               <Label
                   Grid.Column="2"
-                  FontFamily="MaterialSymbols"
-                  Text="{x:Static helpers:MaterialIcons.Check}"
+                  FontFamily="TablerIcons"
+                  Text="{x:Static helpers:IconKeys.Check}"
                   FontSize="24"
                   TextColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}"
                   IsVisible="{Binding IsActive}"

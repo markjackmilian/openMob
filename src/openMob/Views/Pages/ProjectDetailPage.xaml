@@ -6,7 +6,34 @@
              xmlns:helpers="clr-namespace:openMob.Helpers"
              x:Class="openMob.Views.Pages.ProjectDetailPage"
              x:DataType="vm:ProjectDetailViewModel"
-             Title="{Binding ProjectName, FallbackValue='Project'}">
+              Title="{Binding ProjectName, FallbackValue='Project'}">
+
+  <Shell.TitleView>
+    <Grid ColumnDefinitions="Auto,*" Padding="{StaticResource SpacingXs}">
+      <ImageButton
+          Grid.Column="0"
+          Clicked="OnBackButtonTapped"
+          MinimumHeightRequest="{StaticResource MinTouchTarget}"
+          MinimumWidthRequest="{StaticResource MinTouchTarget}"
+          BackgroundColor="Transparent"
+          AutomationId="ProjectDetailBackButton"
+          SemanticProperties.Description="Go back">
+        <ImageButton.Source>
+          <FontImageSource
+              FontFamily="TablerIcons"
+              Glyph="{x:Static helpers:IconKeys.ArrowLeft}"
+              Size="24"
+              Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}" />
+        </ImageButton.Source>
+      </ImageButton>
+      <Label
+          Grid.Column="1"
+          Text="{Binding ProjectName, FallbackValue='Project'}"
+          Style="{StaticResource Title2Label}"
+          VerticalOptions="Center"
+          LineBreakMode="TailTruncation" />
+    </Grid>
+  </Shell.TitleView>
 
   <Grid>
     <!-- Loading indicator -->
@@ -67,8 +94,8 @@
                 Spacing="{StaticResource SpacingSm}"
                 IsVisible="{Binding IsActiveProject}">
               <Label
-                  FontFamily="MaterialSymbols"
-                  Text="{x:Static helpers:MaterialIcons.Check}"
+                  FontFamily="TablerIcons"
+                  Text="{x:Static helpers:IconKeys.Check}"
                   TextColor="{AppThemeBinding Light={StaticResource ColorSuccessLight}, Dark={StaticResource ColorSuccessDark}}"
                   VerticalOptions="Center" />
               <Label
@@ -156,8 +183,8 @@
               </VerticalStackLayout>
               <Label
                   Grid.Column="1"
-                  FontFamily="MaterialSymbols"
-                  Text="{x:Static helpers:MaterialIcons.ChevronRight}"
+                  FontFamily="TablerIcons"
+                  Text="{x:Static helpers:IconKeys.ChevronRight}"
                   FontSize="{StaticResource FontSizeTitle2}"
                   TextColor="{AppThemeBinding Light={StaticResource ColorOnSurfaceTertiaryLight}, Dark={StaticResource ColorOnSurfaceTertiaryDark}}"
                   VerticalOptions="Center" />
@@ -184,8 +211,8 @@
               </VerticalStackLayout>
               <Label
                   Grid.Column="1"
-                  FontFamily="MaterialSymbols"
-                  Text="{x:Static helpers:MaterialIcons.ChevronRight}"
+                  FontFamily="TablerIcons"
+                  Text="{x:Static helpers:IconKeys.ChevronRight}"
                   FontSize="{StaticResource FontSizeTitle2}"
                   TextColor="{AppThemeBinding Light={StaticResource ColorOnSurfaceTertiaryLight}, Dark={StaticResource ColorOnSurfaceTertiaryDark}}"
                   VerticalOptions="Center" />

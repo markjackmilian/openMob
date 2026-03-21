@@ -217,6 +217,28 @@
     </Style>
 
     <!-- ═══════════════════════════════════════════════════════════════
+         ICON LABEL STYLES — for Tabler Icons font glyphs
+         ═══════════════════════════════════════════════════════════════ -->
+
+    <!-- Standard icon label (17pt, matches Headline size) -->
+    <Style x:Key="IconLabel" TargetType="Label">
+        <Setter Property="FontFamily" Value="TablerIcons" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeHeadline}" />
+        <Setter Property="LineBreakMode" Value="NoWrap" />
+        <Setter Property="HorizontalTextAlignment" Value="Center" />
+        <Setter Property="VerticalTextAlignment" Value="Center" />
+    </Style>
+
+    <!-- Large icon label (20pt, matches Title3 size) — for larger touch-target icons -->
+    <Style x:Key="IconLabelLg" TargetType="Label">
+        <Setter Property="FontFamily" Value="TablerIcons" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeTitle3}" />
+        <Setter Property="LineBreakMode" Value="NoWrap" />
+        <Setter Property="HorizontalTextAlignment" Value="Center" />
+        <Setter Property="VerticalTextAlignment" Value="Center" />
+    </Style>
+
+    <!-- ═══════════════════════════════════════════════════════════════
          EXPLICIT LABEL STYLES — typography hierarchy
          ═══════════════════════════════════════════════════════════════ -->
 

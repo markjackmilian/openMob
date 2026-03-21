@@ -27,6 +27,12 @@ public partial class ProjectsPage : ContentPage
         }
     }
 
+    /// <summary>Navigates back when the back button is tapped.</summary>
+    private async void OnBackButtonTapped(object? sender, EventArgs e)
+    {
+        await Shell.Current.GoToAsync("..");
+    }
+
     private async void OnAddProjectClicked(object? sender, EventArgs e)
     {
         // AddProjectSheet will be pushed via IAppPopupService when fully integrated.

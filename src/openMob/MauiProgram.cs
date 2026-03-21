@@ -46,7 +46,7 @@ public static class MauiProgram
                 fonts.AddFont("Inter-Medium.ttf", "InterMedium");
                 fonts.AddFont("Inter-SemiBold.ttf", "InterSemiBold");
                 fonts.AddFont("Inter-Bold.ttf", "InterBold");
-                fonts.AddFont("MaterialSymbols-Outlined.ttf", "MaterialSymbols");
+                fonts.AddFont("MaterialSymbols-Outlined.ttf", "TablerIcons");
             });
 
 #if DEBUG

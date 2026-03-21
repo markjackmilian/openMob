@@ -33,8 +33,8 @@
                    AutomationId="ChatHamburgerButton"
                    SemanticProperties.Description="Open navigation menu">
         <ImageButton.Source>
-          <FontImageSource FontFamily="MaterialSymbols"
-                           Glyph="{x:Static helpers:MaterialIcons.Menu}"
+          <FontImageSource FontFamily="TablerIcons"
+                           Glyph="{x:Static helpers:IconKeys.Menu}"
                            Size="24"
                            Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight},
                                                     Dark={StaticResource ColorOnBackgroundDark}}" />
@@ -66,8 +66,8 @@
                    AutomationId="ChatContextButton"
                    SemanticProperties.Description="Open context settings">
         <ImageButton.Source>
-          <FontImageSource FontFamily="MaterialSymbols"
-                           Glyph="{x:Static helpers:MaterialIcons.Tune}"
+          <FontImageSource FontFamily="TablerIcons"
+                           Glyph="{x:Static helpers:IconKeys.Adjustments}"
                            Size="24"
                            Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight},
                                                     Dark={StaticResource ColorOnBackgroundDark}}" />
@@ -164,8 +164,8 @@
                                                  Dark={StaticResource ColorSurfaceSecondaryDark}}"
                 VerticalOptions="End"
                 Padding="0">
-          <Label Text="{x:Static helpers:MaterialIcons.SmartToy}"
-                 FontFamily="MaterialSymbols"
+          <Label Text="{x:Static helpers:IconKeys.Robot}"
+                 FontFamily="TablerIcons"
                  FontSize="{StaticResource FontSizeCallout}"
                  TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
                                              Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
@@ -243,8 +243,8 @@
                        AutomationId="DismissErrorButton"
                        SemanticProperties.Description="Dismiss error">
             <ImageButton.Source>
-              <FontImageSource FontFamily="MaterialSymbols"
-                               Glyph="{x:Static helpers:MaterialIcons.Close}"
+              <FontImageSource FontFamily="TablerIcons"
+                               Glyph="{x:Static helpers:IconKeys.X}"
                                Size="18"
                                Color="{AppThemeBinding Light={StaticResource ColorOnErrorContainerLight},
                                                         Dark={StaticResource ColorOnErrorContainerDark}}" />

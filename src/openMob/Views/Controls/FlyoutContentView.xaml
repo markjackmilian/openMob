@@ -46,8 +46,8 @@
           <Image>
             <Image.Source>
               <FontImageSource
-                  FontFamily="MaterialSymbols"
-                  Glyph="{x:Static helpers:MaterialIcons.Add}"
+                  FontFamily="TablerIcons"
+                  Glyph="{x:Static helpers:IconKeys.Add}"
                   Size="20"
                   Color="{AppThemeBinding Light={StaticResource ColorOnPrimaryContainerLight}, Dark={StaticResource ColorOnPrimaryContainerDark}}" />
             </Image.Source>

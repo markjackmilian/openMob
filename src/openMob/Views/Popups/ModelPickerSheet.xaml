@@ -22,14 +22,32 @@
         HorizontalOptions="Center"
         Margin="0,8,0,16" />
 
-    <!-- Title -->
-    <Label
-        Grid.Row="1"
-        Text="Select Model"
-        FontFamily="InterSemiBold"
-        FontSize="{StaticResource FontSizeTitle3}"
-        TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}"
-        Margin="16,0,16,16" />
+    <!-- Header with title and close button -->
+    <Grid Grid.Row="1"
+          ColumnDefinitions="*,Auto"
+          Padding="{StaticResource SpacingLg},0,{StaticResource SpacingLg},{StaticResource SpacingLg}">
+      <Label
+          Grid.Column="0"
+          Text="Select Model"
+          Style="{StaticResource Title3Label}"
+          VerticalOptions="Center" />
+      <ImageButton
+          Grid.Column="1"
+          Clicked="OnCloseButtonTapped"
+          MinimumHeightRequest="{StaticResource MinTouchTarget}"
+          MinimumWidthRequest="{StaticResource MinTouchTarget}"
+          BackgroundColor="Transparent"
+          AutomationId="ModelPickerCloseButton"
+          SemanticProperties.Description="Close model picker">
+        <ImageButton.Source>
+          <FontImageSource FontFamily="TablerIcons"
+                           Glyph="{x:Static helpers:IconKeys.X}"
+                           Size="24"
+                           Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight},
+                                                    Dark={StaticResource ColorOnBackgroundDark}}" />
+        </ImageButton.Source>
+      </ImageButton>
+    </Grid>
 
     <!-- ═══════════════════════════════════════════════════════════════
          Loading state (REQ-002)
@@ -62,27 +80,27 @@
       </VerticalStackLayout.Triggers>
 
       <Label
-          Text="{x:Static helpers:MaterialIcons.SmartToy}"
-          FontFamily="MaterialSymbols"
+          Text="{x:Static helpers:IconKeys.Robot}"
+          FontFamily="TablerIcons"
           FontSize="48"
           TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
           HorizontalOptions="Center"
           SemanticProperties.Description="No models icon" />
 
       <Label
-          Text="Nessun modello disponibile"
+          Text="No models available"
           Style="{StaticResource HeadlineLabel}"
           HorizontalTextAlignment="Center"
           HorizontalOptions="Center" />
 
       <Label
-          Text="Configura un provider per visualizzare i modelli disponibili."
+          Text="Configure a provider to view available models."
           Style="{StaticResource SubtitleLabel}"
           HorizontalTextAlignment="Center"
           HorizontalOptions="Center" />
 
       <Button
-          Text="Configura provider"
+          Text="Configure Provider"
           Style="{StaticResource SecondaryButton}"
           Command="{Binding ConfigureProvidersCommand}"
           HorizontalOptions="Center"
@@ -153,8 +171,8 @@
               <!-- Selection indicator: checkmark when selected -->
               <Label
                   Grid.Column="1"
-                  FontFamily="MaterialSymbols"
-                  Text="{x:Static helpers:MaterialIcons.Check}"
+                  FontFamily="TablerIcons"
+                  Text="{x:Static helpers:IconKeys.Check}"
                   FontSize="24"
                   TextColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}"
                   IsVisible="{Binding IsSelected}"

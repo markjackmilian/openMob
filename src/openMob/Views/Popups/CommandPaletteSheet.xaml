@@ -18,6 +18,27 @@
              Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
                                       Dark={StaticResource ColorOnBackgroundTertiaryDark}}" />
 
+    <!-- Close button (trailing) -->
+    <Grid Grid.Row="0"
+          Padding="{StaticResource SpacingLg},0"
+          HorizontalOptions="End"
+          VerticalOptions="Center">
+      <ImageButton Clicked="OnCloseButtonTapped"
+                   MinimumHeightRequest="{StaticResource MinTouchTarget}"
+                   MinimumWidthRequest="{StaticResource MinTouchTarget}"
+                   BackgroundColor="Transparent"
+                   AutomationId="CommandPaletteCloseButton"
+                   SemanticProperties.Description="Close command palette">
+        <ImageButton.Source>
+          <FontImageSource FontFamily="TablerIcons"
+                           Glyph="{x:Static helpers:IconKeys.X}"
+                           Size="24"
+                           Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight},
+                                                    Dark={StaticResource ColorOnBackgroundDark}}" />
+        </ImageButton.Source>
+      </ImageButton>
+    </Grid>
+
     <!-- Search bar -->
     <SearchBar Grid.Row="1"
                Style="{StaticResource CommandPaletteSearchBar}"

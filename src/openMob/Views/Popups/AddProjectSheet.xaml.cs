@@ -12,4 +12,10 @@ public partial class AddProjectSheet : ContentPage
         InitializeComponent();
         BindingContext = viewModel;
     }
+
+    /// <summary>Closes the sheet when the close button is tapped.</summary>
+    private async void OnCloseButtonTapped(object? sender, EventArgs e)
+    {
+        await Shell.Current.GoToAsync("..");
+    }
 }

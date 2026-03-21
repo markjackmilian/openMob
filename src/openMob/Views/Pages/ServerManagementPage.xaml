@@ -7,15 +7,49 @@
              xmlns:helpers="clr-namespace:openMob.Helpers"
              x:Class="openMob.Views.Pages.ServerManagementPage"
              x:DataType="vm:ServerManagementViewModel"
-             Title="Servers">
+              Title="Servers">
 
-  <ContentPage.ToolbarItems>
-    <ToolbarItem
-        Command="{Binding NavigateToAddCommand}"
-        Text="+"
-        AutomationId="ServerManagementAddButton"
-        SemanticProperties.Description="Add new server" />
-  </ContentPage.ToolbarItems>
+  <Shell.TitleView>
+    <Grid ColumnDefinitions="Auto,*,Auto" Padding="{StaticResource SpacingXs}">
+      <ImageButton
+          Grid.Column="0"
+          Clicked="OnBackButtonTapped"
+          MinimumHeightRequest="{StaticResource MinTouchTarget}"
+          MinimumWidthRequest="{StaticResource MinTouchTarget}"
+          BackgroundColor="Transparent"
+          AutomationId="ServerManagementBackButton"
+          SemanticProperties.Description="Go back">
+        <ImageButton.Source>
+          <FontImageSource
+              FontFamily="TablerIcons"
+              Glyph="{x:Static helpers:IconKeys.ArrowLeft}"
+              Size="24"
+              Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}" />
+        </ImageButton.Source>
+      </ImageButton>
+      <Label
+          Grid.Column="1"
+          Text="Servers"
+          Style="{StaticResource Title2Label}"
+          VerticalOptions="Center" />
+      <ImageButton
+          Grid.Column="2"
+          Command="{Binding NavigateToAddCommand}"
+          MinimumHeightRequest="{StaticResource MinTouchTarget}"
+          MinimumWidthRequest="{StaticResource MinTouchTarget}"
+          BackgroundColor="Transparent"
+          AutomationId="ServerManagementAddButton"
+          SemanticProperties.Description="Add new server">
+        <ImageButton.Source>
+          <FontImageSource
+              FontFamily="TablerIcons"
+              Glyph="{x:Static helpers:IconKeys.Add}"
+              Size="24"
+              Color="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}" />
+        </ImageButton.Source>
+      </ImageButton>
+    </Grid>
+  </Shell.TitleView>
 
   <Grid>
     <!-- Loading overlay -->
@@ -80,8 +114,8 @@
                     <!-- Active indicator (CheckCircle) -->
                     <Label
                         Grid.Column="0"
-                        FontFamily="MaterialSymbols"
-                        Text="{x:Static helpers:MaterialIcons.CheckCircle}"
+                        FontFamily="TablerIcons"
+                        Text="{x:Static helpers:IconKeys.CircleCheck}"
                         FontSize="20"
                         TextColor="{AppThemeBinding Light={StaticResource ColorSuccessLight}, Dark={StaticResource ColorSuccessDark}}"
                         IsVisible="{Binding IsActive}"
@@ -110,8 +144,8 @@
                     <!-- Chevron -->
                     <Label
                         Grid.Column="2"
-                        FontFamily="MaterialSymbols"
-                        Text="{x:Static helpers:MaterialIcons.ChevronRight}"
+                        FontFamily="TablerIcons"
+                        Text="{x:Static helpers:IconKeys.ChevronRight}"
                         FontSize="18"
                         TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
                         VerticalOptions="Center" />
@@ -193,8 +227,8 @@
                     <!-- Chevron -->
                     <Label
                         Grid.Column="1"
-                        FontFamily="MaterialSymbols"
-                        Text="{x:Static helpers:MaterialIcons.ChevronRight}"
+                        FontFamily="TablerIcons"
+                        Text="{x:Static helpers:IconKeys.ChevronRight}"
                         FontSize="18"
                         TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
                         VerticalOptions="Center" />

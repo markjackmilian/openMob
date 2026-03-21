@@ -5,7 +5,8 @@
              x:Class="openMob.Views.Pages.SplashPage"
              x:DataType="vm:SplashViewModel"
              Shell.NavBarIsVisible="False"
-             Shell.FlyoutBehavior="Disabled">
+              Shell.FlyoutBehavior="Disabled"
+              BackgroundColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}">
 
   <VerticalStackLayout
       VerticalOptions="Center"
@@ -35,13 +36,14 @@
         Text="openMob"
         FontFamily="InterBold"
         FontSize="{StaticResource FontSizeTitle1}"
-        TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}"
+        TextColor="{AppThemeBinding Light={StaticResource ColorOnPrimaryLight}, Dark={StaticResource ColorOnPrimaryDark}}"
         HorizontalTextAlignment="Center" />
 
     <!-- Loading indicator -->
     <ActivityIndicator
         IsRunning="{Binding IsLoading}"
         IsVisible="{Binding IsLoading}"
+        Color="{AppThemeBinding Light={StaticResource ColorOnPrimaryLight}, Dark={StaticResource ColorOnPrimaryDark}}"
         HorizontalOptions="Center"
         AutomationId="SplashLoadingIndicator" />
 
@@ -50,8 +52,8 @@
         Text="{Binding StatusMessage, FallbackValue='', TargetNullValue=''}"
         FontFamily="InterRegular"
         FontSize="{StaticResource FontSizeFootnote}"
-        TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
-                                    Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
+        TextColor="{AppThemeBinding Light={StaticResource ColorOnPrimaryLight},
+                                    Dark={StaticResource ColorOnPrimaryDark}}"
         HorizontalTextAlignment="Center"
         AutomationId="SplashStatusMessage">
       <Label.Triggers>

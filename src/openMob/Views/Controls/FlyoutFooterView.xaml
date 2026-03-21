@@ -25,8 +25,8 @@
       </Grid.GestureRecognizers>
       <Label
           Grid.Column="0"
-          FontFamily="MaterialSymbols"
-          Text="{x:Static helpers:MaterialIcons.Folder}"
+          FontFamily="TablerIcons"
+          Text="{x:Static helpers:IconKeys.Folder}"
           FontSize="22"
           TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
           VerticalOptions="Center"
@@ -52,8 +52,8 @@
       </Grid.GestureRecognizers>
       <Label
           Grid.Column="0"
-          FontFamily="MaterialSymbols"
-          Text="{x:Static helpers:MaterialIcons.Settings}"
+          FontFamily="TablerIcons"
+          Text="{x:Static helpers:IconKeys.Settings}"
           FontSize="22"
           TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
           VerticalOptions="Center"

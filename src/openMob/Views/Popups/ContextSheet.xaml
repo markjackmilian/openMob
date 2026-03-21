@@ -18,6 +18,31 @@
                Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
                                         Dark={StaticResource ColorOnBackgroundTertiaryDark}}" />
 
+      <!-- Header with title and close button -->
+      <Grid ColumnDefinitions="*,Auto"
+            Padding="{StaticResource SpacingLg},0"
+            HeightRequest="{StaticResource MinTouchTarget}">
+        <Label Grid.Column="0"
+               Text="Context"
+               Style="{StaticResource Title3Label}"
+               VerticalOptions="Center" />
+        <ImageButton Grid.Column="1"
+                     Clicked="OnCloseButtonTapped"
+                     MinimumHeightRequest="{StaticResource MinTouchTarget}"
+                     MinimumWidthRequest="{StaticResource MinTouchTarget}"
+                     BackgroundColor="Transparent"
+                     AutomationId="ContextSheetCloseButton"
+                     SemanticProperties.Description="Close context sheet">
+          <ImageButton.Source>
+            <FontImageSource FontFamily="TablerIcons"
+                             Glyph="{x:Static helpers:IconKeys.X}"
+                             Size="24"
+                             Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight},
+                                                      Dark={StaticResource ColorOnBackgroundDark}}" />
+          </ImageButton.Source>
+        </ImageButton>
+      </Grid>
+
       <!-- ═══════════════════════════════════════════════════════════════
            Project row
            ═══════════════════════════════════════════════════════════════ -->
@@ -26,8 +51,8 @@
             ColumnSpacing="{StaticResource SpacingMd}">
 
         <Label Grid.Column="0"
-               Text="{x:Static helpers:MaterialIcons.Folder}"
-               FontFamily="MaterialSymbols"
+               Text="{x:Static helpers:IconKeys.Folder}"
+               FontFamily="TablerIcons"
                FontSize="24"
                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
                                             Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
@@ -64,8 +89,8 @@
         </Grid.GestureRecognizers>
 
         <Label Grid.Column="0"
-               Text="{x:Static helpers:MaterialIcons.SmartToy}"
-               FontFamily="MaterialSymbols"
+               Text="{x:Static helpers:IconKeys.Robot}"
+               FontFamily="TablerIcons"
                FontSize="24"
                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
                                             Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
@@ -90,8 +115,8 @@
                MaximumWidthRequest="160" />
 
         <Label Grid.Column="3"
-               Text="{x:Static helpers:MaterialIcons.ChevronRight}"
-               FontFamily="MaterialSymbols"
+               Text="{x:Static helpers:IconKeys.ChevronRight}"
+               FontFamily="TablerIcons"
                FontSize="20"
                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
                                             Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
@@ -109,8 +134,8 @@
         </Grid.GestureRecognizers>
 
         <Label Grid.Column="0"
-               Text="{x:Static helpers:MaterialIcons.Psychology}"
-               FontFamily="MaterialSymbols"
+               Text="{x:Static helpers:IconKeys.Brain}"
+               FontFamily="TablerIcons"
                FontSize="24"
                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
                                             Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
@@ -135,8 +160,8 @@
                MaximumWidthRequest="160" />
 
         <Label Grid.Column="3"
-               Text="{x:Static helpers:MaterialIcons.ChevronRight}"
-               FontFamily="MaterialSymbols"
+               Text="{x:Static helpers:IconKeys.ChevronRight}"
+               FontFamily="TablerIcons"
                FontSize="20"
                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
                                             Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
@@ -157,8 +182,8 @@
             ColumnSpacing="{StaticResource SpacingMd}">
 
         <Label Grid.Column="0"
-               Text="{x:Static helpers:MaterialIcons.Psychology}"
-               FontFamily="MaterialSymbols"
+               Text="{x:Static helpers:IconKeys.Brain}"
+               FontFamily="TablerIcons"
                FontSize="24"
                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
                                             Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
@@ -271,8 +296,8 @@
             ColumnSpacing="{StaticResource SpacingMd}">
 
         <Label Grid.Column="0"
-               Text="{x:Static helpers:MaterialIcons.AutoAwesome}"
-               FontFamily="MaterialSymbols"
+               Text="{x:Static helpers:IconKeys.AutoAwesome}"
+               FontFamily="TablerIcons"
                FontSize="24"
                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
                                             Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
@@ -316,8 +341,8 @@
         </Grid.GestureRecognizers>
 
         <Label Grid.Column="0"
-               Text="{x:Static helpers:MaterialIcons.SmartToy}"
-               FontFamily="MaterialSymbols"
+               Text="{x:Static helpers:IconKeys.Robot}"
+               FontFamily="TablerIcons"
                FontSize="24"
                TextColor="{AppThemeBinding Light={StaticResource ColorSubagentAccentLight},
                                             Dark={StaticResource ColorSubagentAccentDark}}"
@@ -331,8 +356,8 @@
                VerticalOptions="Center" />
 
         <Label Grid.Column="2"
-               Text="{x:Static helpers:MaterialIcons.ChevronRight}"
-               FontFamily="MaterialSymbols"
+               Text="{x:Static helpers:IconKeys.ChevronRight}"
+               FontFamily="TablerIcons"
                FontSize="20"
                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
                                             Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
@@ -356,8 +381,8 @@
         </Grid.GestureRecognizers>
 
         <Label Grid.Column="0"
-               Text="{x:Static helpers:MaterialIcons.Delete}"
-               FontFamily="MaterialSymbols"
+               Text="{x:Static helpers:IconKeys.Trash}"
+               FontFamily="TablerIcons"
                FontSize="24"
                TextColor="{AppThemeBinding Light={StaticResource ColorErrorLight},
                                             Dark={StaticResource ColorErrorDark}}"
@@ -376,7 +401,7 @@
       <!-- ═══════════════════════════════════════════════════════════════
            Close button
            ═══════════════════════════════════════════════════════════════ -->
-      <Button Text="Chiudi"
+      <Button Text="Close"
               Style="{StaticResource SecondaryButton}"
               Command="{Binding CloseCommand}"
               HorizontalOptions="Fill"

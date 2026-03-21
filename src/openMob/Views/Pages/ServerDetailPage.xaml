@@ -5,7 +5,33 @@
              xmlns:helpers="clr-namespace:openMob.Helpers"
              x:Class="openMob.Views.Pages.ServerDetailPage"
              x:DataType="vm:ServerDetailViewModel"
-             Title="Server">
+              Title="Server">
+
+  <Shell.TitleView>
+    <Grid ColumnDefinitions="Auto,*" Padding="{StaticResource SpacingXs}">
+      <ImageButton
+          Grid.Column="0"
+          Clicked="OnBackButtonTapped"
+          MinimumHeightRequest="{StaticResource MinTouchTarget}"
+          MinimumWidthRequest="{StaticResource MinTouchTarget}"
+          BackgroundColor="Transparent"
+          AutomationId="ServerDetailBackButton"
+          SemanticProperties.Description="Go back">
+        <ImageButton.Source>
+          <FontImageSource
+              FontFamily="TablerIcons"
+              Glyph="{x:Static helpers:IconKeys.ArrowLeft}"
+              Size="24"
+              Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}" />
+        </ImageButton.Source>
+      </ImageButton>
+      <Label
+          Grid.Column="1"
+          Text="Server"
+          Style="{StaticResource Title2Label}"
+          VerticalOptions="Center" />
+    </Grid>
+  </Shell.TitleView>
 
   <Grid>
     <!-- Loading overlay -->

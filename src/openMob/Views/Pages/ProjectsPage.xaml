@@ -9,15 +9,30 @@
              Title="Projects">
 
   <Shell.TitleView>
-    <Grid ColumnDefinitions="*,Auto" Padding="0,0,8,0">
-      <Label
+    <Grid ColumnDefinitions="Auto,*,Auto" Padding="{StaticResource SpacingXs}">
+      <ImageButton
           Grid.Column="0"
+          Clicked="OnBackButtonTapped"
+          MinimumHeightRequest="{StaticResource MinTouchTarget}"
+          MinimumWidthRequest="{StaticResource MinTouchTarget}"
+          BackgroundColor="Transparent"
+          AutomationId="ProjectsBackButton"
+          SemanticProperties.Description="Go back">
+        <ImageButton.Source>
+          <FontImageSource
+              FontFamily="TablerIcons"
+              Glyph="{x:Static helpers:IconKeys.ArrowLeft}"
+              Size="24"
+              Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}" />
+        </ImageButton.Source>
+      </ImageButton>
+      <Label
+          Grid.Column="1"
           Text="Projects"
-          Style="{StaticResource HeadlineLabel}"
-          FontFamily="InterBold"
+          Style="{StaticResource Title2Label}"
           VerticalOptions="Center" />
       <ImageButton
-          Grid.Column="1"
+          Grid.Column="2"
           Clicked="OnAddProjectClicked"
           MinimumHeightRequest="{StaticResource MinTouchTarget}"
           MinimumWidthRequest="{StaticResource MinTouchTarget}"
@@ -26,8 +41,8 @@
           SemanticProperties.Description="Add a new project">
         <ImageButton.Source>
           <FontImageSource
-              FontFamily="MaterialSymbols"
-              Glyph="{x:Static helpers:MaterialIcons.Add}"
+              FontFamily="TablerIcons"
+              Glyph="{x:Static helpers:IconKeys.Add}"
               Size="24"
               Color="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}" />
         </ImageButton.Source>
@@ -62,8 +77,8 @@
                     AutomationId="ProjectDeleteSwipe">
                   <SwipeItem.IconImageSource>
                     <FontImageSource
-                        FontFamily="MaterialSymbols"
-                        Glyph="{x:Static helpers:MaterialIcons.Delete}"
+                        FontFamily="TablerIcons"
+                        Glyph="{x:Static helpers:IconKeys.Trash}"
                         Size="22"
                         Color="{AppThemeBinding Light={StaticResource ColorOnErrorLight}, Dark={StaticResource ColorOnErrorDark}}" />
                   </SwipeItem.IconImageSource>
@@ -127,8 +142,8 @@
             Spacing="{StaticResource SpacingLg}"
             Padding="{StaticResource SpacingXxl}">
           <Label
-              FontFamily="MaterialSymbols"
-              Text="{x:Static helpers:MaterialIcons.Folder}"
+              FontFamily="TablerIcons"
+              Text="{x:Static helpers:IconKeys.Folder}"
               FontSize="{StaticResource FontSizeLargeTitle}"
               TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
               HorizontalOptions="Center" />

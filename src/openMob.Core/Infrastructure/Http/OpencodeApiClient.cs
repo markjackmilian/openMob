@@ -432,9 +432,13 @@ internal sealed class OpencodeApiClient : IOpencodeApiClient
             ct);
 
     /// <inheritdoc />
+    /// <remarks>
+    /// The opencode <c>POST /session</c> endpoint accepts no request body.
+    /// The <paramref name="request"/> parameter is retained for API compatibility but its fields are not serialised.
+    /// </remarks>
     public Task<OpencodeResult<SessionDto>> CreateSessionAsync(CreateSessionRequest request, CancellationToken ct = default)
         => ExecuteAsync<SessionDto>(
-            (client, baseUrl, token) => client.PostAsJsonAsync($"{baseUrl}/session", request, token),
+            (client, baseUrl, token) => client.PostAsync($"{baseUrl}/session", null, token),
             ct);
 
     /// <inheritdoc />

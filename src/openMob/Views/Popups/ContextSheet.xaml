@@ -373,6 +373,17 @@
                VerticalOptions="Center" />
       </Grid>
 
+      <!-- ═══════════════════════════════════════════════════════════════
+           Close button
+           ═══════════════════════════════════════════════════════════════ -->
+      <Button Text="Chiudi"
+              Style="{StaticResource SecondaryButton}"
+              Command="{Binding CloseCommand}"
+              HorizontalOptions="Fill"
+              Margin="{StaticResource SpacingLg}"
+              AutomationId="CloseButton"
+              SemanticProperties.Description="Close context sheet" />
+
     </VerticalStackLayout>
   </ScrollView>
 

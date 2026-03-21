@@ -447,6 +447,62 @@ If a task requires business logic or new ViewModel properties, **clearly state w
 
 ---
 
+## Android Thread Safety — UI Calls Must Be on the Main Thread
+
+> This rule applies to code-behind (`.xaml.cs`) only. XAML bindings are always safe.
+
+On Android, any call that creates a native UI element — `Toast`, `AlertDialog`, `DisplayAlert`, `DisplayActionSheet`, navigation — **must execute on the main thread**. Calling these from a background thread causes a fatal crash:
+
+```
+NullPointerException: Can't toast on a thread that has not called Looper.prepare()
+RuntimeException: Can't create handler inside thread that has not called Looper.prepare()
+```
+
+### Rules for code-behind
+
+- **Never** call `await someTask.ConfigureAwait(false)` in `.xaml.cs` files before any UI operation.
+- **Never** call `DisplayAlert`, `DisplayActionSheet`, or any popup from inside a `Task.Run(...)` or a continuation that may run on a thread pool thread.
+- If you must perform background work in code-behind before a UI call, use `MainThread.InvokeOnMainThreadAsync(...)`:
+
+```csharp
+// ✅ CORRECT — explicit main thread dispatch in code-behind
+private async void OnButtonClicked(object sender, EventArgs e)
+{
+    var result = await Task.Run(() => DoHeavyWork()); // background thread
+    await MainThread.InvokeOnMainThreadAsync(async () =>
+    {
+        await DisplayAlert("Done", result, "OK"); // safe: main thread
+    });
+}
+
+// ❌ WRONG — DisplayAlert called after ConfigureAwait(false)
+private async void OnButtonClicked(object sender, EventArgs e)
+{
+    var result = await Task.Run(() => DoHeavyWork()).ConfigureAwait(false);
+    await DisplayAlert("Done", result, "OK"); // CRASH on Android
+}
+```
+
+### The correct pattern: delegate to the ViewModel
+
+The preferred solution is to **never put UI-triggering logic in code-behind at all**. Delegate to the ViewModel command, which `om-mobile-core` is responsible for keeping on the correct thread. Code-behind should only:
+
+1. Call `InitializeComponent()`
+2. Override MAUI lifecycle methods (`OnAppearing`, `OnDisappearing`)
+3. Implement `IQueryAttributable.ApplyQueryAttributes` to delegate to the ViewModel
+
+```csharp
+// ✅ CORRECT — code-behind delegates everything to the ViewModel
+protected override async void OnAppearing()
+{
+    base.OnAppearing();
+    if (BindingContext is MyViewModel vm)
+        await vm.LoadCommand.ExecuteAsync(null); // ViewModel handles threading
+}
+```
+
+---
+
 ## Workflow
 
 When given a task (from a spec document or direct request), follow this sequence:

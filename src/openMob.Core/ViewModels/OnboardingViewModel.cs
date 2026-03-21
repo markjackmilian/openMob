@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Text.Json;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using openMob.Core.Data.Repositories;
@@ -9,22 +10,22 @@ using openMob.Core.Infrastructure.Http.Dtos.Opencode;
 using openMob.Core.Infrastructure.Logging;
 using openMob.Core.Infrastructure.Monitoring;
 using openMob.Core.Infrastructure.Security;
+using openMob.Core.Models;
 using openMob.Core.Services;
 
 namespace openMob.Core.ViewModels;
 
 /// <summary>
-/// ViewModel for the OnboardingPage. Manages a 5-step linear onboarding flow
-/// with progress tracking, server connection setup, and optional provider configuration.
+/// ViewModel for the OnboardingPage. Manages a 4-step linear onboarding flow
+/// with progress tracking, server connection setup, and default model selection.
 /// </summary>
 /// <remarks>
 /// <para>Steps:</para>
 /// <list type="number">
 ///   <item>Welcome — informational, always allows advancing.</item>
-///   <item>Connect Server — requires successful connection test before advancing (REQ-008).</item>
-///   <item>Provider Setup — optional, can be skipped (REQ-009).</item>
-///   <item>Permissions — informational.</item>
-///   <item>Completion — navigates to ChatPage (REQ-010).</item>
+///   <item>Connect Server — requires successful connection test before advancing.</item>
+///   <item>Default Model Selection — requires a model to be selected before advancing (REQ-005, REQ-006).</item>
+///   <item>Completion — navigates to ChatPage.</item>
 /// </list>
 /// </remarks>
 public sealed partial class OnboardingViewModel : ObservableObject
@@ -42,7 +43,7 @@ public sealed partial class OnboardingViewModel : ObservableObject
     /// <param name="credentialStore">Secure storage for server credentials.</param>
     /// <param name="connectionManager">Manager for server connectivity.</param>
     /// <param name="apiClient">The opencode API client for health checks.</param>
-    /// <param name="providerService">Service for provider operations.</param>
+    /// <param name="providerService">Service for provider and model operations.</param>
     /// <param name="navigationService">Service for Shell navigation.</param>
     /// <param name="popupService">Service for popup/dialog operations.</param>
     public OnboardingViewModel(
@@ -73,7 +74,7 @@ public sealed partial class OnboardingViewModel : ObservableObject
 
     // ─── Step tracking ────────────────────────────────────────────────────────
 
-    /// <summary>Gets or sets the current onboarding step (1-based, range 1–5).</summary>
+    /// <summary>Gets or sets the current onboarding step (1-based, range 1–4).</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(Progress))]
     [NotifyPropertyChangedFor(nameof(CanGoNext))]
@@ -82,7 +83,7 @@ public sealed partial class OnboardingViewModel : ObservableObject
     private int _currentStep = 1;
 
     /// <summary>Gets the total number of onboarding steps.</summary>
-    public int TotalSteps => 5;
+    public int TotalSteps => 4;
 
     /// <summary>Gets the progress as a fraction (0.0 to 1.0) for the ProgressBar.</summary>
     public double Progress => CurrentStep / (double)TotalSteps;
@@ -91,6 +92,7 @@ public sealed partial class OnboardingViewModel : ObservableObject
     public bool CanGoNext => CurrentStep switch
     {
         2 => IsConnectionSuccessful,
+        3 => SelectedModelId is not null && !IsLoadingModels && ModelLoadError is null,
         _ => true,
     };
 
@@ -98,8 +100,8 @@ public sealed partial class OnboardingViewModel : ObservableObject
     public bool CanGoBack => CurrentStep > 1;
 
     /// <summary>Gets whether the current step is optional (can be skipped).</summary>
-    /// <remarks>Steps 2 (server connection) and 3 (provider setup) are skippable.</remarks>
-    public bool IsStepOptional => CurrentStep is 2 or 3;
+    /// <remarks>Only step 2 (server connection) is skippable. Step 3 (model selection) is mandatory (REQ-006).</remarks>
+    public bool IsStepOptional => CurrentStep is 2;
 
     // ─── Step 2: Server connection ────────────────────────────────────────────
 
@@ -129,19 +131,26 @@ public sealed partial class OnboardingViewModel : ObservableObject
     [ObservableProperty]
     private bool _isTestingConnection;
 
-    // ─── Step 3: Provider setup ───────────────────────────────────────────────
+    // ─── Step 3: Default model selection ──────────────────────────────────────
 
-    /// <summary>Gets or sets the list of available providers loaded from the server.</summary>
+    /// <summary>Gets or sets the list of available models loaded from the server (REQ-003).</summary>
     [ObservableProperty]
-    private ObservableCollection<ProviderDto> _providers = [];
+    private ObservableCollection<ModelItem> _availableModels = [];
 
-    /// <summary>Gets or sets the ID of the currently selected provider.</summary>
+    /// <summary>Gets or sets the ID of the selected default model (REQ-005).</summary>
     [ObservableProperty]
-    private string? _selectedProviderId;
+    [NotifyPropertyChangedFor(nameof(CanGoNext))]
+    private string? _selectedModelId;
 
-    /// <summary>Gets or sets the API key entered for the selected provider.</summary>
+    /// <summary>Gets or sets whether models are currently being loaded from the server.</summary>
     [ObservableProperty]
-    private string _providerApiKey = string.Empty;
+    [NotifyPropertyChangedFor(nameof(CanGoNext))]
+    private bool _isLoadingModels;
+
+    /// <summary>Gets or sets the error message if model loading failed (REQ-004), or null on success.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanGoNext))]
+    private string? _modelLoadError;
 
     // ─── Saved connection ID (for credential storage) ─────────────────────────
 
@@ -151,7 +160,7 @@ public sealed partial class OnboardingViewModel : ObservableObject
     // ─── Commands ─────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Advances to the next onboarding step. At step 5, completes the onboarding.
+    /// Advances to the next onboarding step. At step 4, completes the onboarding.
     /// </summary>
     /// <param name="ct">Cancellation token.</param>
     [RelayCommand]
@@ -163,12 +172,6 @@ public sealed partial class OnboardingViewModel : ObservableObject
         try
         {
 #endif
-        if (CurrentStep == 3 && !string.IsNullOrWhiteSpace(SelectedProviderId) && !string.IsNullOrWhiteSpace(ProviderApiKey))
-        {
-            // Save provider API key before advancing
-            await _providerService.SetProviderAuthAsync(SelectedProviderId, ProviderApiKey, ct);
-        }
-
         if (CurrentStep >= TotalSteps)
         {
             await CompleteOnboardingAsync(ct);
@@ -180,7 +183,7 @@ public sealed partial class OnboardingViewModel : ObservableObject
         // Load step-specific data
         if (CurrentStep == 3)
         {
-            await LoadProvidersAsync(ct);
+            await LoadModelsAsync(ct);
         }
 #if DEBUG
         sw.Stop();
@@ -230,7 +233,7 @@ public sealed partial class OnboardingViewModel : ObservableObject
 
         if (CurrentStep == 3)
         {
-            await LoadProvidersAsync(ct);
+            await LoadModelsAsync(ct);
         }
 #if DEBUG
         sw.Stop();
@@ -246,7 +249,7 @@ public sealed partial class OnboardingViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Tests the server connection using the entered URL and token (REQ-008).
+    /// Tests the server connection using the entered URL and token.
     /// On success, creates a <see cref="ServerConnection"/> entity and saves credentials.
     /// </summary>
     /// <param name="ct">Cancellation token.</param>
@@ -306,7 +309,8 @@ public sealed partial class OnboardingViewModel : ObservableObject
                 UseHttps: useHttps,
                 CreatedAt: DateTime.UtcNow,
                 UpdatedAt: DateTime.UtcNow,
-                HasPassword: !string.IsNullOrWhiteSpace(ServerToken));
+                HasPassword: !string.IsNullOrWhiteSpace(ServerToken),
+                DefaultModelId: null);
 
             var savedConnection = await _serverConnectionRepository.AddAsync(connectionDto, ct);
             _savedConnectionId = savedConnection.Id;
@@ -355,7 +359,9 @@ public sealed partial class OnboardingViewModel : ObservableObject
             SentryHelper.CaptureException(ex, new Dictionary<string, object>
             {
                 ["context"] = "OnboardingViewModel.TestConnectionAsync",
-                ["serverUrl"] = ServerUrl,
+                ["serverUrl"] = Uri.TryCreate(ServerUrl?.Trim(), UriKind.Absolute, out var sanitizedUri)
+                    ? sanitizedUri.GetLeftPart(UriPartial.Path)
+                    : "(invalid URL)",
             });
         }
         finally
@@ -382,7 +388,29 @@ public sealed partial class OnboardingViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Completes the onboarding and navigates to the ChatPage (REQ-010).
+    /// Selects a model from the available models list and updates the visual selection state.
+    /// </summary>
+    /// <param name="modelId">The ID of the model to select (e.g. <c>"anthropic/claude-3-opus"</c>).</param>
+    [RelayCommand]
+    private void SelectModel(string modelId)
+    {
+#if DEBUG
+        DebugLogger.LogCommand(nameof(SelectModel), "start");
+#endif
+        SelectedModelId = modelId;
+
+        // Rebuild the collection with updated IsSelected state
+        var updatedModels = AvailableModels.Select(m => m with { IsSelected = m.Id == modelId }).ToList();
+        AvailableModels = new ObservableCollection<ModelItem>(updatedModels);
+
+        SentryHelper.AddBreadcrumb($"Onboarding: model selected — {modelId}", "onboarding");
+#if DEBUG
+        DebugLogger.LogCommand(nameof(SelectModel), "complete");
+#endif
+    }
+
+    /// <summary>
+    /// Completes the onboarding, saves the default model, and navigates to the ChatPage.
     /// </summary>
     /// <param name="ct">Cancellation token.</param>
     [RelayCommand]
@@ -394,6 +422,12 @@ public sealed partial class OnboardingViewModel : ObservableObject
         try
         {
 #endif
+        // Save the selected default model to the server connection (REQ-007)
+        if (!string.IsNullOrEmpty(SelectedModelId) && !string.IsNullOrEmpty(_savedConnectionId))
+        {
+            await _serverConnectionRepository.SetDefaultModelAsync(_savedConnectionId, SelectedModelId, ct);
+        }
+
         SentryHelper.AddBreadcrumb("Onboarding completed — navigating to chat", "onboarding");
         await _navigationService.GoToAsync("//chat", ct);
 #if DEBUG
@@ -411,22 +445,140 @@ public sealed partial class OnboardingViewModel : ObservableObject
 
     // ─── Private helpers ──────────────────────────────────────────────────────
 
-    /// <summary>Loads available providers from the server for Step 3.</summary>
+    /// <summary>
+    /// Loads available models from the server for Step 3 (REQ-003).
+    /// Uses <see cref="IProviderService.GetConfiguredProvidersAsync"/> and extracts models
+    /// from each provider's <c>Models</c> JsonElement (same pattern as <c>ModelPickerViewModel</c>).
+    /// </summary>
     /// <param name="ct">Cancellation token.</param>
-    private async Task LoadProvidersAsync(CancellationToken ct)
+    private async Task LoadModelsAsync(CancellationToken ct)
     {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(LoadModelsAsync), "start");
+#endif
+        IsLoadingModels = true;
+        ModelLoadError = null;
+        AvailableModels = [];
+        SelectedModelId = null;
+
+        // Guard: if step 2 was skipped, no server is connected — cannot load models.
+        if (string.IsNullOrEmpty(_savedConnectionId))
+        {
+            ModelLoadError = "Connect to a server first to load available models.";
+            IsLoadingModels = false;
+            return;
+        }
+
         try
         {
-            var providers = await _providerService.GetProvidersAsync(ct);
-            Providers = new ObservableCollection<ProviderDto>(providers);
+            var providers = await _providerService.GetConfiguredProvidersAsync(ct);
+
+            var allModels = new List<ModelItem>();
+
+            foreach (var provider in providers)
+            {
+                var models = ExtractModelsFromProvider(provider.Id, provider.Name, provider.Models);
+                allModels.AddRange(models);
+            }
+
+            AvailableModels = new ObservableCollection<ModelItem>(allModels);
+
+            if (allModels.Count == 0)
+            {
+                ModelLoadError = "No models available. Please configure a provider on the server.";
+            }
         }
+        catch (Exception ex)
+        {
+            ModelLoadError = $"Failed to load models: {ex.Message}";
+            SentryHelper.CaptureException(ex, new Dictionary<string, object>
+            {
+                ["context"] = "OnboardingViewModel.LoadModelsAsync",
+            });
+            AvailableModels = [];
+        }
+        finally
+        {
+            IsLoadingModels = false;
+#if DEBUG
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(LoadModelsAsync), "complete", sw.ElapsedMilliseconds);
+#endif
+        }
+    }
+
+    /// <summary>
+    /// Extracts model items from a provider's <c>Models</c> JsonElement.
+    /// The Models field is a raw JSON object where keys are model IDs and values
+    /// contain model metadata.
+    /// </summary>
+    /// <param name="providerId">The provider identifier (used as prefix for model IDs).</param>
+    /// <param name="providerName">The provider display name.</param>
+    /// <param name="modelsJson">The raw JSON element containing model definitions.</param>
+    /// <returns>A list of model items extracted from the JSON.</returns>
+    private IReadOnlyList<ModelItem> ExtractModelsFromProvider(
+        string providerId,
+        string providerName,
+        JsonElement modelsJson)
+    {
+        var models = new List<ModelItem>();
+
+        try
+        {
+            if (modelsJson.ValueKind != JsonValueKind.Object)
+                return models;
+
+            foreach (var modelProperty in modelsJson.EnumerateObject())
+            {
+                var modelId = modelProperty.Name;
+                var modelName = modelId; // Default to ID as name
+                string? contextSize = null;
+
+                // Try to extract display name from the model object
+                if (modelProperty.Value.ValueKind == JsonValueKind.Object)
+                {
+                    if (modelProperty.Value.TryGetProperty("name", out var nameElement)
+                        && nameElement.ValueKind == JsonValueKind.String)
+                    {
+                        modelName = nameElement.GetString() ?? modelId;
+                    }
+
+                    // Try to extract context window size from "limit.context"
+                    // (server shape: "limit": { "context": 131072, "output": 32768 })
+                    if (modelProperty.Value.TryGetProperty("limit", out var limitElement) &&
+                        limitElement.TryGetProperty("context", out var contextElement) &&
+                        contextElement.ValueKind == JsonValueKind.Number &&
+                        contextElement.TryGetInt64(out var contextLength))
+                    {
+                        contextSize = contextLength >= 1000
+                            ? $"{contextLength / 1000}k tokens"
+                            : $"{contextLength} tokens";
+                    }
+                }
+
+                var fullModelId = $"{providerId}/{modelId}";
+                models.Add(new ModelItem(
+                    Id: fullModelId,
+                    Name: modelName,
+                    ProviderName: providerName,
+                    ContextSize: contextSize,
+                    IsSelected: fullModelId == SelectedModelId));
+            }
+        }
+        // Broad catch is intentional: ExtractModelsFromProvider parses untrusted JSON
+        // from the server. Any unexpected shape (missing properties, wrong types, etc.)
+        // must not crash the wizard — we log to Sentry and return whatever models were
+        // successfully parsed so far.
         catch (Exception ex)
         {
             SentryHelper.CaptureException(ex, new Dictionary<string, object>
             {
-                ["context"] = "OnboardingViewModel.LoadProvidersAsync",
+                ["context"] = "OnboardingViewModel.ExtractModelsFromProvider",
+                ["providerId"] = providerId,
             });
-            Providers = [];
         }
+
+        return models;
     }
 }

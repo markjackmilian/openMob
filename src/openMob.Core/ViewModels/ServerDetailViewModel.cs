@@ -38,6 +38,7 @@ public sealed partial class ServerDetailViewModel : ObservableObject
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly INavigationService _navigationService;
     private readonly IAppPopupService _popupService;
+    private readonly IProviderService _providerService;
 
     // ─── Private non-observable state ─────────────────────────────────────────
 
@@ -56,6 +57,7 @@ public sealed partial class ServerDetailViewModel : ObservableObject
     /// <param name="httpClientFactory">Factory used to create a short-lived HTTP client for direct health-check probes against the URL in the form.</param>
     /// <param name="navigationService">Service for Shell navigation.</param>
     /// <param name="popupService">Service for popup/dialog operations.</param>
+    /// <param name="providerService">Service for provider and model operations.</param>
     /// <exception cref="ArgumentNullException">Thrown when any parameter is <see langword="null"/>.</exception>
     public ServerDetailViewModel(
         IServerConnectionRepository serverConnectionRepository,
@@ -63,7 +65,8 @@ public sealed partial class ServerDetailViewModel : ObservableObject
         IOpencodeConnectionManager connectionManager,
         IHttpClientFactory httpClientFactory,
         INavigationService navigationService,
-        IAppPopupService popupService)
+        IAppPopupService popupService,
+        IProviderService providerService)
     {
         ArgumentNullException.ThrowIfNull(serverConnectionRepository);
         ArgumentNullException.ThrowIfNull(credentialStore);
@@ -71,6 +74,7 @@ public sealed partial class ServerDetailViewModel : ObservableObject
         ArgumentNullException.ThrowIfNull(httpClientFactory);
         ArgumentNullException.ThrowIfNull(navigationService);
         ArgumentNullException.ThrowIfNull(popupService);
+        ArgumentNullException.ThrowIfNull(providerService);
 
         _serverConnectionRepository = serverConnectionRepository;
         _credentialStore = credentialStore;
@@ -78,6 +82,7 @@ public sealed partial class ServerDetailViewModel : ObservableObject
         _httpClientFactory = httpClientFactory;
         _navigationService = navigationService;
         _popupService = popupService;
+        _providerService = providerService;
     }
 
     // ─── Observable state ─────────────────────────────────────────────────────
@@ -161,6 +166,13 @@ public sealed partial class ServerDetailViewModel : ObservableObject
     [ObservableProperty]
     private string? _activationStatusMessage;
 
+    /// <summary>Gets or sets the display name of the current default model, or "No model selected" when null.</summary>
+    [ObservableProperty]
+    private string _defaultModelName = "No model selected";
+
+    /// <summary>The raw default model ID stored on the server connection, or null.</summary>
+    private string? _defaultModelId;
+
     // ─── Initialisation ───────────────────────────────────────────────────────
 
     /// <summary>
@@ -199,6 +211,10 @@ public sealed partial class ServerDetailViewModel : ObservableObject
                     PasswordPlaceholder = dto.HasPassword
                         ? "Password saved — leave empty to keep unchanged"
                         : "Leave empty if not required";
+
+                    // Load default model display name (REQ-011)
+                    _defaultModelId = dto.DefaultModelId;
+                    DefaultModelName = dto.DefaultModelId ?? "No model selected";
                 }
             }
             catch (Exception ex)
@@ -281,7 +297,8 @@ public sealed partial class ServerDetailViewModel : ObservableObject
                 UseHttps: useHttps,
                 CreatedAt: DateTime.UtcNow,
                 UpdatedAt: DateTime.UtcNow,
-                HasPassword: !string.IsNullOrWhiteSpace(Password));
+                HasPassword: !string.IsNullOrWhiteSpace(Password),
+                DefaultModelId: _defaultModelId);
 
             if (!IsEditMode)
             {
@@ -575,6 +592,75 @@ public sealed partial class ServerDetailViewModel : ObservableObject
             throw;
         }
 #endif
+    }
+
+    /// <summary>
+    /// Opens the model picker popup to change the default model for this server (REQ-011).
+    /// On selection, persists the new default model ID via the repository.
+    /// </summary>
+    /// <param name="ct">Cancellation token.</param>
+    [RelayCommand]
+    private async Task ChangeDefaultModelAsync(CancellationToken ct)
+    {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(ChangeDefaultModelAsync), "start");
+        try
+        {
+#endif
+        if (string.IsNullOrEmpty(_savedServerId))
+            return;
+
+        await _popupService.ShowModelPickerAsync(
+            onModelSelected: (modelId) =>
+            {
+                // Fire-and-forget with error handling — Action<string> cannot be async.
+                _ = SafeSetDefaultModelAsync(modelId);
+            },
+            ct);
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(ChangeDefaultModelAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(ChangeDefaultModelAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
+    }
+
+    // ─── Private helpers ─────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Safely persists the selected default model and updates the UI.
+    /// Called as fire-and-forget from the <see cref="ShowModelPickerAsync"/> callback
+    /// (which accepts <see cref="Action{String}"/> and cannot be async).
+    /// All exceptions are captured to Sentry to prevent unobserved task exceptions.
+    /// </summary>
+    /// <param name="modelId">The selected model ID in "providerId/modelId" format.</param>
+    private async Task SafeSetDefaultModelAsync(string modelId)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(_savedServerId))
+                return;
+
+            var success = await _serverConnectionRepository.SetDefaultModelAsync(_savedServerId, modelId);
+            if (success)
+            {
+                _defaultModelId = modelId;
+                DefaultModelName = modelId;
+            }
+        }
+        catch (Exception ex)
+        {
+            SentryHelper.CaptureException(ex, new Dictionary<string, object>
+            {
+                ["context"] = "ServerDetailViewModel.SafeSetDefaultModelAsync",
+            });
+        }
     }
 
     // ─── CanExecute helpers ───────────────────────────────────────────────────

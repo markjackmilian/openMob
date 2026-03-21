@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using openMob.Core.Data;
 
@@ -10,27 +11,14 @@ using openMob.Core.Data;
 namespace openMob.Core.Data.Migrations;
 
 [DbContext(typeof(AppDbContext))]
-partial class AppDbContextModelSnapshot : ModelSnapshot
+[Migration("20260321010000_AddDefaultModelIdToServerConnections")]
+partial class AddDefaultModelIdToServerConnections
 {
-    protected override void BuildModel(ModelBuilder modelBuilder)
+    /// <inheritdoc />
+    protected override void BuildTargetModel(ModelBuilder modelBuilder)
     {
 #pragma warning disable 612, 618
         modelBuilder.HasAnnotation("ProductVersion", "9.0.3");
-
-        modelBuilder.Entity("openMob.Core.Data.Entities.AppState", b =>
-        {
-            b.Property<string>("Key")
-                .HasMaxLength(100)
-                .HasColumnType("TEXT");
-
-            b.Property<string?>("Value")
-                .HasMaxLength(500)
-                .HasColumnType("TEXT");
-
-            b.HasKey("Key");
-
-            b.ToTable("AppStates");
-        });
 
         modelBuilder.Entity("openMob.Core.Data.Entities.ProjectPreference", b =>
         {

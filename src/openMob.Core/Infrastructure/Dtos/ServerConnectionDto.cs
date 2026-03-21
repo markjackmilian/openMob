@@ -16,6 +16,7 @@ namespace openMob.Core.Infrastructure.Dtos;
 /// <param name="CreatedAt">The UTC timestamp when the record was created.</param>
 /// <param name="UpdatedAt">The UTC timestamp when the record was last updated.</param>
 /// <param name="HasPassword">True if a password exists in secure storage for this connection.</param>
+/// <param name="DefaultModelId">The default AI model ID for this server (format: "providerId/modelId"), or null if not set.</param>
 public sealed record ServerConnectionDto(
     string Id,
     string Name,
@@ -27,5 +28,6 @@ public sealed record ServerConnectionDto(
     bool UseHttps,
     DateTime CreatedAt,
     DateTime UpdatedAt,
-    bool HasPassword
+    bool HasPassword,
+    string? DefaultModelId = null
 );

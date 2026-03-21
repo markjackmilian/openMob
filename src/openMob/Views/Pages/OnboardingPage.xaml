@@ -31,20 +31,15 @@
             BindingContext="{Binding}"
             IsVisible="{Binding CurrentStep, Converter={StaticResource StepToVisibilityConverter}, ConverterParameter=2}" />
 
-        <!-- Step 3: Provider Setup -->
-        <controls:OnboardingProviderSetupView
+        <!-- Step 3: Default Model Selection -->
+        <controls:OnboardingModelSelectionView
             BindingContext="{Binding}"
             IsVisible="{Binding CurrentStep, Converter={StaticResource StepToVisibilityConverter}, ConverterParameter=3}" />
 
-        <!-- Step 4: Permissions -->
-        <controls:OnboardingPermissionsView
-            BindingContext="{Binding}"
-            IsVisible="{Binding CurrentStep, Converter={StaticResource StepToVisibilityConverter}, ConverterParameter=4}" />
-
-        <!-- Step 5: Completion -->
+        <!-- Step 4: Completion -->
         <controls:OnboardingCompletionView
             BindingContext="{Binding}"
-            IsVisible="{Binding CurrentStep, Converter={StaticResource StepToVisibilityConverter}, ConverterParameter=5}" />
+            IsVisible="{Binding CurrentStep, Converter={StaticResource StepToVisibilityConverter}, ConverterParameter=4}" />
       </Grid>
     </ScrollView>
 
@@ -91,11 +86,11 @@
           </DataTrigger>
           <DataTrigger TargetType="Button"
                        Binding="{Binding CurrentStep}"
-                       Value="5">
+                       Value="4">
             <Setter Property="Text" Value="Start Chatting" />
           </DataTrigger>
         </Button.Triggers>
-        <!-- Default text for steps 2-4 -->
+        <!-- Default text for steps 2-3 -->
         <Button.Text>Next</Button.Text>
       </Button>
 

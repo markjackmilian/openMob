@@ -162,7 +162,8 @@ public sealed class OpencodeDiscoveryService : IOpencodeDiscoveryService
             UseHttps: false,
             CreatedAt: DateTime.UtcNow,
             UpdatedAt: DateTime.UtcNow,
-            HasPassword: false);
+            HasPassword: false,
+            DefaultModelId: null);
 
         return await _repository.AddAsync(dto, cancellationToken).ConfigureAwait(false);
     }

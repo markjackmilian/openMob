@@ -17,6 +17,7 @@ public sealed class ServerDetailViewModelTests
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly INavigationService _navigationService;
     private readonly IAppPopupService _popupService;
+    private readonly IProviderService _providerService;
 
     public ServerDetailViewModelTests()
     {
@@ -26,10 +27,11 @@ public sealed class ServerDetailViewModelTests
         _httpClientFactory = Substitute.For<IHttpClientFactory>();
         _navigationService = Substitute.For<INavigationService>();
         _popupService = Substitute.For<IAppPopupService>();
+        _providerService = Substitute.For<IProviderService>();
     }
 
     private ServerDetailViewModel CreateSut()
-        => new(_repository, _credentialStore, _connectionManager, _httpClientFactory, _navigationService, _popupService);
+        => new(_repository, _credentialStore, _connectionManager, _httpClientFactory, _navigationService, _popupService, _providerService);
 
     // ─── Fake HTTP helpers ────────────────────────────────────────────────────
 
@@ -84,7 +86,7 @@ public sealed class ServerDetailViewModelTests
     public void Constructor_WhenRepositoryIsNull_ThrowsArgumentNullException()
     {
         // Act
-        var act = () => new ServerDetailViewModel(null!, _credentialStore, _connectionManager, _httpClientFactory, _navigationService, _popupService);
+        var act = () => new ServerDetailViewModel(null!, _credentialStore, _connectionManager, _httpClientFactory, _navigationService, _popupService, _providerService);
 
         // Assert
         act.Should().Throw<ArgumentNullException>()
@@ -95,7 +97,7 @@ public sealed class ServerDetailViewModelTests
     public void Constructor_WhenCredentialStoreIsNull_ThrowsArgumentNullException()
     {
         // Act
-        var act = () => new ServerDetailViewModel(_repository, null!, _connectionManager, _httpClientFactory, _navigationService, _popupService);
+        var act = () => new ServerDetailViewModel(_repository, null!, _connectionManager, _httpClientFactory, _navigationService, _popupService, _providerService);
 
         // Assert
         act.Should().Throw<ArgumentNullException>()
@@ -106,7 +108,7 @@ public sealed class ServerDetailViewModelTests
     public void Constructor_WhenConnectionManagerIsNull_ThrowsArgumentNullException()
     {
         // Act
-        var act = () => new ServerDetailViewModel(_repository, _credentialStore, null!, _httpClientFactory, _navigationService, _popupService);
+        var act = () => new ServerDetailViewModel(_repository, _credentialStore, null!, _httpClientFactory, _navigationService, _popupService, _providerService);
 
         // Assert
         act.Should().Throw<ArgumentNullException>()
@@ -117,7 +119,7 @@ public sealed class ServerDetailViewModelTests
     public void Constructor_WhenHttpClientFactoryIsNull_ThrowsArgumentNullException()
     {
         // Act
-        var act = () => new ServerDetailViewModel(_repository, _credentialStore, _connectionManager, null!, _navigationService, _popupService);
+        var act = () => new ServerDetailViewModel(_repository, _credentialStore, _connectionManager, null!, _navigationService, _popupService, _providerService);
 
         // Assert
         act.Should().Throw<ArgumentNullException>()
@@ -128,7 +130,7 @@ public sealed class ServerDetailViewModelTests
     public void Constructor_WhenNavigationServiceIsNull_ThrowsArgumentNullException()
     {
         // Act
-        var act = () => new ServerDetailViewModel(_repository, _credentialStore, _connectionManager, _httpClientFactory, null!, _popupService);
+        var act = () => new ServerDetailViewModel(_repository, _credentialStore, _connectionManager, _httpClientFactory, null!, _popupService, _providerService);
 
         // Assert
         act.Should().Throw<ArgumentNullException>()
@@ -139,7 +141,7 @@ public sealed class ServerDetailViewModelTests
     public void Constructor_WhenPopupServiceIsNull_ThrowsArgumentNullException()
     {
         // Act
-        var act = () => new ServerDetailViewModel(_repository, _credentialStore, _connectionManager, _httpClientFactory, _navigationService, null!);
+        var act = () => new ServerDetailViewModel(_repository, _credentialStore, _connectionManager, _httpClientFactory, _navigationService, null!, _providerService);
 
         // Assert
         act.Should().Throw<ArgumentNullException>()
@@ -820,5 +822,89 @@ public sealed class ServerDetailViewModelTests
         sut.ValidationError.Should().Be("Delete failed: DB error");
         await _navigationService.DidNotReceive().PopAsync(Arg.Any<CancellationToken>());
         sut.IsDeleting.Should().BeFalse();
+    }
+
+    // ─── InitialiseAsync — Default model display ──────────────────────────────
+
+    [Fact]
+    public async Task InitialiseAsync_WhenEditModeWithDefaultModel_SetsDefaultModelName()
+    {
+        // Arrange
+        var dto = TestDataBuilder.CreateServerConnectionDto("id1", defaultModelId: "anthropic/claude-3-opus");
+        _repository.GetByIdAsync("id1", Arg.Any<CancellationToken>())
+            .Returns(dto);
+
+        var sut = CreateSut();
+
+        // Act
+        await sut.InitialiseAsync("id1");
+
+        // Assert
+        sut.DefaultModelName.Should().Be("anthropic/claude-3-opus");
+    }
+
+    [Fact]
+    public async Task InitialiseAsync_WhenEditModeWithoutDefaultModel_SetsNoModelSelected()
+    {
+        // Arrange
+        var dto = TestDataBuilder.CreateServerConnectionDto("id1", defaultModelId: null);
+        _repository.GetByIdAsync("id1", Arg.Any<CancellationToken>())
+            .Returns(dto);
+
+        var sut = CreateSut();
+
+        // Act
+        await sut.InitialiseAsync("id1");
+
+        // Assert
+        sut.DefaultModelName.Should().Be("No model selected");
+    }
+
+    [Fact]
+    public void Constructor_DefaultModelName_InitializesToNoModelSelected()
+    {
+        // Arrange
+        var sut = CreateSut();
+
+        // Assert
+        sut.DefaultModelName.Should().Be("No model selected");
+    }
+
+    // ─── ChangeDefaultModelCommand ────────────────────────────────────────────
+
+    [Fact]
+    public async Task ChangeDefaultModelCommand_WhenCalled_OpensModelPicker()
+    {
+        // Arrange
+        var dto = TestDataBuilder.CreateServerConnectionDto("id1");
+        _repository.GetByIdAsync("id1", Arg.Any<CancellationToken>())
+            .Returns(dto);
+
+        var sut = CreateSut();
+        await sut.InitialiseAsync("id1");
+
+        // Act
+        await sut.ChangeDefaultModelCommand.ExecuteAsync(null);
+
+        // Assert
+        await _popupService.Received(1).ShowModelPickerAsync(
+            Arg.Any<Action<string>>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ChangeDefaultModelCommand_WhenNoSavedServerId_DoesNotOpenModelPicker()
+    {
+        // Arrange — Add mode, no saved server
+        var sut = CreateSut();
+        await sut.InitialiseAsync(null);
+
+        // Act
+        await sut.ChangeDefaultModelCommand.ExecuteAsync(null);
+
+        // Assert
+        await _popupService.DidNotReceive().ShowModelPickerAsync(
+            Arg.Any<Action<string>>(),
+            Arg.Any<CancellationToken>());
     }
 }

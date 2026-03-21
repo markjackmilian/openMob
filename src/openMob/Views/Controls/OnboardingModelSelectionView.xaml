@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:openMob.Core.ViewModels;assembly=openMob.Core"
+             xmlns:models="clr-namespace:openMob.Core.Models;assembly=openMob.Core"
+             xmlns:helpers="clr-namespace:openMob.Helpers"
+             x:Class="openMob.Views.Controls.OnboardingModelSelectionView"
+             x:DataType="vm:OnboardingViewModel">
+
+  <VerticalStackLayout
+      Spacing="{StaticResource SpacingLg}"
+      Padding="{StaticResource SpacingXl}">
+
+    <!-- Title -->
+    <Label
+        Text="Choose Default Model"
+        Style="{StaticResource Title2Label}"
+        FontFamily="InterBold" />
+
+    <!-- Subtitle -->
+    <Label
+        Text="Select the AI model you'd like to use by default. You can change this later in server settings."
+        Style="{StaticResource CalloutLabel}"
+        FontFamily="InterRegular"
+        Margin="0,0,0,8" />
+
+    <!-- Loading indicator -->
+    <ActivityIndicator
+        IsRunning="{Binding IsLoadingModels}"
+        IsVisible="{Binding IsLoadingModels}"
+        HorizontalOptions="Center" />
+
+    <!-- Error message -->
+    <Border
+        Style="{StaticResource CardBorder}"
+        Padding="{StaticResource SpacingMd}"
+        BackgroundColor="{AppThemeBinding Light={StaticResource ColorErrorContainerLight}, Dark={StaticResource ColorErrorContainerDark}}"
+        Stroke="{AppThemeBinding Light={StaticResource ColorErrorLight}, Dark={StaticResource ColorErrorDark}}"
+        IsVisible="{Binding ModelLoadError, Converter={StaticResource NullToVisibilityConverter}}">
+      <HorizontalStackLayout Spacing="{StaticResource SpacingSm}">
+        <Label
+            FontFamily="MaterialSymbols"
+            Text="{x:Static helpers:MaterialIcons.Error}"
+            FontSize="{StaticResource FontSizeTitle3}"
+            TextColor="{AppThemeBinding Light={StaticResource ColorOnErrorContainerLight}, Dark={StaticResource ColorOnErrorContainerDark}}"
+            VerticalOptions="Center" />
+        <Label
+            Text="{Binding ModelLoadError, FallbackValue='', TargetNullValue=''}"
+            Style="{StaticResource SubtitleLabel}"
+            TextColor="{AppThemeBinding Light={StaticResource ColorOnErrorContainerLight}, Dark={StaticResource ColorOnErrorContainerDark}}"
+            VerticalOptions="Center" />
+      </HorizontalStackLayout>
+    </Border>
+
+    <!-- Model list -->
+    <CollectionView
+        ItemsSource="{Binding AvailableModels}"
+        SelectionMode="None"
+        IsVisible="{Binding IsLoadingModels, Converter={StaticResource InvertedBoolConverter}}"
+        AutomationId="OnboardingModelList">
+      <CollectionView.ItemTemplate>
+        <DataTemplate x:DataType="models:ModelItem">
+          <Border
+              Margin="0,0,0,8"
+              Padding="{StaticResource SpacingMd}"
+              StrokeShape="RoundRectangle 12"
+              StrokeThickness="1.5"
+              BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceLight}, Dark={StaticResource ColorSurfaceDark}}"
+              Stroke="{AppThemeBinding Light={StaticResource ColorOutlineLight}, Dark={StaticResource ColorOutlineDark}}">
+            <Border.GestureRecognizers>
+              <TapGestureRecognizer
+                  Command="{Binding Source={RelativeSource AncestorType={x:Type vm:OnboardingViewModel}}, Path=SelectModelCommand}"
+                  CommandParameter="{Binding Id}" />
+            </Border.GestureRecognizers>
+            <Border.Triggers>
+              <DataTrigger TargetType="Border"
+                           Binding="{Binding IsSelected}"
+                           Value="True">
+                <Setter Property="Stroke"
+                        Value="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}" />
+                <Setter Property="BackgroundColor"
+                        Value="{AppThemeBinding Light={StaticResource ColorPrimaryContainerLight}, Dark={StaticResource ColorPrimaryContainerDark}}" />
+              </DataTrigger>
+            </Border.Triggers>
+            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{StaticResource SpacingMd}">
+
+              <!-- Model icon -->
+              <Label
+                  Grid.Column="0"
+                  FontFamily="MaterialSymbols"
+                  Text="{x:Static helpers:MaterialIcons.SmartToy}"
+                  FontSize="{StaticResource FontSizeTitle2}"
+                  TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
+                  VerticalOptions="Center">
+                <Label.Triggers>
+                  <DataTrigger TargetType="Label"
+                               Binding="{Binding IsSelected}"
+                               Value="True">
+                    <Setter Property="TextColor"
+                            Value="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}" />
+                  </DataTrigger>
+                </Label.Triggers>
+              </Label>
+
+              <!-- Model info -->
+              <VerticalStackLayout
+                  Grid.Column="1"
+                  Spacing="{StaticResource SpacingXxs}"
+                  VerticalOptions="Center">
+                <Label
+                    Text="{Binding Name, FallbackValue='Model'}"
+                    Style="{StaticResource HeadlineLabel}"
+                    FontFamily="InterMedium"
+                    LineBreakMode="TailTruncation"
+                    MaxLines="1" />
+                <HorizontalStackLayout Spacing="{StaticResource SpacingXs}">
+                  <Label
+                      Text="{Binding ProviderName, FallbackValue=''}"
+                      Style="{StaticResource FootnoteLabel}"
+                      FontFamily="InterRegular" />
+                  <Label
+                      Text="{Binding ContextSize, FallbackValue='', TargetNullValue=''}"
+                      Style="{StaticResource FootnoteLabel}"
+                      FontFamily="InterRegular"
+                      IsVisible="{Binding ContextSize, Converter={StaticResource NullToVisibilityConverter}}" />
+                </HorizontalStackLayout>
+              </VerticalStackLayout>
+
+              <!-- Selection indicator -->
+              <Label
+                  Grid.Column="2"
+                  FontFamily="MaterialSymbols"
+                  Text="{x:Static helpers:MaterialIcons.RadioButtonUnchecked}"
+                  FontSize="{StaticResource FontSizeTitle2}"
+                  TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
+                  VerticalOptions="Center"
+                  MinimumWidthRequest="{StaticResource MinTouchTarget}"
+                  MinimumHeightRequest="{StaticResource MinTouchTarget}"
+                  HorizontalTextAlignment="Center"
+                  VerticalTextAlignment="Center"
+                  SemanticProperties.Description="Model selection indicator">
+                <Label.Triggers>
+                  <DataTrigger TargetType="Label"
+                               Binding="{Binding IsSelected}"
+                               Value="True">
+                    <Setter Property="Text"
+                            Value="{x:Static helpers:MaterialIcons.RadioButtonChecked}" />
+                    <Setter Property="TextColor"
+                            Value="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}" />
+                  </DataTrigger>
+                </Label.Triggers>
+              </Label>
+
+            </Grid>
+          </Border>
+        </DataTemplate>
+      </CollectionView.ItemTemplate>
+      <CollectionView.EmptyView>
+        <VerticalStackLayout
+            VerticalOptions="Center"
+            HorizontalOptions="Center"
+            Spacing="{StaticResource SpacingSm}"
+            Padding="{StaticResource SpacingXl}">
+          <Label
+              FontFamily="MaterialSymbols"
+              Text="{x:Static helpers:MaterialIcons.SmartToy}"
+              FontSize="{StaticResource FontSizeLargeTitle}"
+              TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
+              HorizontalOptions="Center" />
+          <Label
+              Text="No models available"
+              Style="{StaticResource CalloutLabel}"
+              FontFamily="InterRegular"
+              HorizontalTextAlignment="Center" />
+        </VerticalStackLayout>
+      </CollectionView.EmptyView>
+    </CollectionView>
+
+  </VerticalStackLayout>
+
+</ContentView>

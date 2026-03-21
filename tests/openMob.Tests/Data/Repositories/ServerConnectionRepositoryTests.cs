@@ -462,4 +462,128 @@ public sealed class ServerConnectionRepositoryTests : IDisposable
             .FirstAsync(sc => sc.Id == active.Id);
         reloaded.IsActive.Should().BeTrue();
     }
+
+    // ──────────────────────────────────────────────────────────────
+    // GetDefaultModelAsync
+    // ──────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task GetDefaultModelAsync_WhenNoModelSet_ReturnsNull()
+    {
+        // Arrange
+        var entity = await SeedConnectionAsync(id: "conn-no-model");
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.GetDefaultModelAsync(entity.Id);
+
+        // Assert
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetDefaultModelAsync_WhenModelSet_ReturnsModelId()
+    {
+        // Arrange
+        var entity = await SeedConnectionAsync(id: "conn-with-model");
+        entity.DefaultModelId = "anthropic/claude-3-opus";
+        _context.ServerConnections.Update(entity);
+        await _context.SaveChangesAsync();
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.GetDefaultModelAsync(entity.Id);
+
+        // Assert
+        result.Should().Be("anthropic/claude-3-opus");
+    }
+
+    [Fact]
+    public async Task GetDefaultModelAsync_WhenServerNotFound_ReturnsNull()
+    {
+        // Arrange
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.GetDefaultModelAsync("nonexistent-id");
+
+        // Assert
+        result.Should().BeNull();
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // SetDefaultModelAsync
+    // ──────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task SetDefaultModelAsync_WhenServerExists_SetsModelIdAndReturnsTrue()
+    {
+        // Arrange
+        var entity = await SeedConnectionAsync(id: "conn-set-model");
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.SetDefaultModelAsync(entity.Id, "openai/gpt-4");
+
+        // Assert
+        result.Should().BeTrue();
+
+        _context.ChangeTracker.Clear();
+        var reloaded = await _context.ServerConnections
+            .AsNoTracking()
+            .FirstAsync(sc => sc.Id == entity.Id);
+        reloaded.DefaultModelId.Should().Be("openai/gpt-4");
+    }
+
+    [Fact]
+    public async Task SetDefaultModelAsync_WhenServerExists_UpdatesUpdatedAtTimestamp()
+    {
+        // Arrange
+        var pastTime = DateTime.UtcNow.AddMinutes(-30);
+        var entity = await SeedConnectionAsync(id: "conn-ts-model", updatedAt: pastTime);
+        var sut = CreateSut();
+
+        // Act
+        await sut.SetDefaultModelAsync(entity.Id, "anthropic/claude-3-opus");
+
+        // Assert
+        _context.ChangeTracker.Clear();
+        var reloaded = await _context.ServerConnections
+            .AsNoTracking()
+            .FirstAsync(sc => sc.Id == entity.Id);
+        reloaded.UpdatedAt.Should().BeAfter(pastTime);
+    }
+
+    [Fact]
+    public async Task SetDefaultModelAsync_WhenServerNotFound_ReturnsFalse()
+    {
+        // Arrange
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.SetDefaultModelAsync("nonexistent-id", "anthropic/claude-3-opus");
+
+        // Assert
+        result.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task SetDefaultModelAsync_WhenCalledTwice_OverwritesPreviousModel()
+    {
+        // Arrange
+        var entity = await SeedConnectionAsync(id: "conn-overwrite-model");
+        var sut = CreateSut();
+
+        // Act
+        await sut.SetDefaultModelAsync(entity.Id, "anthropic/claude-3-opus");
+        await sut.SetDefaultModelAsync(entity.Id, "openai/gpt-4");
+
+        // Assert
+        _context.ChangeTracker.Clear();
+        var reloaded = await _context.ServerConnections
+            .AsNoTracking()
+            .FirstAsync(sc => sc.Id == entity.Id);
+        reloaded.DefaultModelId.Should().Be("openai/gpt-4");
+    }
 }

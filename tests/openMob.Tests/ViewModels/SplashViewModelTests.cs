@@ -17,6 +17,48 @@ public sealed class SplashViewModelTests
     private readonly INavigationService _navigationService;
     private readonly SplashViewModel _sut;
 
+    /// <summary>
+    /// A <see cref="TimeProvider"/> that fires <see cref="Task.Delay"/> timers immediately,
+    /// preventing real 2-second waits in unit tests.
+    /// </summary>
+    private sealed class InstantTimeProvider : TimeProvider
+    {
+        public override ITimer CreateTimer(
+            TimerCallback callback,
+            object? state,
+            TimeSpan dueTime,
+            TimeSpan period)
+        {
+            // Fire the callback immediately so Task.Delay returns without waiting.
+            callback(state);
+            // Return a no-op timer that never fires again.
+            return base.CreateTimer(_ => { }, null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+        }
+    }
+
+    /// <summary>
+    /// A <see cref="TimeProvider"/> that fires timers immediately AND records the
+    /// <c>dueTime</c> passed to <see cref="CreateTimer"/> for assertion in tests.
+    /// </summary>
+    private sealed class SpyTimeProvider : TimeProvider
+    {
+        /// <summary>Gets the most recent <c>dueTime</c> passed to <see cref="CreateTimer"/>.</summary>
+        public TimeSpan LastDueTime { get; private set; }
+
+        public override ITimer CreateTimer(
+            TimerCallback callback,
+            object? state,
+            TimeSpan dueTime,
+            TimeSpan period)
+        {
+            LastDueTime = dueTime;
+            // Fire the callback immediately so Task.Delay returns without waiting.
+            callback(state);
+            // Return a no-op timer that never fires again.
+            return base.CreateTimer(_ => { }, null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+        }
+    }
+
     public SplashViewModelTests()
     {
         _serverConnectionRepo = Substitute.For<IServerConnectionRepository>();
@@ -28,7 +70,8 @@ public sealed class SplashViewModelTests
             _serverConnectionRepo,
             _connectionManager,
             _sessionService,
-            _navigationService);
+            _navigationService,
+            timeProvider: new InstantTimeProvider());
     }
 
     // ─── Helper ───────────────────────────────────────────────────────────────
@@ -55,6 +98,13 @@ public sealed class SplashViewModelTests
     {
         // Assert
         _sut.IsLoading.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Constructor_InitializesWithStatusMessageEmpty()
+    {
+        // Assert
+        _sut.StatusMessage.Should().BeEmpty();
     }
 
     // ─── InitializeAsync — No server configured ──────────────────────────────
@@ -90,7 +140,7 @@ public sealed class SplashViewModelTests
     // ─── InitializeAsync — Server not reachable ──────────────────────────────
 
     [Fact]
-    public async Task InitializeCommand_WhenServerNotReachable_NavigatesToChat()
+    public async Task InitializeCommand_WhenServerNotReachable_NavigatesToServerManagement()
     {
         // Arrange
         _serverConnectionRepo.GetActiveAsync(Arg.Any<CancellationToken>())
@@ -102,7 +152,23 @@ public sealed class SplashViewModelTests
         await _sut.InitializeCommand.ExecuteAsync(null);
 
         // Assert
-        await _navigationService.Received(1).GoToAsync("//chat", Arg.Any<CancellationToken>());
+        await _navigationService.Received(1).GoToAsync("//server-management", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task InitializeCommand_WhenServerNotReachable_SetsStatusMessageToConnectionError()
+    {
+        // Arrange
+        _serverConnectionRepo.GetActiveAsync(Arg.Any<CancellationToken>())
+            .Returns(BuildConnection());
+        _connectionManager.IsServerReachableAsync(Arg.Any<CancellationToken>())
+            .Returns(false);
+
+        // Act
+        await _sut.InitializeCommand.ExecuteAsync(null);
+
+        // Assert
+        _sut.StatusMessage.Should().Be("Errore di connessione al server");
     }
 
     [Fact]
@@ -189,7 +255,7 @@ public sealed class SplashViewModelTests
     // ─── InitializeAsync — Exception fallback ────────────────────────────────
 
     [Fact]
-    public async Task InitializeCommand_WhenUnexpectedExceptionOccurs_NavigatesToChat()
+    public async Task InitializeCommand_WhenUnexpectedExceptionOccurs_NavigatesToServerManagement()
     {
         // Arrange
         _serverConnectionRepo.GetActiveAsync(Arg.Any<CancellationToken>())
@@ -201,7 +267,23 @@ public sealed class SplashViewModelTests
         await _sut.InitializeCommand.ExecuteAsync(null);
 
         // Assert
-        await _navigationService.Received(1).GoToAsync("//chat", Arg.Any<CancellationToken>());
+        await _navigationService.Received(1).GoToAsync("//server-management", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task InitializeCommand_WhenUnexpectedExceptionOccurs_SetsStatusMessageToConnectionError()
+    {
+        // Arrange
+        _serverConnectionRepo.GetActiveAsync(Arg.Any<CancellationToken>())
+            .Returns(BuildConnection());
+        _connectionManager.IsServerReachableAsync(Arg.Any<CancellationToken>())
+            .ThrowsAsync(new InvalidOperationException("Unexpected error"));
+
+        // Act
+        await _sut.InitializeCommand.ExecuteAsync(null);
+
+        // Assert
+        _sut.StatusMessage.Should().Be("Errore di connessione al server");
     }
 
     [Fact]
@@ -223,7 +305,7 @@ public sealed class SplashViewModelTests
     // ─── InitializeAsync — Timeout treated as unreachable ────────────────────
 
     [Fact]
-    public async Task InitializeCommand_WhenReachabilityCheckTimesOut_NavigatesToChat()
+    public async Task InitializeCommand_WhenReachabilityCheckTimesOut_NavigatesToServerManagement()
     {
         // Arrange
         _serverConnectionRepo.GetActiveAsync(Arg.Any<CancellationToken>())
@@ -235,6 +317,91 @@ public sealed class SplashViewModelTests
         await _sut.InitializeCommand.ExecuteAsync(null);
 
         // Assert
-        await _navigationService.Received(1).GoToAsync("//chat", Arg.Any<CancellationToken>());
+        await _navigationService.Received(1).GoToAsync("//server-management", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task InitializeCommand_WhenReachabilityCheckTimesOut_SetsStatusMessageToUnreachable()
+    {
+        // Arrange
+        _serverConnectionRepo.GetActiveAsync(Arg.Any<CancellationToken>())
+            .Returns(BuildConnection());
+        _connectionManager.IsServerReachableAsync(Arg.Any<CancellationToken>())
+            .ThrowsAsync(new OperationCanceledException());
+
+        // Act
+        await _sut.InitializeCommand.ExecuteAsync(null);
+
+        // Assert
+        _sut.StatusMessage.Should().Be("Server non raggiungibile");
+    }
+
+    /// <summary>
+    /// [m-004] Verifies that the 2-second delay duration is passed to <see cref="TimeProvider.CreateTimer"/>
+    /// on the timeout path, so any accidental change to the delay value causes a test failure.
+    /// </summary>
+    [Fact]
+    public async Task InitializeCommand_WhenReachabilityCheckTimesOut_DelayDurationIsTwoSeconds()
+    {
+        // Arrange
+        var spy = new SpyTimeProvider();
+        var sut = new SplashViewModel(
+            _serverConnectionRepo,
+            _connectionManager,
+            _sessionService,
+            _navigationService,
+            timeProvider: spy);
+
+        _serverConnectionRepo.GetActiveAsync(Arg.Any<CancellationToken>())
+            .Returns(BuildConnection());
+        _connectionManager.IsServerReachableAsync(Arg.Any<CancellationToken>())
+            .ThrowsAsync(new OperationCanceledException());
+
+        // Act
+        await sut.InitializeCommand.ExecuteAsync(null);
+
+        // Assert
+        spy.LastDueTime.Should().Be(TimeSpan.FromSeconds(2));
+    }
+
+    // ─── InitializeAsync — Outer token cancelled (app shutdown) ──────────────
+
+    /// <summary>
+    /// [M-001] Verifies the symmetric negative case: when the outer <see cref="CancellationToken"/>
+    /// is cancelled (app shutdown / page dismissed), an <see cref="OperationCanceledException"/>
+    /// thrown by the reachability check must be silently swallowed and navigation must NOT occur.
+    /// <para>
+    /// The guard <c>catch (OperationCanceledException) when (!ct.IsCancellationRequested)</c>
+    /// only fires for the timeout path. When <c>ct.IsCancellationRequested</c> is <c>true</c>,
+    /// the outer <c>catch (OperationCanceledException) when (ct.IsCancellationRequested)</c>
+    /// fires instead and does nothing.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public async Task InitializeCommand_WhenOuterTokenCancelledDuringReachabilityCheck_DoesNotNavigate()
+    {
+        // Arrange
+        _serverConnectionRepo.GetActiveAsync(Arg.Any<CancellationToken>())
+            .Returns(BuildConnection());
+
+        // Make IsServerReachableAsync cancel the command's own token (simulating app shutdown)
+        // then throw OperationCanceledException. This causes ct.IsCancellationRequested == true
+        // inside InitializeAsync, so the outer "app shutdown" catch fires — not the timeout path.
+        _connectionManager.IsServerReachableAsync(Arg.Any<CancellationToken>())
+            .Returns(async _ =>
+            {
+                _sut.InitializeCommand.Cancel();
+                await Task.Yield();
+                throw new OperationCanceledException();
+#pragma warning disable CS0162 // Unreachable code — required to satisfy bool return type
+                return false;
+#pragma warning restore CS0162
+            });
+
+        // Act
+        await _sut.InitializeCommand.ExecuteAsync(null);
+
+        // Assert — the app-shutdown path must swallow the exception and never navigate
+        await _navigationService.DidNotReceive().GoToAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 }

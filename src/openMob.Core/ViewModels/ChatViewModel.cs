@@ -1443,7 +1443,7 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
             StatusBanner = new StatusBannerInfo(
                 StatusBannerType.ServerOffline,
                 "Server non raggiungibile — modalità offline",
-                ActionLabel: null,
+                ActionLabel: "Gestisci server",
                 IsDismissible: false);
         }
         else if (HasNoProvider)
@@ -1458,6 +1458,43 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
         {
             StatusBanner = null;
         }
+    }
+
+    // ─── Server Management Navigation [REQ-010] ──────────────────────────────
+
+    /// <summary>
+    /// Navigates to the Server Management page to allow the user to verify or update
+    /// the server configuration. Uses <c>"///server-management"</c> (push onto the Shell
+    /// navigation stack) to preserve back navigation to ChatPage (REQ-011).
+    /// </summary>
+    /// <remarks>
+    /// <c>"///server-management"</c> is required because <c>server-management</c> is declared
+    /// as a <c>ShellContent</c> in <c>AppShell.xaml</c>. MAUI does not allow plain relative
+    /// routing to Shell elements — the triple-slash prefix performs a push navigation that
+    /// keeps the back stack intact.
+    /// </remarks>
+    /// <param name="ct">Cancellation token.</param>
+    [RelayCommand]
+    private async Task NavigateToServerManagementAsync(CancellationToken ct)
+    {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(NavigateToServerManagementAsync), "start");
+        try
+        {
+#endif
+        await _navigationService.GoToAsync("///server-management", ct);
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(NavigateToServerManagementAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(NavigateToServerManagementAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
     }
 
     // ─── IDisposable [REQ-018] ────────────────────────────────────────────────

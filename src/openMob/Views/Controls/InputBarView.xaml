@@ -41,11 +41,11 @@
         <Border.GestureRecognizers>
           <TapGestureRecognizer Command="{Binding OpenCommandPaletteCommand, Source={x:Reference this}}" />
         </Border.GestureRecognizers>
-        <Label Text="{x:Static helpers:MaterialIcons.Terminal}"
-               FontFamily="MaterialSymbols"
+        <Label Text="{x:Static helpers:IconKeys.Terminal}"
+               FontFamily="TablerIcons"
                FontSize="{StaticResource FontSizeTitle2}"
-               TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
-                                           Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
+               TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight},
+                                           Dark={StaticResource ColorOnBackgroundDark}}"
                HorizontalOptions="Center"
                VerticalOptions="Center" />
       </Border>
@@ -77,8 +77,8 @@
 
           <!-- Mic icon — visible when Text is empty -->
            <Label Grid.Column="1"
-                  Text="{x:Static helpers:MaterialIcons.Mic}"
-                  FontFamily="MaterialSymbols"
+                  Text="{x:Static helpers:IconKeys.Mic}"
+                  FontFamily="TablerIcons"
                   FontSize="{StaticResource FontSizeTitle2}"
                  TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
                                              Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
@@ -108,8 +108,8 @@
         <Border.GestureRecognizers>
           <TapGestureRecognizer Command="{Binding SendCommand, Source={x:Reference this}}" />
         </Border.GestureRecognizers>
-        <Label Text="{x:Static helpers:MaterialIcons.ArrowUpward}"
-               FontFamily="MaterialSymbols"
+        <Label Text="{x:Static helpers:IconKeys.ArrowUp}"
+               FontFamily="TablerIcons"
                FontSize="{StaticResource FontSizeTitle2}"
                TextColor="{AppThemeBinding Light={StaticResource ColorOnPrimaryLight},
                                            Dark={StaticResource ColorOnPrimaryDark}}"

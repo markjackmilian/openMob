@@ -5,7 +5,37 @@
              xmlns:helpers="clr-namespace:openMob.Helpers"
              x:Class="openMob.Views.Pages.ServerDetailPage"
              x:DataType="vm:ServerDetailViewModel"
-             Title="Server">
+              Title="Server">
+
+  <Shell.BackButtonBehavior>
+    <BackButtonBehavior IsVisible="False" IsEnabled="False" />
+  </Shell.BackButtonBehavior>
+
+  <Shell.TitleView>
+    <Grid ColumnDefinitions="Auto,*" Padding="{StaticResource SpacingXs}">
+      <ImageButton
+          Grid.Column="0"
+          Clicked="OnBackButtonTapped"
+          MinimumHeightRequest="{StaticResource MinTouchTarget}"
+          MinimumWidthRequest="{StaticResource MinTouchTarget}"
+          BackgroundColor="Transparent"
+          AutomationId="ServerDetailBackButton"
+          SemanticProperties.Description="Go back">
+        <ImageButton.Source>
+          <FontImageSource
+              FontFamily="TablerIcons"
+              Glyph="{x:Static helpers:IconKeys.ArrowLeft}"
+              Size="{StaticResource FontSizeIconXl}"
+              Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}" />
+        </ImageButton.Source>
+      </ImageButton>
+      <Label
+          Grid.Column="1"
+          Text="Server"
+          Style="{StaticResource Title2Label}"
+          VerticalOptions="Center" />
+    </Grid>
+  </Shell.TitleView>
 
   <Grid>
     <!-- Loading overlay -->
@@ -111,7 +141,7 @@
               <BoxView
                   WidthRequest="8"
                   HeightRequest="8"
-                  CornerRadius="4"
+                  CornerRadius="{StaticResource RadiusXs}"
                   VerticalOptions="Center"
                   Color="{AppThemeBinding Light={StaticResource ColorErrorLight}, Dark={StaticResource ColorErrorDark}}">
                 <BoxView.Triggers>
@@ -161,8 +191,8 @@
 
             <Label
                 Grid.Column="1"
-                FontFamily="MaterialSymbols"
-                Text="{x:Static helpers:MaterialIcons.ChevronRight}"
+                FontFamily="TablerIcons"
+                Text="{x:Static helpers:IconKeys.ChevronRight}"
                 FontSize="{StaticResource FontSizeTitle2}"
                 TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
                 VerticalOptions="Center"

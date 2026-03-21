@@ -15,6 +15,12 @@ public partial class ServerManagementPage : ContentPage
         BindingContext = _viewModel;
     }
 
+    /// <summary>Navigates back when the back button is tapped.</summary>
+    private async void OnBackButtonTapped(object? sender, EventArgs e)
+    {
+        await Shell.Current.GoToAsync("..");
+    }
+
     /// <inheritdoc/>
     protected override void OnAppearing()
     {

@@ -23,6 +23,12 @@ public partial class ServerDetailPage : ContentPage
         BindingContext = _viewModel;
     }
 
+    /// <summary>Navigates back when the back button is tapped.</summary>
+    private async void OnBackButtonTapped(object? sender, EventArgs e)
+    {
+        await Shell.Current.GoToAsync("..");
+    }
+
     /// <summary>Gets or sets the server ID received via query parameter (Edit mode).</summary>
     public string ServerId
     {

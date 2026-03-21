@@ -7,15 +7,53 @@
              xmlns:helpers="clr-namespace:openMob.Helpers"
              x:Class="openMob.Views.Pages.ServerManagementPage"
              x:DataType="vm:ServerManagementViewModel"
-             Title="Servers">
+              Title="Servers">
 
-  <ContentPage.ToolbarItems>
-    <ToolbarItem
-        Command="{Binding NavigateToAddCommand}"
-        Text="+"
-        AutomationId="ServerManagementAddButton"
-        SemanticProperties.Description="Add new server" />
-  </ContentPage.ToolbarItems>
+  <Shell.BackButtonBehavior>
+    <BackButtonBehavior IsVisible="False" IsEnabled="False" />
+  </Shell.BackButtonBehavior>
+
+  <Shell.TitleView>
+    <Grid ColumnDefinitions="Auto,*,Auto" Padding="{StaticResource SpacingXs}">
+      <ImageButton
+          Grid.Column="0"
+          Clicked="OnBackButtonTapped"
+          MinimumHeightRequest="{StaticResource MinTouchTarget}"
+          MinimumWidthRequest="{StaticResource MinTouchTarget}"
+          BackgroundColor="Transparent"
+          AutomationId="ServerManagementBackButton"
+          SemanticProperties.Description="Go back">
+        <ImageButton.Source>
+          <FontImageSource
+              FontFamily="TablerIcons"
+              Glyph="{x:Static helpers:IconKeys.ArrowLeft}"
+              Size="{StaticResource FontSizeIconXl}"
+              Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}" />
+        </ImageButton.Source>
+      </ImageButton>
+      <Label
+          Grid.Column="1"
+          Text="Servers"
+          Style="{StaticResource Title2Label}"
+          VerticalOptions="Center" />
+      <ImageButton
+          Grid.Column="2"
+          Command="{Binding NavigateToAddCommand}"
+          MinimumHeightRequest="{StaticResource MinTouchTarget}"
+          MinimumWidthRequest="{StaticResource MinTouchTarget}"
+          BackgroundColor="Transparent"
+          AutomationId="ServerManagementAddButton"
+          SemanticProperties.Description="Add new server">
+        <ImageButton.Source>
+          <FontImageSource
+              FontFamily="TablerIcons"
+              Glyph="{x:Static helpers:IconKeys.Add}"
+              Size="{StaticResource FontSizeIconXl}"
+              Color="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}" />
+        </ImageButton.Source>
+      </ImageButton>
+    </Grid>
+  </Shell.TitleView>
 
   <Grid>
     <!-- Loading overlay -->
@@ -70,7 +108,7 @@
                       ColumnDefinitions="Auto,*,Auto"
                       ColumnSpacing="{StaticResource SpacingMd}"
                       Padding="{StaticResource SpacingLg}"
-                      MinimumHeightRequest="44">
+                      MinimumHeightRequest="{StaticResource MinTouchTarget}">
                     <Grid.GestureRecognizers>
                       <TapGestureRecognizer
                           Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ServerManagementViewModel}}, Path=NavigateToEditCommand}"
@@ -80,9 +118,9 @@
                     <!-- Active indicator (CheckCircle) -->
                     <Label
                         Grid.Column="0"
-                        FontFamily="MaterialSymbols"
-                        Text="{x:Static helpers:MaterialIcons.CheckCircle}"
-                        FontSize="20"
+                        FontFamily="TablerIcons"
+                        Text="{x:Static helpers:IconKeys.CircleCheck}"
+                        FontSize="{StaticResource FontSizeTitle3}"
                         TextColor="{AppThemeBinding Light={StaticResource ColorSuccessLight}, Dark={StaticResource ColorSuccessDark}}"
                         IsVisible="{Binding IsActive}"
                         VerticalOptions="Center"
@@ -110,9 +148,9 @@
                     <!-- Chevron -->
                     <Label
                         Grid.Column="2"
-                        FontFamily="MaterialSymbols"
-                        Text="{x:Static helpers:MaterialIcons.ChevronRight}"
-                        FontSize="18"
+                        FontFamily="TablerIcons"
+                        Text="{x:Static helpers:IconKeys.ChevronRight}"
+                        FontSize="{StaticResource FontSizeHeadline}"
                         TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
                         VerticalOptions="Center" />
                   </Grid>
@@ -164,7 +202,7 @@
                       ColumnDefinitions="*,Auto"
                       ColumnSpacing="{StaticResource SpacingMd}"
                       Padding="{StaticResource SpacingLg}"
-                      MinimumHeightRequest="44">
+                      MinimumHeightRequest="{StaticResource MinTouchTarget}">
                     <Grid.GestureRecognizers>
                       <TapGestureRecognizer
                           Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ServerManagementViewModel}}, Path=NavigateToDiscoveredCommand}"
@@ -193,9 +231,9 @@
                     <!-- Chevron -->
                     <Label
                         Grid.Column="1"
-                        FontFamily="MaterialSymbols"
-                        Text="{x:Static helpers:MaterialIcons.ChevronRight}"
-                        FontSize="18"
+                        FontFamily="TablerIcons"
+                        Text="{x:Static helpers:IconKeys.ChevronRight}"
+                        FontSize="{StaticResource FontSizeHeadline}"
                         TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
                         VerticalOptions="Center" />
                   </Grid>

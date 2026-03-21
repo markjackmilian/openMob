@@ -14,20 +14,34 @@
 
     <!-- Handle bar -->
     <BoxView
-        WidthRequest="36"
-        HeightRequest="4"
-        CornerRadius="2"
-        Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
-        HorizontalOptions="Center"
-        Margin="0,8,0,16" />
+        Style="{StaticResource SheetHandleBar}"
+        Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}" />
 
-    <!-- Title -->
-    <Label
-        Text="Switch Project"
-        FontFamily="InterSemiBold"
-        FontSize="{StaticResource FontSizeTitle3}"
-        TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}"
-        Margin="16,0,16,16" />
+    <!-- Header with title and close button -->
+    <Grid ColumnDefinitions="*,Auto"
+          Padding="16,0,16,16">
+      <Label
+          Grid.Column="0"
+          Text="Switch Project"
+          Style="{StaticResource Title3Label}"
+          VerticalOptions="Center" />
+      <ImageButton
+          Grid.Column="1"
+          Clicked="OnCloseButtonTapped"
+          MinimumHeightRequest="{StaticResource MinTouchTarget}"
+          MinimumWidthRequest="{StaticResource MinTouchTarget}"
+          BackgroundColor="Transparent"
+          AutomationId="ProjectSwitcherCloseButton"
+          SemanticProperties.Description="Close project switcher">
+        <ImageButton.Source>
+          <FontImageSource FontFamily="TablerIcons"
+                           Glyph="{x:Static helpers:IconKeys.X}"
+                           Size="{StaticResource FontSizeIconXl}"
+                           Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight},
+                                                    Dark={StaticResource ColorOnBackgroundDark}}" />
+        </ImageButton.Source>
+      </ImageButton>
+    </Grid>
 
     <!-- Loading indicator -->
     <ActivityIndicator
@@ -47,7 +61,7 @@
             <Grid
                 ColumnDefinitions="Auto,*,Auto"
                 Padding="0,14"
-                ColumnSpacing="12"
+                ColumnSpacing="{StaticResource SpacingMd}"
                 MinimumHeightRequest="{StaticResource MinTouchTarget}">
               <Grid.GestureRecognizers>
                 <TapGestureRecognizer
@@ -58,16 +72,16 @@
               <!-- Project folder icon -->
               <Label
                   Grid.Column="0"
-                  FontFamily="MaterialSymbols"
-                  Text="{x:Static helpers:MaterialIcons.Folder}"
-                  FontSize="24"
+                  FontFamily="TablerIcons"
+                  Text="{x:Static helpers:IconKeys.Folder}"
+                  FontSize="{StaticResource FontSizeIconXl}"
                   TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
                   VerticalOptions="Center"
                   SemanticProperties.Description="Project folder icon" />
 
               <VerticalStackLayout
                   Grid.Column="1"
-                  Spacing="2"
+                  Spacing="{StaticResource SpacingXxs}"
                   VerticalOptions="Center">
                 <Label
                     Text="{Binding Name, FallbackValue='Untitled'}"
@@ -85,9 +99,9 @@
               <!-- Checkmark for active project -->
               <Label
                   Grid.Column="2"
-                  FontFamily="MaterialSymbols"
-                  Text="{x:Static helpers:MaterialIcons.Check}"
-                  FontSize="24"
+                  FontFamily="TablerIcons"
+                  Text="{x:Static helpers:IconKeys.Check}"
+                  FontSize="{StaticResource FontSizeIconXl}"
                   TextColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}"
                   IsVisible="{Binding IsActive}"
                   VerticalOptions="Center"

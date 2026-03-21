@@ -10,6 +10,8 @@
              x:DataType="viewmodels:ChatViewModel"
              Shell.NavBarIsVisible="False">
 
+  <!-- ChatPage uses edge-to-edge layout for the message list (standard chat UI pattern).
+       Horizontal padding is applied to the input bar and header, not the message area. -->
   <Grid RowDefinitions="Auto,Auto,Auto,*,Auto,Auto,Auto">
 
     <!-- ═══════════════════════════════════════════════════════════════
@@ -33,18 +35,18 @@
                    AutomationId="ChatHamburgerButton"
                    SemanticProperties.Description="Open navigation menu">
         <ImageButton.Source>
-          <FontImageSource FontFamily="MaterialSymbols"
-                           Glyph="{x:Static helpers:MaterialIcons.Menu}"
-                           Size="24"
-                           Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight},
-                                                    Dark={StaticResource ColorOnBackgroundDark}}" />
+          <FontImageSource FontFamily="TablerIcons"
+                           Glyph="{x:Static helpers:IconKeys.Menu}"
+                           Size="{StaticResource FontSizeHeadline}"
+                           Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
+                                                    Dark={StaticResource ColorOnBackgroundSecondaryDark}}" />
         </ImageButton.Source>
       </ImageButton>
 
       <!-- Center: Session name (tappable to rename) -->
       <Label Grid.Column="1"
              Text="{Binding SessionName, FallbackValue='New chat'}"
-             Style="{StaticResource HeadlineLabel}"
+             Style="{StaticResource Title2Label}"
              HorizontalTextAlignment="Center"
              VerticalTextAlignment="Center"
              HorizontalOptions="Center"
@@ -66,11 +68,11 @@
                    AutomationId="ChatContextButton"
                    SemanticProperties.Description="Open context settings">
         <ImageButton.Source>
-          <FontImageSource FontFamily="MaterialSymbols"
-                           Glyph="{x:Static helpers:MaterialIcons.Tune}"
-                           Size="24"
-                           Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight},
-                                                    Dark={StaticResource ColorOnBackgroundDark}}" />
+          <FontImageSource FontFamily="TablerIcons"
+                           Glyph="{x:Static helpers:IconKeys.Adjustments}"
+                           Size="{StaticResource FontSizeHeadline}"
+                           Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
+                                                    Dark={StaticResource ColorOnBackgroundSecondaryDark}}" />
         </ImageButton.Source>
       </ImageButton>
 
@@ -164,8 +166,8 @@
                                                  Dark={StaticResource ColorSurfaceSecondaryDark}}"
                 VerticalOptions="End"
                 Padding="0">
-          <Label Text="{x:Static helpers:MaterialIcons.SmartToy}"
-                 FontFamily="MaterialSymbols"
+          <Label Text="{x:Static helpers:IconKeys.Robot}"
+                 FontFamily="TablerIcons"
                  FontSize="{StaticResource FontSizeCallout}"
                  TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
                                              Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
@@ -243,9 +245,9 @@
                        AutomationId="DismissErrorButton"
                        SemanticProperties.Description="Dismiss error">
             <ImageButton.Source>
-              <FontImageSource FontFamily="MaterialSymbols"
-                               Glyph="{x:Static helpers:MaterialIcons.Close}"
-                               Size="18"
+              <FontImageSource FontFamily="TablerIcons"
+                               Glyph="{x:Static helpers:IconKeys.X}"
+                               Size="{StaticResource FontSizeHeadline}"
                                Color="{AppThemeBinding Light={StaticResource ColorOnErrorContainerLight},
                                                         Dark={StaticResource ColorOnErrorContainerDark}}" />
             </ImageButton.Source>

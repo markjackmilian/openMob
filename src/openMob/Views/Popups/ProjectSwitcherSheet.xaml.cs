@@ -16,6 +16,12 @@ public partial class ProjectSwitcherSheet : ContentPage
         BindingContext = _viewModel;
     }
 
+    /// <summary>Closes the sheet when the close button is tapped.</summary>
+    private async void OnCloseButtonTapped(object? sender, EventArgs e)
+    {
+        await Shell.Current.GoToAsync("..");
+    }
+
     /// <inheritdoc />
     protected override async void OnAppearing()
     {

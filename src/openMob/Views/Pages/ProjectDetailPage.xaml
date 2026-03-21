@@ -6,7 +6,38 @@
              xmlns:helpers="clr-namespace:openMob.Helpers"
              x:Class="openMob.Views.Pages.ProjectDetailPage"
              x:DataType="vm:ProjectDetailViewModel"
-             Title="{Binding ProjectName, FallbackValue='Project'}">
+              Title="{Binding ProjectName, FallbackValue='Project'}">
+
+  <Shell.BackButtonBehavior>
+    <BackButtonBehavior IsVisible="False" IsEnabled="False" />
+  </Shell.BackButtonBehavior>
+
+  <Shell.TitleView>
+    <Grid ColumnDefinitions="Auto,*" Padding="{StaticResource SpacingXs}">
+      <ImageButton
+          Grid.Column="0"
+          Clicked="OnBackButtonTapped"
+          MinimumHeightRequest="{StaticResource MinTouchTarget}"
+          MinimumWidthRequest="{StaticResource MinTouchTarget}"
+          BackgroundColor="Transparent"
+          AutomationId="ProjectDetailBackButton"
+          SemanticProperties.Description="Go back">
+        <ImageButton.Source>
+          <FontImageSource
+              FontFamily="TablerIcons"
+              Glyph="{x:Static helpers:IconKeys.ArrowLeft}"
+              Size="{StaticResource FontSizeIconXl}"
+              Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}" />
+        </ImageButton.Source>
+      </ImageButton>
+      <Label
+          Grid.Column="1"
+          Text="{Binding ProjectName, FallbackValue='Project'}"
+          Style="{StaticResource Title2Label}"
+          VerticalOptions="Center"
+          LineBreakMode="TailTruncation" />
+    </Grid>
+  </Shell.TitleView>
 
   <Grid>
     <!-- Loading indicator -->
@@ -67,8 +98,9 @@
                 Spacing="{StaticResource SpacingSm}"
                 IsVisible="{Binding IsActiveProject}">
               <Label
-                  FontFamily="MaterialSymbols"
-                  Text="{x:Static helpers:MaterialIcons.Check}"
+                  FontFamily="TablerIcons"
+                  Text="{x:Static helpers:IconKeys.Check}"
+                  FontSize="{StaticResource FontSizeIconXl}"
                   TextColor="{AppThemeBinding Light={StaticResource ColorSuccessLight}, Dark={StaticResource ColorSuccessDark}}"
                   VerticalOptions="Center" />
               <Label
@@ -98,7 +130,7 @@
                 <DataTemplate x:DataType="models:SessionItem">
                   <Grid
                       ColumnDefinitions="*,Auto"
-                      Padding="0,8">
+                      Padding="0,12">
                     <Label
                         Grid.Column="0"
                         Text="{Binding Title, FallbackValue='Untitled'}"
@@ -156,8 +188,8 @@
               </VerticalStackLayout>
               <Label
                   Grid.Column="1"
-                  FontFamily="MaterialSymbols"
-                  Text="{x:Static helpers:MaterialIcons.ChevronRight}"
+                  FontFamily="TablerIcons"
+                  Text="{x:Static helpers:IconKeys.ChevronRight}"
                   FontSize="{StaticResource FontSizeTitle2}"
                   TextColor="{AppThemeBinding Light={StaticResource ColorOnSurfaceTertiaryLight}, Dark={StaticResource ColorOnSurfaceTertiaryDark}}"
                   VerticalOptions="Center" />
@@ -184,8 +216,8 @@
               </VerticalStackLayout>
               <Label
                   Grid.Column="1"
-                  FontFamily="MaterialSymbols"
-                  Text="{x:Static helpers:MaterialIcons.ChevronRight}"
+                  FontFamily="TablerIcons"
+                  Text="{x:Static helpers:IconKeys.ChevronRight}"
                   FontSize="{StaticResource FontSizeTitle2}"
                   TextColor="{AppThemeBinding Light={StaticResource ColorOnSurfaceTertiaryLight}, Dark={StaticResource ColorOnSurfaceTertiaryDark}}"
                   VerticalOptions="Center" />

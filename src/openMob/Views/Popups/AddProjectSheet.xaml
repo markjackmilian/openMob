@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:vm="clr-namespace:openMob.Core.ViewModels;assembly=openMob.Core"
-             xmlns:helpers="clr-namespace:openMob.Helpers"
+              xmlns:vm="clr-namespace:openMob.Core.ViewModels;assembly=openMob.Core"
+              xmlns:helpers="clr-namespace:openMob.Helpers"
              x:Class="openMob.Views.Popups.AddProjectSheet"
              x:DataType="vm:AddProjectViewModel"
              Title="New Project"
@@ -13,26 +13,40 @@
 
     <!-- Handle bar -->
     <BoxView
-        WidthRequest="36"
-        HeightRequest="4"
-        CornerRadius="2"
-        Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
-        HorizontalOptions="Center"
-        Margin="0,8,0,16" />
+        Style="{StaticResource SheetHandleBar}"
+        Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}" />
 
-    <!-- Title -->
-    <Label
-        Text="New Project"
-        FontFamily="InterSemiBold"
-        FontSize="{StaticResource FontSizeTitle3}"
-        TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}"
-        Margin="16,0,16,16" />
+    <!-- Header with title and close button -->
+    <Grid ColumnDefinitions="*,Auto"
+          Padding="16,0,16,16">
+      <Label
+          Grid.Column="0"
+          Text="New Project"
+          Style="{StaticResource Title3Label}"
+          VerticalOptions="Center" />
+      <ImageButton
+          Grid.Column="1"
+          Clicked="OnCloseButtonTapped"
+          MinimumHeightRequest="{StaticResource MinTouchTarget}"
+          MinimumWidthRequest="{StaticResource MinTouchTarget}"
+          BackgroundColor="Transparent"
+          AutomationId="AddProjectCloseButton"
+          SemanticProperties.Description="Close add project sheet">
+        <ImageButton.Source>
+          <FontImageSource FontFamily="TablerIcons"
+                           Glyph="{x:Static helpers:IconKeys.X}"
+                           Size="{StaticResource FontSizeIconXl}"
+                           Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight},
+                                                    Dark={StaticResource ColorOnBackgroundDark}}" />
+        </ImageButton.Source>
+      </ImageButton>
+    </Grid>
 
     <!-- Form fields -->
-    <VerticalStackLayout Spacing="16" Padding="16,0">
+    <VerticalStackLayout Spacing="{StaticResource SpacingLg}" Padding="16,0">
 
       <!-- Project Name -->
-      <VerticalStackLayout Spacing="4">
+      <VerticalStackLayout Spacing="{StaticResource SpacingXs}">
         <Label
             Text="Project Name"
             FontFamily="InterMedium"
@@ -48,7 +62,7 @@
       </VerticalStackLayout>
 
       <!-- Project Path -->
-      <VerticalStackLayout Spacing="4">
+      <VerticalStackLayout Spacing="{StaticResource SpacingXs}">
         <Label
             Text="Project Path"
             FontFamily="InterMedium"
@@ -66,7 +80,7 @@
       <!-- Buttons -->
       <Grid
           ColumnDefinitions="*,*"
-          ColumnSpacing="12"
+          ColumnSpacing="{StaticResource SpacingMd}"
           Margin="0,8,0,16">
         <Button
             Grid.Column="0"

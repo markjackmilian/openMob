@@ -33,9 +33,9 @@
         SemanticProperties.Description="Start a new chat session">
       <ImageButton.Source>
         <FontImageSource
-            FontFamily="MaterialSymbols"
-            Glyph="{x:Static helpers:MaterialIcons.Edit}"
-            Size="24"
+            FontFamily="TablerIcons"
+            Glyph="{x:Static helpers:IconKeys.Edit}"
+            Size="{StaticResource FontSizeIconXl}"
             Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}" />
       </ImageButton.Source>
     </ImageButton>

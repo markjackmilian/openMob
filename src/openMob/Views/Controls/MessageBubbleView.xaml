@@ -44,7 +44,7 @@
                                                 Dark={StaticResource ColorOnBubbleSentSecondaryDark}}"
                    VerticalOptions="Center" />
             <Label Text="{Binding DeliveryStatus, Source={x:Reference this}, Converter={StaticResource MessageStatusToIconConverter}, FallbackValue=''}"
-                   FontFamily="MaterialSymbols"
+                   FontFamily="TablerIcons"
                    FontSize="{StaticResource FontSizeFootnote}"
                    TextColor="{AppThemeBinding Light={StaticResource ColorOnBubbleSentSecondaryLight},
                                                 Dark={StaticResource ColorOnBubbleSentSecondaryDark}}"
@@ -76,8 +76,8 @@
               VerticalOptions="End"
               IsVisible="{Binding IsLastInGroup, Source={x:Reference this}}"
               Padding="0">
-        <Label Text="{x:Static helpers:MaterialIcons.SmartToy}"
-               FontFamily="MaterialSymbols"
+        <Label Text="{x:Static helpers:IconKeys.Robot}"
+               FontFamily="TablerIcons"
                FontSize="{StaticResource FontSizeCallout}"
                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
                                            Dark={StaticResource ColorOnBackgroundSecondaryDark}}"

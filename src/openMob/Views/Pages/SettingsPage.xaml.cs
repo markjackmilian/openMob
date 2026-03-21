@@ -20,6 +20,12 @@ public partial class SettingsPage : ContentPage
         InitializeComponent();
     }
 
+    /// <summary>Navigates back when the back button is tapped.</summary>
+    private async void OnBackButtonTapped(object? sender, EventArgs e)
+    {
+        await Shell.Current.GoToAsync("..");
+    }
+
     /// <summary>
     /// Handles the Appearance row tap: presents a native action sheet and applies the selected theme.
     /// </summary>

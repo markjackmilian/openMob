@@ -17,6 +17,12 @@ public partial class ProjectDetailPage : ContentPage
         BindingContext = _viewModel;
     }
 
+    /// <summary>Navigates back when the back button is tapped.</summary>
+    private async void OnBackButtonTapped(object? sender, EventArgs e)
+    {
+        await Shell.Current.GoToAsync("..");
+    }
+
     /// <summary>Gets or sets the project ID received via query parameter.</summary>
     public string ProjectId
     {

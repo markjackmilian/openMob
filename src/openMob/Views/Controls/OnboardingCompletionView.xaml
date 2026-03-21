@@ -13,9 +13,9 @@
 
     <!-- Success icon -->
     <Label
-        FontFamily="MaterialSymbols"
-        Text="{x:Static helpers:MaterialIcons.CheckCircle}"
-        FontSize="64"
+        FontFamily="TablerIcons"
+        Text="{x:Static helpers:IconKeys.CircleCheck}"
+        FontSize="{StaticResource FontSizeIconHero}"
         TextColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}"
         HorizontalOptions="Center" />
 

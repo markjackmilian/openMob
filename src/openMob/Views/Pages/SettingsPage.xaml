@@ -5,7 +5,37 @@
              xmlns:vm="clr-namespace:openMob.Core.ViewModels;assembly=openMob.Core"
              x:Class="openMob.Views.Pages.SettingsPage"
              x:DataType="vm:SettingsViewModel"
-             Title="Settings">
+              Title="Settings">
+
+  <Shell.BackButtonBehavior>
+    <BackButtonBehavior IsVisible="False" IsEnabled="False" />
+  </Shell.BackButtonBehavior>
+
+  <Shell.TitleView>
+    <Grid ColumnDefinitions="Auto,*" Padding="{StaticResource SpacingXs}">
+      <ImageButton
+          Grid.Column="0"
+          Clicked="OnBackButtonTapped"
+          MinimumHeightRequest="{StaticResource MinTouchTarget}"
+          MinimumWidthRequest="{StaticResource MinTouchTarget}"
+          BackgroundColor="Transparent"
+          AutomationId="SettingsBackButton"
+          SemanticProperties.Description="Go back">
+        <ImageButton.Source>
+          <FontImageSource
+              FontFamily="TablerIcons"
+              Glyph="{x:Static helpers:IconKeys.ArrowLeft}"
+              Size="{StaticResource FontSizeIconXl}"
+              Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}" />
+        </ImageButton.Source>
+      </ImageButton>
+      <Label
+          Grid.Column="1"
+          Text="Settings"
+          Style="{StaticResource Title2Label}"
+          VerticalOptions="Center" />
+    </Grid>
+  </Shell.TitleView>
 
   <ScrollView>
     <VerticalStackLayout
@@ -17,7 +47,7 @@
           Text="GENERAL"
           Style="{StaticResource CaptionLabel}"
           FontFamily="InterMedium"
-          Margin="0,16,0,8" />
+          Margin="0,8,0,8" />
 
       <Border Style="{StaticResource CardBorder}">
         <VerticalStackLayout Spacing="0">
@@ -25,17 +55,17 @@
           <!-- Appearance -->
           <Grid
               ColumnDefinitions="Auto,*,Auto"
-              Padding="0,12"
+              Padding="12,10"
               ColumnSpacing="{StaticResource SpacingMd}">
             <Grid.GestureRecognizers>
               <TapGestureRecognizer Tapped="OnAppearanceTapped" />
             </Grid.GestureRecognizers>
-            <Label
-                FontFamily="MaterialSymbols"
-                Text="{x:Static helpers:MaterialIcons.Settings}"
-                FontSize="22"
-                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
-                VerticalOptions="Center" />
+            <Image Grid.Column="0" VerticalOptions="Center" WidthRequest="20" HeightRequest="20">
+              <Image.Source>
+                <FontImageSource FontFamily="TablerIcons" Glyph="{x:Static helpers:IconKeys.Settings}" Size="20"
+                    Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}" />
+              </Image.Source>
+            </Image>
             <Label
                 Grid.Column="1"
                 Text="Appearance"
@@ -51,63 +81,63 @@
 
           <BoxView
               HeightRequest="0.5"
+              Margin="44,0,0,0"
               Color="{AppThemeBinding Light={StaticResource ColorSeparatorLight}, Dark={StaticResource ColorSeparatorDark}}" />
 
           <!-- Server Connection -->
           <Grid
               ColumnDefinitions="Auto,*,Auto"
-              Padding="0,12"
+              Padding="12,10"
               ColumnSpacing="{StaticResource SpacingMd}">
             <Grid.GestureRecognizers>
               <TapGestureRecognizer Command="{Binding NavigateToServerManagementCommand}" />
             </Grid.GestureRecognizers>
-            <Label
-                FontFamily="MaterialSymbols"
-                Text="{x:Static helpers:MaterialIcons.Link}"
-                FontSize="22"
-                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
-                VerticalOptions="Center" />
+            <Image Grid.Column="0" VerticalOptions="Center" WidthRequest="20" HeightRequest="20">
+              <Image.Source>
+                <FontImageSource FontFamily="TablerIcons" Glyph="{x:Static helpers:IconKeys.Link}" Size="20"
+                    Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}" />
+              </Image.Source>
+            </Image>
             <Label
                 Grid.Column="1"
                 Text="Server Connection"
                 FontFamily="InterRegular"
                 VerticalOptions="Center" />
-            <Label
-                Grid.Column="2"
-                FontFamily="MaterialSymbols"
-                Text="{x:Static helpers:MaterialIcons.ChevronRight}"
-                FontSize="18"
-                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
-                VerticalOptions="Center" />
+            <Image Grid.Column="2" VerticalOptions="Center" WidthRequest="16" HeightRequest="16">
+              <Image.Source>
+                <FontImageSource FontFamily="TablerIcons" Glyph="{x:Static helpers:IconKeys.ChevronRight}" Size="16"
+                    Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}" />
+              </Image.Source>
+            </Image>
           </Grid>
 
           <BoxView
               HeightRequest="0.5"
+              Margin="44,0,0,0"
               Color="{AppThemeBinding Light={StaticResource ColorSeparatorLight}, Dark={StaticResource ColorSeparatorDark}}" />
 
           <!-- Notifications -->
           <Grid
               ColumnDefinitions="Auto,*,Auto"
-              Padding="0,12"
+              Padding="12,10"
               ColumnSpacing="{StaticResource SpacingMd}">
-            <Label
-                FontFamily="MaterialSymbols"
-                Text="{x:Static helpers:MaterialIcons.Notifications}"
-                FontSize="22"
-                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
-                VerticalOptions="Center" />
+            <Image Grid.Column="0" VerticalOptions="Center" WidthRequest="20" HeightRequest="20">
+              <Image.Source>
+                <FontImageSource FontFamily="TablerIcons" Glyph="{x:Static helpers:IconKeys.Bell}" Size="20"
+                    Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}" />
+              </Image.Source>
+            </Image>
             <Label
                 Grid.Column="1"
                 Text="Notifications"
                 FontFamily="InterRegular"
                 VerticalOptions="Center" />
-            <Label
-                Grid.Column="2"
-                FontFamily="MaterialSymbols"
-                Text="{x:Static helpers:MaterialIcons.ChevronRight}"
-                FontSize="18"
-                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
-                VerticalOptions="Center" />
+            <Image Grid.Column="2" VerticalOptions="Center" WidthRequest="16" HeightRequest="16">
+              <Image.Source>
+                <FontImageSource FontFamily="TablerIcons" Glyph="{x:Static helpers:IconKeys.ChevronRight}" Size="16"
+                    Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}" />
+              </Image.Source>
+            </Image>
           </Grid>
 
         </VerticalStackLayout>
@@ -118,7 +148,7 @@
           Text="AI PROVIDERS"
           Style="{StaticResource CaptionLabel}"
           FontFamily="InterMedium"
-          Margin="0,24,0,8" />
+          Margin="0,20,0,8" />
 
       <Border Style="{StaticResource CardBorder}">
         <VerticalStackLayout Spacing="0">
@@ -126,55 +156,54 @@
           <!-- Manage Providers -->
           <Grid
               ColumnDefinitions="Auto,*,Auto"
-              Padding="0,12"
+              Padding="12,10"
               ColumnSpacing="{StaticResource SpacingMd}">
-            <Label
-                FontFamily="MaterialSymbols"
-                Text="{x:Static helpers:MaterialIcons.SmartToy}"
-                FontSize="22"
-                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
-                VerticalOptions="Center" />
+            <Image Grid.Column="0" VerticalOptions="Center" WidthRequest="20" HeightRequest="20">
+              <Image.Source>
+                <FontImageSource FontFamily="TablerIcons" Glyph="{x:Static helpers:IconKeys.Robot}" Size="20"
+                    Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}" />
+              </Image.Source>
+            </Image>
             <Label
                 Grid.Column="1"
                 Text="Manage Providers"
                 FontFamily="InterRegular"
                 VerticalOptions="Center" />
-            <Label
-                Grid.Column="2"
-                FontFamily="MaterialSymbols"
-                Text="{x:Static helpers:MaterialIcons.ChevronRight}"
-                FontSize="18"
-                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
-                VerticalOptions="Center" />
+            <Image Grid.Column="2" VerticalOptions="Center" WidthRequest="16" HeightRequest="16">
+              <Image.Source>
+                <FontImageSource FontFamily="TablerIcons" Glyph="{x:Static helpers:IconKeys.ChevronRight}" Size="16"
+                    Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}" />
+              </Image.Source>
+            </Image>
           </Grid>
 
           <BoxView
               HeightRequest="0.5"
+              Margin="44,0,0,0"
               Color="{AppThemeBinding Light={StaticResource ColorSeparatorLight}, Dark={StaticResource ColorSeparatorDark}}" />
 
           <!-- API Keys -->
           <Grid
               ColumnDefinitions="Auto,*,Auto"
-              Padding="0,12"
+              Padding="12,10"
               ColumnSpacing="{StaticResource SpacingMd}">
-            <Label
-                FontFamily="MaterialSymbols"
-                Text="{x:Static helpers:MaterialIcons.Key}"
-                FontSize="22"
-                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
-                VerticalOptions="Center" />
+            <Image Grid.Column="0" VerticalOptions="Center" WidthRequest="20" HeightRequest="20">
+              <Image.Source>
+                <FontImageSource FontFamily="TablerIcons" Glyph="{x:Static helpers:IconKeys.Key}" Size="20"
+                    Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}" />
+              </Image.Source>
+            </Image>
             <Label
                 Grid.Column="1"
                 Text="API Keys"
                 FontFamily="InterRegular"
                 VerticalOptions="Center" />
-            <Label
-                Grid.Column="2"
-                FontFamily="MaterialSymbols"
-                Text="{x:Static helpers:MaterialIcons.ChevronRight}"
-                FontSize="18"
-                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
-                VerticalOptions="Center" />
+            <Image Grid.Column="2" VerticalOptions="Center" WidthRequest="16" HeightRequest="16">
+              <Image.Source>
+                <FontImageSource FontFamily="TablerIcons" Glyph="{x:Static helpers:IconKeys.ChevronRight}" Size="16"
+                    Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}" />
+              </Image.Source>
+            </Image>
           </Grid>
 
         </VerticalStackLayout>
@@ -185,7 +214,7 @@
           Text="ABOUT"
           Style="{StaticResource CaptionLabel}"
           FontFamily="InterMedium"
-          Margin="0,24,0,8" />
+          Margin="0,20,0,8" />
 
       <Border Style="{StaticResource CardBorder}">
         <VerticalStackLayout Spacing="0">
@@ -193,14 +222,14 @@
           <!-- Version -->
           <Grid
               ColumnDefinitions="Auto,*,Auto"
-              Padding="0,12"
+              Padding="12,10"
               ColumnSpacing="{StaticResource SpacingMd}">
-            <Label
-                FontFamily="MaterialSymbols"
-                Text="{x:Static helpers:MaterialIcons.Info}"
-                FontSize="22"
-                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
-                VerticalOptions="Center" />
+            <Image Grid.Column="0" VerticalOptions="Center" WidthRequest="20" HeightRequest="20">
+              <Image.Source>
+                <FontImageSource FontFamily="TablerIcons" Glyph="{x:Static helpers:IconKeys.InfoCircle}" Size="20"
+                    Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}" />
+              </Image.Source>
+            </Image>
             <Label
                 Grid.Column="1"
                 Text="Version"

@@ -4,7 +4,7 @@
 | Field   | Value                        |
 |---------|------------------------------|
 | Date    | 2026-03-21                   |
-| Status  | Draft                        |
+| Status  | In Progress                  |
 | Version | 1.0                          |
 
 ---
@@ -61,7 +61,7 @@ La `ContextSheet` (modal delle impostazioni di sessione della chat) è attualmen
 
 | # | Question | Status | Answer / Decision |
 |---|----------|--------|-------------------|
-| 1 | Il `CloseCommand` deve risiedere nel `ContextSheetViewModel` (Core) o nel code-behind della `ContextSheet` (MAUI)? | Open | Da decidere in analisi tecnica. Preferibile nel ViewModel per testabilità, ma richiede accesso a `INavigation` o a un servizio di navigazione. In alternativa, il code-behind può gestire il tap direttamente senza logica di business. |
+| 1 | Il `CloseCommand` deve risiedere nel `ContextSheetViewModel` (Core) o nel code-behind della `ContextSheet` (MAUI)? | **Resolved** | **ViewModel.** `ContextSheetViewModel` ha già `IAppPopupService` iniettato e usa `_popupService.PopPopupAsync()` in `DeleteSessionAsync`. Il `CloseCommand` chiamerà lo stesso metodo — nessuna dipendenza aggiuntiva, piena testabilità, zero logica nel code-behind. |
 
 ---
 
@@ -87,3 +87,89 @@ La `ContextSheet` (modal delle impostazioni di sessione della chat) è attualmen
 - **Nessuna modifica al Core layer** se si sceglie l'approccio code-behind — questa feature è prevalentemente UI-only.
 - **Test:** se `CloseCommand` è nel ViewModel, aggiungere un test unitario che verifica che il comando invochi il servizio/metodo di navigazione corretto. Se è nel code-behind, non è necessario alcun test unitario (nessuna logica di business).
 - **Agenti coinvolti:** `om-mobile-ui` (XAML), eventualmente `om-mobile-core` se si aggiunge `CloseCommand` al ViewModel.
+
+---
+
+## Technical Analysis
+
+> Added by: om-orchestrator | Date: 2026-03-21
+
+### Change Classification
+
+| Field | Value |
+|-------|-------|
+| Change type | Feature |
+| Git Flow branch | feature/context-sheet-close-button |
+| Branches from | develop |
+| Estimated complexity | Low |
+| Estimated agents involved | om-mobile-core, om-mobile-ui, om-tester, om-reviewer |
+
+### Open Question Resolution
+
+**Q1 — CloseCommand placement:** Resolved as **ViewModel** approach.
+
+Analysis of the existing codebase confirms that `ContextSheetViewModel` already has `IAppPopupService` injected and uses `_popupService.PopPopupAsync(ct)` inside `DeleteSessionAsync`. Adding `CloseCommand` to the ViewModel:
+- Reuses the existing `IAppPopupService` abstraction — zero new dependencies
+- Is fully testable via NSubstitute mocking of `IAppPopupService`
+- Keeps the code-behind clean (no business logic)
+- Is consistent with the existing pattern in the same ViewModel
+
+The code-behind approach is explicitly rejected because it would be inconsistent with the established pattern where all navigation/popup dismissal goes through `IAppPopupService`.
+
+### Layers Involved
+
+| Layer | Agent | Scope |
+|-------|-------|-------|
+| ViewModel | om-mobile-core | `src/openMob.Core/ViewModels/ContextSheetViewModel.cs` |
+| XAML View | om-mobile-ui | `src/openMob/Views/Popups/ContextSheet.xaml` |
+| Unit Tests | om-tester | `tests/openMob.Tests/ViewModels/ContextSheetViewModelTests.cs` |
+| Code Review | om-reviewer | all of the above |
+
+### Files to Create
+
+- None — all changes are modifications to existing files.
+
+### Files to Modify
+
+- `src/openMob.Core/ViewModels/ContextSheetViewModel.cs` — add `CloseCommand` that calls `_popupService.PopPopupAsync(ct)`
+- `src/openMob/Views/Popups/ContextSheet.xaml` — add `Button` with `Text="Chiudi"` at the bottom of the `VerticalStackLayout`, bound to `CloseCommand`, styled with `SecondaryButton` style and `SpacingLg` margin
+- `tests/openMob.Tests/ViewModels/ContextSheetViewModelTests.cs` — add test for `CloseCommand` (file may already exist; add test method)
+
+### Technical Dependencies
+
+- `IAppPopupService.PopPopupAsync(CancellationToken)` — already exists and is already injected into `ContextSheetViewModel`
+- No new NuGet packages required
+- No EF Core migrations required
+- No new interfaces required
+
+### Technical Risks
+
+- **None significant.** This is a low-risk, additive change. The `PopPopupAsync` method is already used in the same ViewModel and is known to work correctly.
+- The `[NotifyCanExecuteChangedFor]` pattern on `IsBusy` should **not** be applied to `CloseCommand` — the close button must always be enabled regardless of busy state, so the user can always exit the sheet.
+
+### Execution Order
+
+> Steps that can run in parallel are marked with ⟳.
+
+1. [Git Flow] Create branch `feature/context-sheet-close-button`
+2. [om-mobile-core] Add `CloseCommand` to `ContextSheetViewModel`
+3. ⟳ [om-mobile-ui] Add "Chiudi" button to `ContextSheet.xaml` (can start immediately — binding surface is trivial: just `CloseCommand`)
+4. [om-tester] Write unit test for `CloseCommand`
+5. [om-reviewer] Full review against spec
+6. [Fix loop if needed] Address Critical and Major findings
+7. [Git Flow] Finish branch and merge
+
+### Definition of Done
+
+- [ ] [REQ-001] Button "Chiudi" present at the bottom of `ContextSheet.xaml`
+- [ ] [REQ-002] Button visible on both iOS and Android (no platform conditional needed)
+- [ ] [REQ-003] `CloseCommand` calls `_popupService.PopPopupAsync(ct)` — modal dismissed
+- [ ] [REQ-004] No save/rollback logic in `CloseCommand` — preferences already auto-saved
+- [ ] [AC-001] iOS: tap "Chiudi" → modal dismissed
+- [ ] [AC-002] Android: button visible and functional
+- [ ] [AC-003] Preferences unchanged after close
+- [ ] [AC-004] Button positioned after all settings controls
+- [ ] Unit test for `CloseCommand` written and passing
+- [ ] `om-reviewer` verdict: ✅ Approved or ⚠️ Approved with remarks
+- [ ] Git Flow branch finished and deleted
+- [ ] Spec moved to `specs/done/` with Completed status

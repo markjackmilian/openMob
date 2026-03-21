@@ -12,7 +12,7 @@ namespace openMob.Tests.ViewModels;
 /// <summary>
 /// Unit tests for <see cref="ContextSheetViewModel"/>.
 /// Covers initialization, auto-save on property change, WeakReferenceMessenger publishing,
-/// computed display properties, and DeleteSessionCommand behaviour.
+/// computed display properties, DeleteSessionCommand behaviour, and CloseCommand behaviour.
 /// </summary>
 /// <remarks>
 /// Placed in <see cref="MessengerTestCollection"/> to prevent parallel execution with
@@ -1326,5 +1326,34 @@ public sealed class ContextSheetViewModelTests : IDisposable
             Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
         await _sessionService.DidNotReceive().DeleteSessionAsync(
             Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    // ─── Commands — CloseCommand ──────────────────────────────────────────────
+
+    [Fact]
+    public async Task CloseCommand_WhenExecuted_CallsPopPopupAsync()
+    {
+        // Arrange
+        _popupService.PopPopupAsync(Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+
+        // Act
+        await _sut.CloseCommand.ExecuteAsync(null);
+
+        // Assert
+        await _popupService.Received(1).PopPopupAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public void CloseCommand_WhenIsBusyIsTrue_CanExecuteReturnsTrue()
+    {
+        // Arrange
+        _sut.IsBusy = true;
+
+        // Act
+        var result = _sut.CloseCommand.CanExecute(null);
+
+        // Assert
+        result.Should().BeTrue();
     }
 }

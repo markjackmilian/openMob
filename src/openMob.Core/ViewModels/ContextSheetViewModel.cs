@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
@@ -432,6 +432,34 @@ public sealed partial class ContextSheetViewModel : ObservableObject
     /// <summary>Determines whether <see cref="DeleteSessionCommand"/> can execute.</summary>
     /// <returns><c>true</c> when not busy.</returns>
     private bool CanDeleteSession() => !IsBusy;
+
+    /// <summary>
+    /// Dismisses the Context Sheet by popping the modal navigation stack.
+    /// Preferences are already auto-saved on every change; no save or rollback is performed.
+    /// </summary>
+    /// <param name="ct">Cancellation token.</param>
+    [RelayCommand]
+    private async Task CloseAsync(CancellationToken ct)
+    {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(CloseAsync), "start");
+        try
+        {
+#endif
+        await _popupService.PopPopupAsync(ct);
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(CloseAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(CloseAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
+    }
 
     // ─── Initialization ───────────────────────────────────────────────────────
 

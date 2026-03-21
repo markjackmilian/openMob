@@ -437,7 +437,10 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
 #endif
         try
         {
-            var session = await _sessionService.CreateSessionAsync(null, ct).ConfigureAwait(false);
+            // Note: no ConfigureAwait(false) here — NewChatAsync runs in a ViewModel and must
+            // remain on the UI SynchronizationContext so that SetSession, ShowErrorAsync, and
+            // any subsequent UI mutations execute on the main thread (required on Android).
+            var session = await _sessionService.CreateSessionAsync(null, ct);
 
             if (session is not null)
             {

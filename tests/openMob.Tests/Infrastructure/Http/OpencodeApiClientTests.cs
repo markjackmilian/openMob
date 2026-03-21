@@ -129,7 +129,7 @@ public sealed class OpencodeApiClientTests
             }
             """);
         var sut = CreateSut();
-        var request = new CreateSessionRequest(Title: "New Session", ParentId: null);
+        var request = new CreateSessionRequest(Title: "New Session", ParentId: string.Empty);
 
         // Act
         var result = await sut.CreateSessionAsync(request);

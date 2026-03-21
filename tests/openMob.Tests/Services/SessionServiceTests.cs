@@ -202,7 +202,7 @@ public sealed class SessionServiceTests
 
         // Assert
         await _apiClient.Received(1).CreateSessionAsync(
-            Arg.Is<CreateSessionRequest>(r => r.Title == "Test Title" && r.ParentId == null),
+            Arg.Is<CreateSessionRequest>(r => r.Title == "Test Title" && r.ParentId == string.Empty),
             Arg.Any<CancellationToken>());
     }
 
@@ -222,7 +222,7 @@ public sealed class SessionServiceTests
     }
 
     [Fact]
-    public async Task CreateSessionAsync_WhenTitleIsNull_PassesNullTitle()
+    public async Task CreateSessionAsync_WhenTitleIsNull_PassesEmptyTitle()
     {
         // Arrange
         var session = BuildSession();
@@ -234,7 +234,7 @@ public sealed class SessionServiceTests
 
         // Assert
         await _apiClient.Received(1).CreateSessionAsync(
-            Arg.Is<CreateSessionRequest>(r => r.Title == null),
+            Arg.Is<CreateSessionRequest>(r => r.Title == string.Empty),
             Arg.Any<CancellationToken>());
     }
 

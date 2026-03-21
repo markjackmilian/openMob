@@ -80,7 +80,7 @@ internal sealed class SessionService : ISessionService
     /// <inheritdoc />
     public async Task<SessionDto?> CreateSessionAsync(string? title, CancellationToken ct = default)
     {
-        var request = new CreateSessionRequest(Title: title, ParentId: null);
+        var request = new CreateSessionRequest(Title: title ?? string.Empty, ParentId: string.Empty);
         var result = await _apiClient.CreateSessionAsync(request, ct).ConfigureAwait(false);
 
         if (result.IsSuccess)
@@ -101,7 +101,7 @@ internal sealed class SessionService : ISessionService
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(projectId);
 
-        var request = new CreateSessionRequest(Title: null, ParentId: null);
+        var request = new CreateSessionRequest(Title: string.Empty, ParentId: string.Empty);
         var result = await _apiClient.CreateSessionAsync(request, ct).ConfigureAwait(false);
 
         if (result.IsSuccess && result.Value is not null)

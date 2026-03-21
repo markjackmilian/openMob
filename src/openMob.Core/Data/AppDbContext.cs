@@ -51,6 +51,7 @@ public sealed class AppDbContext : DbContext
             entity.Property(e => e.UseHttps).HasDefaultValue(false);
             entity.Property(e => e.CreatedAt);
             entity.Property(e => e.UpdatedAt);
+            entity.Property(e => e.DefaultModelId).HasMaxLength(500);
             entity.HasIndex(e => e.IsActive);
         });
 

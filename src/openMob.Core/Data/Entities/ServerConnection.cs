@@ -39,4 +39,7 @@ public sealed class ServerConnection
 
     /// <summary>Gets or sets the UTC timestamp when this record was last updated.</summary>
     public DateTime UpdatedAt { get; set; }
+
+    /// <summary>Gets or sets the default AI model ID for this server (format: "providerId/modelId"), or null if not set.</summary>
+    public string? DefaultModelId { get; set; }
 }

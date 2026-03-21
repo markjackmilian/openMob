@@ -271,6 +271,56 @@ internal sealed class ServerConnectionRepository : IServerConnectionRepository
         return true;
     }
 
+    /// <inheritdoc />
+    public async Task<string?> GetDefaultModelAsync(string serverId, CancellationToken cancellationToken = default)
+    {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+#endif
+        var entity = await _context.ServerConnections
+            .AsNoTracking()
+            .FirstOrDefaultAsync(sc => sc.Id == serverId, cancellationToken)
+            .ConfigureAwait(false);
+
+        var result = entity?.DefaultModelId;
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogDatabase("GetDefaultModel", "ServerConnection", serverId, sw.ElapsedMilliseconds);
+#endif
+        return result;
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> SetDefaultModelAsync(string serverId, string modelId, CancellationToken cancellationToken = default)
+    {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+#endif
+        var entity = await _context.ServerConnections
+            .FirstOrDefaultAsync(sc => sc.Id == serverId, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (entity is null)
+        {
+#if DEBUG
+            sw.Stop();
+            DebugLogger.LogDatabase("SetDefaultModel", "ServerConnection", serverId, sw.ElapsedMilliseconds);
+#endif
+            return false;
+        }
+
+        entity.DefaultModelId = modelId;
+        entity.UpdatedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogDatabase("SetDefaultModel", "ServerConnection", serverId, sw.ElapsedMilliseconds);
+#endif
+        return true;
+    }
+
     /// <summary>Maps a <see cref="ServerConnection"/> entity to a <see cref="ServerConnectionDto"/>.</summary>
     /// <param name="entity">The entity to map.</param>
     /// <param name="hasPassword">Whether a password exists in secure storage for this connection.</param>
@@ -287,6 +337,7 @@ internal sealed class ServerConnectionRepository : IServerConnectionRepository
             UseHttps: entity.UseHttps,
             CreatedAt: entity.CreatedAt,
             UpdatedAt: entity.UpdatedAt,
-            HasPassword: hasPassword
+            HasPassword: hasPassword,
+            DefaultModelId: entity.DefaultModelId
         );
 }

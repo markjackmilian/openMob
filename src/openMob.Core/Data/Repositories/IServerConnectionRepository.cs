@@ -60,4 +60,17 @@ public interface IServerConnectionRepository
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns><c>true</c> if the connection was found and activated; <c>false</c> otherwise.</returns>
     Task<bool> SetActiveAsync(string id, CancellationToken cancellationToken = default);
+
+    /// <summary>Gets the default model ID for the specified server.</summary>
+    /// <param name="serverId">The unique identifier of the server connection.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The default model ID, or <c>null</c> if not set or the server is not found.</returns>
+    Task<string?> GetDefaultModelAsync(string serverId, CancellationToken cancellationToken = default);
+
+    /// <summary>Sets the default model ID for the specified server.</summary>
+    /// <param name="serverId">The unique identifier of the server connection.</param>
+    /// <param name="modelId">The model ID to set as default (format: "providerId/modelId").</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns><c>true</c> if the server was found and updated; <c>false</c> otherwise.</returns>
+    Task<bool> SetDefaultModelAsync(string serverId, string modelId, CancellationToken cancellationToken = default);
 }

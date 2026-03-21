@@ -51,20 +51,19 @@ public sealed class OnboardingViewModelTests
     }
 
     [Fact]
-    public void Constructor_TotalStepsIs5()
+    public void Constructor_TotalStepsIs4()
     {
         // Assert
-        _sut.TotalSteps.Should().Be(5);
+        _sut.TotalSteps.Should().Be(4);
     }
 
     // ─── Progress ─────────────────────────────────────────────────────────────
 
     [Theory]
-    [InlineData(1, 0.2)]
-    [InlineData(2, 0.4)]
-    [InlineData(3, 0.6)]
-    [InlineData(4, 0.8)]
-    [InlineData(5, 1.0)]
+    [InlineData(1, 0.25)]
+    [InlineData(2, 0.5)]
+    [InlineData(3, 0.75)]
+    [InlineData(4, 1.0)]
     public void Progress_ReturnsCorrectValueForStep(int step, double expectedProgress)
     {
         // Arrange — advance to the desired step
@@ -111,10 +110,21 @@ public sealed class OnboardingViewModelTests
     }
 
     [Fact]
-    public void CanGoNext_Step3_IsTrue()
+    public void CanGoNext_Step3_WhenNoModelSelected_IsFalse()
     {
         // Arrange
         _sut.CurrentStep = 3;
+
+        // Assert
+        _sut.CanGoNext.Should().BeFalse();
+    }
+
+    [Fact]
+    public void CanGoNext_Step3_WhenModelSelected_IsTrue()
+    {
+        // Arrange
+        _sut.CurrentStep = 3;
+        _sut.SelectedModelId = "anthropic/claude-3-opus";
 
         // Assert
         _sut.CanGoNext.Should().BeTrue();
@@ -141,13 +151,11 @@ public sealed class OnboardingViewModelTests
 
     // ─── IsStepOptional ───────────────────────────────────────────────────────
 
-    [Theory]
-    [InlineData(2)]
-    [InlineData(3)]
-    public void IsStepOptional_Step2And3_IsTrue(int step)
+    [Fact]
+    public void IsStepOptional_Step2_IsTrue()
     {
         // Arrange
-        _sut.CurrentStep = step;
+        _sut.CurrentStep = 2;
 
         // Assert
         _sut.IsStepOptional.Should().BeTrue();
@@ -155,9 +163,9 @@ public sealed class OnboardingViewModelTests
 
     [Theory]
     [InlineData(1)]
+    [InlineData(3)]
     [InlineData(4)]
-    [InlineData(5)]
-    public void IsStepOptional_NonStep2Or3_IsFalse(int step)
+    public void IsStepOptional_NonStep2_IsFalse(int step)
     {
         // Arrange
         _sut.CurrentStep = step;
@@ -179,12 +187,12 @@ public sealed class OnboardingViewModelTests
     }
 
     [Fact]
-    public async Task NextStepCommand_WhenOnStep2_AdvancesToStep3AndLoadsProviders()
+    public async Task NextStepCommand_WhenOnStep2_AdvancesToStep3AndLoadsModels()
     {
         // Arrange
         _sut.CurrentStep = 2;
         _sut.IsConnectionSuccessful = true;
-        _providerService.GetProvidersAsync(Arg.Any<CancellationToken>())
+        _providerService.GetConfiguredProvidersAsync(Arg.Any<CancellationToken>())
             .Returns(new List<ProviderDto>());
 
         // Act
@@ -192,20 +200,21 @@ public sealed class OnboardingViewModelTests
 
         // Assert
         _sut.CurrentStep.Should().Be(3);
-        await _providerService.Received(1).GetProvidersAsync(Arg.Any<CancellationToken>());
+        await _providerService.Received(1).GetConfiguredProvidersAsync(Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task NextStepCommand_WhenOnStep4_AdvancesToStep5()
+    public async Task NextStepCommand_WhenOnStep3_AdvancesToStep4()
     {
         // Arrange
-        _sut.CurrentStep = 4;
+        _sut.CurrentStep = 3;
+        _sut.SelectedModelId = "anthropic/claude-3-opus";
 
         // Act
         await _sut.NextStepCommand.ExecuteAsync(null);
 
         // Assert
-        _sut.CurrentStep.Should().Be(5);
+        _sut.CurrentStep.Should().Be(4);
     }
 
     // ─── PreviousStepCommand ──────────────────────────────────────────────────
@@ -248,10 +257,10 @@ public sealed class OnboardingViewModelTests
     // ─── NextStepCommand at step 5 completes onboarding ──────────────────────
 
     [Fact]
-    public async Task NextStepCommand_WhenOnStep5_NavigatesToChat()
+    public async Task NextStepCommand_WhenOnStep4_NavigatesToChat()
     {
         // Arrange
-        _sut.CurrentStep = 5;
+        _sut.CurrentStep = 4;
 
         // Act
         await _sut.NextStepCommand.ExecuteAsync(null);
@@ -276,10 +285,10 @@ public sealed class OnboardingViewModelTests
     }
 
     [Fact]
-    public async Task SkipStepCommand_WhenOnStep5_NavigatesToChat()
+    public async Task SkipStepCommand_WhenOnStep4_NavigatesToChat()
     {
         // Arrange
-        _sut.CurrentStep = 5;
+        _sut.CurrentStep = 4;
 
         // Act
         await _sut.SkipStepCommand.ExecuteAsync(null);

@@ -34,7 +34,8 @@ public static class TestDataBuilder
         bool useHttps = false,
         DateTime? createdAt = null,
         DateTime? updatedAt = null,
-        bool hasPassword = false)
+        bool hasPassword = false,
+        string? defaultModelId = null)
         => new(id, name, host, port, username, isActive, discoveredViaMdns, useHttps,
-               createdAt ?? DateTime.UtcNow, updatedAt ?? DateTime.UtcNow, hasPassword);
+               createdAt ?? DateTime.UtcNow, updatedAt ?? DateTime.UtcNow, hasPassword, defaultModelId);
 }

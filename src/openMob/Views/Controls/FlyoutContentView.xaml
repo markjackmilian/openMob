@@ -8,28 +8,17 @@
              x:DataType="viewmodels:FlyoutViewModel">
 
   <Grid
-      RowDefinitions="Auto,Auto,Auto,*"
+      RowDefinitions="Auto,Auto,*"
       BackgroundColor="{AppThemeBinding Light={StaticResource ColorBackgroundLight}, Dark={StaticResource ColorBackgroundDark}}">
 
-    <!-- Row 0: Section header: project name (uppercase)
-         Margin="16,12,16,8" = composite of SpacingLg, SpacingMd, SpacingLg, SpacingSm -->
-    <Label
-        Grid.Row="0"
-        Text="{Binding ProjectSectionTitle, FallbackValue='SESSIONS', TargetNullValue='SESSIONS'}"
-        FontFamily="InterMedium"
-        FontSize="{StaticResource FontSizeCaption1}"
-        TextTransform="Uppercase"
-        TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
-        Margin="16,12,16,8" />
-
-    <!-- Row 1: New Session button — always visible -->
+    <!-- Row 0: New Session button — always visible -->
     <Border
-        Grid.Row="1"
+        Grid.Row="0"
         AutomationId="NewSessionButton"
         BackgroundColor="{AppThemeBinding Light={StaticResource ColorPrimaryContainerLight}, Dark={StaticResource ColorPrimaryContainerDark}}"
         StrokeThickness="0"
         StrokeShape="RoundRectangle 8"
-        Margin="16,8,16,4"
+        Margin="16,4,16,4"
         Padding="0"
         IsEnabled="{Binding IsCreatingSession, Converter={StaticResource InvertedBoolConverter}}"
         SemanticProperties.Description="Start a new session">
@@ -72,9 +61,9 @@
       </Grid>
     </Border>
 
-    <!-- Row 2: Inline creation error label — hidden when CreationError is null -->
+    <!-- Row 1: Inline creation error label — hidden when CreationError is null -->
     <Border
-        Grid.Row="2"
+        Grid.Row="1"
         BackgroundColor="{AppThemeBinding Light={StaticResource ColorErrorContainerLight}, Dark={StaticResource ColorErrorContainerDark}}"
         StrokeThickness="0"
         StrokeShape="RoundRectangle 8"
@@ -89,9 +78,9 @@
           LineBreakMode="WordWrap" />
     </Border>
 
-    <!-- Row 3 (was Row 1): No project placeholder -->
+    <!-- Row 2: No project placeholder -->
     <Label
-        Grid.Row="3"
+        Grid.Row="2"
         Text="Select a project to view sessions"
         FontFamily="InterRegular"
         FontSize="{StaticResource FontSizeCallout}"
@@ -100,18 +89,18 @@
         TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
         IsVisible="{Binding HasProject, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Invert}" />
 
-    <!-- Row 3 (was Row 1): Loading indicator -->
+    <!-- Row 2: Loading indicator -->
     <ActivityIndicator
-        Grid.Row="3"
+        Grid.Row="2"
         IsRunning="{Binding IsLoading}"
         IsVisible="{Binding IsLoading}"
         HorizontalOptions="Center"
         VerticalOptions="Start"
         Margin="0,24,0,0" />
 
-    <!-- Row 3 (was Row 1): Session list -->
+    <!-- Row 2: Session list -->
     <CollectionView
-        Grid.Row="3"
+        Grid.Row="2"
         ItemsSource="{Binding Sessions}"
         IsVisible="{Binding HasProject}"
         SelectionMode="None">

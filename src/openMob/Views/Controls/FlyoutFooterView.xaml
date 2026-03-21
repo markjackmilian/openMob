@@ -14,23 +14,27 @@
     <BoxView
         HeightRequest="0.5"
         Color="{AppThemeBinding Light={StaticResource ColorSeparatorLight}, Dark={StaticResource ColorSeparatorDark}}"
-        Margin="0,0,0,8" />
+        Margin="0,0,0,4" />
 
     <!-- Projects -->
     <HorizontalStackLayout
         Spacing="{StaticResource SpacingMd}"
-        Padding="16,12"
+        Padding="16,10"
         MinimumHeightRequest="{StaticResource MinTouchTarget}">
       <HorizontalStackLayout.GestureRecognizers>
         <TapGestureRecognizer Tapped="OnProjectsTapped" />
       </HorizontalStackLayout.GestureRecognizers>
-      <Label
-          FontFamily="TablerIcons"
-          Text="{x:Static helpers:IconKeys.Folder}"
-          FontSize="{StaticResource FontSizeTitle3}"
-          TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
-          VerticalOptions="Center"
-          SemanticProperties.Description="Projects folder icon" />
+      <Image VerticalOptions="Center"
+             WidthRequest="20"
+             HeightRequest="20">
+        <Image.Source>
+          <FontImageSource
+              FontFamily="TablerIcons"
+              Glyph="{x:Static helpers:IconKeys.Folder}"
+              Size="20"
+              Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}" />
+        </Image.Source>
+      </Image>
       <Label
           Text="Projects"
           FontFamily="InterMedium"
@@ -42,18 +46,22 @@
     <!-- Settings -->
     <HorizontalStackLayout
         Spacing="{StaticResource SpacingMd}"
-        Padding="16,12"
+        Padding="16,10"
         MinimumHeightRequest="{StaticResource MinTouchTarget}">
       <HorizontalStackLayout.GestureRecognizers>
         <TapGestureRecognizer Tapped="OnSettingsTapped" />
       </HorizontalStackLayout.GestureRecognizers>
-      <Label
-          FontFamily="TablerIcons"
-          Text="{x:Static helpers:IconKeys.Settings}"
-          FontSize="{StaticResource FontSizeTitle3}"
-          TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
-          VerticalOptions="Center"
-          SemanticProperties.Description="Settings gear icon" />
+      <Image VerticalOptions="Center"
+             WidthRequest="20"
+             HeightRequest="20">
+        <Image.Source>
+          <FontImageSource
+              FontFamily="TablerIcons"
+              Glyph="{x:Static helpers:IconKeys.Settings}"
+              Size="20"
+              Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}" />
+        </Image.Source>
+      </Image>
       <Label
           Text="Settings"
           FontFamily="InterMedium"
@@ -69,7 +77,7 @@
         FontSize="{StaticResource FontSizeCaption2}"
         TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
         HorizontalTextAlignment="Center"
-        Margin="0,8,0,8" />
+        Margin="0,4,0,8" />
 
   </VerticalStackLayout>
 

@@ -36,13 +36,7 @@ public sealed class OpencodeApiClientTests
         _settingsService = new FakeOpencodeSettingsService { TimeoutSeconds = 30 };
 
         var activeProjectService = Substitute.For<IActiveProjectService>();
-        activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>())
-            .Returns(new ProjectDto(
-                Id: "proj-1",
-                Worktree: "/home/user/myproject",
-                VcsDir: null,
-                Vcs: "git",
-                Time: new ProjectTimeDto(Created: 1710000000000, Initialized: null)));
+        activeProjectService.GetCachedWorktree().Returns("/home/user/myproject");
         _lazyActiveProjectService = new Lazy<IActiveProjectService>(() => activeProjectService);
     }
 

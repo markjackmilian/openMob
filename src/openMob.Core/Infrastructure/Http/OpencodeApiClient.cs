@@ -147,8 +147,10 @@ internal sealed class OpencodeApiClient : IOpencodeApiClient
 
                     // Inject the active project directory so the server uses the correct project context.
                     // The server reads this from the x-opencode-directory header on every request.
-                    var activeProject = await _activeProjectService.Value.GetActiveProjectAsync(ct).ConfigureAwait(false);
-                    if (activeProject?.Worktree is { Length: > 0 } worktree)
+                    // IMPORTANT: Use the synchronous cached read to avoid a recursive call chain
+                    // (ExecuteAsync → GetActiveProjectAsync → ProjectService → ExecuteAsync → deadlock on SemaphoreSlim).
+                    var worktree = _activeProjectService.Value.GetCachedWorktree();
+                    if (!string.IsNullOrEmpty(worktree))
                         client.DefaultRequestHeaders.TryAddWithoutValidation("x-opencode-directory", worktree);
 
                     // Apply per-request timeout via a linked CancellationTokenSource.
@@ -719,8 +721,9 @@ internal sealed class OpencodeApiClient : IOpencodeApiClient
         }
 
         // Inject the active project directory for SSE events too.
-        var activeProject = await _activeProjectService.Value.GetActiveProjectAsync(cancellationToken).ConfigureAwait(false);
-        if (activeProject?.Worktree is { Length: > 0 } worktree)
+        // Use the synchronous cached read to avoid the same deadlock as in ExecuteAsync.
+        var worktree = _activeProjectService.Value.GetCachedWorktree();
+        if (!string.IsNullOrEmpty(worktree))
             client.DefaultRequestHeaders.TryAddWithoutValidation("x-opencode-directory", worktree);
 
         // Wrap the initial GET in a try/catch for network-level failures only.

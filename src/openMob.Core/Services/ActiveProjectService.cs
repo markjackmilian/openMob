@@ -70,4 +70,7 @@ internal sealed class ActiveProjectService : IActiveProjectService
 
         return true;
     }
+
+    /// <inheritdoc />
+    public string? GetCachedWorktree() => _activeProject?.Worktree;
 }

@@ -1,120 +1,120 @@
 namespace openMob.Helpers;
 
 /// <summary>
-/// Centralised icon glyph constants. All icon references in XAML must use
+/// Centralised Tabler Icons glyph constants. All icon references in XAML must use
 /// <c>{x:Static helpers:IconKeys.XxxName}</c> — no raw Unicode strings in XAML.
 /// </summary>
 /// <remarks>
-/// Currently uses MaterialSymbols codepoints. Will be migrated to Tabler Icons
-/// codepoints when the TablerIcons.ttf font file is integrated.
+/// Codepoints sourced from Tabler Icons webfont v2.47.0.
+/// Reference: https://tabler.io/icons
 /// </remarks>
 public static class IconKeys
 {
-    /// <summary>Hamburger menu icon (three horizontal lines).</summary>
-    public const string Menu = "\ue5d2";
+    /// <summary>Hamburger menu icon (three horizontal lines). Tabler: menu-2.</summary>
+    public const string Menu = "\uec42";
 
-    /// <summary>Add / plus icon.</summary>
-    public const string Add = "\ue145";
+    /// <summary>Add / plus icon. Tabler: plus.</summary>
+    public const string Add = "\ueb0b";
 
-    /// <summary>Send message icon.</summary>
-    public const string Send = "\ue163";
+    /// <summary>Send message icon. Tabler: send-2.</summary>
+    public const string Send = "\ufd5d";
 
-    /// <summary>Arrow upward icon (used for send button in ChatGPT style).</summary>
-    public const string ArrowUp = "\ue5d8";
+    /// <summary>Arrow upward icon (used for send button). Tabler: arrow-up.</summary>
+    public const string ArrowUp = "\uea25";
 
-    /// <summary>Auto-awesome / sparkle icon (for auto-accept).</summary>
-    public const string AutoAwesome = "\ue65f";
+    /// <summary>Auto-awesome / sparkle icon (for auto-accept). Tabler: sparkles.</summary>
+    public const string AutoAwesome = "\uf6d7";
 
-    /// <summary>Microphone icon.</summary>
-    public const string Mic = "\ue029";
+    /// <summary>Microphone icon. Tabler: microphone.</summary>
+    public const string Mic = "\ueaf0";
 
-    /// <summary>Edit / pencil icon.</summary>
-    public const string Edit = "\ue3c9";
+    /// <summary>Edit / pencil icon. Tabler: pencil.</summary>
+    public const string Edit = "\ueb04";
 
-    /// <summary>Settings / gear icon.</summary>
-    public const string Settings = "\ue8b8";
+    /// <summary>Settings / gear icon. Tabler: settings.</summary>
+    public const string Settings = "\ueb20";
 
-    /// <summary>Chevron right icon (used as disclosure indicator).</summary>
-    public const string ChevronRight = "\ue5cc";
+    /// <summary>Chevron right icon (used as disclosure indicator). Tabler: chevron-right.</summary>
+    public const string ChevronRight = "\uea61";
 
-    /// <summary>Code icon (for command palette button).</summary>
-    public const string Code = "\ue86f";
+    /// <summary>Code icon (for command palette button). Tabler: code.</summary>
+    public const string Code = "\uea77";
 
-    /// <summary>Close / X icon.</summary>
-    public const string X = "\ue5cd";
+    /// <summary>Close / X icon. Tabler: x.</summary>
+    public const string X = "\ueb55";
 
-    /// <summary>Copy / clipboard icon (for code block copy action).</summary>
-    public const string Copy = "\ue14d";
+    /// <summary>Copy / clipboard icon (for code block copy action). Tabler: copy.</summary>
+    public const string Copy = "\uea7a";
 
-    /// <summary>Check / checkmark icon.</summary>
-    public const string Check = "\ue5ca";
+    /// <summary>Check / checkmark icon. Tabler: check.</summary>
+    public const string Check = "\uea5e";
 
-    /// <summary>Folder icon.</summary>
-    public const string Folder = "\ue2c7";
+    /// <summary>Folder icon. Tabler: folder.</summary>
+    public const string Folder = "\ueaad";
 
-    /// <summary>Chat / message bubble icon.</summary>
-    public const string Chat = "\ue0b7";
+    /// <summary>Chat / message bubble icon. Tabler: message.</summary>
+    public const string Chat = "\ueaef";
 
-    /// <summary>More vertical (three dots) icon.</summary>
-    public const string DotsVertical = "\ue5d4";
+    /// <summary>More vertical (three dots) icon. Tabler: dots-vertical.</summary>
+    public const string DotsVertical = "\uea94";
 
-    /// <summary>Delete / trash icon.</summary>
-    public const string Trash = "\ue872";
+    /// <summary>Delete / trash icon. Tabler: trash.</summary>
+    public const string Trash = "\ueb41";
 
-    /// <summary>Notifications / bell icon.</summary>
-    public const string Bell = "\ue7f4";
+    /// <summary>Notifications / bell icon. Tabler: bell.</summary>
+    public const string Bell = "\uea35";
 
-    /// <summary>Public / globe icon.</summary>
-    public const string Globe = "\ue80b";
+    /// <summary>Public / globe icon. Tabler: world.</summary>
+    public const string Globe = "\ueb54";
 
-    /// <summary>Psychology / brain icon (for thinking level).</summary>
-    public const string Brain = "\uea4a";
+    /// <summary>Brain icon (for thinking level). Tabler: brain.</summary>
+    public const string Brain = "\uf59f";
 
-    /// <summary>Warning / alert triangle icon.</summary>
-    public const string AlertTriangle = "\ue002";
+    /// <summary>Warning / alert triangle icon. Tabler: alert-triangle.</summary>
+    public const string AlertTriangle = "\uea06";
 
-    /// <summary>Error / alert circle icon.</summary>
-    public const string AlertCircle = "\ue000";
+    /// <summary>Error / alert circle icon. Tabler: alert-circle.</summary>
+    public const string AlertCircle = "\uea05";
 
-    /// <summary>Info / circle with i icon.</summary>
-    public const string InfoCircle = "\ue88e";
+    /// <summary>Info / circle with i icon. Tabler: info-circle.</summary>
+    public const string InfoCircle = "\ueac5";
 
-    /// <summary>Search icon.</summary>
-    public const string Search = "\ue8b6";
+    /// <summary>Search icon. Tabler: search.</summary>
+    public const string Search = "\ueb1c";
 
-    /// <summary>Arrow left / back icon.</summary>
-    public const string ArrowLeft = "\ue5c4";
+    /// <summary>Arrow left / back icon. Tabler: arrow-left.</summary>
+    public const string ArrowLeft = "\uea19";
 
-    /// <summary>Chevron down / expand more icon.</summary>
-    public const string ChevronDown = "\ue5cf";
+    /// <summary>Chevron down / expand more icon. Tabler: chevron-down.</summary>
+    public const string ChevronDown = "\uea5f";
 
-    /// <summary>Smart toy / robot icon (for AI/agent).</summary>
-    public const string Robot = "\ue99a";
+    /// <summary>Robot icon (for AI/agent). Tabler: robot.</summary>
+    public const string Robot = "\uf00b";
 
-    /// <summary>Stop icon (for cancel/stop action).</summary>
-    public const string PlayerStop = "\ue047";
+    /// <summary>Stop icon (for cancel/stop action). Tabler: player-stop.</summary>
+    public const string PlayerStop = "\ued4a";
 
-    /// <summary>Key icon (for API keys).</summary>
-    public const string Key = "\ue73c";
+    /// <summary>Key icon (for API keys). Tabler: key.</summary>
+    public const string Key = "\ueac7";
 
-    /// <summary>Link icon (for URLs/connections).</summary>
-    public const string Link = "\ue157";
+    /// <summary>Link icon (for URLs/connections). Tabler: link.</summary>
+    public const string Link = "\ueade";
 
-    /// <summary>Check circle icon (for success/completion states).</summary>
-    public const string CircleCheck = "\ue86c";
+    /// <summary>Check circle icon (for success/completion states). Tabler: circle-check.</summary>
+    public const string CircleCheck = "\uea67";
 
-    /// <summary>Radio button unchecked icon.</summary>
-    public const string Circle = "\ue836";
+    /// <summary>Circle icon (radio button unchecked). Tabler: circle.</summary>
+    public const string Circle = "\uea6b";
 
-    /// <summary>Radio button checked icon.</summary>
-    public const string CircleDot = "\ue837";
+    /// <summary>Circle with dot icon (radio button checked). Tabler: circle-dot.</summary>
+    public const string CircleDot = "\uefb1";
 
-    /// <summary>Schedule / clock icon.</summary>
-    public const string Clock = "\ue8b5";
+    /// <summary>Clock / schedule icon. Tabler: clock.</summary>
+    public const string Clock = "\uea70";
 
-    /// <summary>Terminal icon (for command palette).</summary>
-    public const string Terminal = "\ueb8e";
+    /// <summary>Terminal icon (for command palette). Tabler: terminal-2.</summary>
+    public const string Terminal = "\uebef";
 
-    /// <summary>Tune / adjustments icon (for context/settings).</summary>
-    public const string Adjustments = "\ue429";
+    /// <summary>Adjustments icon (for context/settings). Tabler: adjustments-horizontal.</summary>
+    public const string Adjustments = "\uec38";
 }

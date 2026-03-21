@@ -39,8 +39,8 @@
         IsVisible="{Binding ModelLoadError, Converter={StaticResource NullToVisibilityConverter}}">
       <HorizontalStackLayout Spacing="{StaticResource SpacingSm}">
         <Label
-            FontFamily="MaterialSymbols"
-            Text="{x:Static helpers:MaterialIcons.Error}"
+            FontFamily="TablerIcons"
+            Text="{x:Static helpers:IconKeys.AlertCircle}"
             FontSize="{StaticResource FontSizeTitle3}"
             TextColor="{AppThemeBinding Light={StaticResource ColorOnErrorContainerLight}, Dark={StaticResource ColorOnErrorContainerDark}}"
             VerticalOptions="Center" />
@@ -87,8 +87,8 @@
               <!-- Model icon -->
               <Label
                   Grid.Column="0"
-                  FontFamily="MaterialSymbols"
-                  Text="{x:Static helpers:MaterialIcons.SmartToy}"
+                  FontFamily="TablerIcons"
+                  Text="{x:Static helpers:IconKeys.Robot}"
                   FontSize="{StaticResource FontSizeTitle2}"
                   TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
                   VerticalOptions="Center">
@@ -129,8 +129,8 @@
               <!-- Selection indicator -->
               <Label
                   Grid.Column="2"
-                  FontFamily="MaterialSymbols"
-                  Text="{x:Static helpers:MaterialIcons.RadioButtonUnchecked}"
+                  FontFamily="TablerIcons"
+                  Text="{x:Static helpers:IconKeys.Circle}"
                   FontSize="{StaticResource FontSizeTitle2}"
                   TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
                   VerticalOptions="Center"
@@ -144,7 +144,7 @@
                                Binding="{Binding IsSelected}"
                                Value="True">
                     <Setter Property="Text"
-                            Value="{x:Static helpers:MaterialIcons.RadioButtonChecked}" />
+                            Value="{x:Static helpers:IconKeys.CircleDot}" />
                     <Setter Property="TextColor"
                             Value="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}" />
                   </DataTrigger>
@@ -162,8 +162,8 @@
             Spacing="{StaticResource SpacingSm}"
             Padding="{StaticResource SpacingXl}">
           <Label
-              FontFamily="MaterialSymbols"
-              Text="{x:Static helpers:MaterialIcons.SmartToy}"
+              FontFamily="TablerIcons"
+              Text="{x:Static helpers:IconKeys.Robot}"
               FontSize="{StaticResource FontSizeLargeTitle}"
               TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
               HorizontalOptions="Center" />

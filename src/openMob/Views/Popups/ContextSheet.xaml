@@ -36,7 +36,7 @@
           <ImageButton.Source>
             <FontImageSource FontFamily="TablerIcons"
                              Glyph="{x:Static helpers:IconKeys.X}"
-                             Size="24"
+                             Size="{StaticResource FontSizeIconXl}"
                              Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight},
                                                       Dark={StaticResource ColorOnBackgroundDark}}" />
           </ImageButton.Source>
@@ -204,7 +204,7 @@
           <Button Text="Low"
                   FontFamily="InterMedium"
                   FontSize="{StaticResource FontSizeCaption1}"
-                  Padding="12,6"
+                  Padding="12,8"
                   MinimumHeightRequest="{StaticResource SpacingXxl}"
                   MinimumWidthRequest="0"
                   CornerRadius="{StaticResource RadiusSm}"
@@ -232,7 +232,7 @@
           <Button Text="Medium"
                   FontFamily="InterMedium"
                   FontSize="{StaticResource FontSizeCaption1}"
-                  Padding="12,6"
+                  Padding="12,8"
                   MinimumHeightRequest="{StaticResource SpacingXxl}"
                   MinimumWidthRequest="0"
                   CornerRadius="{StaticResource RadiusSm}"
@@ -260,7 +260,7 @@
           <Button Text="High"
                   FontFamily="InterMedium"
                   FontSize="{StaticResource FontSizeCaption1}"
-                  Padding="12,6"
+                  Padding="12,8"
                   MinimumHeightRequest="{StaticResource SpacingXxl}"
                   MinimumWidthRequest="0"
                   CornerRadius="{StaticResource RadiusSm}"

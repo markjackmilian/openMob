@@ -44,8 +44,8 @@
         <Label Text="{x:Static helpers:IconKeys.Terminal}"
                FontFamily="TablerIcons"
                FontSize="{StaticResource FontSizeTitle2}"
-               TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
-                                           Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
+               TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight},
+                                           Dark={StaticResource ColorOnBackgroundDark}}"
                HorizontalOptions="Center"
                VerticalOptions="Center" />
       </Border>

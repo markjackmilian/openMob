@@ -37,9 +37,9 @@
         <ImageButton.Source>
           <FontImageSource FontFamily="TablerIcons"
                            Glyph="{x:Static helpers:IconKeys.Menu}"
-                           Size="24"
-                           Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight},
-                                                    Dark={StaticResource ColorOnBackgroundDark}}" />
+                           Size="{StaticResource FontSizeHeadline}"
+                           Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
+                                                    Dark={StaticResource ColorOnBackgroundSecondaryDark}}" />
         </ImageButton.Source>
       </ImageButton>
 
@@ -70,9 +70,9 @@
         <ImageButton.Source>
           <FontImageSource FontFamily="TablerIcons"
                            Glyph="{x:Static helpers:IconKeys.Adjustments}"
-                           Size="24"
-                           Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight},
-                                                    Dark={StaticResource ColorOnBackgroundDark}}" />
+                           Size="{StaticResource FontSizeHeadline}"
+                           Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
+                                                    Dark={StaticResource ColorOnBackgroundSecondaryDark}}" />
         </ImageButton.Source>
       </ImageButton>
 
@@ -247,7 +247,7 @@
             <ImageButton.Source>
               <FontImageSource FontFamily="TablerIcons"
                                Glyph="{x:Static helpers:IconKeys.X}"
-                               Size="18"
+                               Size="{StaticResource FontSizeHeadline}"
                                Color="{AppThemeBinding Light={StaticResource ColorOnErrorContainerLight},
                                                         Dark={StaticResource ColorOnErrorContainerDark}}" />
             </ImageButton.Source>

@@ -35,7 +35,7 @@
         <FontImageSource
             FontFamily="TablerIcons"
             Glyph="{x:Static helpers:IconKeys.Edit}"
-            Size="24"
+            Size="{StaticResource FontSizeIconXl}"
             Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}" />
       </ImageButton.Source>
     </ImageButton>

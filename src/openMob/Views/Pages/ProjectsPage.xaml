@@ -6,7 +6,11 @@
              xmlns:helpers="clr-namespace:openMob.Helpers"
              x:Class="openMob.Views.Pages.ProjectsPage"
              x:DataType="vm:ProjectsViewModel"
-             Title="Projects">
+              Title="Projects">
+
+  <Shell.BackButtonBehavior>
+    <BackButtonBehavior IsVisible="False" IsEnabled="False" />
+  </Shell.BackButtonBehavior>
 
   <Shell.TitleView>
     <Grid ColumnDefinitions="Auto,*,Auto" Padding="{StaticResource SpacingXs}">
@@ -22,7 +26,7 @@
           <FontImageSource
               FontFamily="TablerIcons"
               Glyph="{x:Static helpers:IconKeys.ArrowLeft}"
-              Size="24"
+              Size="{StaticResource FontSizeIconXl}"
               Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}" />
         </ImageButton.Source>
       </ImageButton>
@@ -43,7 +47,7 @@
           <FontImageSource
               FontFamily="TablerIcons"
               Glyph="{x:Static helpers:IconKeys.Add}"
-              Size="24"
+              Size="{StaticResource FontSizeIconXl}"
               Color="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}" />
         </ImageButton.Source>
       </ImageButton>
@@ -79,7 +83,7 @@
                     <FontImageSource
                         FontFamily="TablerIcons"
                         Glyph="{x:Static helpers:IconKeys.Trash}"
-                        Size="22"
+                        Size="{StaticResource FontSizeTitle2}"
                         Color="{AppThemeBinding Light={StaticResource ColorOnErrorLight}, Dark={StaticResource ColorOnErrorDark}}" />
                   </SwipeItem.IconImageSource>
                 </SwipeItem>

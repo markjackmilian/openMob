@@ -10,29 +10,35 @@
              BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceLight},
                                                Dark={StaticResource ColorSurfaceDark}}">
 
-  <Grid RowDefinitions="Auto,Auto,*">
+  <Grid RowDefinitions="Auto,Auto,Auto,*">
 
     <!-- Handle bar -->
     <BoxView Grid.Row="0"
              Style="{StaticResource SheetHandleBar}"
              Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
-                                      Dark={StaticResource ColorOnBackgroundTertiaryDark}}" />
+                                       Dark={StaticResource ColorOnBackgroundTertiaryDark}}" />
 
-    <!-- Close button (trailing) -->
-    <Grid Grid.Row="0"
-          Padding="16,0"
-          HorizontalOptions="End"
-          VerticalOptions="Center">
-      <ImageButton Clicked="OnCloseButtonTapped"
-                   MinimumHeightRequest="{StaticResource MinTouchTarget}"
-                   MinimumWidthRequest="{StaticResource MinTouchTarget}"
-                   BackgroundColor="Transparent"
-                   AutomationId="CommandPaletteCloseButton"
-                   SemanticProperties.Description="Close command palette">
+    <!-- Header with title and close button -->
+    <Grid Grid.Row="1"
+          ColumnDefinitions="*,Auto"
+          Padding="16,0,16,16">
+      <Label
+          Grid.Column="0"
+          Text="Command Palette"
+          Style="{StaticResource Title3Label}"
+          VerticalOptions="Center" />
+      <ImageButton
+          Grid.Column="1"
+          Clicked="OnCloseButtonTapped"
+          MinimumHeightRequest="{StaticResource MinTouchTarget}"
+          MinimumWidthRequest="{StaticResource MinTouchTarget}"
+          BackgroundColor="Transparent"
+          AutomationId="CommandPaletteCloseButton"
+          SemanticProperties.Description="Close command palette">
         <ImageButton.Source>
           <FontImageSource FontFamily="TablerIcons"
                            Glyph="{x:Static helpers:IconKeys.X}"
-                           Size="24"
+                           Size="{StaticResource FontSizeIconXl}"
                            Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight},
                                                     Dark={StaticResource ColorOnBackgroundDark}}" />
         </ImageButton.Source>
@@ -40,7 +46,7 @@
     </Grid>
 
     <!-- Search bar -->
-    <SearchBar Grid.Row="1"
+    <SearchBar Grid.Row="2"
                Style="{StaticResource CommandPaletteSearchBar}"
                Text="{Binding SearchText, Mode=TwoWay}"
                Margin="16,4"
@@ -48,7 +54,7 @@
                SemanticProperties.Hint="Search for commands" />
 
     <!-- Command list -->
-    <Grid Grid.Row="2">
+    <Grid Grid.Row="3">
 
       <!-- Loading indicator -->
       <ActivityIndicator IsRunning="{Binding IsLoading}"

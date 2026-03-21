@@ -7,6 +7,10 @@
              x:DataType="vm:SettingsViewModel"
               Title="Settings">
 
+  <Shell.BackButtonBehavior>
+    <BackButtonBehavior IsVisible="False" IsEnabled="False" />
+  </Shell.BackButtonBehavior>
+
   <Shell.TitleView>
     <Grid ColumnDefinitions="Auto,*" Padding="{StaticResource SpacingXs}">
       <ImageButton
@@ -21,7 +25,7 @@
           <FontImageSource
               FontFamily="TablerIcons"
               Glyph="{x:Static helpers:IconKeys.ArrowLeft}"
-              Size="24"
+              Size="{StaticResource FontSizeIconXl}"
               Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}" />
         </ImageButton.Source>
       </ImageButton>

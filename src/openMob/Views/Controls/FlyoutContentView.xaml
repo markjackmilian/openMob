@@ -49,7 +49,7 @@
               <FontImageSource
                   FontFamily="TablerIcons"
                   Glyph="{x:Static helpers:IconKeys.Add}"
-                  Size="20"
+                  Size="{StaticResource FontSizeTitle3}"
                   Color="{AppThemeBinding Light={StaticResource ColorOnPrimaryContainerLight}, Dark={StaticResource ColorOnPrimaryContainerDark}}" />
             </Image.Source>
           </Image>

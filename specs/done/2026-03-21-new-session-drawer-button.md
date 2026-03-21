@@ -1,11 +1,14 @@
 # New Session Button — Drawer & Session Initialization
 
 ## Metadata
-| Field   | Value                        |
-|---------|------------------------------|
-| Date    | 2026-03-21                   |
-| Status  | In Progress                  |
-| Version | 1.0                          |
+| Field       | Value                                          |
+|-------------|------------------------------------------------|
+| Date        | 2026-03-21                                     |
+| Status      | **Completed**                                  |
+| Version     | 1.0                                            |
+| Completed   | 2026-03-21                                     |
+| Branch      | feature/new-session-drawer-button (merged)     |
+| Merged into | develop                                        |
 
 ---
 

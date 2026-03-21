@@ -4,6 +4,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using openMob.Core.Infrastructure.Http.Dtos.Opencode;
 using openMob.Core.Infrastructure.Http.Dtos.Opencode.Requests;
+using openMob.Core.Services;
 using openMob.Tests.Helpers;
 
 namespace openMob.Tests.Infrastructure.Http;
@@ -18,6 +19,7 @@ public sealed class OpencodeApiClientTests
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IOpencodeConnectionManager _connectionManager;
     private readonly FakeOpencodeSettingsService _settingsService;
+    private readonly Lazy<IActiveProjectService> _lazyActiveProjectService;
 
     public OpencodeApiClientTests()
     {
@@ -32,19 +34,23 @@ public sealed class OpencodeApiClientTests
             .Returns((string?)null);
 
         _settingsService = new FakeOpencodeSettingsService { TimeoutSeconds = 30 };
+
+        var activeProjectService = Substitute.For<IActiveProjectService>();
+        activeProjectService.GetCachedWorktree().Returns("/home/user/myproject");
+        _lazyActiveProjectService = new Lazy<IActiveProjectService>(() => activeProjectService);
     }
 
     /// <summary>
     /// Creates the SUT with production retry delays (for non-retry tests).
     /// </summary>
     private OpencodeApiClient CreateSut()
-        => new(_httpClientFactory, _connectionManager, _settingsService);
+        => new(_httpClientFactory, _connectionManager, _settingsService, _lazyActiveProjectService);
 
     /// <summary>
     /// Creates the SUT with zero retry delays so retry tests complete instantly.
     /// </summary>
     private OpencodeApiClient CreateSutWithZeroDelays()
-        => new(_httpClientFactory, _connectionManager, _settingsService,
+        => new(_httpClientFactory, _connectionManager, _settingsService, _lazyActiveProjectService,
             retryDelays: [TimeSpan.Zero, TimeSpan.Zero]);
 
     // ──────────────────────────────────────────────────────────────
@@ -129,7 +135,7 @@ public sealed class OpencodeApiClientTests
             }
             """);
         var sut = CreateSut();
-        var request = new CreateSessionRequest(Title: "New Session", ParentId: null);
+        var request = new CreateSessionRequest(Title: "New Session", ParentId: string.Empty);
 
         // Act
         var result = await sut.CreateSessionAsync(request);

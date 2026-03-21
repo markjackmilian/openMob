@@ -32,6 +32,15 @@ public interface ISessionService
     /// <returns>The created session, or <c>null</c> on failure.</returns>
     Task<SessionDto?> CreateSessionAsync(string? title, CancellationToken ct = default);
 
+    /// <summary>Creates a new session for the specified project.</summary>
+    /// <param name="projectId">The project identifier to create the session for.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>The created session DTO.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when the API call fails. The message is user-readable and suitable for display.
+    /// </exception>
+    Task<SessionDto> CreateSessionForProjectAsync(string projectId, CancellationToken ct = default);
+
     /// <summary>Updates the title of an existing session.</summary>
     /// <param name="id">The session identifier.</param>
     /// <param name="newTitle">The new title.</param>

@@ -32,4 +32,13 @@ public interface IActiveProjectService
     /// <param name="ct">Cancellation token.</param>
     /// <returns><c>true</c> if the project was found and activated; <c>false</c> otherwise.</returns>
     Task<bool> SetActiveProjectAsync(string projectId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Gets the worktree path of the currently cached active project, or <c>null</c> if no project
+    /// has been resolved yet. This method is synchronous and never makes HTTP calls — it only
+    /// reads the in-memory cached value set by <see cref="GetActiveProjectAsync"/> or
+    /// <see cref="SetActiveProjectAsync"/>.
+    /// </summary>
+    /// <returns>The worktree path, or <c>null</c> if no active project is cached.</returns>
+    string? GetCachedWorktree();
 }

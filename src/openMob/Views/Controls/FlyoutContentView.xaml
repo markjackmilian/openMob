@@ -8,10 +8,10 @@
              x:DataType="viewmodels:FlyoutViewModel">
 
   <Grid
-      RowDefinitions="Auto,*"
+      RowDefinitions="Auto,Auto,Auto,*"
       BackgroundColor="{AppThemeBinding Light={StaticResource ColorBackgroundLight}, Dark={StaticResource ColorBackgroundDark}}">
 
-    <!-- Section header: project name (uppercase) -->
+    <!-- Row 0: Section header: project name (uppercase) -->
     <Label
         Grid.Row="0"
         Text="{Binding ProjectSectionTitle, FallbackValue='SESSIONS', TargetNullValue='SESSIONS'}"
@@ -21,9 +21,76 @@
         TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
         Margin="16,12,16,8" />
 
-    <!-- No project placeholder -->
-    <Label
+    <!-- Row 1: New Session button — always visible -->
+    <Border
         Grid.Row="1"
+        AutomationId="NewSessionButton"
+        BackgroundColor="{AppThemeBinding Light={StaticResource ColorPrimaryContainerLight}, Dark={StaticResource ColorPrimaryContainerDark}}"
+        StrokeThickness="0"
+        StrokeShape="RoundRectangle 8"
+        Margin="16,8,16,4"
+        Padding="0"
+        IsEnabled="{Binding IsCreatingSession, Converter={StaticResource InvertedBoolConverter}}"
+        SemanticProperties.Description="Start a new session">
+      <Border.GestureRecognizers>
+        <TapGestureRecognizer Command="{Binding NewSessionCommand}" />
+      </Border.GestureRecognizers>
+
+      <Grid>
+        <!-- Normal state: icon + label -->
+        <HorizontalStackLayout
+            Spacing="{StaticResource SpacingSm}"
+            HorizontalOptions="Center"
+            Padding="{StaticResource SpacingSm}"
+            IsVisible="{Binding IsCreatingSession, Converter={StaticResource InvertedBoolConverter}}">
+          <Image>
+            <Image.Source>
+              <FontImageSource
+                  FontFamily="MaterialSymbols"
+                  Glyph="{x:Static helpers:MaterialIcons.Add}"
+                  Size="20"
+                  Color="{AppThemeBinding Light={StaticResource ColorOnPrimaryContainerLight}, Dark={StaticResource ColorOnPrimaryContainerDark}}" />
+            </Image.Source>
+          </Image>
+          <Label
+              Text="New Session"
+              FontFamily="InterMedium"
+              FontSize="{StaticResource FontSizeCallout}"
+              TextColor="{AppThemeBinding Light={StaticResource ColorOnPrimaryContainerLight}, Dark={StaticResource ColorOnPrimaryContainerDark}}"
+              VerticalOptions="Center" />
+        </HorizontalStackLayout>
+
+        <!-- Loading state: activity indicator -->
+        <ActivityIndicator
+            IsVisible="{Binding IsCreatingSession}"
+            IsRunning="{Binding IsCreatingSession}"
+            HeightRequest="20"
+            WidthRequest="20"
+            HorizontalOptions="Center"
+            Margin="{StaticResource SpacingSm}" />
+      </Grid>
+    </Border>
+
+    <!-- Row 2: Inline creation error label — hidden when CreationError is null -->
+    <Border
+        Grid.Row="2"
+        BackgroundColor="{AppThemeBinding Light={StaticResource ColorErrorContainerLight}, Dark={StaticResource ColorErrorContainerDark}}"
+        StrokeThickness="0"
+        StrokeShape="RoundRectangle 8"
+        Margin="16,0,16,4"
+        Padding="{StaticResource SpacingMd}"
+        IsVisible="{Binding CreationError, Converter={StaticResource NullToVisibilityConverter}}">
+      <Label
+          Text="{Binding CreationError, FallbackValue='', TargetNullValue=''}"
+          FontFamily="InterRegular"
+          FontSize="{StaticResource FontSizeFootnote}"
+          TextColor="{AppThemeBinding Light={StaticResource ColorOnErrorContainerLight}, Dark={StaticResource ColorOnErrorContainerDark}}"
+          LineBreakMode="WordWrap" />
+    </Border>
+
+    <!-- Row 3 (was Row 1): No project placeholder -->
+    <Label
+        Grid.Row="3"
         Text="Select a project to view sessions"
         FontFamily="InterRegular"
         FontSize="{StaticResource FontSizeCallout}"
@@ -32,18 +99,18 @@
         TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
         IsVisible="{Binding HasProject, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Invert}" />
 
-    <!-- Loading indicator -->
+    <!-- Row 3 (was Row 1): Loading indicator -->
     <ActivityIndicator
-        Grid.Row="1"
+        Grid.Row="3"
         IsRunning="{Binding IsLoading}"
         IsVisible="{Binding IsLoading}"
         HorizontalOptions="Center"
         VerticalOptions="Start"
         Margin="0,24,0,0" />
 
-    <!-- Session list -->
+    <!-- Row 3 (was Row 1): Session list -->
     <CollectionView
-        Grid.Row="1"
+        Grid.Row="3"
         ItemsSource="{Binding Sessions}"
         IsVisible="{Binding HasProject}"
         SelectionMode="None">
@@ -93,10 +160,13 @@
             </Grid>
 
             <!-- Separator between items -->
-            <BoxView
-                HeightRequest="0.5"
-                Color="{AppThemeBinding Light={StaticResource ColorSeparatorLight},
-                                        Dark={StaticResource ColorSeparatorDark}}" />
+            <Line
+                X1="0"
+                X2="1"
+                StrokeThickness="0.5"
+                Stroke="{AppThemeBinding Light={StaticResource ColorSeparatorLight},
+                                         Dark={StaticResource ColorSeparatorDark}}"
+                Aspect="Fill" />
           </VerticalStackLayout>
         </DataTemplate>
       </CollectionView.ItemTemplate>

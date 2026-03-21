@@ -187,6 +187,19 @@ public sealed class FlyoutViewModelTests : IDisposable
             .And.ParamName.Should().Be("dispatcher");
     }
 
+    [Fact]
+    public void Constructor_WhenActiveProjectServiceIsNull_ThrowsArgumentNullException()
+    {
+        // Act
+        var act = () => new FlyoutViewModel(
+            _projectService, _sessionService, _navigationService,
+            _popupService, _dispatcher, null!);
+
+        // Assert
+        act.Should().Throw<ArgumentNullException>()
+            .And.ParamName.Should().Be("activeProjectService");
+    }
+
     // ─── LoadSessionsCommand — happy path [REQ-033] ───────────────────────────
 
     [Fact]
@@ -748,5 +761,421 @@ public sealed class FlyoutViewModelTests : IDisposable
 
         // Assert — LoadSessions should NOT have been triggered after Dispose
         await _activeProjectService.DidNotReceive().GetActiveProjectAsync(Arg.Any<CancellationToken>());
+    }
+
+    // ─── NewSessionCommand — happy path, active project exists [REQ-002, AC-001] ─
+
+    [Fact]
+    public async Task NewSessionCommand_WhenActiveProjectExists_CreatesSessionAndNavigatesToChat()
+    {
+        // Arrange
+        var project = BuildProject(id: "proj-1");
+        var session = BuildSession(id: "new-sess-1", projectId: "proj-1");
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>())
+            .Returns(project);
+        _sessionService.CreateSessionForProjectAsync("proj-1", Arg.Any<CancellationToken>())
+            .Returns(session);
+
+        // Act
+        await _sut.NewSessionCommand.ExecuteAsync(null);
+
+        // Assert
+        await _navigationService.Received(1).GoToAsync(
+            "//chat",
+            Arg.Is<IDictionary<string, object>>(d => d["sessionId"].Equals("new-sess-1")),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task NewSessionCommand_WhenActiveProjectExists_PrependsNewSessionToList()
+    {
+        // Arrange
+        var project = BuildProject(id: "proj-1");
+        var existingSessions = BuildSessionList(2, projectId: "proj-1");
+        var newSession = BuildSession(id: "new-sess-99", projectId: "proj-1", title: "Brand New");
+
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>())
+            .Returns(project);
+        _sessionService.GetSessionsByProjectAsync("proj-1", Arg.Any<CancellationToken>())
+            .Returns(existingSessions);
+        _sessionService.CreateSessionForProjectAsync("proj-1", Arg.Any<CancellationToken>())
+            .Returns(newSession);
+
+        await _sut.LoadSessionsCommand.ExecuteAsync(null);
+
+        // Act
+        await _sut.NewSessionCommand.ExecuteAsync(null);
+
+        // Assert
+        _sut.Sessions[0].Id.Should().Be("new-sess-99");
+    }
+
+    [Fact]
+    public async Task NewSessionCommand_WhenActiveProjectExists_ClearsCreationError()
+    {
+        // Arrange
+        var project = BuildProject(id: "proj-1");
+        var session = BuildSession(id: "new-sess-1", projectId: "proj-1");
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>())
+            .Returns(project);
+        _sessionService.CreateSessionForProjectAsync("proj-1", Arg.Any<CancellationToken>())
+            .Returns(session);
+
+        // Simulate a prior error
+        _sut.CreationError = "Previous error";
+
+        // Act
+        await _sut.NewSessionCommand.ExecuteAsync(null);
+
+        // Assert
+        _sut.CreationError.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task NewSessionCommand_WhenActiveProjectExists_SetsIsCreatingSessionFalseAfterSuccess()
+    {
+        // Arrange
+        var project = BuildProject(id: "proj-1");
+        var session = BuildSession(id: "new-sess-1", projectId: "proj-1");
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>())
+            .Returns(project);
+        _sessionService.CreateSessionForProjectAsync("proj-1", Arg.Any<CancellationToken>())
+            .Returns(session);
+
+        // Act
+        await _sut.NewSessionCommand.ExecuteAsync(null);
+
+        // Assert
+        _sut.IsCreatingSession.Should().BeFalse();
+    }
+
+    // ─── NewSessionCommand — no active project, projects available [REQ-003, AC-002] ─
+
+    [Fact]
+    public async Task NewSessionCommand_WhenNoActiveProject_FetchesProjectsAndActivatesFirst()
+    {
+        // Arrange
+        var firstProject = BuildProject(id: "proj-first");
+        var session = BuildSession(id: "new-sess-1", projectId: "proj-first");
+
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>())
+            .Returns((ProjectDto?)null, firstProject);
+        _activeProjectService.SetActiveProjectAsync("proj-first", Arg.Any<CancellationToken>())
+            .Returns(true);
+        _projectService.GetAllProjectsAsync(Arg.Any<CancellationToken>())
+            .Returns(new List<ProjectDto> { firstProject });
+        _sessionService.CreateSessionForProjectAsync("proj-first", Arg.Any<CancellationToken>())
+            .Returns(session);
+
+        // Act
+        await _sut.NewSessionCommand.ExecuteAsync(null);
+
+        // Assert
+        await _activeProjectService.Received(1).SetActiveProjectAsync("proj-first", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task NewSessionCommand_WhenNoActiveProject_CreatesSessionAfterActivatingProject()
+    {
+        // Arrange
+        var firstProject = BuildProject(id: "proj-first");
+        var session = BuildSession(id: "new-sess-1", projectId: "proj-first");
+
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>())
+            .Returns((ProjectDto?)null, firstProject);
+        _activeProjectService.SetActiveProjectAsync("proj-first", Arg.Any<CancellationToken>())
+            .Returns(true);
+        _projectService.GetAllProjectsAsync(Arg.Any<CancellationToken>())
+            .Returns(new List<ProjectDto> { firstProject });
+        _sessionService.CreateSessionForProjectAsync("proj-first", Arg.Any<CancellationToken>())
+            .Returns(session);
+
+        // Act
+        await _sut.NewSessionCommand.ExecuteAsync(null);
+
+        // Assert
+        await _sessionService.Received(1).CreateSessionForProjectAsync("proj-first", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task NewSessionCommand_WhenNoActiveProject_NavigatesToChat()
+    {
+        // Arrange
+        var firstProject = BuildProject(id: "proj-first");
+        var session = BuildSession(id: "new-sess-1", projectId: "proj-first");
+
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>())
+            .Returns((ProjectDto?)null, firstProject);
+        _activeProjectService.SetActiveProjectAsync("proj-first", Arg.Any<CancellationToken>())
+            .Returns(true);
+        _projectService.GetAllProjectsAsync(Arg.Any<CancellationToken>())
+            .Returns(new List<ProjectDto> { firstProject });
+        _sessionService.CreateSessionForProjectAsync("proj-first", Arg.Any<CancellationToken>())
+            .Returns(session);
+
+        // Act
+        await _sut.NewSessionCommand.ExecuteAsync(null);
+
+        // Assert
+        await _navigationService.Received(1).GoToAsync(
+            "//chat",
+            Arg.Is<IDictionary<string, object>>(d => d["sessionId"].Equals("new-sess-1")),
+            Arg.Any<CancellationToken>());
+    }
+
+    // ─── NewSessionCommand — no active project, no projects available [REQ-003, AC-003] ─
+
+    [Fact]
+    public async Task NewSessionCommand_WhenNoProjectsAvailable_SetsCreationError()
+    {
+        // Arrange
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>())
+            .Returns((ProjectDto?)null);
+        _projectService.GetAllProjectsAsync(Arg.Any<CancellationToken>())
+            .Returns(new List<ProjectDto>());
+
+        // Act
+        await _sut.NewSessionCommand.ExecuteAsync(null);
+
+        // Assert
+        _sut.CreationError.Should().NotBeNullOrEmpty();
+    }
+
+    [Fact]
+    public async Task NewSessionCommand_WhenNoProjectsAvailable_DoesNotNavigate()
+    {
+        // Arrange
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>())
+            .Returns((ProjectDto?)null);
+        _projectService.GetAllProjectsAsync(Arg.Any<CancellationToken>())
+            .Returns(new List<ProjectDto>());
+
+        // Act
+        await _sut.NewSessionCommand.ExecuteAsync(null);
+
+        // Assert
+        await _navigationService.DidNotReceive().GoToAsync(
+            Arg.Any<string>(),
+            Arg.Any<IDictionary<string, object>>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task NewSessionCommand_WhenNoProjectsAvailable_SetsIsCreatingSessionFalse()
+    {
+        // Arrange
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>())
+            .Returns((ProjectDto?)null);
+        _projectService.GetAllProjectsAsync(Arg.Any<CancellationToken>())
+            .Returns(new List<ProjectDto>());
+
+        // Act
+        await _sut.NewSessionCommand.ExecuteAsync(null);
+
+        // Assert
+        _sut.IsCreatingSession.Should().BeFalse();
+    }
+
+    // ─── NewSessionCommand — SetActiveProjectAsync returns false ──────────────
+
+    [Fact]
+    public async Task NewSessionCommand_WhenSetActiveProjectFails_SetsCreationError()
+    {
+        // Arrange
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>())
+            .Returns((ProjectDto?)null);
+        _projectService.GetAllProjectsAsync(Arg.Any<CancellationToken>())
+            .Returns(new[] { BuildProject() }.ToList().AsReadOnly() as IReadOnlyList<ProjectDto>);
+        _activeProjectService.SetActiveProjectAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(false);
+
+        // Act
+        await _sut.NewSessionCommand.ExecuteAsync(null);
+
+        // Assert
+        _sut.CreationError.Should().Be("Failed to activate project. Please try again.");
+    }
+
+    [Fact]
+    public async Task NewSessionCommand_WhenSetActiveProjectFails_DoesNotNavigate()
+    {
+        // Arrange
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>())
+            .Returns((ProjectDto?)null);
+        _projectService.GetAllProjectsAsync(Arg.Any<CancellationToken>())
+            .Returns(new[] { BuildProject() }.ToList().AsReadOnly() as IReadOnlyList<ProjectDto>);
+        _activeProjectService.SetActiveProjectAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(false);
+
+        // Act
+        await _sut.NewSessionCommand.ExecuteAsync(null);
+
+        // Assert
+        await _navigationService.DidNotReceive().GoToAsync(
+            Arg.Any<string>(),
+            Arg.Any<IDictionary<string, object>>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task NewSessionCommand_WhenSetActiveProjectFails_SetsIsCreatingSessionFalse()
+    {
+        // Arrange
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>())
+            .Returns((ProjectDto?)null);
+        _projectService.GetAllProjectsAsync(Arg.Any<CancellationToken>())
+            .Returns(new[] { BuildProject() }.ToList().AsReadOnly() as IReadOnlyList<ProjectDto>);
+        _activeProjectService.SetActiveProjectAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(false);
+
+        // Act
+        await _sut.NewSessionCommand.ExecuteAsync(null);
+
+        // Assert
+        _sut.IsCreatingSession.Should().BeFalse();
+    }
+
+    // ─── NewSessionCommand — creation API fails [REQ-009, AC-005] ────────────
+
+    [Fact]
+    public async Task NewSessionCommand_WhenCreateSessionThrows_SetsCreationError()
+    {
+        // Arrange
+        var project = BuildProject(id: "proj-1");
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>())
+            .Returns(project);
+        _sessionService.CreateSessionForProjectAsync("proj-1", Arg.Any<CancellationToken>())
+            .ThrowsAsync(new InvalidOperationException("Failed to create session: Service unavailable"));
+
+        // Act
+        await _sut.NewSessionCommand.ExecuteAsync(null);
+
+        // Assert
+        _sut.CreationError.Should().Be("Failed to create session: Service unavailable");
+    }
+
+    [Fact]
+    public async Task NewSessionCommand_WhenCreateSessionThrows_DoesNotNavigate()
+    {
+        // Arrange
+        var project = BuildProject(id: "proj-1");
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>())
+            .Returns(project);
+        _sessionService.CreateSessionForProjectAsync("proj-1", Arg.Any<CancellationToken>())
+            .ThrowsAsync(new InvalidOperationException("Failed to create session: Service unavailable"));
+
+        // Act
+        await _sut.NewSessionCommand.ExecuteAsync(null);
+
+        // Assert
+        await _navigationService.DidNotReceive().GoToAsync(
+            Arg.Any<string>(),
+            Arg.Any<IDictionary<string, object>>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task NewSessionCommand_WhenCreateSessionThrows_SetsIsCreatingSessionFalse()
+    {
+        // Arrange
+        var project = BuildProject(id: "proj-1");
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>())
+            .Returns(project);
+        _sessionService.CreateSessionForProjectAsync("proj-1", Arg.Any<CancellationToken>())
+            .ThrowsAsync(new InvalidOperationException("Failed to create session: Service unavailable"));
+
+        // Act
+        await _sut.NewSessionCommand.ExecuteAsync(null);
+
+        // Assert
+        _sut.IsCreatingSession.Should().BeFalse();
+    }
+
+    // ─── NewSessionCommand — loading state [REQ-008, AC-004] ─────────────────
+
+    [Fact]
+    public async Task NewSessionCommand_SetsIsCreatingSessionTrueWhileExecuting()
+    {
+        // Arrange
+        var project = BuildProject(id: "proj-1");
+        var session = BuildSession(id: "new-sess-1", projectId: "proj-1");
+        var isCreatingDuringCall = false;
+
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>())
+            .Returns(project);
+        _sessionService.CreateSessionForProjectAsync("proj-1", Arg.Any<CancellationToken>())
+            .Returns(callInfo =>
+            {
+                isCreatingDuringCall = _sut.IsCreatingSession;
+                return Task.FromResult(session);
+            });
+
+        // Act
+        await _sut.NewSessionCommand.ExecuteAsync(null);
+
+        // Assert
+        isCreatingDuringCall.Should().BeTrue();
+        _sut.IsCreatingSession.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task NewSessionCommand_ClearsCreationErrorAtStart()
+    {
+        // Arrange
+        var project = BuildProject(id: "proj-1");
+        var session = BuildSession(id: "new-sess-1", projectId: "proj-1");
+        string? creationErrorDuringCall = "not-cleared";
+
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>())
+            .Returns(project);
+        _sessionService.CreateSessionForProjectAsync("proj-1", Arg.Any<CancellationToken>())
+            .Returns(callInfo =>
+            {
+                creationErrorDuringCall = _sut.CreationError;
+                return Task.FromResult(session);
+            });
+
+        // Simulate a prior error
+        _sut.CreationError = "Previous error";
+
+        // Act
+        await _sut.NewSessionCommand.ExecuteAsync(null);
+
+        // Assert — CreationError was null at the start of execution (before the service call)
+        creationErrorDuringCall.Should().BeNull();
+    }
+
+    // ─── SessionTitleUpdatedMessage — drawer title update [REQ-010, AC-007] ───
+
+    [Fact]
+    public async Task SessionTitleUpdatedMessage_WhenReceived_UpdatesMatchingSessionTitle()
+    {
+        // Arrange — populate the session list first
+        SetupLoadSessionsSuccess(sessions: BuildSessionList(3));
+        await _sut.LoadSessionsCommand.ExecuteAsync(null);
+
+        // Act — send the title update message (handler is synchronous via _dispatcher mock)
+        WeakReferenceMessenger.Default.Send(new SessionTitleUpdatedMessage("sess-2", "Updated Title"));
+
+        // Assert
+        _sut.Sessions.Single(s => s.Id == "sess-2").Title.Should().Be("Updated Title");
+    }
+
+    [Fact]
+    public async Task SessionTitleUpdatedMessage_WhenSessionIdDoesNotMatch_DoesNotUpdateSessions()
+    {
+        // Arrange — populate the session list first
+        var sessions = BuildSessionList(3);
+        SetupLoadSessionsSuccess(sessions: sessions);
+        await _sut.LoadSessionsCommand.ExecuteAsync(null);
+
+        // Capture original titles
+        var originalTitles = _sut.Sessions.Select(s => s.Title).ToList();
+
+        // Act — send a message for a session ID that does not exist in the list
+        WeakReferenceMessenger.Default.Send(new SessionTitleUpdatedMessage("sess-999", "Should Not Apply"));
+
+        // Assert — all titles remain unchanged
+        _sut.Sessions.Select(s => s.Title).Should().BeEquivalentTo(originalTitles);
     }
 }

@@ -102,6 +102,13 @@ public static class CoreServiceExtensions
         // ensure thread safety.
         services.AddTransient<IOpencodeApiClient, OpencodeApiClient>();
 
+        // Lazy<IActiveProjectService> breaks the circular dependency chain:
+        //   OpencodeApiClient → IActiveProjectService → IProjectService → IOpencodeApiClient
+        // By deferring resolution of IActiveProjectService until first use (not at construction
+        // time), the DI container can construct OpencodeApiClient without triggering the cycle.
+        services.AddSingleton<Lazy<IActiveProjectService>>(sp =>
+            new Lazy<IActiveProjectService>(() => sp.GetRequiredService<IActiveProjectService>()));
+
         // mDNS discovery (singleton — stateless, safe to share)
         services.AddSingleton<IZeroconfResolver, ZeroconfResolverAdapter>();
         services.AddSingleton<IOpencodeDiscoveryService, OpencodeDiscoveryService>();

@@ -80,7 +80,7 @@ internal sealed class SessionService : ISessionService
     /// <inheritdoc />
     public async Task<SessionDto?> CreateSessionAsync(string? title, CancellationToken ct = default)
     {
-        var request = new CreateSessionRequest(Title: title, ParentId: null);
+        var request = new CreateSessionRequest(Title: title ?? string.Empty, ParentId: string.Empty);
         var result = await _apiClient.CreateSessionAsync(request, ct).ConfigureAwait(false);
 
         if (result.IsSuccess)
@@ -94,6 +94,31 @@ internal sealed class SessionService : ISessionService
         }
 
         return null;
+    }
+
+    /// <inheritdoc />
+    public async Task<SessionDto> CreateSessionForProjectAsync(string projectId, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(projectId);
+
+        var request = new CreateSessionRequest(Title: string.Empty, ParentId: string.Empty);
+        var result = await _apiClient.CreateSessionAsync(request, ct).ConfigureAwait(false);
+
+        if (result.IsSuccess && result.Value is not null)
+            return result.Value;
+
+        var errorMessage = result.Error?.Message ?? "Unknown error";
+        var errorKind = result.Error?.Kind.ToString() ?? "Unknown";
+
+        SentryHelper.CaptureException(
+            new InvalidOperationException($"Failed to create session: {errorMessage}"),
+            new Dictionary<string, object>
+            {
+                ["projectId"] = projectId,
+                ["errorKind"] = errorKind,
+            });
+
+        throw new InvalidOperationException($"Failed to create session: {errorMessage}");
     }
 
     /// <inheritdoc />

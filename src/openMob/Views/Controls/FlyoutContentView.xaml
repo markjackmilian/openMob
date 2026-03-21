@@ -11,7 +11,8 @@
       RowDefinitions="Auto,Auto,Auto,*"
       BackgroundColor="{AppThemeBinding Light={StaticResource ColorBackgroundLight}, Dark={StaticResource ColorBackgroundDark}}">
 
-    <!-- Row 0: Section header: project name (uppercase) -->
+    <!-- Row 0: Section header: project name (uppercase)
+         Margin="16,12,16,8" = composite of SpacingLg, SpacingMd, SpacingLg, SpacingSm -->
     <Label
         Grid.Row="0"
         Text="{Binding ProjectSectionTitle, FallbackValue='SESSIONS', TargetNullValue='SESSIONS'}"

@@ -20,7 +20,7 @@
 
     <!-- Close button (trailing) -->
     <Grid Grid.Row="0"
-          Padding="{StaticResource SpacingLg},0"
+          Padding="16,0"
           HorizontalOptions="End"
           VerticalOptions="Center">
       <ImageButton Clicked="OnCloseButtonTapped"

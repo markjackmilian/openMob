@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:helpers="clr-namespace:openMob.Helpers"
-             x:Class="openMob.Views.Controls.FlyoutFooterView">
+              xmlns:helpers="clr-namespace:openMob.Helpers"
+              xmlns:controls="clr-namespace:openMob.Views.Controls"
+              x:Class="openMob.Views.Controls.FlyoutFooterView"
+              x:DataType="controls:FlyoutFooterView">
 
   <VerticalStackLayout
       BackgroundColor="{AppThemeBinding Light={StaticResource ColorBackgroundLight}, Dark={StaticResource ColorBackgroundDark}}"
@@ -27,7 +29,7 @@
           Grid.Column="0"
           FontFamily="TablerIcons"
           Text="{x:Static helpers:IconKeys.Folder}"
-          FontSize="22"
+          FontSize="{StaticResource FontSizeTitle2}"
           TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
           VerticalOptions="Center"
           Margin="0,0,12,0"
@@ -54,7 +56,7 @@
           Grid.Column="0"
           FontFamily="TablerIcons"
           Text="{x:Static helpers:IconKeys.Settings}"
-          FontSize="22"
+          FontSize="{StaticResource FontSizeTitle2}"
           TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
           VerticalOptions="Center"
           Margin="0,0,12,0"

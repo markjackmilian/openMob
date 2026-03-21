@@ -17,7 +17,7 @@
         Grid.Row="0"
         WidthRequest="36"
         HeightRequest="4"
-        CornerRadius="2"
+        CornerRadius="{StaticResource SpacingXxs}"
         Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
         HorizontalOptions="Center"
         Margin="0,8,0,16" />
@@ -25,7 +25,7 @@
     <!-- Header with title and close button -->
     <Grid Grid.Row="1"
           ColumnDefinitions="*,Auto"
-          Padding="{StaticResource SpacingLg},0,{StaticResource SpacingLg},{StaticResource SpacingLg}">
+          Padding="16,0,16,16">
       <Label
           Grid.Column="0"
           Text="Select Model"
@@ -82,7 +82,7 @@
       <Label
           Text="{x:Static helpers:IconKeys.Robot}"
           FontFamily="TablerIcons"
-          FontSize="48"
+          FontSize="{StaticResource FontSizeIconXxl}"
           TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
           HorizontalOptions="Center"
           SemanticProperties.Description="No models icon" />
@@ -173,7 +173,7 @@
                   Grid.Column="1"
                   FontFamily="TablerIcons"
                   Text="{x:Static helpers:IconKeys.Check}"
-                  FontSize="24"
+                  FontSize="{StaticResource FontSizeIconXl}"
                   TextColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}"
                   IsVisible="{Binding IsSelected}"
                   VerticalOptions="Center"

@@ -137,7 +137,7 @@
               <BoxView
                   WidthRequest="8"
                   HeightRequest="8"
-                  CornerRadius="4"
+                  CornerRadius="{StaticResource RadiusXs}"
                   VerticalOptions="Center"
                   Color="{AppThemeBinding Light={StaticResource ColorErrorLight}, Dark={StaticResource ColorErrorDark}}">
                 <BoxView.Triggers>

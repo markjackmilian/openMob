@@ -15,14 +15,14 @@
     <BoxView
         WidthRequest="36"
         HeightRequest="4"
-        CornerRadius="2"
+        CornerRadius="{StaticResource SpacingXxs}"
         Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
         HorizontalOptions="Center"
         Margin="0,8,0,16" />
 
     <!-- Header with title and close button -->
     <Grid ColumnDefinitions="*,Auto"
-          Padding="{StaticResource SpacingLg},0,{StaticResource SpacingLg},{StaticResource SpacingLg}">
+          Padding="16,0,16,16">
       <Label
           Grid.Column="0"
           Text="New Project"
@@ -47,7 +47,7 @@
     </Grid>
 
     <!-- Form fields -->
-    <VerticalStackLayout Spacing="{StaticResource SpacingLg}" Padding="{StaticResource SpacingLg},0">
+    <VerticalStackLayout Spacing="{StaticResource SpacingLg}" Padding="16,0">
 
       <!-- Project Name -->
       <VerticalStackLayout Spacing="{StaticResource SpacingXs}">

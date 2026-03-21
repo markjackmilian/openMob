@@ -15,7 +15,7 @@
     <Label
         FontFamily="TablerIcons"
         Text="{x:Static helpers:IconKeys.CircleCheck}"
-        FontSize="64"
+        FontSize="{StaticResource FontSizeIconHero}"
         TextColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}"
         HorizontalOptions="Center" />
 

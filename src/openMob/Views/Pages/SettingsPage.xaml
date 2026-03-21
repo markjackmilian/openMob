@@ -59,7 +59,7 @@
             <Label
                 FontFamily="TablerIcons"
                 Text="{x:Static helpers:IconKeys.Settings}"
-                FontSize="22"
+                FontSize="{StaticResource FontSizeTitle2}"
                 TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
                 VerticalOptions="Center" />
             <Label
@@ -90,7 +90,7 @@
             <Label
                 FontFamily="TablerIcons"
                 Text="{x:Static helpers:IconKeys.Link}"
-                FontSize="22"
+                FontSize="{StaticResource FontSizeTitle2}"
                 TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
                 VerticalOptions="Center" />
             <Label
@@ -102,7 +102,7 @@
                 Grid.Column="2"
                 FontFamily="TablerIcons"
                 Text="{x:Static helpers:IconKeys.ChevronRight}"
-                FontSize="18"
+                FontSize="{StaticResource FontSizeHeadline}"
                 TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
                 VerticalOptions="Center" />
           </Grid>
@@ -119,7 +119,7 @@
             <Label
                 FontFamily="TablerIcons"
                 Text="{x:Static helpers:IconKeys.Bell}"
-                FontSize="22"
+                FontSize="{StaticResource FontSizeTitle2}"
                 TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
                 VerticalOptions="Center" />
             <Label
@@ -131,7 +131,7 @@
                 Grid.Column="2"
                 FontFamily="TablerIcons"
                 Text="{x:Static helpers:IconKeys.ChevronRight}"
-                FontSize="18"
+                FontSize="{StaticResource FontSizeHeadline}"
                 TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
                 VerticalOptions="Center" />
           </Grid>
@@ -157,7 +157,7 @@
             <Label
                 FontFamily="TablerIcons"
                 Text="{x:Static helpers:IconKeys.Robot}"
-                FontSize="22"
+                FontSize="{StaticResource FontSizeTitle2}"
                 TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
                 VerticalOptions="Center" />
             <Label
@@ -169,7 +169,7 @@
                 Grid.Column="2"
                 FontFamily="TablerIcons"
                 Text="{x:Static helpers:IconKeys.ChevronRight}"
-                FontSize="18"
+                FontSize="{StaticResource FontSizeHeadline}"
                 TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
                 VerticalOptions="Center" />
           </Grid>
@@ -186,7 +186,7 @@
             <Label
                 FontFamily="TablerIcons"
                 Text="{x:Static helpers:IconKeys.Key}"
-                FontSize="22"
+                FontSize="{StaticResource FontSizeTitle2}"
                 TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
                 VerticalOptions="Center" />
             <Label
@@ -198,7 +198,7 @@
                 Grid.Column="2"
                 FontFamily="TablerIcons"
                 Text="{x:Static helpers:IconKeys.ChevronRight}"
-                FontSize="18"
+                FontSize="{StaticResource FontSizeHeadline}"
                 TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
                 VerticalOptions="Center" />
           </Grid>
@@ -224,7 +224,7 @@
             <Label
                 FontFamily="TablerIcons"
                 Text="{x:Static helpers:IconKeys.InfoCircle}"
-                FontSize="22"
+                FontSize="{StaticResource FontSizeTitle2}"
                 TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
                 VerticalOptions="Center" />
             <Label

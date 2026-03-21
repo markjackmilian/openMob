@@ -10,6 +10,8 @@
              x:DataType="viewmodels:ChatViewModel"
              Shell.NavBarIsVisible="False">
 
+  <!-- ChatPage uses edge-to-edge layout for the message list (standard chat UI pattern).
+       Horizontal padding is applied to the input bar and header, not the message area. -->
   <Grid RowDefinitions="Auto,Auto,Auto,*,Auto,Auto,Auto">
 
     <!-- ═══════════════════════════════════════════════════════════════
@@ -44,7 +46,7 @@
       <!-- Center: Session name (tappable to rename) -->
       <Label Grid.Column="1"
              Text="{Binding SessionName, FallbackValue='New chat'}"
-             Style="{StaticResource HeadlineLabel}"
+             Style="{StaticResource Title2Label}"
              HorizontalTextAlignment="Center"
              VerticalTextAlignment="Center"
              HorizontalOptions="Center"

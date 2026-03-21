@@ -16,14 +16,14 @@
     <BoxView
         WidthRequest="36"
         HeightRequest="4"
-        CornerRadius="2"
+        CornerRadius="{StaticResource SpacingXxs}"
         Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
         HorizontalOptions="Center"
         Margin="0,8,0,16" />
 
     <!-- Header with title and close button -->
     <Grid ColumnDefinitions="*,Auto"
-          Padding="{StaticResource SpacingLg},0,{StaticResource SpacingLg},{StaticResource SpacingLg}">
+          Padding="16,0,16,16">
       <Label
           Grid.Column="0"
           Text="Switch Project"
@@ -65,7 +65,7 @@
             <Grid
                 ColumnDefinitions="Auto,*,Auto"
                 Padding="0,14"
-                ColumnSpacing="12"
+                ColumnSpacing="{StaticResource SpacingMd}"
                 MinimumHeightRequest="{StaticResource MinTouchTarget}">
               <Grid.GestureRecognizers>
                 <TapGestureRecognizer
@@ -78,14 +78,14 @@
                   Grid.Column="0"
                   FontFamily="TablerIcons"
                   Text="{x:Static helpers:IconKeys.Folder}"
-                  FontSize="24"
+                  FontSize="{StaticResource FontSizeIconXl}"
                   TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
                   VerticalOptions="Center"
                   SemanticProperties.Description="Project folder icon" />
 
               <VerticalStackLayout
                   Grid.Column="1"
-                  Spacing="2"
+                  Spacing="{StaticResource SpacingXxs}"
                   VerticalOptions="Center">
                 <Label
                     Text="{Binding Name, FallbackValue='Untitled'}"
@@ -105,7 +105,7 @@
                   Grid.Column="2"
                   FontFamily="TablerIcons"
                   Text="{x:Static helpers:IconKeys.Check}"
-                  FontSize="24"
+                  FontSize="{StaticResource FontSizeIconXl}"
                   TextColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}"
                   IsVisible="{Binding IsActive}"
                   VerticalOptions="Center"

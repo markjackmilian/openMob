@@ -20,7 +20,7 @@
 
       <!-- Header with title and close button -->
       <Grid ColumnDefinitions="*,Auto"
-            Padding="{StaticResource SpacingLg},0"
+            Padding="16,0"
             HeightRequest="{StaticResource MinTouchTarget}">
         <Label Grid.Column="0"
                Text="Context"
@@ -53,9 +53,9 @@
         <Label Grid.Column="0"
                Text="{x:Static helpers:IconKeys.Folder}"
                FontFamily="TablerIcons"
-               FontSize="24"
+               FontSize="{StaticResource FontSizeIconXl}"
                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
-                                            Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
+                                             Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
                VerticalOptions="Center"
                SemanticProperties.Description="Project icon" />
 
@@ -91,9 +91,9 @@
         <Label Grid.Column="0"
                Text="{x:Static helpers:IconKeys.Robot}"
                FontFamily="TablerIcons"
-               FontSize="24"
+               FontSize="{StaticResource FontSizeIconXl}"
                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
-                                            Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
+                                             Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
                VerticalOptions="Center"
                SemanticProperties.Description="Agent icon" />
 
@@ -117,9 +117,9 @@
         <Label Grid.Column="3"
                Text="{x:Static helpers:IconKeys.ChevronRight}"
                FontFamily="TablerIcons"
-               FontSize="20"
+               FontSize="{StaticResource FontSizeTitle3}"
                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
-                                            Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
+                                             Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
                VerticalOptions="Center" />
       </Grid>
 
@@ -136,9 +136,9 @@
         <Label Grid.Column="0"
                Text="{x:Static helpers:IconKeys.Brain}"
                FontFamily="TablerIcons"
-               FontSize="24"
+               FontSize="{StaticResource FontSizeIconXl}"
                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
-                                            Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
+                                             Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
                VerticalOptions="Center"
                SemanticProperties.Description="Model icon" />
 
@@ -162,16 +162,16 @@
         <Label Grid.Column="3"
                Text="{x:Static helpers:IconKeys.ChevronRight}"
                FontFamily="TablerIcons"
-               FontSize="20"
+               FontSize="{StaticResource FontSizeTitle3}"
                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
-                                            Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
+                                             Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
                VerticalOptions="Center" />
       </Grid>
 
       <!-- Divider -->
       <BoxView HeightRequest="0.5"
                Color="{AppThemeBinding Light={StaticResource ColorSeparatorLight},
-                                        Dark={StaticResource ColorSeparatorDark}}"
+                                         Dark={StaticResource ColorSeparatorDark}}"
                Margin="16,0" />
 
       <!-- ═══════════════════════════════════════════════════════════════
@@ -184,9 +184,9 @@
         <Label Grid.Column="0"
                Text="{x:Static helpers:IconKeys.Brain}"
                FontFamily="TablerIcons"
-               FontSize="24"
+               FontSize="{StaticResource FontSizeIconXl}"
                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
-                                            Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
+                                             Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
                VerticalOptions="Center"
                SemanticProperties.Description="Thinking level icon" />
 
@@ -205,9 +205,9 @@
                   FontFamily="InterMedium"
                   FontSize="{StaticResource FontSizeCaption1}"
                   Padding="12,6"
-                  MinimumHeightRequest="32"
+                  MinimumHeightRequest="{StaticResource SpacingXxl}"
                   MinimumWidthRequest="0"
-                  CornerRadius="8"
+                  CornerRadius="{StaticResource RadiusSm}"
                   Command="{Binding ChangeThinkingLevelCommand}"
                   CommandParameter="{x:Static models:ThinkingLevel.Low}"
                   BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceSecondaryLight},
@@ -233,9 +233,9 @@
                   FontFamily="InterMedium"
                   FontSize="{StaticResource FontSizeCaption1}"
                   Padding="12,6"
-                  MinimumHeightRequest="32"
+                  MinimumHeightRequest="{StaticResource SpacingXxl}"
                   MinimumWidthRequest="0"
-                  CornerRadius="8"
+                  CornerRadius="{StaticResource RadiusSm}"
                   Command="{Binding ChangeThinkingLevelCommand}"
                   CommandParameter="{x:Static models:ThinkingLevel.Medium}"
                   BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceSecondaryLight},
@@ -261,9 +261,9 @@
                   FontFamily="InterMedium"
                   FontSize="{StaticResource FontSizeCaption1}"
                   Padding="12,6"
-                  MinimumHeightRequest="32"
+                  MinimumHeightRequest="{StaticResource SpacingXxl}"
                   MinimumWidthRequest="0"
-                  CornerRadius="8"
+                  CornerRadius="{StaticResource RadiusSm}"
                   Command="{Binding ChangeThinkingLevelCommand}"
                   CommandParameter="{x:Static models:ThinkingLevel.High}"
                   BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceSecondaryLight},
@@ -298,9 +298,9 @@
         <Label Grid.Column="0"
                Text="{x:Static helpers:IconKeys.AutoAwesome}"
                FontFamily="TablerIcons"
-               FontSize="24"
+               FontSize="{StaticResource FontSizeIconXl}"
                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
-                                            Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
+                                             Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
                VerticalOptions="Center"
                SemanticProperties.Description="Auto-accept icon" />
 
@@ -327,7 +327,7 @@
       <!-- Divider -->
       <BoxView HeightRequest="0.5"
                Color="{AppThemeBinding Light={StaticResource ColorSeparatorLight},
-                                        Dark={StaticResource ColorSeparatorDark}}"
+                                         Dark={StaticResource ColorSeparatorDark}}"
                Margin="16,0" />
 
       <!-- ═══════════════════════════════════════════════════════════════
@@ -343,9 +343,9 @@
         <Label Grid.Column="0"
                Text="{x:Static helpers:IconKeys.Robot}"
                FontFamily="TablerIcons"
-               FontSize="24"
+               FontSize="{StaticResource FontSizeIconXl}"
                TextColor="{AppThemeBinding Light={StaticResource ColorSubagentAccentLight},
-                                            Dark={StaticResource ColorSubagentAccentDark}}"
+                                             Dark={StaticResource ColorSubagentAccentDark}}"
                VerticalOptions="Center"
                SemanticProperties.Description="Subagent icon" />
 
@@ -358,16 +358,16 @@
         <Label Grid.Column="2"
                Text="{x:Static helpers:IconKeys.ChevronRight}"
                FontFamily="TablerIcons"
-               FontSize="20"
+               FontSize="{StaticResource FontSizeTitle3}"
                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
-                                            Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
+                                             Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
                VerticalOptions="Center" />
       </Grid>
 
       <!-- Divider -->
       <BoxView HeightRequest="0.5"
                Color="{AppThemeBinding Light={StaticResource ColorSeparatorLight},
-                                        Dark={StaticResource ColorSeparatorDark}}"
+                                         Dark={StaticResource ColorSeparatorDark}}"
                Margin="16,0" />
 
       <!-- ═══════════════════════════════════════════════════════════════
@@ -383,9 +383,9 @@
         <Label Grid.Column="0"
                Text="{x:Static helpers:IconKeys.Trash}"
                FontFamily="TablerIcons"
-               FontSize="24"
+               FontSize="{StaticResource FontSizeIconXl}"
                TextColor="{AppThemeBinding Light={StaticResource ColorErrorLight},
-                                            Dark={StaticResource ColorErrorDark}}"
+                                             Dark={StaticResource ColorErrorDark}}"
                VerticalOptions="Center"
                SemanticProperties.Description="Delete session icon" />
 

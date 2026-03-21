@@ -116,7 +116,7 @@
                         Grid.Column="0"
                         FontFamily="TablerIcons"
                         Text="{x:Static helpers:IconKeys.CircleCheck}"
-                        FontSize="20"
+                        FontSize="{StaticResource FontSizeTitle3}"
                         TextColor="{AppThemeBinding Light={StaticResource ColorSuccessLight}, Dark={StaticResource ColorSuccessDark}}"
                         IsVisible="{Binding IsActive}"
                         VerticalOptions="Center"
@@ -146,7 +146,7 @@
                         Grid.Column="2"
                         FontFamily="TablerIcons"
                         Text="{x:Static helpers:IconKeys.ChevronRight}"
-                        FontSize="18"
+                        FontSize="{StaticResource FontSizeHeadline}"
                         TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
                         VerticalOptions="Center" />
                   </Grid>
@@ -229,7 +229,7 @@
                         Grid.Column="1"
                         FontFamily="TablerIcons"
                         Text="{x:Static helpers:IconKeys.ChevronRight}"
-                        FontSize="18"
+                        FontSize="{StaticResource FontSizeHeadline}"
                         TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
                         VerticalOptions="Center" />
                   </Grid>

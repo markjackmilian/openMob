@@ -17,7 +17,7 @@
       <!-- App icon -->
       <Label Text="{x:Static helpers:IconKeys.Robot}"
              FontFamily="TablerIcons"
-             FontSize="64"
+             FontSize="{StaticResource FontSizeIconHero}"
              TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
                                          Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
              HorizontalOptions="Center"

@@ -773,7 +773,7 @@ public sealed class FlyoutViewModelTests : IDisposable
         var session = BuildSession(id: "new-sess-1", projectId: "proj-1");
         _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>())
             .Returns(project);
-        _sessionService.CreateSessionForProjectAsync("proj-1", Arg.Any<string>(), Arg.Any<CancellationToken>())
+        _sessionService.CreateSessionForProjectAsync("proj-1", Arg.Any<CancellationToken>())
             .Returns(session);
 
         // Act
@@ -798,7 +798,7 @@ public sealed class FlyoutViewModelTests : IDisposable
             .Returns(project);
         _sessionService.GetSessionsByProjectAsync("proj-1", Arg.Any<CancellationToken>())
             .Returns(existingSessions);
-        _sessionService.CreateSessionForProjectAsync("proj-1", Arg.Any<string>(), Arg.Any<CancellationToken>())
+        _sessionService.CreateSessionForProjectAsync("proj-1", Arg.Any<CancellationToken>())
             .Returns(newSession);
 
         await _sut.LoadSessionsCommand.ExecuteAsync(null);
@@ -818,7 +818,7 @@ public sealed class FlyoutViewModelTests : IDisposable
         var session = BuildSession(id: "new-sess-1", projectId: "proj-1");
         _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>())
             .Returns(project);
-        _sessionService.CreateSessionForProjectAsync("proj-1", Arg.Any<string>(), Arg.Any<CancellationToken>())
+        _sessionService.CreateSessionForProjectAsync("proj-1", Arg.Any<CancellationToken>())
             .Returns(session);
 
         // Simulate a prior error
@@ -839,7 +839,7 @@ public sealed class FlyoutViewModelTests : IDisposable
         var session = BuildSession(id: "new-sess-1", projectId: "proj-1");
         _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>())
             .Returns(project);
-        _sessionService.CreateSessionForProjectAsync("proj-1", Arg.Any<string>(), Arg.Any<CancellationToken>())
+        _sessionService.CreateSessionForProjectAsync("proj-1", Arg.Any<CancellationToken>())
             .Returns(session);
 
         // Act
@@ -864,7 +864,7 @@ public sealed class FlyoutViewModelTests : IDisposable
             .Returns(true);
         _projectService.GetAllProjectsAsync(Arg.Any<CancellationToken>())
             .Returns(new List<ProjectDto> { firstProject });
-        _sessionService.CreateSessionForProjectAsync("proj-first", Arg.Any<string>(), Arg.Any<CancellationToken>())
+        _sessionService.CreateSessionForProjectAsync("proj-first", Arg.Any<CancellationToken>())
             .Returns(session);
 
         // Act
@@ -887,14 +887,14 @@ public sealed class FlyoutViewModelTests : IDisposable
             .Returns(true);
         _projectService.GetAllProjectsAsync(Arg.Any<CancellationToken>())
             .Returns(new List<ProjectDto> { firstProject });
-        _sessionService.CreateSessionForProjectAsync("proj-first", Arg.Any<string>(), Arg.Any<CancellationToken>())
+        _sessionService.CreateSessionForProjectAsync("proj-first", Arg.Any<CancellationToken>())
             .Returns(session);
 
         // Act
         await _sut.NewSessionCommand.ExecuteAsync(null);
 
         // Assert
-        await _sessionService.Received(1).CreateSessionForProjectAsync("proj-first", Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await _sessionService.Received(1).CreateSessionForProjectAsync("proj-first", Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -910,7 +910,7 @@ public sealed class FlyoutViewModelTests : IDisposable
             .Returns(true);
         _projectService.GetAllProjectsAsync(Arg.Any<CancellationToken>())
             .Returns(new List<ProjectDto> { firstProject });
-        _sessionService.CreateSessionForProjectAsync("proj-first", Arg.Any<string>(), Arg.Any<CancellationToken>())
+        _sessionService.CreateSessionForProjectAsync("proj-first", Arg.Any<CancellationToken>())
             .Returns(session);
 
         // Act
@@ -1044,7 +1044,7 @@ public sealed class FlyoutViewModelTests : IDisposable
         var project = BuildProject(id: "proj-1");
         _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>())
             .Returns(project);
-        _sessionService.CreateSessionForProjectAsync("proj-1", Arg.Any<string>(), Arg.Any<CancellationToken>())
+        _sessionService.CreateSessionForProjectAsync("proj-1", Arg.Any<CancellationToken>())
             .ThrowsAsync(new InvalidOperationException("Failed to create session: Service unavailable"));
 
         // Act
@@ -1061,7 +1061,7 @@ public sealed class FlyoutViewModelTests : IDisposable
         var project = BuildProject(id: "proj-1");
         _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>())
             .Returns(project);
-        _sessionService.CreateSessionForProjectAsync("proj-1", Arg.Any<string>(), Arg.Any<CancellationToken>())
+        _sessionService.CreateSessionForProjectAsync("proj-1", Arg.Any<CancellationToken>())
             .ThrowsAsync(new InvalidOperationException("Failed to create session: Service unavailable"));
 
         // Act
@@ -1081,7 +1081,7 @@ public sealed class FlyoutViewModelTests : IDisposable
         var project = BuildProject(id: "proj-1");
         _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>())
             .Returns(project);
-        _sessionService.CreateSessionForProjectAsync("proj-1", Arg.Any<string>(), Arg.Any<CancellationToken>())
+        _sessionService.CreateSessionForProjectAsync("proj-1", Arg.Any<CancellationToken>())
             .ThrowsAsync(new InvalidOperationException("Failed to create session: Service unavailable"));
 
         // Act
@@ -1103,7 +1103,7 @@ public sealed class FlyoutViewModelTests : IDisposable
 
         _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>())
             .Returns(project);
-        _sessionService.CreateSessionForProjectAsync("proj-1", Arg.Any<string>(), Arg.Any<CancellationToken>())
+        _sessionService.CreateSessionForProjectAsync("proj-1", Arg.Any<CancellationToken>())
             .Returns(callInfo =>
             {
                 isCreatingDuringCall = _sut.IsCreatingSession;
@@ -1128,7 +1128,7 @@ public sealed class FlyoutViewModelTests : IDisposable
 
         _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>())
             .Returns(project);
-        _sessionService.CreateSessionForProjectAsync("proj-1", Arg.Any<string>(), Arg.Any<CancellationToken>())
+        _sessionService.CreateSessionForProjectAsync("proj-1", Arg.Any<CancellationToken>())
             .Returns(callInfo =>
             {
                 creationErrorDuringCall = _sut.CreationError;

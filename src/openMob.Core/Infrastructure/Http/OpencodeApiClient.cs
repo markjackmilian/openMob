@@ -10,6 +10,7 @@ using openMob.Core.Infrastructure.Http.Dtos.Opencode;
 using openMob.Core.Infrastructure.Http.Dtos.Opencode.Requests;
 using openMob.Core.Infrastructure.Logging;
 using openMob.Core.Infrastructure.Settings;
+using openMob.Core.Services;
 
 namespace openMob.Core.Infrastructure.Http;
 
@@ -39,6 +40,7 @@ internal sealed class OpencodeApiClient : IOpencodeApiClient
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IOpencodeConnectionManager _connectionManager;
     private readonly IOpencodeSettingsService _settingsService;
+    private readonly IActiveProjectService _activeProjectService;
     private readonly TimeSpan[] _retryDelays;
     private volatile bool _isWaitingForServer;
 
@@ -48,6 +50,7 @@ internal sealed class OpencodeApiClient : IOpencodeApiClient
     /// <param name="httpClientFactory">Factory for creating named HTTP clients.</param>
     /// <param name="connectionManager">Resolves the active server base URL and auth header.</param>
     /// <param name="settingsService">Provides the configured request timeout.</param>
+    /// <param name="activeProjectService">Provides the active project directory for the <c>x-opencode-directory</c> header.</param>
     /// <param name="retryDelays">
     /// Optional override for inter-attempt retry delays. Defaults to [2s, 4s] (3 total attempts).
     /// Pass shorter delays in tests to avoid real-time waits.
@@ -56,11 +59,13 @@ internal sealed class OpencodeApiClient : IOpencodeApiClient
         IHttpClientFactory httpClientFactory,
         IOpencodeConnectionManager connectionManager,
         IOpencodeSettingsService settingsService,
+        IActiveProjectService activeProjectService,
         TimeSpan[]? retryDelays = null)
     {
         _httpClientFactory = httpClientFactory;
         _connectionManager = connectionManager;
         _settingsService = settingsService;
+        _activeProjectService = activeProjectService;
         _retryDelays = retryDelays ?? DefaultRetryDelays;
     }
 
@@ -135,6 +140,12 @@ internal sealed class OpencodeApiClient : IOpencodeApiClient
                         client.DefaultRequestHeaders.Authorization =
                             new AuthenticationHeaderValue("Basic", encoded);
                     }
+
+                    // Inject the active project directory so the server uses the correct project context.
+                    // The server reads this from the x-opencode-directory header on every request.
+                    var activeProject = await _activeProjectService.GetActiveProjectAsync(ct).ConfigureAwait(false);
+                    if (activeProject?.Worktree is { Length: > 0 } worktree)
+                        client.DefaultRequestHeaders.TryAddWithoutValidation("x-opencode-directory", worktree);
 
                     // Apply per-request timeout via a linked CancellationTokenSource.
                     // Pass cts.Token into requestFactory so the HttpClient call is cancelled
@@ -435,18 +446,12 @@ internal sealed class OpencodeApiClient : IOpencodeApiClient
     /// <remarks>
     /// The opencode <c>POST /session</c> endpoint accepts no request body.
     /// The <paramref name="request"/> parameter is retained for API compatibility but its fields are not serialised.
-    /// When <paramref name="directory"/> is provided, it is appended as a <c>?directory=</c> query parameter
-    /// so the server associates the new session with the correct project.
+    /// The active project directory is injected globally via the <c>x-opencode-directory</c> header
+    /// in <see cref="ExecuteAsync{T}"/>, so no per-method directory parameter is needed.
     /// </remarks>
-    public Task<OpencodeResult<SessionDto>> CreateSessionAsync(CreateSessionRequest request, string? directory = null, CancellationToken ct = default)
+    public Task<OpencodeResult<SessionDto>> CreateSessionAsync(CreateSessionRequest request, CancellationToken ct = default)
         => ExecuteAsync<SessionDto>(
-            (client, baseUrl, token) =>
-            {
-                var url = $"{baseUrl}/session";
-                if (!string.IsNullOrEmpty(directory))
-                    url += $"?directory={Uri.EscapeDataString(directory)}";
-                return client.PostAsync(url, null, token);
-            },
+            (client, baseUrl, token) => client.PostAsync($"{baseUrl}/session", null, token),
             ct);
 
     /// <inheritdoc />
@@ -708,6 +713,11 @@ internal sealed class OpencodeApiClient : IOpencodeApiClient
                 : authHeader;
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", encoded);
         }
+
+        // Inject the active project directory for SSE events too.
+        var activeProject = await _activeProjectService.GetActiveProjectAsync(cancellationToken).ConfigureAwait(false);
+        if (activeProject?.Worktree is { Length: > 0 } worktree)
+            client.DefaultRequestHeaders.TryAddWithoutValidation("x-opencode-directory", worktree);
 
         // Wrap the initial GET in a try/catch for network-level failures only.
         // HttpRequestException covers DNS failures, connection refused, etc.

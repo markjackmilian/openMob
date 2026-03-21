@@ -380,8 +380,8 @@ public sealed partial class FlyoutViewModel : ObservableObject, IDisposable
                 }
             }
 
-            // Step 3: Create session (pass Worktree so the server associates it with the correct project)
-            var session = await _sessionService.CreateSessionForProjectAsync(activeProject.Id, activeProject.Worktree, ct);
+            // Step 3: Create session (the x-opencode-directory header is injected globally by OpencodeApiClient)
+            var session = await _sessionService.CreateSessionForProjectAsync(activeProject.Id, ct);
 
             // Step 4: Prepend new session to the list
             var newItem = new SessionItem(

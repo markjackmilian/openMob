@@ -30,6 +30,7 @@ public sealed partial class FlyoutViewModel : ObservableObject, IDisposable
     private readonly INavigationService _navigationService;
     private readonly IAppPopupService _popupService;
     private readonly IDispatcherService _dispatcher;
+    private readonly IActiveProjectService _activeProjectService;
 
     /// <summary>
     /// Used to signal in-flight fire-and-forget tasks (e.g. <see cref="LoadSessionsCommand"/>
@@ -43,24 +44,28 @@ public sealed partial class FlyoutViewModel : ObservableObject, IDisposable
     /// <param name="navigationService">Service for Shell navigation.</param>
     /// <param name="popupService">Service for popup/dialog operations.</param>
     /// <param name="dispatcher">UI thread dispatcher for thread-safe collection updates.</param>
+    /// <param name="activeProjectService">Service for managing the client-side active project state.</param>
     public FlyoutViewModel(
         IProjectService projectService,
         ISessionService sessionService,
         INavigationService navigationService,
         IAppPopupService popupService,
-        IDispatcherService dispatcher)
+        IDispatcherService dispatcher,
+        IActiveProjectService activeProjectService)
     {
         ArgumentNullException.ThrowIfNull(projectService);
         ArgumentNullException.ThrowIfNull(sessionService);
         ArgumentNullException.ThrowIfNull(navigationService);
         ArgumentNullException.ThrowIfNull(popupService);
         ArgumentNullException.ThrowIfNull(dispatcher);
+        ArgumentNullException.ThrowIfNull(activeProjectService);
 
         _projectService = projectService;
         _sessionService = sessionService;
         _navigationService = navigationService;
         _popupService = popupService;
         _dispatcher = dispatcher;
+        _activeProjectService = activeProjectService;
 
         // Subscribe to session deletion — refresh the list when any session is deleted.
         // Fire-and-forget is safe here: LoadSessionsAsync has its own internal catch that
@@ -90,6 +95,18 @@ public sealed partial class FlyoutViewModel : ObservableObject, IDisposable
                             Sessions[i] = s with { IsSelected = s.Id == message.SessionId };
                     }
                 });
+            });
+
+        // Subscribe to active project changes — reload sessions when the user switches projects.
+        // Fire-and-forget is safe here: LoadSessionsAsync has its own internal catch that
+        // handles all exceptions, so no unobserved exception can escape.
+        WeakReferenceMessenger.Default.Register<ActiveProjectChangedMessage>(
+            this,
+            (_, _) =>
+            {
+                if (_disposeCts.IsCancellationRequested)
+                    return;
+                _ = LoadSessionsCommand.ExecuteAsync(null);
             });
     }
 
@@ -140,7 +157,7 @@ public sealed partial class FlyoutViewModel : ObservableObject, IDisposable
 
         try
         {
-            var currentProject = await _projectService.GetCurrentProjectAsync(ct).ConfigureAwait(false);
+            var currentProject = await _activeProjectService.GetActiveProjectAsync(ct).ConfigureAwait(false);
 
             if (currentProject is null)
             {

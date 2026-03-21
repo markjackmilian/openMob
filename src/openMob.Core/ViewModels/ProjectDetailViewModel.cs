@@ -22,6 +22,7 @@ public sealed partial class ProjectDetailViewModel : ObservableObject
     private readonly INavigationService _navigationService;
     private readonly IAppPopupService _popupService;
     private readonly IProjectPreferenceService _preferenceService;
+    private readonly IActiveProjectService _activeProjectService;
 
     /// <summary>Initialises the ProjectDetailViewModel with required dependencies.</summary>
     /// <param name="projectService">Service for project operations.</param>
@@ -29,24 +30,28 @@ public sealed partial class ProjectDetailViewModel : ObservableObject
     /// <param name="navigationService">Service for Shell navigation.</param>
     /// <param name="popupService">Service for popup/dialog operations.</param>
     /// <param name="preferenceService">Service for per-project preference persistence.</param>
+    /// <param name="activeProjectService">Service for managing the client-side active project state.</param>
     public ProjectDetailViewModel(
         IProjectService projectService,
         ISessionService sessionService,
         INavigationService navigationService,
         IAppPopupService popupService,
-        IProjectPreferenceService preferenceService)
+        IProjectPreferenceService preferenceService,
+        IActiveProjectService activeProjectService)
     {
         ArgumentNullException.ThrowIfNull(projectService);
         ArgumentNullException.ThrowIfNull(sessionService);
         ArgumentNullException.ThrowIfNull(navigationService);
         ArgumentNullException.ThrowIfNull(popupService);
         ArgumentNullException.ThrowIfNull(preferenceService);
+        ArgumentNullException.ThrowIfNull(activeProjectService);
 
         _projectService = projectService;
         _sessionService = sessionService;
         _navigationService = navigationService;
         _popupService = popupService;
         _preferenceService = preferenceService;
+        _activeProjectService = activeProjectService;
     }
 
     // ─── Properties ───────────────────────────────────────────────────────────
@@ -122,7 +127,7 @@ public sealed partial class ProjectDetailViewModel : ObservableObject
                 return;
             }
 
-            var currentProject = await _projectService.GetCurrentProjectAsync(ct);
+            var currentProject = await _activeProjectService.GetActiveProjectAsync(ct);
 
             ProjectName = ProjectNameHelper.ExtractFromWorktree(project.Worktree);
             ProjectPath = project.Worktree;
@@ -176,7 +181,9 @@ public sealed partial class ProjectDetailViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Sets this project as the active project (REQ-024).
+    /// Sets this project as the active project via <see cref="IActiveProjectService"/> (REQ-024).
+    /// On success, updates <see cref="IsActiveProject"/> and shows a confirmation toast.
+    /// On failure (project not found), shows an error toast.
     /// </summary>
     /// <param name="ct">Cancellation token.</param>
     [RelayCommand]
@@ -188,11 +195,17 @@ public sealed partial class ProjectDetailViewModel : ObservableObject
         try
         {
 #endif
-        // Note: The opencode server manages the "current project" concept.
-        // Setting active is done by switching the working directory context.
-        // For now, mark as active in the UI and show a toast.
-        IsActiveProject = true;
-        await _popupService.ShowToastAsync($"'{ProjectName}' set as active project.", ct);
+        var success = await _activeProjectService.SetActiveProjectAsync(ProjectId, ct).ConfigureAwait(false);
+
+        if (success)
+        {
+            IsActiveProject = true;
+            await _popupService.ShowToastAsync($"'{ProjectName}' set as active project.", ct);
+        }
+        else
+        {
+            await _popupService.ShowErrorAsync("Error", "Failed to set the active project. Project not found.", ct);
+        }
 #if DEBUG
         sw.Stop();
         DebugLogger.LogCommand(nameof(SetActiveAsync), "complete", sw.ElapsedMilliseconds);

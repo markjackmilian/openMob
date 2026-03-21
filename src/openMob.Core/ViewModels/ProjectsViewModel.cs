@@ -19,23 +19,28 @@ public sealed partial class ProjectsViewModel : ObservableObject
     private readonly IProjectService _projectService;
     private readonly INavigationService _navigationService;
     private readonly IAppPopupService _popupService;
+    private readonly IActiveProjectService _activeProjectService;
 
     /// <summary>Initialises the ProjectsViewModel with required dependencies.</summary>
     /// <param name="projectService">Service for project operations.</param>
     /// <param name="navigationService">Service for Shell navigation.</param>
     /// <param name="popupService">Service for popup/dialog operations.</param>
+    /// <param name="activeProjectService">Service for managing the client-side active project state.</param>
     public ProjectsViewModel(
         IProjectService projectService,
         INavigationService navigationService,
-        IAppPopupService popupService)
+        IAppPopupService popupService,
+        IActiveProjectService activeProjectService)
     {
         ArgumentNullException.ThrowIfNull(projectService);
         ArgumentNullException.ThrowIfNull(navigationService);
         ArgumentNullException.ThrowIfNull(popupService);
+        ArgumentNullException.ThrowIfNull(activeProjectService);
 
         _projectService = projectService;
         _navigationService = navigationService;
         _popupService = popupService;
+        _activeProjectService = activeProjectService;
     }
 
     /// <summary>Gets or sets the collection of project items for display.</summary>
@@ -76,7 +81,7 @@ public sealed partial class ProjectsViewModel : ObservableObject
         try
         {
             var projects = await _projectService.GetAllProjectsAsync(ct);
-            var currentProject = await _projectService.GetCurrentProjectAsync(ct);
+            var currentProject = await _activeProjectService.GetActiveProjectAsync(ct);
 
             ActiveProjectId = currentProject?.Id;
 

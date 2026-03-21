@@ -25,6 +25,7 @@ public sealed class ChatViewModelRedesignTests : IDisposable
     private readonly IChatService _chatService;
     private readonly IOpencodeApiClient _apiClient;
     private readonly IDispatcherService _dispatcher;
+    private readonly IActiveProjectService _activeProjectService;
     private readonly ChatViewModel _sut;
 
     public ChatViewModelRedesignTests()
@@ -39,6 +40,7 @@ public sealed class ChatViewModelRedesignTests : IDisposable
         _chatService = Substitute.For<IChatService>();
         _apiClient = Substitute.For<IOpencodeApiClient>();
         _dispatcher = Substitute.For<IDispatcherService>();
+        _activeProjectService = Substitute.For<IActiveProjectService>();
 
         // CRITICAL: IDispatcherService mock must execute the action synchronously
         _dispatcher.When(d => d.Dispatch(Arg.Any<Action>())).Do(ci => ci.Arg<Action>()());
@@ -57,7 +59,8 @@ public sealed class ChatViewModelRedesignTests : IDisposable
             _preferenceService,
             _chatService,
             _apiClient,
-            _dispatcher);
+            _dispatcher,
+            _activeProjectService);
     }
 
     public void Dispose()

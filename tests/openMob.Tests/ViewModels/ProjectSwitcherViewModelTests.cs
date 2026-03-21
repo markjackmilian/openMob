@@ -14,6 +14,7 @@ public sealed class ProjectSwitcherViewModelTests
     private readonly ISessionService _sessionService;
     private readonly INavigationService _navigationService;
     private readonly IAppPopupService _popupService;
+    private readonly IActiveProjectService _activeProjectService;
     private readonly ProjectSwitcherViewModel _sut;
 
     public ProjectSwitcherViewModelTests()
@@ -22,9 +23,10 @@ public sealed class ProjectSwitcherViewModelTests
         _sessionService = Substitute.For<ISessionService>();
         _navigationService = Substitute.For<INavigationService>();
         _popupService = Substitute.For<IAppPopupService>();
+        _activeProjectService = Substitute.For<IActiveProjectService>();
 
         _sut = new ProjectSwitcherViewModel(
-            _projectService, _sessionService, _navigationService, _popupService);
+            _projectService, _sessionService, _navigationService, _popupService, _activeProjectService);
     }
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -69,7 +71,7 @@ public sealed class ProjectSwitcherViewModelTests
             BuildProject("p2", "/path/beta"),
         };
         _projectService.GetAllProjectsAsync(Arg.Any<CancellationToken>()).Returns(projects);
-        _projectService.GetCurrentProjectAsync(Arg.Any<CancellationToken>()).Returns(projects[0]);
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>()).Returns(projects[0]);
 
         // Act
         await _sut.LoadProjectsCommand.ExecuteAsync(null);
@@ -85,7 +87,7 @@ public sealed class ProjectSwitcherViewModelTests
         // Arrange
         _projectService.GetAllProjectsAsync(Arg.Any<CancellationToken>())
             .Returns(new List<ProjectDto>());
-        _projectService.GetCurrentProjectAsync(Arg.Any<CancellationToken>())
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>())
             .Returns((ProjectDto?)null);
 
         // Act

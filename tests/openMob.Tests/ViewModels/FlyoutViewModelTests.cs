@@ -26,6 +26,7 @@ public sealed class FlyoutViewModelTests : IDisposable
     private readonly INavigationService _navigationService;
     private readonly IAppPopupService _popupService;
     private readonly IDispatcherService _dispatcher;
+    private readonly IActiveProjectService _activeProjectService;
     private readonly FlyoutViewModel _sut;
     private bool _sutDisposed;
 
@@ -36,6 +37,7 @@ public sealed class FlyoutViewModelTests : IDisposable
         _navigationService = Substitute.For<INavigationService>();
         _popupService = Substitute.For<IAppPopupService>();
         _dispatcher = Substitute.For<IDispatcherService>();
+        _activeProjectService = Substitute.For<IActiveProjectService>();
 
         // CRITICAL: dispatcher must execute the action synchronously so that
         // Sessions assignments and CurrentSessionChangedMessage loop updates
@@ -47,7 +49,8 @@ public sealed class FlyoutViewModelTests : IDisposable
             _sessionService,
             _navigationService,
             _popupService,
-            _dispatcher);
+            _dispatcher,
+            _activeProjectService);
     }
 
     public void Dispose()
@@ -111,7 +114,7 @@ public sealed class FlyoutViewModelTests : IDisposable
         var proj = project ?? BuildProject();
         var sess = sessions ?? BuildSessionList();
 
-        _projectService.GetCurrentProjectAsync(Arg.Any<CancellationToken>())
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>())
             .Returns(proj);
         _sessionService.GetSessionsByProjectAsync(proj.Id, Arg.Any<CancellationToken>())
             .Returns(sess);
@@ -133,7 +136,7 @@ public sealed class FlyoutViewModelTests : IDisposable
     public void Constructor_WhenProjectServiceIsNull_ThrowsArgumentNullException()
     {
         // Act
-        var act = () => new FlyoutViewModel(null!, _sessionService, _navigationService, _popupService, _dispatcher);
+        var act = () => new FlyoutViewModel(null!, _sessionService, _navigationService, _popupService, _dispatcher, _activeProjectService);
 
         // Assert
         act.Should().Throw<ArgumentNullException>()
@@ -144,7 +147,7 @@ public sealed class FlyoutViewModelTests : IDisposable
     public void Constructor_WhenSessionServiceIsNull_ThrowsArgumentNullException()
     {
         // Act
-        var act = () => new FlyoutViewModel(_projectService, null!, _navigationService, _popupService, _dispatcher);
+        var act = () => new FlyoutViewModel(_projectService, null!, _navigationService, _popupService, _dispatcher, _activeProjectService);
 
         // Assert
         act.Should().Throw<ArgumentNullException>()
@@ -155,7 +158,7 @@ public sealed class FlyoutViewModelTests : IDisposable
     public void Constructor_WhenNavigationServiceIsNull_ThrowsArgumentNullException()
     {
         // Act
-        var act = () => new FlyoutViewModel(_projectService, _sessionService, null!, _popupService, _dispatcher);
+        var act = () => new FlyoutViewModel(_projectService, _sessionService, null!, _popupService, _dispatcher, _activeProjectService);
 
         // Assert
         act.Should().Throw<ArgumentNullException>()
@@ -166,7 +169,7 @@ public sealed class FlyoutViewModelTests : IDisposable
     public void Constructor_WhenPopupServiceIsNull_ThrowsArgumentNullException()
     {
         // Act
-        var act = () => new FlyoutViewModel(_projectService, _sessionService, _navigationService, null!, _dispatcher);
+        var act = () => new FlyoutViewModel(_projectService, _sessionService, _navigationService, null!, _dispatcher, _activeProjectService);
 
         // Assert
         act.Should().Throw<ArgumentNullException>()
@@ -177,7 +180,7 @@ public sealed class FlyoutViewModelTests : IDisposable
     public void Constructor_WhenDispatcherIsNull_ThrowsArgumentNullException()
     {
         // Act
-        var act = () => new FlyoutViewModel(_projectService, _sessionService, _navigationService, _popupService, null!);
+        var act = () => new FlyoutViewModel(_projectService, _sessionService, _navigationService, _popupService, null!, _activeProjectService);
 
         // Assert
         act.Should().Throw<ArgumentNullException>()
@@ -311,7 +314,7 @@ public sealed class FlyoutViewModelTests : IDisposable
     public async Task LoadSessionsCommand_WhenProjectServiceThrows_ClearsSessions()
     {
         // Arrange
-        _projectService.GetCurrentProjectAsync(Arg.Any<CancellationToken>())
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>())
             .ThrowsAsync(new HttpRequestException("Network error"));
 
         // Act
@@ -325,7 +328,7 @@ public sealed class FlyoutViewModelTests : IDisposable
     public async Task LoadSessionsCommand_WhenProjectServiceThrows_SetsIsLoadingFalse()
     {
         // Arrange
-        _projectService.GetCurrentProjectAsync(Arg.Any<CancellationToken>())
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>())
             .ThrowsAsync(new HttpRequestException("Network error"));
 
         // Act
@@ -340,7 +343,7 @@ public sealed class FlyoutViewModelTests : IDisposable
     {
         // Arrange
         var project = BuildProject();
-        _projectService.GetCurrentProjectAsync(Arg.Any<CancellationToken>())
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>())
             .Returns(project);
         _sessionService.GetSessionsByProjectAsync(project.Id, Arg.Any<CancellationToken>())
             .ThrowsAsync(new InvalidOperationException("Service failure"));
@@ -358,7 +361,7 @@ public sealed class FlyoutViewModelTests : IDisposable
     public async Task LoadSessionsCommand_WhenNoCurrentProject_SetsHasProjectFalse()
     {
         // Arrange
-        _projectService.GetCurrentProjectAsync(Arg.Any<CancellationToken>())
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>())
             .Returns((ProjectDto?)null);
 
         // Act
@@ -372,7 +375,7 @@ public sealed class FlyoutViewModelTests : IDisposable
     public async Task LoadSessionsCommand_WhenNoCurrentProject_ClearsProjectSectionTitle()
     {
         // Arrange
-        _projectService.GetCurrentProjectAsync(Arg.Any<CancellationToken>())
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>())
             .Returns((ProjectDto?)null);
 
         // Act
@@ -386,7 +389,7 @@ public sealed class FlyoutViewModelTests : IDisposable
     public async Task LoadSessionsCommand_WhenNoCurrentProject_ClearsSessions()
     {
         // Arrange
-        _projectService.GetCurrentProjectAsync(Arg.Any<CancellationToken>())
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>())
             .Returns((ProjectDto?)null);
 
         // Act
@@ -403,7 +406,7 @@ public sealed class FlyoutViewModelTests : IDisposable
     {
         // Arrange
         var isLoadingDuringCall = false;
-        _projectService.GetCurrentProjectAsync(Arg.Any<CancellationToken>())
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>())
             .Returns(callInfo =>
             {
                 isLoadingDuringCall = _sut.IsLoading;
@@ -430,7 +433,7 @@ public sealed class FlyoutViewModelTests : IDisposable
         await _sut.LoadSessionsCommand.ExecuteAsync(null);
 
         // Assert
-        await _projectService.DidNotReceive().GetCurrentProjectAsync(Arg.Any<CancellationToken>());
+        await _activeProjectService.DidNotReceive().GetActiveProjectAsync(Arg.Any<CancellationToken>());
     }
 
     // ─── NewChatCommand — happy path [REQ-036] ────────────────────────────────
@@ -717,14 +720,14 @@ public sealed class FlyoutViewModelTests : IDisposable
         // Arrange
         SetupLoadSessionsSuccess();
         await _sut.LoadSessionsCommand.ExecuteAsync(null);
-        _projectService.ClearReceivedCalls();
+        _activeProjectService.ClearReceivedCalls();
 
         // Act
         WeakReferenceMessenger.Default.Send(new SessionDeletedMessage("sess-1", "proj-1"));
         await Task.Delay(50); // allow fire-and-forget handler to complete
 
         // Assert
-        await _projectService.Received().GetCurrentProjectAsync(Arg.Any<CancellationToken>());
+        await _activeProjectService.Received().GetActiveProjectAsync(Arg.Any<CancellationToken>());
     }
 
     // ─── IDisposable — Dispose unregisters messenger ──────────────────────────
@@ -735,7 +738,7 @@ public sealed class FlyoutViewModelTests : IDisposable
         // Arrange
         SetupLoadSessionsSuccess();
         await _sut.LoadSessionsCommand.ExecuteAsync(null);
-        _projectService.ClearReceivedCalls();
+        _activeProjectService.ClearReceivedCalls();
 
         // Act — mark disposed so the test class Dispose() does not call it again
         _sutDisposed = true;
@@ -744,6 +747,6 @@ public sealed class FlyoutViewModelTests : IDisposable
         await Task.Delay(50);
 
         // Assert — LoadSessions should NOT have been triggered after Dispose
-        await _projectService.DidNotReceive().GetCurrentProjectAsync(Arg.Any<CancellationToken>());
+        await _activeProjectService.DidNotReceive().GetActiveProjectAsync(Arg.Any<CancellationToken>());
     }
 }

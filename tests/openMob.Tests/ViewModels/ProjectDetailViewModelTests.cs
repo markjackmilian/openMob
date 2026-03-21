@@ -14,6 +14,7 @@ public sealed class ProjectDetailViewModelTests
     private readonly INavigationService _navigationService;
     private readonly IAppPopupService _popupService;
     private readonly IProjectPreferenceService _preferenceService;
+    private readonly IActiveProjectService _activeProjectService;
     private readonly ProjectDetailViewModel _sut;
 
     public ProjectDetailViewModelTests()
@@ -23,9 +24,10 @@ public sealed class ProjectDetailViewModelTests
         _navigationService = Substitute.For<INavigationService>();
         _popupService = Substitute.For<IAppPopupService>();
         _preferenceService = Substitute.For<IProjectPreferenceService>();
+        _activeProjectService = Substitute.For<IActiveProjectService>();
 
         _sut = new ProjectDetailViewModel(
-            _projectService, _sessionService, _navigationService, _popupService, _preferenceService);
+            _projectService, _sessionService, _navigationService, _popupService, _preferenceService, _activeProjectService);
     }
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -69,7 +71,7 @@ public sealed class ProjectDetailViewModelTests
         // Arrange
         var project = BuildProject("p1", "/home/user/myproject", "git");
         _projectService.GetProjectByIdAsync("p1", Arg.Any<CancellationToken>()).Returns(project);
-        _projectService.GetCurrentProjectAsync(Arg.Any<CancellationToken>()).Returns(project);
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>()).Returns(project);
         _sessionService.GetSessionsByProjectAsync("p1", Arg.Any<CancellationToken>())
             .Returns(new List<openMob.Core.Infrastructure.Http.Dtos.Opencode.SessionDto>());
 
@@ -89,7 +91,7 @@ public sealed class ProjectDetailViewModelTests
         // Arrange
         var project = BuildProject("p1");
         _projectService.GetProjectByIdAsync("p1", Arg.Any<CancellationToken>()).Returns(project);
-        _projectService.GetCurrentProjectAsync(Arg.Any<CancellationToken>()).Returns(project);
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>()).Returns(project);
         _sessionService.GetSessionsByProjectAsync("p1", Arg.Any<CancellationToken>())
             .Returns(new List<openMob.Core.Infrastructure.Http.Dtos.Opencode.SessionDto>());
 
@@ -107,7 +109,7 @@ public sealed class ProjectDetailViewModelTests
         var project = BuildProject("p1");
         var otherProject = BuildProject("p2");
         _projectService.GetProjectByIdAsync("p1", Arg.Any<CancellationToken>()).Returns(project);
-        _projectService.GetCurrentProjectAsync(Arg.Any<CancellationToken>()).Returns(otherProject);
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>()).Returns(otherProject);
         _sessionService.GetSessionsByProjectAsync("p1", Arg.Any<CancellationToken>())
             .Returns(new List<openMob.Core.Infrastructure.Http.Dtos.Opencode.SessionDto>());
 
@@ -124,7 +126,7 @@ public sealed class ProjectDetailViewModelTests
         // Arrange
         var project = BuildProject("p1");
         _projectService.GetProjectByIdAsync("p1", Arg.Any<CancellationToken>()).Returns(project);
-        _projectService.GetCurrentProjectAsync(Arg.Any<CancellationToken>()).Returns((ProjectDto?)null);
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>()).Returns((ProjectDto?)null);
 
         var sessions = Enumerable.Range(1, 7)
             .Select(i => BuildSession($"s{i}", "p1", $"Session {i}", updated: 1710000000000 + i * 1000))
@@ -163,7 +165,7 @@ public sealed class ProjectDetailViewModelTests
         // Arrange
         var project = BuildProject("p1");
         _projectService.GetProjectByIdAsync("p1", Arg.Any<CancellationToken>()).Returns(project);
-        _projectService.GetCurrentProjectAsync(Arg.Any<CancellationToken>()).Returns((ProjectDto?)null);
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>()).Returns((ProjectDto?)null);
         _sessionService.GetSessionsByProjectAsync("p1", Arg.Any<CancellationToken>())
             .Returns(new List<openMob.Core.Infrastructure.Http.Dtos.Opencode.SessionDto>());
 
@@ -179,6 +181,11 @@ public sealed class ProjectDetailViewModelTests
     [Fact]
     public async Task SetActiveCommand_SetsIsActiveProjectTrue()
     {
+        // Arrange
+        _sut.ProjectId = "proj-1";
+        _activeProjectService.SetActiveProjectAsync("proj-1", Arg.Any<CancellationToken>())
+            .Returns(true);
+
         // Act
         await _sut.SetActiveCommand.ExecuteAsync(null);
 
@@ -190,7 +197,10 @@ public sealed class ProjectDetailViewModelTests
     public async Task SetActiveCommand_ShowsToast()
     {
         // Arrange
+        _sut.ProjectId = "proj-1";
         _sut.ProjectName = "MyProject";
+        _activeProjectService.SetActiveProjectAsync("proj-1", Arg.Any<CancellationToken>())
+            .Returns(true);
 
         // Act
         await _sut.SetActiveCommand.ExecuteAsync(null);
@@ -279,7 +289,7 @@ public sealed class ProjectDetailViewModelTests
         // Arrange
         var project = BuildProject("p1", "/path", vcs: null);
         _projectService.GetProjectByIdAsync("p1", Arg.Any<CancellationToken>()).Returns(project);
-        _projectService.GetCurrentProjectAsync(Arg.Any<CancellationToken>()).Returns((ProjectDto?)null);
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>()).Returns((ProjectDto?)null);
         _sessionService.GetSessionsByProjectAsync("p1", Arg.Any<CancellationToken>())
             .Returns(new List<openMob.Core.Infrastructure.Http.Dtos.Opencode.SessionDto>());
 
@@ -298,7 +308,7 @@ public sealed class ProjectDetailViewModelTests
         // Arrange
         var project = BuildProject("p1");
         _projectService.GetProjectByIdAsync("p1", Arg.Any<CancellationToken>()).Returns(project);
-        _projectService.GetCurrentProjectAsync(Arg.Any<CancellationToken>()).Returns((ProjectDto?)null);
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>()).Returns((ProjectDto?)null);
         _sessionService.GetSessionsByProjectAsync("p1", Arg.Any<CancellationToken>())
             .Returns(new List<openMob.Core.Infrastructure.Http.Dtos.Opencode.SessionDto>());
         _preferenceService.GetAsync("p1", Arg.Any<CancellationToken>())
@@ -317,7 +327,7 @@ public sealed class ProjectDetailViewModelTests
         // Arrange
         var project = BuildProject("p1");
         _projectService.GetProjectByIdAsync("p1", Arg.Any<CancellationToken>()).Returns(project);
-        _projectService.GetCurrentProjectAsync(Arg.Any<CancellationToken>()).Returns((ProjectDto?)null);
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>()).Returns((ProjectDto?)null);
         _sessionService.GetSessionsByProjectAsync("p1", Arg.Any<CancellationToken>())
             .Returns(new List<openMob.Core.Infrastructure.Http.Dtos.Opencode.SessionDto>());
         _preferenceService.GetAsync("p1", Arg.Any<CancellationToken>())
@@ -341,7 +351,7 @@ public sealed class ProjectDetailViewModelTests
         // Arrange
         var project = BuildProject("p1");
         _projectService.GetProjectByIdAsync("p1", Arg.Any<CancellationToken>()).Returns(project);
-        _projectService.GetCurrentProjectAsync(Arg.Any<CancellationToken>()).Returns((ProjectDto?)null);
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>()).Returns((ProjectDto?)null);
         _sessionService.GetSessionsByProjectAsync("p1", Arg.Any<CancellationToken>())
             .Returns(new List<openMob.Core.Infrastructure.Http.Dtos.Opencode.SessionDto>());
         _preferenceService.GetAsync("p1", Arg.Any<CancellationToken>())

@@ -42,6 +42,7 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     private readonly IChatService _chatService;
     private readonly IOpencodeApiClient _apiClient;
     private readonly IDispatcherService _dispatcher;
+    private readonly IActiveProjectService _activeProjectService;
 
     /// <summary>Cancellation token source for the active SSE subscription.</summary>
     private CancellationTokenSource? _sseCts;
@@ -57,6 +58,7 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     /// <param name="chatService">Service for chat operations (messages, prompts, SSE).</param>
     /// <param name="apiClient">Low-level opencode API client (used for session abort).</param>
     /// <param name="dispatcher">UI thread dispatcher for thread-safe collection updates.</param>
+    /// <param name="activeProjectService">Service for managing the client-side active project state.</param>
     public ChatViewModel(
         IProjectService projectService,
         ISessionService sessionService,
@@ -67,7 +69,8 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
         IProjectPreferenceService preferenceService,
         IChatService chatService,
         IOpencodeApiClient apiClient,
-        IDispatcherService dispatcher)
+        IDispatcherService dispatcher,
+        IActiveProjectService activeProjectService)
     {
         ArgumentNullException.ThrowIfNull(projectService);
         ArgumentNullException.ThrowIfNull(sessionService);
@@ -79,6 +82,7 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
         ArgumentNullException.ThrowIfNull(chatService);
         ArgumentNullException.ThrowIfNull(apiClient);
         ArgumentNullException.ThrowIfNull(dispatcher);
+        ArgumentNullException.ThrowIfNull(activeProjectService);
 
         _projectService = projectService;
         _sessionService = sessionService;
@@ -90,6 +94,7 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
         _chatService = chatService;
         _apiClient = apiClient;
         _dispatcher = dispatcher;
+        _activeProjectService = activeProjectService;
 
         // Subscribe to project preference changes published by ContextSheetViewModel [REQ-009]
         WeakReferenceMessenger.Default.Register<ProjectPreferenceChangedMessage>(
@@ -318,8 +323,8 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
             _connectionManager.StatusChanged -= OnConnectionStatusChanged;
             _connectionManager.StatusChanged += OnConnectionStatusChanged;
 
-            // Load current project
-            var currentProject = await _projectService.GetCurrentProjectAsync(ct).ConfigureAwait(false);
+            // Load current project from client-side active project state
+            var currentProject = await _activeProjectService.GetActiveProjectAsync(ct).ConfigureAwait(false);
             if (currentProject is not null)
             {
                 CurrentProjectId = currentProject.Id;

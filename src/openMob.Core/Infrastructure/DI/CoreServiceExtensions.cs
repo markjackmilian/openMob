@@ -136,7 +136,10 @@ public static class CoreServiceExtensions
         services.AddTransient<ChatViewModel>();
         services.AddTransient<ContextSheetViewModel>();
         services.AddTransient<CommandPaletteViewModel>();
-        services.AddTransient<FlyoutViewModel>();
+        // FlyoutViewModel is Singleton — both FlyoutHeaderView and FlyoutContentView resolve
+        // it via Application.Current?.Handler?.MauiContext?.Services.GetService<FlyoutViewModel>()
+        // and must share the same instance for consistent binding and messenger subscriptions.
+        services.AddSingleton<FlyoutViewModel>();
         services.AddTransient<SettingsViewModel>();
         services.AddTransient<ServerManagementViewModel>();
         services.AddTransient<ServerDetailViewModel>();

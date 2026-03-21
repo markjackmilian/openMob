@@ -4,7 +4,7 @@
 | Field   | Value                                              |
 |---------|----------------------------------------------------|
 | Date    | 2026-03-21                                         |
-| Status  | Draft                                              |
+| Status  | In Progress                                        |
 | Version | 1.0                                                |
 
 ---
@@ -102,9 +102,9 @@ The lateral drawer (hamburger menu) currently shows the app name and a flat list
 |---|----------|--------|-------------------|
 | 1 | After delete, where does the user go? | Resolved | Navigate to the New Session page for the active project |
 | 2 | Should the drawer auto-refresh when a session is deleted? | Resolved | Yes, via `SessionDeletedMessage` on `WeakReferenceMessenger` |
-| 3 | What is the exact ViewModel managing the drawer content? | Open | Agent must verify: `AppShellViewModel`, `FlyoutViewModel`, or similar |
-| 4 | Does `ISessionService.DeleteSessionAsync` already exist? | Open | Agent must verify; add if missing |
-| 5 | Is there an existing confirmation dialog helper in `IAppPopupService`? | Open | Agent must verify; add `ShowConfirmationDialogAsync` if missing |
+| 3 | What is the exact ViewModel managing the drawer content? | Resolved | `FlyoutViewModel` (confirmed in codebase) |
+| 4 | Does `ISessionService.DeleteSessionAsync` already exist? | Resolved | Yes — `Task<bool> DeleteSessionAsync(string id, CancellationToken ct = default)` already exists |
+| 5 | Is there an existing confirmation dialog helper in `IAppPopupService`? | Resolved | Yes — `ShowConfirmDeleteAsync(string title, string message, CancellationToken ct)` already exists |
 
 ---
 
@@ -139,3 +139,106 @@ The lateral drawer (hamburger menu) currently shows the app name and a flat list
 - **`ISessionService.DeleteSessionAsync`**: Verify existence. If missing, add `Task<bool> DeleteSessionAsync(string sessionId, CancellationToken ct = default)` to the interface and implement it.
 - **Highlighted session in drawer**: The drawer ViewModel needs to know the `CurrentSessionId`. Verify how `ChatViewModel` exposes or publishes this. A `CurrentSessionChangedMessage` may be needed, or the drawer can read it from a shared state service.
 - **Related files to inspect**: `AppShell.xaml`, `AppShell.xaml.cs`, any `FlyoutViewModel` or `AppShellViewModel`, `ContextSheet.xaml`, `ContextSheetViewModel.cs`, `ISessionService.cs`, `IAppPopupService.cs`, `MauiPopupService.cs`.
+
+---
+
+## Technical Analysis
+
+> Added by: om-orchestrator | Date: 2026-03-21
+
+### Change Classification
+
+| Field | Value |
+|-------|-------|
+| Change type | Feature |
+| Git Flow branch | feature/drawer-sessions-delete-refactor |
+| Branches from | develop |
+| Estimated complexity | Medium |
+| Estimated agents involved | om-mobile-core, om-mobile-ui, om-tester, om-reviewer |
+
+### Codebase Findings
+
+**Drawer ViewModel:** `FlyoutViewModel` (`src/openMob.Core/ViewModels/FlyoutViewModel.cs`) — confirmed. It already holds `Sessions`, `ProjectSectionTitle`, `HasProject`, `IsLoading`. It already calls `_sessionService.GetSessionsByProjectAsync(currentProject.Id, ct)` — sessions ARE already filtered by the active project. The `ProjectSectionTitle` is set to the uppercase project name extracted from the worktree path.
+
+**Drawer XAML:** Two custom controls:
+- `FlyoutHeaderView.xaml` — currently shows hardcoded `"openMob"` text. Must be replaced with the active project name.
+- `FlyoutContentView.xaml` — already shows filtered sessions. Contains `SwipeView` with a `DeleteSessionSwipeItem` that must be removed. Also shows a `UpdatedAt` timestamp column that must be removed (REQ-003: name only).
+
+**`ISessionService.DeleteSessionAsync`:** Already exists — `Task<bool> DeleteSessionAsync(string id, CancellationToken ct = default)`. No interface change needed.
+
+**`IAppPopupService.ShowConfirmDeleteAsync`:** Already exists — `Task<bool> ShowConfirmDeleteAsync(string title, string message, CancellationToken ct = default)`. No interface change needed.
+
+**`ContextSheetViewModel`:** Already has `_currentProjectId` and receives `sessionId` via `InitializeAsync(string projectId, string sessionId, ...)`. The `sessionId` parameter is currently unused (reserved for future use). It must now be stored as `_currentSessionId` and used by `DeleteSessionCommand`.
+
+**`IsBusy` on `ContextSheetViewModel`:** Already exists and is used by `InvokeSubagentCommand.CanExecute`. `DeleteSessionCommand` must also be gated on `!IsBusy`.
+
+**`SessionDeletedMessage`:** Does not exist. Must be created in `src/openMob.Core/Messages/` following the `ProjectPreferenceChangedMessage` pattern.
+
+**`CurrentSessionChangedMessage`:** Does not exist. Must be created so `FlyoutViewModel` can know the active session ID to highlight it. `ChatViewModel.SetSession(string sessionId)` is called from `ChatPage.ApplyQueryAttributes` — this is the right place to publish the message.
+
+**`FlyoutViewModel` — `IDisposable`:** Currently does NOT implement `IDisposable`. Since it will subscribe to `WeakReferenceMessenger`, it must implement `IDisposable` with `UnregisterAll(this)` as the first line of `Dispose()`. However, since `FlyoutViewModel` is resolved as a Singleton (via `Application.Current?.Handler?.MauiContext?.Services.GetService<FlyoutViewModel>()`), it lives for the app lifetime — `Dispose` will be called by the DI container on app shutdown.
+
+**Navigation after delete:** The route for a new chat is `//chat` with no `sessionId` parameter — `ChatPage.OnAppearing` already handles this case by calling `vm.NewChatCommand.ExecuteAsync(null)` when `vm.CurrentSessionId is null`. So post-delete navigation is: dismiss the Context Sheet (via `_popupService.PopPopupAsync()`), then navigate to `//chat` without a `sessionId`.
+
+**`SelectSessionCommand` — close drawer:** Currently navigates to `//chat` but does NOT close the drawer. The drawer closes automatically on Shell navigation in MAUI when `FlyoutBehavior="Flyout"`. This is correct behavior — no change needed.
+
+**`FlyoutViewModel` registration:** Resolved from DI as a Singleton via `Application.Current?.Handler?.MauiContext?.Services.GetService<FlyoutViewModel>()` in both `FlyoutHeaderView.xaml.cs` and `FlyoutContentView.xaml.cs`. It must be registered as `Singleton` in `MauiProgram.cs` (currently it is registered via `AddOpenMobCore()` — must verify).
+
+### Layers Involved
+
+| Layer | Agent | Scope |
+|-------|-------|-------|
+| Messages | om-mobile-core | `src/openMob.Core/Messages/` |
+| ViewModels | om-mobile-core | `src/openMob.Core/ViewModels/FlyoutViewModel.cs`, `ContextSheetViewModel.cs`, `ChatViewModel.cs` |
+| XAML Views | om-mobile-ui | `src/openMob/Views/Controls/FlyoutHeaderView.xaml`, `FlyoutContentView.xaml`, `src/openMob/Views/Popups/ContextSheet.xaml` |
+| Unit Tests | om-tester | `tests/openMob.Tests/ViewModels/FlyoutViewModelTests.cs`, `ContextSheetViewModelTests.cs` |
+| Code Review | om-reviewer | all of the above |
+
+### Files to Create
+
+- `src/openMob.Core/Messages/SessionDeletedMessage.cs` — new sealed record published after session deletion
+- `src/openMob.Core/Messages/CurrentSessionChangedMessage.cs` — new sealed record published by `ChatViewModel.SetSession` so `FlyoutViewModel` can highlight the active session
+
+### Files to Modify
+
+- `src/openMob.Core/ViewModels/FlyoutViewModel.cs` — add `CurrentSessionId` property, `IDisposable`, subscribe to `SessionDeletedMessage` and `CurrentSessionChangedMessage`, update `IsSelected` on session items, add `SelectSessionCommand` guard (skip nav if already active session)
+- `src/openMob.Core/ViewModels/ContextSheetViewModel.cs` — store `_currentSessionId` from `InitializeAsync`, add `DeleteSessionCommand` with `IsBusy` guard, confirmation dialog, delete, dismiss sheet, navigate to new chat
+- `src/openMob.Core/ViewModels/ChatViewModel.cs` — publish `CurrentSessionChangedMessage` from `SetSession()`
+- `src/openMob/Views/Controls/FlyoutHeaderView.xaml` — replace hardcoded `"openMob"` with `{Binding ProjectSectionTitle}` (or a new `ActiveProjectName` property)
+- `src/openMob/Views/Controls/FlyoutContentView.xaml` — remove `SwipeView` and `DeleteSessionSwipeItem`, remove timestamp column, keep session name only
+- `src/openMob/Views/Popups/ContextSheet.xaml` — add "Delete Session" destructive row at the bottom
+
+### Technical Dependencies
+
+- `WeakReferenceMessenger` is already used in the project — no new NuGet packages required
+- `ISessionService.DeleteSessionAsync` already exists — no interface change needed
+- `IAppPopupService.ShowConfirmDeleteAsync` already exists — no interface change needed
+- `IAppPopupService.PopPopupAsync` already exists — used for dismissing the Context Sheet before navigating
+
+### Technical Risks
+
+- **`FlyoutViewModel` singleton lifecycle:** If `FlyoutViewModel` is not currently registered as Singleton in `AddOpenMobCore()`, the two views (`FlyoutHeaderView`, `FlyoutContentView`) will resolve different instances and the binding will be inconsistent. Must verify registration and ensure Singleton.
+- **`WeakReferenceMessenger` in Singleton:** Since `FlyoutViewModel` is a Singleton, its messenger subscriptions persist for the app lifetime. This is correct — no risk of stale handlers.
+- **Post-delete navigation timing:** `PopPopupAsync` must complete before `GoToAsync("//chat")` to avoid modal stacking. Use `await` in sequence.
+- **`SelectSessionCommand` — already-active guard:** The spec requires that tapping the active session closes the drawer without re-navigating. MAUI Shell closes the flyout on navigation automatically, but if we skip navigation, the flyout must be closed explicitly via `Shell.Current.FlyoutIsPresented = false`. This must be done via `INavigationService` or a dedicated `IFlyoutService` — not directly from the ViewModel. Since `INavigationService` is already injected, add a `CloseFlyoutAsync()` method or handle it in the XAML layer.
+
+### Execution Order
+
+> Steps that can run in parallel are marked with ⟳. Steps that must be sequential are numbered.
+
+1. [Git Flow] Create branch `feature/drawer-sessions-delete-refactor`
+2. [om-mobile-core] Create `SessionDeletedMessage`, `CurrentSessionChangedMessage`; modify `FlyoutViewModel` (IDisposable, messenger subscriptions, `CurrentSessionId`, `SelectSessionCommand` guard); modify `ContextSheetViewModel` (store `_currentSessionId`, add `DeleteSessionCommand`); modify `ChatViewModel` (publish `CurrentSessionChangedMessage` from `SetSession`)
+3. ⟳ [om-mobile-ui] Modify `FlyoutHeaderView.xaml` (project name), `FlyoutContentView.xaml` (remove swipe/timestamp), `ContextSheet.xaml` (add Delete Session row) — can start once the ViewModel binding surface is defined
+4. [om-tester] Update `FlyoutViewModelTests.cs` and `ContextSheetViewModelTests.cs` with new test cases for the new behaviors
+5. [om-reviewer] Full review against spec
+6. [Fix loop if needed] Address Critical and Major findings
+7. [Git Flow] Finish branch and merge
+
+### Definition of Done
+
+- [ ] All `[REQ-001]` through `[REQ-012]` requirements implemented
+- [ ] All `[AC-001]` through `[AC-010]` acceptance criteria satisfied
+- [ ] Unit tests written/updated for `FlyoutViewModel` and `ContextSheetViewModel`
+- [ ] `om-reviewer` verdict: ✅ Approved or ⚠️ Approved with remarks
+- [ ] Git Flow branch finished and deleted
+- [ ] Spec moved to `specs/done/` with Completed status

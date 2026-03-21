@@ -11,14 +11,16 @@
       Padding="{StaticResource SpacingLg}"
       BackgroundColor="{AppThemeBinding Light={StaticResource ColorBackgroundLight}, Dark={StaticResource ColorBackgroundDark}}">
 
-    <!-- App name -->
+    <!-- Active project name — bound to FlyoutViewModel.ProjectSectionTitle -->
     <Label
         Grid.Column="0"
-        Text="openMob"
+        Text="{Binding ProjectSectionTitle, FallbackValue='No project selected', TargetNullValue='No project selected'}"
         FontFamily="InterBold"
         FontSize="{StaticResource FontSizeTitle2}"
         TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}"
-        VerticalOptions="Center" />
+        VerticalOptions="Center"
+        LineBreakMode="TailTruncation"
+        MaxLines="1" />
 
     <!-- New chat button — bound to FlyoutViewModel.NewChatCommand -->
     <ImageButton

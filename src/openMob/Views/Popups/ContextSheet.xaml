@@ -339,6 +339,40 @@
                VerticalOptions="Center" />
       </Grid>
 
+      <!-- Divider -->
+      <BoxView HeightRequest="0.5"
+               Color="{AppThemeBinding Light={StaticResource ColorSeparatorLight},
+                                        Dark={StaticResource ColorSeparatorDark}}"
+               Margin="16,0" />
+
+      <!-- ═══════════════════════════════════════════════════════════════
+           Delete Session row
+           ═══════════════════════════════════════════════════════════════ -->
+      <Grid Style="{StaticResource SheetRowGrid}"
+            ColumnDefinitions="Auto,*"
+            ColumnSpacing="{StaticResource SpacingMd}">
+        <Grid.GestureRecognizers>
+          <TapGestureRecognizer Command="{Binding DeleteSessionCommand}" />
+        </Grid.GestureRecognizers>
+
+        <Label Grid.Column="0"
+               Text="{x:Static helpers:MaterialIcons.Delete}"
+               FontFamily="MaterialSymbols"
+               FontSize="24"
+               TextColor="{AppThemeBinding Light={StaticResource ColorErrorLight},
+                                            Dark={StaticResource ColorErrorDark}}"
+               VerticalOptions="Center"
+               SemanticProperties.Description="Delete session icon" />
+
+        <Label Grid.Column="1"
+               Text="Delete Session"
+               FontFamily="InterRegular"
+               FontSize="{StaticResource FontSizeBody}"
+               TextColor="{AppThemeBinding Light={StaticResource ColorErrorLight},
+                                            Dark={StaticResource ColorErrorDark}}"
+               VerticalOptions="Center" />
+      </Grid>
+
     </VerticalStackLayout>
   </ScrollView>
 

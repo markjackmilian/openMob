@@ -65,64 +65,32 @@
       <CollectionView.ItemTemplate>
         <DataTemplate x:DataType="models:SessionItem">
           <VerticalStackLayout Spacing="0">
-            <SwipeView>
-              <SwipeView.RightItems>
-                <SwipeItems>
-                  <SwipeItem
-                      Text="Delete"
-                      BackgroundColor="{AppThemeBinding Light={StaticResource ColorErrorLight}, Dark={StaticResource ColorErrorDark}}"
-                      Command="{Binding Source={RelativeSource AncestorType={x:Type viewmodels:FlyoutViewModel}}, Path=DeleteSessionCommand}"
-                      CommandParameter="{Binding Id}"
-                      AutomationId="DeleteSessionSwipeItem">
-                    <SwipeItem.IconImageSource>
-                      <FontImageSource
-                          FontFamily="MaterialSymbols"
-                          Glyph="{x:Static helpers:MaterialIcons.Delete}"
-                          Size="22"
-                          Color="{AppThemeBinding Light={StaticResource ColorOnErrorLight}, Dark={StaticResource ColorOnErrorDark}}" />
-                    </SwipeItem.IconImageSource>
-                  </SwipeItem>
-                </SwipeItems>
-              </SwipeView.RightItems>
+            <Grid
+                ColumnDefinitions="*"
+                Padding="16,12"
+                BackgroundColor="Transparent">
+              <Grid.Triggers>
+                <DataTrigger TargetType="Grid" Binding="{Binding IsSelected}" Value="True">
+                  <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource ColorPrimaryContainerLight}, Dark={StaticResource ColorPrimaryContainerDark}}" />
+                </DataTrigger>
+              </Grid.Triggers>
+              <Grid.GestureRecognizers>
+                <TapGestureRecognizer
+                    Command="{Binding Source={RelativeSource AncestorType={x:Type viewmodels:FlyoutViewModel}}, Path=SelectSessionCommand}"
+                    CommandParameter="{Binding Id}" />
+              </Grid.GestureRecognizers>
 
-              <Grid
-                  ColumnDefinitions="*,Auto"
-                  Padding="16,12"
-                  BackgroundColor="Transparent">
-                <Grid.Triggers>
-                  <DataTrigger TargetType="Grid" Binding="{Binding IsSelected}" Value="True">
-                    <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource ColorPrimaryContainerLight}, Dark={StaticResource ColorPrimaryContainerDark}}" />
-                  </DataTrigger>
-                </Grid.Triggers>
-                <Grid.GestureRecognizers>
-                  <TapGestureRecognizer
-                      Command="{Binding Source={RelativeSource AncestorType={x:Type viewmodels:FlyoutViewModel}}, Path=SelectSessionCommand}"
-                      CommandParameter="{Binding Id}" />
-                </Grid.GestureRecognizers>
-
-                <!-- Session title -->
-                <Label
-                    Grid.Column="0"
-                    Text="{Binding Title, FallbackValue='Untitled', TargetNullValue='Untitled'}"
-                    FontFamily="InterRegular"
-                    FontSize="{StaticResource FontSizeBody}"
-                    TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}"
-                    LineBreakMode="TailTruncation"
-                    MaxLines="1"
-                    VerticalOptions="Center" />
-
-                <!-- Relative timestamp -->
-                <Label
-                    Grid.Column="1"
-                    Text="{Binding UpdatedAt, Converter={StaticResource DateTimeToRelativeStringConverter}}"
-                    FontFamily="InterRegular"
-                    FontSize="{StaticResource FontSizeCaption1}"
-                    TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
-                    VerticalOptions="Center"
-                    Margin="8,0,0,0" />
-
-              </Grid>
-            </SwipeView>
+              <!-- Session title only -->
+              <Label
+                  Grid.Column="0"
+                  Text="{Binding Title, FallbackValue='Untitled', TargetNullValue='Untitled'}"
+                  FontFamily="InterRegular"
+                  FontSize="{StaticResource FontSizeBody}"
+                  TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}"
+                  LineBreakMode="TailTruncation"
+                  MaxLines="1"
+                  VerticalOptions="Center" />
+            </Grid>
 
             <!-- Separator between items -->
             <BoxView
@@ -132,11 +100,6 @@
           </VerticalStackLayout>
         </DataTemplate>
       </CollectionView.ItemTemplate>
-
-      <!-- MAUI workaround: empty footer prevents CollectionView from clipping the last item's SwipeView on iOS -->
-      <CollectionView.Footer>
-        <BoxView HeightRequest="0" />
-      </CollectionView.Footer>
 
     </CollectionView>
 

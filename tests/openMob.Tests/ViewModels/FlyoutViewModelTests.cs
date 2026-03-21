@@ -1,5 +1,7 @@
+using CommunityToolkit.Mvvm.Messaging;
 using NSubstitute.ExceptionExtensions;
 using openMob.Core.Infrastructure.Http.Dtos.Opencode;
+using openMob.Core.Messages;
 using openMob.Core.Models;
 using openMob.Core.Services;
 using openMob.Core.ViewModels;
@@ -8,16 +10,24 @@ namespace openMob.Tests.ViewModels;
 
 /// <summary>
 /// Unit tests for <see cref="FlyoutViewModel"/>.
-/// Covers session loading, deletion with confirmation, new chat creation,
-/// session selection navigation, error handling, and constructor guard clauses.
+/// Covers session loading, new chat creation, session selection navigation,
+/// messenger-driven state updates, IDisposable cleanup, and constructor guard clauses.
 /// </summary>
-public sealed class FlyoutViewModelTests
+/// <remarks>
+/// Placed in <see cref="MessengerTestCollection"/> to prevent parallel execution with
+/// <see cref="ContextSheetViewModelTests"/>, which publishes <see cref="SessionDeletedMessage"/>
+/// that <see cref="FlyoutViewModel"/> subscribes to via <see cref="WeakReferenceMessenger.Default"/>.
+/// </remarks>
+[Collection(MessengerTestCollection.Name)]
+public sealed class FlyoutViewModelTests : IDisposable
 {
     private readonly IProjectService _projectService;
     private readonly ISessionService _sessionService;
     private readonly INavigationService _navigationService;
     private readonly IAppPopupService _popupService;
+    private readonly IDispatcherService _dispatcher;
     private readonly FlyoutViewModel _sut;
+    private bool _sutDisposed;
 
     public FlyoutViewModelTests()
     {
@@ -25,12 +35,30 @@ public sealed class FlyoutViewModelTests
         _sessionService = Substitute.For<ISessionService>();
         _navigationService = Substitute.For<INavigationService>();
         _popupService = Substitute.For<IAppPopupService>();
+        _dispatcher = Substitute.For<IDispatcherService>();
+
+        // CRITICAL: dispatcher must execute the action synchronously so that
+        // Sessions assignments and CurrentSessionChangedMessage loop updates
+        // are visible immediately after the awaited command or Send() call.
+        _dispatcher.When(d => d.Dispatch(Arg.Any<Action>())).Do(ci => ci.Arg<Action>()());
 
         _sut = new FlyoutViewModel(
             _projectService,
             _sessionService,
             _navigationService,
-            _popupService);
+            _popupService,
+            _dispatcher);
+    }
+
+    public void Dispose()
+    {
+        // Dispose the SUT to unregister its WeakReferenceMessenger subscriptions,
+        // preventing cross-test pollution. Guard against double-dispose for tests
+        // that call _sut.Dispose() explicitly (e.g. Dispose_AfterDispose_*).
+        if (!_sutDisposed)
+            _sut.Dispose();
+        // Also unregister any subscriptions registered by the test class itself.
+        WeakReferenceMessenger.Default.UnregisterAll(this);
     }
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -105,7 +133,7 @@ public sealed class FlyoutViewModelTests
     public void Constructor_WhenProjectServiceIsNull_ThrowsArgumentNullException()
     {
         // Act
-        var act = () => new FlyoutViewModel(null!, _sessionService, _navigationService, _popupService);
+        var act = () => new FlyoutViewModel(null!, _sessionService, _navigationService, _popupService, _dispatcher);
 
         // Assert
         act.Should().Throw<ArgumentNullException>()
@@ -116,7 +144,7 @@ public sealed class FlyoutViewModelTests
     public void Constructor_WhenSessionServiceIsNull_ThrowsArgumentNullException()
     {
         // Act
-        var act = () => new FlyoutViewModel(_projectService, null!, _navigationService, _popupService);
+        var act = () => new FlyoutViewModel(_projectService, null!, _navigationService, _popupService, _dispatcher);
 
         // Assert
         act.Should().Throw<ArgumentNullException>()
@@ -127,7 +155,7 @@ public sealed class FlyoutViewModelTests
     public void Constructor_WhenNavigationServiceIsNull_ThrowsArgumentNullException()
     {
         // Act
-        var act = () => new FlyoutViewModel(_projectService, _sessionService, null!, _popupService);
+        var act = () => new FlyoutViewModel(_projectService, _sessionService, null!, _popupService, _dispatcher);
 
         // Assert
         act.Should().Throw<ArgumentNullException>()
@@ -138,11 +166,22 @@ public sealed class FlyoutViewModelTests
     public void Constructor_WhenPopupServiceIsNull_ThrowsArgumentNullException()
     {
         // Act
-        var act = () => new FlyoutViewModel(_projectService, _sessionService, _navigationService, null!);
+        var act = () => new FlyoutViewModel(_projectService, _sessionService, _navigationService, null!, _dispatcher);
 
         // Assert
         act.Should().Throw<ArgumentNullException>()
             .And.ParamName.Should().Be("popupService");
+    }
+
+    [Fact]
+    public void Constructor_WhenDispatcherIsNull_ThrowsArgumentNullException()
+    {
+        // Act
+        var act = () => new FlyoutViewModel(_projectService, _sessionService, _navigationService, _popupService, null!);
+
+        // Assert
+        act.Should().Throw<ArgumentNullException>()
+            .And.ParamName.Should().Be("dispatcher");
     }
 
     // ─── LoadSessionsCommand — happy path [REQ-033] ───────────────────────────
@@ -220,6 +259,50 @@ public sealed class FlyoutViewModelTests
         item.ProjectId.Should().Be("proj-1");
         item.UpdatedAt.Should().Be(DateTimeOffset.FromUnixTimeMilliseconds(1710000005000));
         item.IsSelected.Should().BeFalse();
+    }
+
+    // ─── LoadSessionsCommand — IsSelected based on CurrentSessionId ───────────
+
+    [Fact]
+    public async Task LoadSessionsCommand_WhenCurrentSessionIdIsSet_SetsIsSelectedOnMatchingSession()
+    {
+        // Arrange
+        _sut.CurrentSessionId = "sess-2";
+        SetupLoadSessionsSuccess(sessions: BuildSessionList(3));
+
+        // Act
+        await _sut.LoadSessionsCommand.ExecuteAsync(null);
+
+        // Assert
+        _sut.Sessions.Single(s => s.Id == "sess-2").IsSelected.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task LoadSessionsCommand_WhenCurrentSessionIdIsSet_DoesNotSetIsSelectedOnOtherSessions()
+    {
+        // Arrange
+        _sut.CurrentSessionId = "sess-2";
+        SetupLoadSessionsSuccess(sessions: BuildSessionList(3));
+
+        // Act
+        await _sut.LoadSessionsCommand.ExecuteAsync(null);
+
+        // Assert
+        _sut.Sessions.Where(s => s.Id != "sess-2").Should().AllSatisfy(s => s.IsSelected.Should().BeFalse());
+    }
+
+    [Fact]
+    public async Task LoadSessionsCommand_WhenCurrentSessionIdIsNull_AllSessionsHaveIsSelectedFalse()
+    {
+        // Arrange
+        _sut.CurrentSessionId = null;
+        SetupLoadSessionsSuccess(sessions: BuildSessionList(3));
+
+        // Act
+        await _sut.LoadSessionsCommand.ExecuteAsync(null);
+
+        // Assert
+        _sut.Sessions.Should().AllSatisfy(s => s.IsSelected.Should().BeFalse());
     }
 
     // ─── LoadSessionsCommand — error path [REQ-034] ──────────────────────────
@@ -350,174 +433,6 @@ public sealed class FlyoutViewModelTests
         await _projectService.DidNotReceive().GetCurrentProjectAsync(Arg.Any<CancellationToken>());
     }
 
-    // ─── DeleteSessionCommand — confirmed and succeeds [REQ-035] ──────────────
-
-    [Fact]
-    public async Task DeleteSessionCommand_WhenConfirmedAndSucceeds_CallsDeleteOnService()
-    {
-        // Arrange
-        _popupService.ShowConfirmDeleteAsync(
-                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(true);
-        _sessionService.DeleteSessionAsync("sess-1", Arg.Any<CancellationToken>())
-            .Returns(true);
-        SetupLoadSessionsSuccess();
-
-        // Act
-        await _sut.DeleteSessionCommand.ExecuteAsync("sess-1");
-
-        // Assert
-        await _sessionService.Received(1).DeleteSessionAsync("sess-1", Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public async Task DeleteSessionCommand_WhenConfirmedAndSucceeds_ShowsToast()
-    {
-        // Arrange
-        _popupService.ShowConfirmDeleteAsync(
-                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(true);
-        _sessionService.DeleteSessionAsync("sess-1", Arg.Any<CancellationToken>())
-            .Returns(true);
-        SetupLoadSessionsSuccess();
-
-        // Act
-        await _sut.DeleteSessionCommand.ExecuteAsync("sess-1");
-
-        // Assert
-        await _popupService.Received(1).ShowToastAsync("Session deleted.", Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public async Task DeleteSessionCommand_WhenConfirmedAndSucceeds_ReloadsSessionList()
-    {
-        // Arrange
-        _popupService.ShowConfirmDeleteAsync(
-                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(true);
-        _sessionService.DeleteSessionAsync("sess-1", Arg.Any<CancellationToken>())
-            .Returns(true);
-        SetupLoadSessionsSuccess();
-
-        // Act
-        await _sut.DeleteSessionCommand.ExecuteAsync("sess-1");
-
-        // Assert — LoadSessionsAsync calls GetCurrentProjectAsync internally
-        await _projectService.Received().GetCurrentProjectAsync(Arg.Any<CancellationToken>());
-    }
-
-    // ─── DeleteSessionCommand — user cancels ──────────────────────────────────
-
-    [Fact]
-    public async Task DeleteSessionCommand_WhenUserCancelsConfirmation_DoesNotDelete()
-    {
-        // Arrange
-        _popupService.ShowConfirmDeleteAsync(
-                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(false);
-
-        // Act
-        await _sut.DeleteSessionCommand.ExecuteAsync("sess-1");
-
-        // Assert
-        await _sessionService.DidNotReceive().DeleteSessionAsync(
-            Arg.Any<string>(), Arg.Any<CancellationToken>());
-    }
-
-    // ─── DeleteSessionCommand — delete fails ──────────────────────────────────
-
-    [Fact]
-    public async Task DeleteSessionCommand_WhenDeleteReturnsFalse_ShowsError()
-    {
-        // Arrange
-        _popupService.ShowConfirmDeleteAsync(
-                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(true);
-        _sessionService.DeleteSessionAsync("sess-1", Arg.Any<CancellationToken>())
-            .Returns(false);
-
-        // Act
-        await _sut.DeleteSessionCommand.ExecuteAsync("sess-1");
-
-        // Assert
-        await _popupService.Received(1).ShowErrorAsync(
-            "Error",
-            "Failed to delete the session.",
-            Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public async Task DeleteSessionCommand_WhenDeleteReturnsFalse_DoesNotShowToast()
-    {
-        // Arrange
-        _popupService.ShowConfirmDeleteAsync(
-                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(true);
-        _sessionService.DeleteSessionAsync("sess-1", Arg.Any<CancellationToken>())
-            .Returns(false);
-
-        // Act
-        await _sut.DeleteSessionCommand.ExecuteAsync("sess-1");
-
-        // Assert
-        await _popupService.DidNotReceive().ShowToastAsync(
-            Arg.Any<string>(), Arg.Any<CancellationToken>());
-    }
-
-    // ─── DeleteSessionCommand — service throws ────────────────────────────────
-
-    [Fact]
-    public async Task DeleteSessionCommand_WhenServiceThrows_ShowsError()
-    {
-        // Arrange
-        _popupService.ShowConfirmDeleteAsync(
-                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(true);
-        _sessionService.DeleteSessionAsync("sess-1", Arg.Any<CancellationToken>())
-            .ThrowsAsync(new HttpRequestException("Network error"));
-
-        // Act
-        await _sut.DeleteSessionCommand.ExecuteAsync("sess-1");
-
-        // Assert
-        await _popupService.Received(1).ShowErrorAsync(
-            "Error",
-            "Failed to delete the session.",
-            Arg.Any<CancellationToken>());
-    }
-
-    // ─── DeleteSessionCommand — argument validation ───────────────────────────
-
-    [Fact]
-    public async Task DeleteSessionCommand_WhenSessionIdIsNull_ThrowsArgumentException()
-    {
-        // Act
-        var act = async () => await _sut.DeleteSessionCommand.ExecuteAsync(null!);
-
-        // Assert
-        await act.Should().ThrowAsync<ArgumentException>();
-    }
-
-    [Fact]
-    public async Task DeleteSessionCommand_WhenSessionIdIsEmpty_ThrowsArgumentException()
-    {
-        // Act
-        var act = async () => await _sut.DeleteSessionCommand.ExecuteAsync("");
-
-        // Assert
-        await act.Should().ThrowAsync<ArgumentException>();
-    }
-
-    [Fact]
-    public async Task DeleteSessionCommand_WhenSessionIdIsWhitespace_ThrowsArgumentException()
-    {
-        // Act
-        var act = async () => await _sut.DeleteSessionCommand.ExecuteAsync("   ");
-
-        // Assert
-        await act.Should().ThrowAsync<ArgumentException>();
-    }
-
     // ─── NewChatCommand — happy path [REQ-036] ────────────────────────────────
 
     [Fact]
@@ -623,7 +538,7 @@ public sealed class FlyoutViewModelTests
             Arg.Any<CancellationToken>());
     }
 
-    // ─── SelectSessionCommand [REQ-037] ───────────────────────────────────────
+    // ─── SelectSessionCommand — different session navigates [REQ-037] ─────────
 
     [Fact]
     public async Task SelectSessionCommand_WhenExecuted_NavigatesToChatWithSessionId()
@@ -648,6 +563,53 @@ public sealed class FlyoutViewModelTests
         await _navigationService.Received(1).GoToAsync(
             "//chat",
             Arg.Is<IDictionary<string, object>>(d => d["sessionId"].Equals("sess-99")),
+            Arg.Any<CancellationToken>());
+    }
+
+    // ─── SelectSessionCommand — already-active session guard (REQ-005 / AC-004) ─
+
+    [Fact]
+    public async Task SelectSessionCommand_WhenSessionIsAlreadyActive_DoesNotNavigate()
+    {
+        // Arrange
+        _sut.CurrentSessionId = "sess-1";
+
+        // Act
+        await _sut.SelectSessionCommand.ExecuteAsync("sess-1");
+
+        // Assert
+        await _navigationService.DidNotReceive().GoToAsync(
+            Arg.Any<string>(),
+            Arg.Any<IDictionary<string, object>>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task SelectSessionCommand_WhenSessionIsAlreadyActive_CallsCloseFlyoutAsync()
+    {
+        // Arrange
+        _sut.CurrentSessionId = "sess-1";
+
+        // Act
+        await _sut.SelectSessionCommand.ExecuteAsync("sess-1");
+
+        // Assert
+        await _navigationService.Received(1).CloseFlyoutAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task SelectSessionCommand_WhenSessionIsDifferentFromActive_NavigatesToChat()
+    {
+        // Arrange
+        _sut.CurrentSessionId = "sess-1";
+
+        // Act
+        await _sut.SelectSessionCommand.ExecuteAsync("sess-2");
+
+        // Assert
+        await _navigationService.Received(1).GoToAsync(
+            "//chat",
+            Arg.Is<IDictionary<string, object>>(d => d["sessionId"].Equals("sess-2")),
             Arg.Any<CancellationToken>());
     }
 
@@ -681,5 +643,107 @@ public sealed class FlyoutViewModelTests
 
         // Assert
         await act.Should().ThrowAsync<ArgumentException>();
+    }
+
+    // ─── CurrentSessionChangedMessage — updates IsSelected on sessions ─────────
+    // The CurrentSessionChangedMessage handler in FlyoutViewModel is synchronous.
+    // No Task.Delay is needed — the handler runs inline when Send() is called.
+
+    [Fact]
+    public async Task CurrentSessionChangedMessage_WhenReceived_SetsCurrentSessionId()
+    {
+        // Arrange
+        SetupLoadSessionsSuccess(sessions: BuildSessionList(3));
+        await _sut.LoadSessionsCommand.ExecuteAsync(null);
+
+        // Act — handler is synchronous; CurrentSessionId is updated before Send() returns
+        WeakReferenceMessenger.Default.Send(new CurrentSessionChangedMessage("sess-2"));
+
+        // Assert
+        _sut.CurrentSessionId.Should().Be("sess-2");
+    }
+
+    [Fact]
+    public async Task CurrentSessionChangedMessage_WhenReceived_SetsIsSelectedOnMatchingSession()
+    {
+        // Arrange
+        SetupLoadSessionsSuccess(sessions: BuildSessionList(3));
+        await _sut.LoadSessionsCommand.ExecuteAsync(null);
+
+        // Act — handler is synchronous; Sessions is updated before Send() returns
+        WeakReferenceMessenger.Default.Send(new CurrentSessionChangedMessage("sess-2"));
+
+        // Assert
+        _sut.Sessions.Single(s => s.Id == "sess-2").IsSelected.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task CurrentSessionChangedMessage_WhenReceived_ClearsIsSelectedOnNonMatchingSession()
+    {
+        // Arrange
+        SetupLoadSessionsSuccess(sessions: BuildSessionList(3));
+        await _sut.LoadSessionsCommand.ExecuteAsync(null);
+
+        // Act — handler is synchronous; Sessions is updated before Send() returns
+        WeakReferenceMessenger.Default.Send(new CurrentSessionChangedMessage("sess-2"));
+
+        // Assert
+        _sut.Sessions.Where(s => s.Id != "sess-2").Should().AllSatisfy(s => s.IsSelected.Should().BeFalse());
+    }
+
+    [Fact]
+    public async Task CurrentSessionChangedMessage_WhenSessionIdIsNull_ClearsAllIsSelected()
+    {
+        // Arrange — load sessions and mark sess-1 as selected via the messenger
+        SetupLoadSessionsSuccess(sessions: BuildSessionList(3));
+        await _sut.LoadSessionsCommand.ExecuteAsync(null);
+
+        // Both sends are synchronous — the handler runs inline before Send() returns.
+        // No Task.Delay between sends avoids yielding the thread to other async operations.
+        WeakReferenceMessenger.Default.Send(new CurrentSessionChangedMessage("sess-1"));
+
+        // Act — send null to clear all selections (synchronous handler)
+        WeakReferenceMessenger.Default.Send(new CurrentSessionChangedMessage(null));
+
+        // Assert — no delay needed; handler is synchronous
+        _sut.Sessions.Should().AllSatisfy(s => s.IsSelected.Should().BeFalse());
+    }
+
+    // ─── SessionDeletedMessage — triggers reload ───────────────────────────────
+
+    [Fact]
+    public async Task SessionDeletedMessage_WhenReceived_ReloadsSessionList()
+    {
+        // Arrange
+        SetupLoadSessionsSuccess();
+        await _sut.LoadSessionsCommand.ExecuteAsync(null);
+        _projectService.ClearReceivedCalls();
+
+        // Act
+        WeakReferenceMessenger.Default.Send(new SessionDeletedMessage("sess-1", "proj-1"));
+        await Task.Delay(50); // allow fire-and-forget handler to complete
+
+        // Assert
+        await _projectService.Received().GetCurrentProjectAsync(Arg.Any<CancellationToken>());
+    }
+
+    // ─── IDisposable — Dispose unregisters messenger ──────────────────────────
+
+    [Fact]
+    public async Task Dispose_AfterDispose_DoesNotReceiveSessionDeletedMessage()
+    {
+        // Arrange
+        SetupLoadSessionsSuccess();
+        await _sut.LoadSessionsCommand.ExecuteAsync(null);
+        _projectService.ClearReceivedCalls();
+
+        // Act — mark disposed so the test class Dispose() does not call it again
+        _sutDisposed = true;
+        _sut.Dispose();
+        WeakReferenceMessenger.Default.Send(new SessionDeletedMessage("sess-1", "proj-1"));
+        await Task.Delay(50);
+
+        // Assert — LoadSessions should NOT have been triggered after Dispose
+        await _projectService.DidNotReceive().GetCurrentProjectAsync(Arg.Any<CancellationToken>());
     }
 }

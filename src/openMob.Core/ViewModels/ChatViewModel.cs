@@ -263,6 +263,8 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     /// <summary>
     /// Sets the active session. Called by ChatPage when navigation parameters change.
     /// Cancels any existing SSE subscription, clears messages, and loads the new session.
+    /// Publishes a <see cref="CurrentSessionChangedMessage"/> so <see cref="FlyoutViewModel"/>
+    /// can highlight the active session in the drawer.
     /// </summary>
     /// <remarks>
     /// This method replaces <c>IQueryAttributable.ApplyQueryAttributes</c> to maintain
@@ -283,6 +285,9 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
         _sseCts = null;
 
         CurrentSessionId = sessionId;
+
+        // Notify FlyoutViewModel to highlight the newly active session in the drawer
+        WeakReferenceMessenger.Default.Send(new CurrentSessionChangedMessage(sessionId));
 
         // Clear messages immediately to avoid flash of old content (Q3 resolution)
         Messages.Clear();
@@ -1377,11 +1382,15 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
                 {
                     CurrentSessionId = newSession.Id;
                     SessionName = newSession.Title;
+                    // Notify FlyoutViewModel to highlight the new session
+                    WeakReferenceMessenger.Default.Send(new CurrentSessionChangedMessage(newSession.Id));
                 }
                 else
                 {
                     CurrentSessionId = null;
                     SessionName = "New chat";
+                    // Notify FlyoutViewModel that no session is active
+                    WeakReferenceMessenger.Default.Send(new CurrentSessionChangedMessage(null));
                 }
 
                 await _popupService.ShowToastAsync("Session deleted.", ct);

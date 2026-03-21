@@ -38,4 +38,13 @@ internal sealed class MauiNavigationService : INavigationService
 #endif
         await Shell.Current.GoToAsync("..", true);
     }
+
+    /// <inheritdoc />
+    public Task CloseFlyoutAsync(CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        if (Shell.Current is not null)
+            Shell.Current.FlyoutIsPresented = false;
+        return Task.CompletedTask;
+    }
 }

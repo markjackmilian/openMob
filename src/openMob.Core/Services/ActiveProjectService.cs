@@ -17,17 +17,21 @@ namespace openMob.Core.Services;
 internal sealed class ActiveProjectService : IActiveProjectService
 {
     private readonly IProjectService _projectService;
+    private readonly IAppStateService _appStateService;
     private readonly SemaphoreSlim _initLock = new(1, 1);
 
     private ProjectDto? _activeProject;
     private bool _initialized;
 
-    /// <summary>Initialises the ActiveProjectService with the required project service.</summary>
+    /// <summary>Initialises the ActiveProjectService with the required dependencies.</summary>
     /// <param name="projectService">Service for project operations (used to fetch project data from the server).</param>
-    public ActiveProjectService(IProjectService projectService)
+    /// <param name="appStateService">Service for persisting global app state (last active project ID).</param>
+    public ActiveProjectService(IProjectService projectService, IAppStateService appStateService)
     {
         ArgumentNullException.ThrowIfNull(projectService);
+        ArgumentNullException.ThrowIfNull(appStateService);
         _projectService = projectService;
+        _appStateService = appStateService;
     }
 
     /// <inheritdoc />
@@ -65,6 +69,8 @@ internal sealed class ActiveProjectService : IActiveProjectService
 
         _activeProject = project;
         _initialized = true;
+
+        await _appStateService.SetLastActiveProjectIdAsync(projectId, ct).ConfigureAwait(false);
 
         WeakReferenceMessenger.Default.Send(new ActiveProjectChangedMessage(project));
 

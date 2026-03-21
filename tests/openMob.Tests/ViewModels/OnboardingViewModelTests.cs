@@ -193,8 +193,8 @@ public sealed class OnboardingViewModelTests
     public async Task NextStepCommand_WhenOnStep2_AdvancesToStep3AndLoadsModels()
     {
         // Arrange
+        await SimulateSuccessfulConnectionAsync();
         _sut.CurrentStep = 2;
-        _sut.IsConnectionSuccessful = true;
         _providerService.GetConfiguredProvidersAsync(Arg.Any<CancellationToken>())
             .Returns(new List<ProviderDto>());
 
@@ -562,6 +562,40 @@ public sealed class OnboardingViewModelTests
             Arg.Any<CancellationToken>());
     }
 
+    // ─── Step 2 → Step 3: LoadModels guard when no server connected ──────────
+
+    [Fact]
+    public async Task NextStepAsync_WhenOnStep2AndNoServerConnected_SetsModelLoadError()
+    {
+        // Arrange — step 2 was skipped (no TestConnection), so _savedConnectionId is null
+        _sut.CurrentStep = 2;
+
+        // Act
+        await _sut.NextStepCommand.ExecuteAsync(null);
+
+        // Assert
+        _sut.CurrentStep.Should().Be(3);
+        _sut.ModelLoadError.Should().Be("Connect to a server first to load available models.");
+        _sut.IsLoadingModels.Should().BeFalse();
+        _sut.CanGoNext.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task SkipStepAsync_WhenOnStep2AndNoServerConnected_SetsModelLoadError()
+    {
+        // Arrange — step 2 skipped
+        _sut.CurrentStep = 2;
+
+        // Act
+        await _sut.SkipStepCommand.ExecuteAsync(null);
+
+        // Assert
+        _sut.CurrentStep.Should().Be(3);
+        _sut.ModelLoadError.Should().Be("Connect to a server first to load available models.");
+        _sut.CanGoNext.Should().BeFalse();
+        await _providerService.DidNotReceive().GetConfiguredProvidersAsync(Arg.Any<CancellationToken>());
+    }
+
     // ─── Step 3: CanGoNext — model loading / error states ─────────────────────
 
     [Fact]
@@ -594,6 +628,7 @@ public sealed class OnboardingViewModelTests
     public async Task NextStepAsync_WhenOnStep2_LoadsModelsFromProviderService()
     {
         // Arrange
+        await SimulateSuccessfulConnectionAsync();
         _sut.CurrentStep = 2;
 
         var modelsJson = JsonDocument.Parse("""
@@ -633,6 +668,7 @@ public sealed class OnboardingViewModelTests
     public async Task NextStepAsync_WhenOnStep2_ExtractsModelNameAndContextSize()
     {
         // Arrange
+        await SimulateSuccessfulConnectionAsync();
         _sut.CurrentStep = 2;
 
         var modelsJson = JsonDocument.Parse("""
@@ -666,6 +702,7 @@ public sealed class OnboardingViewModelTests
     public async Task NextStepAsync_WhenOnStep2AndProviderServiceFails_SetsModelLoadError()
     {
         // Arrange
+        await SimulateSuccessfulConnectionAsync();
         _sut.CurrentStep = 2;
 
         _providerService.GetConfiguredProvidersAsync(Arg.Any<CancellationToken>())
@@ -686,6 +723,7 @@ public sealed class OnboardingViewModelTests
     public async Task NextStepAsync_WhenOnStep2AndNoModelsAvailable_SetsModelLoadError()
     {
         // Arrange
+        await SimulateSuccessfulConnectionAsync();
         _sut.CurrentStep = 2;
 
         _providerService.GetConfiguredProvidersAsync(Arg.Any<CancellationToken>())
@@ -704,6 +742,7 @@ public sealed class OnboardingViewModelTests
     public async Task NextStepAsync_WhenOnStep2WithMultipleProviders_AggregatesAllModels()
     {
         // Arrange
+        await SimulateSuccessfulConnectionAsync();
         _sut.CurrentStep = 2;
 
         var anthropicModels = JsonDocument.Parse("""
@@ -827,9 +866,10 @@ public sealed class OnboardingViewModelTests
     // ─── Step 3: SkipStep also triggers model loading ─────────────────────────
 
     [Fact]
-    public async Task SkipStepAsync_WhenOnStep2_AdvancesToStep3AndLoadsModels()
+    public async Task SkipStepAsync_WhenOnStep2WithServerConnected_AdvancesToStep3AndLoadsModels()
     {
         // Arrange
+        await SimulateSuccessfulConnectionAsync();
         _sut.CurrentStep = 2;
         _providerService.GetConfiguredProvidersAsync(Arg.Any<CancellationToken>())
             .Returns(new List<ProviderDto>());
@@ -860,6 +900,7 @@ public sealed class OnboardingViewModelTests
     public async Task NextStepAsync_WhenOnStep2_ResetsModelStateBeforeLoading()
     {
         // Arrange — pre-set some model state from a previous attempt
+        await SimulateSuccessfulConnectionAsync();
         _sut.CurrentStep = 2;
         _sut.SelectedModelId = "old-model";
         _sut.ModelLoadError = "old error";
@@ -872,5 +913,28 @@ public sealed class OnboardingViewModelTests
 
         // Assert
         _sut.SelectedModelId.Should().BeNull();
+    }
+
+    // ─── Test helpers ─────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Simulates a successful connection test (step 2) so that <c>_savedConnectionId</c>
+    /// is set and <see cref="OnboardingViewModel.LoadModelsAsync"/> does not short-circuit.
+    /// </summary>
+    private async Task SimulateSuccessfulConnectionAsync()
+    {
+        _sut.ServerUrl = "http://192.168.1.100:4096";
+
+        var savedConnection = TestDataBuilder.CreateServerConnectionDto(id: "conn-sim");
+        _serverConnectionRepo.AddAsync(Arg.Any<ServerConnectionDto>(), Arg.Any<CancellationToken>())
+            .Returns(savedConnection);
+        _serverConnectionRepo.SetActiveAsync("conn-sim", Arg.Any<CancellationToken>())
+            .Returns(true);
+
+        var healthDto = new HealthDto(Healthy: true, Version: "1.0.0");
+        _apiClient.GetHealthAsync(Arg.Any<CancellationToken>())
+            .Returns(OpencodeResult<HealthDto>.Success(healthDto));
+
+        await _sut.TestConnectionCommand.ExecuteAsync(null);
     }
 }

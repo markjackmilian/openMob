@@ -359,7 +359,9 @@ public sealed partial class OnboardingViewModel : ObservableObject
             SentryHelper.CaptureException(ex, new Dictionary<string, object>
             {
                 ["context"] = "OnboardingViewModel.TestConnectionAsync",
-                ["serverUrl"] = ServerUrl,
+                ["serverUrl"] = Uri.TryCreate(ServerUrl?.Trim(), UriKind.Absolute, out var sanitizedUri)
+                    ? sanitizedUri.GetLeftPart(UriPartial.Path)
+                    : "(invalid URL)",
             });
         }
         finally
@@ -459,6 +461,14 @@ public sealed partial class OnboardingViewModel : ObservableObject
         ModelLoadError = null;
         AvailableModels = [];
         SelectedModelId = null;
+
+        // Guard: if step 2 was skipped, no server is connected — cannot load models.
+        if (string.IsNullOrEmpty(_savedConnectionId))
+        {
+            ModelLoadError = "Connect to a server first to load available models.";
+            IsLoadingModels = false;
+            return;
+        }
 
         try
         {

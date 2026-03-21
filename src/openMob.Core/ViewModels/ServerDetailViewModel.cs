@@ -612,15 +612,10 @@ public sealed partial class ServerDetailViewModel : ObservableObject
             return;
 
         await _popupService.ShowModelPickerAsync(
-            onModelSelected: async (modelId) =>
+            onModelSelected: (modelId) =>
             {
-                var success = await _serverConnectionRepository.SetDefaultModelAsync(_savedServerId, modelId, ct);
-                if (success)
-                {
-                    _defaultModelId = modelId;
-                    DefaultModelName = modelId;
-                    await _popupService.ShowToastAsync("Default model updated.", ct);
-                }
+                // Fire-and-forget with error handling — Action<string> cannot be async.
+                _ = SafeSetDefaultModelAsync(modelId);
             },
             ct);
 #if DEBUG
@@ -634,6 +629,38 @@ public sealed partial class ServerDetailViewModel : ObservableObject
             throw;
         }
 #endif
+    }
+
+    // ─── Private helpers ─────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Safely persists the selected default model and updates the UI.
+    /// Called as fire-and-forget from the <see cref="ShowModelPickerAsync"/> callback
+    /// (which accepts <see cref="Action{String}"/> and cannot be async).
+    /// All exceptions are captured to Sentry to prevent unobserved task exceptions.
+    /// </summary>
+    /// <param name="modelId">The selected model ID in "providerId/modelId" format.</param>
+    private async Task SafeSetDefaultModelAsync(string modelId)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(_savedServerId))
+                return;
+
+            var success = await _serverConnectionRepository.SetDefaultModelAsync(_savedServerId, modelId);
+            if (success)
+            {
+                _defaultModelId = modelId;
+                DefaultModelName = modelId;
+            }
+        }
+        catch (Exception ex)
+        {
+            SentryHelper.CaptureException(ex, new Dictionary<string, object>
+            {
+                ["context"] = "ServerDetailViewModel.SafeSetDefaultModelAsync",
+            });
+        }
     }
 
     // ─── CanExecute helpers ───────────────────────────────────────────────────

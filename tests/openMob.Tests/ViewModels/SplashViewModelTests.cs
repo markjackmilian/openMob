@@ -15,6 +15,9 @@ public sealed class SplashViewModelTests
     private readonly IOpencodeConnectionManager _connectionManager;
     private readonly ISessionService _sessionService;
     private readonly INavigationService _navigationService;
+    private readonly IActiveProjectService _activeProjectService;
+    private readonly IAppStateService _appStateService;
+    private readonly IProjectService _projectService;
     private readonly SplashViewModel _sut;
 
     /// <summary>
@@ -65,12 +68,18 @@ public sealed class SplashViewModelTests
         _connectionManager = Substitute.For<IOpencodeConnectionManager>();
         _sessionService = Substitute.For<ISessionService>();
         _navigationService = Substitute.For<INavigationService>();
+        _activeProjectService = Substitute.For<IActiveProjectService>();
+        _appStateService = Substitute.For<IAppStateService>();
+        _projectService = Substitute.For<IProjectService>();
 
         _sut = new SplashViewModel(
             _serverConnectionRepo,
             _connectionManager,
             _sessionService,
             _navigationService,
+            _activeProjectService,
+            _appStateService,
+            _projectService,
             timeProvider: new InstantTimeProvider());
     }
 
@@ -89,6 +98,26 @@ public sealed class SplashViewModelTests
             Id: id, ProjectId: "proj-1", Directory: "/path", ParentId: null,
             Summary: null, Share: null, Title: "Test", Version: "1",
             Time: time, Revert: null);
+    }
+
+    private static ProjectDto BuildProject(string id = "proj-1", string worktree = "/home/user/myproject")
+    {
+        var time = new ProjectTimeDto(Created: 1710000000000, Initialized: null);
+        return new ProjectDto(Id: id, Worktree: worktree, VcsDir: null, Vcs: "git", Time: time);
+    }
+
+    /// <summary>
+    /// Configures the standard "server reachable" arrange for project-restore tests.
+    /// Returns empty sessions by default so the test can focus on project restore behaviour.
+    /// </summary>
+    private void ArrangeServerReachable()
+    {
+        _serverConnectionRepo.GetActiveAsync(Arg.Any<CancellationToken>())
+            .Returns(BuildConnection());
+        _connectionManager.IsServerReachableAsync(Arg.Any<CancellationToken>())
+            .Returns(true);
+        _sessionService.GetAllSessionsAsync(Arg.Any<CancellationToken>())
+            .Returns(new List<openMob.Core.Infrastructure.Http.Dtos.Opencode.SessionDto>());
     }
 
     // ─── Constructor ──────────────────────────────────────────────────────────
@@ -350,6 +379,9 @@ public sealed class SplashViewModelTests
             _connectionManager,
             _sessionService,
             _navigationService,
+            _activeProjectService,
+            _appStateService,
+            _projectService,
             timeProvider: spy);
 
         _serverConnectionRepo.GetActiveAsync(Arg.Any<CancellationToken>())
@@ -403,5 +435,101 @@ public sealed class SplashViewModelTests
 
         // Assert — the app-shutdown path must swallow the exception and never navigate
         await _navigationService.DidNotReceive().GoToAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    // ─── InitializeAsync — Project restore: saved project exists ─────────────
+
+    [Fact]
+    public async Task InitializeAsync_WhenServerReachableAndLastProjectExists_RestoresProject()
+    {
+        // Arrange
+        ArrangeServerReachable();
+        _appStateService.GetLastActiveProjectIdAsync(Arg.Any<CancellationToken>())
+            .Returns("proj-saved");
+        _projectService.GetProjectByIdAsync("proj-saved", Arg.Any<CancellationToken>())
+            .Returns(BuildProject("proj-saved"));
+
+        // Act
+        await _sut.InitializeCommand.ExecuteAsync(null);
+
+        // Assert
+        await _activeProjectService.Received(1).SetActiveProjectAsync("proj-saved", Arg.Any<CancellationToken>());
+    }
+
+    // ─── InitializeAsync — Project restore: saved project not found ──────────
+
+    [Fact]
+    public async Task InitializeAsync_WhenServerReachableAndLastProjectNotFound_FallsBackToFirstProject()
+    {
+        // Arrange
+        ArrangeServerReachable();
+        _appStateService.GetLastActiveProjectIdAsync(Arg.Any<CancellationToken>())
+            .Returns("proj-deleted");
+        _projectService.GetProjectByIdAsync("proj-deleted", Arg.Any<CancellationToken>())
+            .Returns((ProjectDto?)null);
+        _projectService.GetAllProjectsAsync(Arg.Any<CancellationToken>())
+            .Returns(new List<ProjectDto> { BuildProject("proj-fallback") });
+
+        // Act
+        await _sut.InitializeCommand.ExecuteAsync(null);
+
+        // Assert
+        await _activeProjectService.Received(1).SetActiveProjectAsync("proj-fallback", Arg.Any<CancellationToken>());
+    }
+
+    // ─── InitializeAsync — Project restore: no saved project ─────────────────
+
+    [Fact]
+    public async Task InitializeAsync_WhenServerReachableAndNoSavedProject_FallsBackToFirstProject()
+    {
+        // Arrange
+        ArrangeServerReachable();
+        _appStateService.GetLastActiveProjectIdAsync(Arg.Any<CancellationToken>())
+            .Returns((string?)null);
+        _projectService.GetAllProjectsAsync(Arg.Any<CancellationToken>())
+            .Returns(new List<ProjectDto> { BuildProject("proj-first") });
+
+        // Act
+        await _sut.InitializeCommand.ExecuteAsync(null);
+
+        // Assert
+        await _activeProjectService.Received(1).SetActiveProjectAsync("proj-first", Arg.Any<CancellationToken>());
+    }
+
+    // ─── InitializeAsync — Project restore: no projects available ────────────
+
+    [Fact]
+    public async Task InitializeAsync_WhenServerReachableAndNoProjects_ContinuesNormally()
+    {
+        // Arrange
+        ArrangeServerReachable();
+        _appStateService.GetLastActiveProjectIdAsync(Arg.Any<CancellationToken>())
+            .Returns((string?)null);
+        _projectService.GetAllProjectsAsync(Arg.Any<CancellationToken>())
+            .Returns(new List<ProjectDto>());
+
+        // Act
+        await _sut.InitializeCommand.ExecuteAsync(null);
+
+        // Assert — no project was activated, but navigation to chat still occurred
+        await _activeProjectService.DidNotReceive().SetActiveProjectAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await _navigationService.Received(1).GoToAsync("//chat", Arg.Any<CancellationToken>());
+    }
+
+    // ─── InitializeAsync — Project restore: exception swallowed ──────────────
+
+    [Fact]
+    public async Task InitializeAsync_WhenProjectRestoreFails_ContinuesNormally()
+    {
+        // Arrange
+        ArrangeServerReachable();
+        _appStateService.GetLastActiveProjectIdAsync(Arg.Any<CancellationToken>())
+            .ThrowsAsync(new InvalidOperationException("DB corrupted"));
+
+        // Act
+        await _sut.InitializeCommand.ExecuteAsync(null);
+
+        // Assert — restore failure is non-fatal; navigation to chat still occurs
+        await _navigationService.Received(1).GoToAsync("//chat", Arg.Any<CancellationToken>());
     }
 }

@@ -32,13 +32,19 @@ public sealed partial class SplashViewModel : ObservableObject
     private readonly IOpencodeConnectionManager _connectionManager;
     private readonly ISessionService _sessionService;
     private readonly INavigationService _navigationService;
+    private readonly IActiveProjectService _activeProjectService;
+    private readonly IAppStateService _appStateService;
+    private readonly IProjectService _projectService;
     private readonly TimeProvider _timeProvider;
 
-    /// <summary>Initialises the SplashViewModel with required dependencies.</summary>
+    /// <summary>Initialises the SplashViewModel with its dependencies.</summary>
     /// <param name="serverConnectionRepository">Repository for server connection data.</param>
     /// <param name="connectionManager">Manager for checking server reachability.</param>
     /// <param name="sessionService">Service for session operations.</param>
     /// <param name="navigationService">Service for Shell navigation.</param>
+    /// <param name="activeProjectService">Service for managing the active project state.</param>
+    /// <param name="appStateService">Service for reading/writing persisted app state.</param>
+    /// <param name="projectService">Service for project operations.</param>
     /// <param name="timeProvider">
     /// Optional time provider used for the 2-second delay before navigating away on error.
     /// Defaults to <see cref="TimeProvider.System"/> when <c>null</c>.
@@ -49,17 +55,26 @@ public sealed partial class SplashViewModel : ObservableObject
         IOpencodeConnectionManager connectionManager,
         ISessionService sessionService,
         INavigationService navigationService,
+        IActiveProjectService activeProjectService,
+        IAppStateService appStateService,
+        IProjectService projectService,
         TimeProvider? timeProvider = null)
     {
         ArgumentNullException.ThrowIfNull(serverConnectionRepository);
         ArgumentNullException.ThrowIfNull(connectionManager);
         ArgumentNullException.ThrowIfNull(sessionService);
         ArgumentNullException.ThrowIfNull(navigationService);
+        ArgumentNullException.ThrowIfNull(activeProjectService);
+        ArgumentNullException.ThrowIfNull(appStateService);
+        ArgumentNullException.ThrowIfNull(projectService);
 
         _serverConnectionRepository = serverConnectionRepository;
         _connectionManager = connectionManager;
         _sessionService = sessionService;
         _navigationService = navigationService;
+        _activeProjectService = activeProjectService;
+        _appStateService = appStateService;
+        _projectService = projectService;
         _timeProvider = timeProvider ?? TimeProvider.System;
     }
 
@@ -146,7 +161,10 @@ public sealed partial class SplashViewModel : ObservableObject
                 return;
             }
 
-            // Step 4: Check for existing sessions
+            // Step 4: Restore last active project (REQ-005)
+            await RestoreActiveProjectAsync(ct);
+
+            // Step 5: Check for existing sessions
             var sessions = await _sessionService.GetAllSessionsAsync(ct);
 
             if (sessions.Count > 0)
@@ -189,9 +207,13 @@ public sealed partial class SplashViewModel : ObservableObject
                 await Task.Delay(TimeSpan.FromSeconds(2), _timeProvider, ct);
                 await _navigationService.GoToAsync("//server-management", ct);
             }
-            catch
+            catch (Exception fallbackEx)
             {
-                // Last resort — nothing more we can do (e.g. ct cancelled during delay)
+                // Last resort — log to Sentry for observability, but do not re-throw.
+                SentryHelper.CaptureException(fallbackEx, new Dictionary<string, object>
+                {
+                    ["context"] = "SplashViewModel.InitializeAsync.FallbackNavigation",
+                });
             }
         }
         finally
@@ -209,5 +231,52 @@ public sealed partial class SplashViewModel : ObservableObject
             throw;
         }
 #endif
+    }
+
+    /// <summary>
+    /// Restores the last active project from persisted state, or falls back to the first
+    /// available project. Non-fatal: if restoration fails, startup continues normally.
+    /// </summary>
+    /// <param name="ct">Cancellation token.</param>
+    private async Task RestoreActiveProjectAsync(CancellationToken ct)
+    {
+        try
+        {
+            var lastProjectId = await _appStateService.GetLastActiveProjectIdAsync(ct);
+
+            if (lastProjectId is not null)
+            {
+                // Verify the project still exists on the server
+                var project = await _projectService.GetProjectByIdAsync(lastProjectId, ct);
+                if (project is not null)
+                {
+                    await _activeProjectService.SetActiveProjectAsync(lastProjectId, ct);
+                    SentryHelper.AddBreadcrumb(
+                        $"Restored last active project '{lastProjectId}'",
+                        "navigation");
+                    return;
+                }
+            }
+
+            // Fallback: select first available project (REQ-006)
+            var projects = await _projectService.GetAllProjectsAsync(ct);
+            var firstProject = projects.FirstOrDefault();
+            if (firstProject is not null)
+            {
+                await _activeProjectService.SetActiveProjectAsync(firstProject.Id, ct);
+                SentryHelper.AddBreadcrumb(
+                    $"Fallback: activated first available project '{firstProject.Id}'",
+                    "navigation");
+            }
+            // If no projects exist, do nothing — behaviour unchanged (REQ-005.5)
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // Non-fatal: if project restore fails, continue with normal startup
+            SentryHelper.CaptureException(ex, new Dictionary<string, object>
+            {
+                ["context"] = "SplashViewModel.RestoreActiveProjectAsync",
+            });
+        }
     }
 }

@@ -116,6 +116,7 @@ public static class CoreServiceExtensions
         // ─── Business services ────────────────────────────────────────────────
         // Navigation and popup services (INavigationService, IAppPopupService) are NOT
         // registered here — they have MAUI implementations registered by the MAUI project.
+        services.AddSingleton<IAppStateService, AppStateService>();
         services.AddTransient<IProjectService, ProjectService>();
         services.AddSingleton<IActiveProjectService, ActiveProjectService>();
         services.AddTransient<ISessionService, SessionService>();

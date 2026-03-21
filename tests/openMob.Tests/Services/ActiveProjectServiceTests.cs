@@ -12,6 +12,7 @@ namespace openMob.Tests.Services;
 public sealed class ActiveProjectServiceTests : IDisposable
 {
     private readonly IProjectService _projectService;
+    private readonly IAppStateService _appStateService;
     private readonly ActiveProjectService _sut;
 
     public ActiveProjectServiceTests()
@@ -20,7 +21,8 @@ public sealed class ActiveProjectServiceTests : IDisposable
         WeakReferenceMessenger.Default.Reset();
 
         _projectService = Substitute.For<IProjectService>();
-        _sut = new ActiveProjectService(_projectService);
+        _appStateService = Substitute.For<IAppStateService>();
+        _sut = new ActiveProjectService(_projectService, _appStateService);
     }
 
     public void Dispose()
@@ -46,11 +48,22 @@ public sealed class ActiveProjectServiceTests : IDisposable
     public void Constructor_WhenProjectServiceIsNull_ThrowsArgumentNullException()
     {
         // Act
-        var act = () => new ActiveProjectService(null!);
+        var act = () => new ActiveProjectService(null!, _appStateService);
 
         // Assert
         act.Should().Throw<ArgumentNullException>()
             .And.ParamName.Should().Be("projectService");
+    }
+
+    [Fact]
+    public void Constructor_WhenAppStateServiceIsNull_ThrowsArgumentNullException()
+    {
+        // Act
+        var act = () => new ActiveProjectService(_projectService, null!);
+
+        // Assert
+        act.Should().Throw<ArgumentNullException>()
+            .And.ParamName.Should().Be("appStateService");
     }
 
     // ─── GetActiveProjectAsync ────────────────────────────────────────────────
@@ -309,5 +322,36 @@ public sealed class ActiveProjectServiceTests : IDisposable
 
         // Assert
         await _projectService.DidNotReceive().GetProjectByIdAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    // ─── SetActiveProjectAsync — persistence via IAppStateService ─────────────
+
+    [Fact]
+    public async Task SetActiveProjectAsync_WhenSuccessful_PersistsProjectId()
+    {
+        // Arrange
+        var project = BuildProject("proj-persist");
+        _projectService.GetProjectByIdAsync("proj-persist", Arg.Any<CancellationToken>())
+            .Returns(project);
+
+        // Act
+        await _sut.SetActiveProjectAsync("proj-persist");
+
+        // Assert
+        await _appStateService.Received(1).SetLastActiveProjectIdAsync("proj-persist", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task SetActiveProjectAsync_WhenProjectNotFound_DoesNotPersist()
+    {
+        // Arrange
+        _projectService.GetProjectByIdAsync("nonexistent", Arg.Any<CancellationToken>())
+            .Returns((ProjectDto?)null);
+
+        // Act
+        await _sut.SetActiveProjectAsync("nonexistent");
+
+        // Assert
+        await _appStateService.DidNotReceive().SetLastActiveProjectIdAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 }

@@ -12,14 +12,22 @@ namespace openMob.Tests.ViewModels;
 /// <summary>
 /// Unit tests for <see cref="ContextSheetViewModel"/>.
 /// Covers initialization, auto-save on property change, WeakReferenceMessenger publishing,
-/// and computed display properties.
+/// computed display properties, and DeleteSessionCommand behaviour.
 /// </summary>
+/// <remarks>
+/// Placed in <see cref="MessengerTestCollection"/> to prevent parallel execution with
+/// <see cref="FlyoutViewModelTests"/>, which registers <see cref="FlyoutViewModel"/> for
+/// <see cref="SessionDeletedMessage"/> via <see cref="WeakReferenceMessenger.Default"/>.
+/// </remarks>
+[Collection(MessengerTestCollection.Name)]
 public sealed class ContextSheetViewModelTests : IDisposable
 {
     private readonly IProjectService _projectService;
     private readonly IProjectPreferenceService _preferenceService;
     private readonly IAppPopupService _popupService;
     private readonly IAgentService _agentService;
+    private readonly INavigationService _navigationService;
+    private readonly ISessionService _sessionService;
     private readonly ContextSheetViewModel _sut;
 
     public ContextSheetViewModelTests()
@@ -28,6 +36,8 @@ public sealed class ContextSheetViewModelTests : IDisposable
         _preferenceService = Substitute.For<IProjectPreferenceService>();
         _popupService = Substitute.For<IAppPopupService>();
         _agentService = Substitute.For<IAgentService>();
+        _navigationService = Substitute.For<INavigationService>();
+        _sessionService = Substitute.For<ISessionService>();
 
         // Default: return empty subagent list so InvokeSubagentCommand.CanExecute = false
         _agentService.GetSubagentAgentsAsync(Arg.Any<CancellationToken>())
@@ -37,7 +47,9 @@ public sealed class ContextSheetViewModelTests : IDisposable
             _projectService,
             _preferenceService,
             _popupService,
-            _agentService);
+            _agentService,
+            _navigationService,
+            _sessionService);
     }
 
     public void Dispose()
@@ -102,6 +114,20 @@ public sealed class ContextSheetViewModelTests : IDisposable
             .Returns(BuildPreference(projectId));
 
         await _sut.InitializeAsync(projectId, "sess-1");
+    }
+
+    /// <summary>
+    /// Configures all required services and calls InitializeAsync with the given projectId and sessionId.
+    /// Used as a prerequisite for DeleteSessionCommand tests.
+    /// </summary>
+    private async Task InitializeWithSessionAsync(string projectId = "proj-1", string sessionId = "sess-1")
+    {
+        _projectService.GetProjectByIdAsync(projectId, Arg.Any<CancellationToken>())
+            .Returns(BuildProject(projectId));
+        _preferenceService.GetOrDefaultAsync(projectId, Arg.Any<CancellationToken>())
+            .Returns(BuildPreference(projectId));
+
+        await _sut.InitializeAsync(projectId, sessionId);
     }
 
     // ─── Constructor ──────────────────────────────────────────────────────────
@@ -991,5 +1017,314 @@ public sealed class ContextSheetViewModelTests : IDisposable
 
         // Assert
         _sut.SelectedAgentName.Should().BeNull();
+    }
+
+    // ─── Commands — DeleteSessionCommand — happy path ─────────────────────────
+
+    [Fact]
+    public async Task DeleteSessionCommand_WhenConfirmedAndSucceeds_CallsDeleteOnService()
+    {
+        // Arrange
+        await InitializeWithSessionAsync("proj-1", "sess-1");
+        _popupService.ShowConfirmDeleteAsync(
+                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(true);
+        _sessionService.DeleteSessionAsync("sess-1", Arg.Any<CancellationToken>())
+            .Returns(true);
+
+        // Act
+        await _sut.DeleteSessionCommand.ExecuteAsync(null);
+
+        // Assert
+        await _sessionService.Received(1).DeleteSessionAsync("sess-1", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task DeleteSessionCommand_WhenConfirmedAndSucceeds_PublishesSessionDeletedMessage()
+    {
+        // Arrange
+        await InitializeWithSessionAsync("proj-1", "sess-1");
+        _popupService.ShowConfirmDeleteAsync(
+                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(true);
+        _sessionService.DeleteSessionAsync("sess-1", Arg.Any<CancellationToken>())
+            .Returns(true);
+        _popupService.PopPopupAsync(Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+
+        SessionDeletedMessage? received = null;
+        WeakReferenceMessenger.Default.Register<SessionDeletedMessage>(
+            this, (_, msg) => received = msg);
+
+        // Act
+        await _sut.DeleteSessionCommand.ExecuteAsync(null);
+        await Task.Delay(50);
+
+        // Assert
+        received.Should().NotBeNull();
+        received!.SessionId.Should().Be("sess-1");
+        received.ProjectId.Should().Be("proj-1");
+    }
+
+    [Fact]
+    public async Task DeleteSessionCommand_WhenConfirmedAndSucceeds_CallsPopPopupAsync()
+    {
+        // Arrange
+        await InitializeWithSessionAsync("proj-1", "sess-1");
+        _popupService.ShowConfirmDeleteAsync(
+                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(true);
+        _sessionService.DeleteSessionAsync("sess-1", Arg.Any<CancellationToken>())
+            .Returns(true);
+
+        // Act
+        await _sut.DeleteSessionCommand.ExecuteAsync(null);
+
+        // Assert
+        await _popupService.Received(1).PopPopupAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task DeleteSessionCommand_WhenConfirmedAndSucceeds_NavigatesToChat()
+    {
+        // Arrange
+        await InitializeWithSessionAsync("proj-1", "sess-1");
+        _popupService.ShowConfirmDeleteAsync(
+                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(true);
+        _sessionService.DeleteSessionAsync("sess-1", Arg.Any<CancellationToken>())
+            .Returns(true);
+
+        // Act
+        await _sut.DeleteSessionCommand.ExecuteAsync(null);
+
+        // Assert
+        await _navigationService.Received(1).GoToAsync(
+            "//chat",
+            Arg.Any<IDictionary<string, object>>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    // ─── Commands — DeleteSessionCommand — user cancels ───────────────────────
+
+    [Fact]
+    public async Task DeleteSessionCommand_WhenUserCancels_DoesNotCallDeleteService()
+    {
+        // Arrange
+        await InitializeWithSessionAsync("proj-1", "sess-1");
+        _popupService.ShowConfirmDeleteAsync(
+                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(false);
+
+        // Act
+        await _sut.DeleteSessionCommand.ExecuteAsync(null);
+
+        // Assert
+        await _sessionService.DidNotReceive().DeleteSessionAsync(
+            Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task DeleteSessionCommand_WhenUserCancels_DoesNotPublishMessage()
+    {
+        // Arrange
+        await InitializeWithSessionAsync("proj-1", "sess-1");
+        _popupService.ShowConfirmDeleteAsync(
+                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(false);
+
+        var messagePublished = false;
+        WeakReferenceMessenger.Default.Register<SessionDeletedMessage>(
+            this, (_, _) => messagePublished = true);
+
+        // Act
+        await _sut.DeleteSessionCommand.ExecuteAsync(null);
+        await Task.Delay(50);
+
+        // Assert
+        messagePublished.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task DeleteSessionCommand_WhenUserCancels_DoesNotNavigate()
+    {
+        // Arrange
+        await InitializeWithSessionAsync("proj-1", "sess-1");
+        _popupService.ShowConfirmDeleteAsync(
+                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(false);
+
+        // Act
+        await _sut.DeleteSessionCommand.ExecuteAsync(null);
+
+        // Assert
+        await _navigationService.DidNotReceive().GoToAsync(
+            Arg.Any<string>(),
+            Arg.Any<IDictionary<string, object>>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    // ─── Commands — DeleteSessionCommand — delete returns false ───────────────
+
+    [Fact]
+    public async Task DeleteSessionCommand_WhenDeleteReturnsFalse_SetsErrorMessage()
+    {
+        // Arrange
+        await InitializeWithSessionAsync("proj-1", "sess-1");
+        _popupService.ShowConfirmDeleteAsync(
+                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(true);
+        _sessionService.DeleteSessionAsync("sess-1", Arg.Any<CancellationToken>())
+            .Returns(false);
+
+        // Act
+        await _sut.DeleteSessionCommand.ExecuteAsync(null);
+
+        // Assert
+        _sut.ErrorMessage.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task DeleteSessionCommand_WhenDeleteReturnsFalse_DoesNotPublishMessage()
+    {
+        // Arrange
+        await InitializeWithSessionAsync("proj-1", "sess-1");
+        _popupService.ShowConfirmDeleteAsync(
+                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(true);
+        _sessionService.DeleteSessionAsync("sess-1", Arg.Any<CancellationToken>())
+            .Returns(false);
+
+        var messagePublished = false;
+        WeakReferenceMessenger.Default.Register<SessionDeletedMessage>(
+            this, (_, _) => messagePublished = true);
+
+        // Act
+        await _sut.DeleteSessionCommand.ExecuteAsync(null);
+        await Task.Delay(50);
+
+        // Assert
+        messagePublished.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task DeleteSessionCommand_WhenDeleteReturnsFalse_DoesNotNavigate()
+    {
+        // Arrange
+        await InitializeWithSessionAsync("proj-1", "sess-1");
+        _popupService.ShowConfirmDeleteAsync(
+                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(true);
+        _sessionService.DeleteSessionAsync("sess-1", Arg.Any<CancellationToken>())
+            .Returns(false);
+
+        // Act
+        await _sut.DeleteSessionCommand.ExecuteAsync(null);
+
+        // Assert
+        await _navigationService.DidNotReceive().GoToAsync(
+            Arg.Any<string>(),
+            Arg.Any<IDictionary<string, object>>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    // ─── Commands — DeleteSessionCommand — service throws ─────────────────────
+
+    [Fact]
+    public async Task DeleteSessionCommand_WhenServiceThrows_SetsErrorMessage()
+    {
+        // Arrange
+        await InitializeWithSessionAsync("proj-1", "sess-1");
+        _popupService.ShowConfirmDeleteAsync(
+                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(true);
+        _sessionService.DeleteSessionAsync("sess-1", Arg.Any<CancellationToken>())
+            .ThrowsAsync(new HttpRequestException("Network error"));
+
+        // Act
+        await _sut.DeleteSessionCommand.ExecuteAsync(null);
+
+        // Assert
+        _sut.ErrorMessage.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task DeleteSessionCommand_WhenServiceThrows_DoesNotNavigate()
+    {
+        // Arrange
+        await InitializeWithSessionAsync("proj-1", "sess-1");
+        _popupService.ShowConfirmDeleteAsync(
+                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(true);
+        _sessionService.DeleteSessionAsync("sess-1", Arg.Any<CancellationToken>())
+            .ThrowsAsync(new HttpRequestException("Network error"));
+
+        // Act
+        await _sut.DeleteSessionCommand.ExecuteAsync(null);
+
+        // Assert
+        await _navigationService.DidNotReceive().GoToAsync(
+            Arg.Any<string>(),
+            Arg.Any<IDictionary<string, object>>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    // ─── Commands — DeleteSessionCommand — CanExecute ─────────────────────────
+
+    [Fact]
+    public void DeleteSessionCommand_WhenIsBusyIsTrue_CanExecuteReturnsFalse()
+    {
+        // Arrange
+        _sut.IsBusy = true;
+
+        // Assert
+        _sut.DeleteSessionCommand.CanExecute(null).Should().BeFalse();
+    }
+
+    [Fact]
+    public void DeleteSessionCommand_WhenIsBusyIsFalse_CanExecuteReturnsTrue()
+    {
+        // Arrange
+        _sut.IsBusy = false;
+
+        // Assert
+        _sut.DeleteSessionCommand.CanExecute(null).Should().BeTrue();
+    }
+
+    // ─── Commands — DeleteSessionCommand — dialog strings ────────────────────
+
+    [Fact]
+    public async Task DeleteSessionCommand_WhenConfirmed_PassesExactDialogStringsToConfirmDialog()
+    {
+        // Arrange
+        await InitializeWithSessionAsync();
+        _popupService.ShowConfirmDeleteAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(false); // cancel so we don't need to set up delete service
+
+        // Act
+        await _sut.DeleteSessionCommand.ExecuteAsync(null);
+
+        // Assert
+        await _popupService.Received(1).ShowConfirmDeleteAsync(
+            "Delete session",
+            "Are you sure you want to delete this session? This action cannot be undone.",
+            Arg.Any<CancellationToken>());
+    }
+
+    // ─── Commands — DeleteSessionCommand — not initialized ────────────────────
+
+    [Fact]
+    public async Task DeleteSessionCommand_WhenNotInitialized_ReturnsWithoutCallingService()
+    {
+        // Arrange — do NOT call InitializeAsync; _currentSessionId will be null
+
+        // Act
+        await _sut.DeleteSessionCommand.ExecuteAsync(null);
+
+        // Assert — the implementation returns early before showing any dialog
+        await _popupService.DidNotReceive().ShowConfirmDeleteAsync(
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await _sessionService.DidNotReceive().DeleteSessionAsync(
+            Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 }

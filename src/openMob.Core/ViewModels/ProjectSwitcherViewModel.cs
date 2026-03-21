@@ -24,27 +24,32 @@ public sealed partial class ProjectSwitcherViewModel : ObservableObject
     private readonly ISessionService _sessionService;
     private readonly INavigationService _navigationService;
     private readonly IAppPopupService _popupService;
+    private readonly IActiveProjectService _activeProjectService;
 
     /// <summary>Initialises the ProjectSwitcherViewModel with required dependencies.</summary>
     /// <param name="projectService">Service for project operations.</param>
     /// <param name="sessionService">Service for session operations.</param>
     /// <param name="navigationService">Service for Shell navigation.</param>
     /// <param name="popupService">Service for popup/dialog operations.</param>
+    /// <param name="activeProjectService">Service for managing the client-side active project state.</param>
     public ProjectSwitcherViewModel(
         IProjectService projectService,
         ISessionService sessionService,
         INavigationService navigationService,
-        IAppPopupService popupService)
+        IAppPopupService popupService,
+        IActiveProjectService activeProjectService)
     {
         ArgumentNullException.ThrowIfNull(projectService);
         ArgumentNullException.ThrowIfNull(sessionService);
         ArgumentNullException.ThrowIfNull(navigationService);
         ArgumentNullException.ThrowIfNull(popupService);
+        ArgumentNullException.ThrowIfNull(activeProjectService);
 
         _projectService = projectService;
         _sessionService = sessionService;
         _navigationService = navigationService;
         _popupService = popupService;
+        _activeProjectService = activeProjectService;
     }
 
     /// <summary>Gets or sets the collection of project items for display.</summary>
@@ -80,7 +85,7 @@ public sealed partial class ProjectSwitcherViewModel : ObservableObject
         try
         {
             var projects = await _projectService.GetAllProjectsAsync(ct);
-            var currentProject = await _projectService.GetCurrentProjectAsync(ct);
+            var currentProject = await _activeProjectService.GetActiveProjectAsync(ct);
 
             ActiveProjectId = currentProject?.Id;
 
@@ -137,6 +142,9 @@ public sealed partial class ProjectSwitcherViewModel : ObservableObject
 
         try
         {
+            // Set the active project before closing the popup and navigating
+            await _activeProjectService.SetActiveProjectAsync(projectId, ct);
+
             // Close the popup first
             await _popupService.PopPopupAsync(ct);
 

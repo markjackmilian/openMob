@@ -29,6 +29,7 @@ public sealed class ChatViewModelSseTests
     private readonly IChatService _chatService;
     private readonly IOpencodeApiClient _apiClient;
     private readonly IDispatcherService _dispatcher;
+    private readonly IActiveProjectService _activeProjectService;
     private readonly ChatViewModel _sut;
 
     public ChatViewModelSseTests()
@@ -43,6 +44,7 @@ public sealed class ChatViewModelSseTests
         _chatService = Substitute.For<IChatService>();
         _apiClient = Substitute.For<IOpencodeApiClient>();
         _dispatcher = Substitute.For<IDispatcherService>();
+        _activeProjectService = Substitute.For<IActiveProjectService>();
 
         // CRITICAL: IDispatcherService mock must execute the action synchronously
         _dispatcher.When(d => d.Dispatch(Arg.Any<Action>())).Do(ci => ci.Arg<Action>()());
@@ -61,7 +63,8 @@ public sealed class ChatViewModelSseTests
             _preferenceService,
             _chatService,
             _apiClient,
-            _dispatcher);
+            _dispatcher,
+            _activeProjectService);
     }
 
     // ─── Helpers ──────────────────────────────────────────────────────────────

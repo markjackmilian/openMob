@@ -24,6 +24,7 @@ public sealed class ChatViewModelTests
     private readonly IChatService _chatService;
     private readonly IOpencodeApiClient _apiClient;
     private readonly IDispatcherService _dispatcher;
+    private readonly IActiveProjectService _activeProjectService;
     private readonly ChatViewModel _sut;
 
     public ChatViewModelTests()
@@ -38,6 +39,7 @@ public sealed class ChatViewModelTests
         _chatService = Substitute.For<IChatService>();
         _apiClient = Substitute.For<IOpencodeApiClient>();
         _dispatcher = Substitute.For<IDispatcherService>();
+        _activeProjectService = Substitute.For<IActiveProjectService>();
 
         // CRITICAL: IDispatcherService mock must execute the action synchronously
         _dispatcher.When(d => d.Dispatch(Arg.Any<Action>())).Do(ci => ci.Arg<Action>()());
@@ -56,7 +58,8 @@ public sealed class ChatViewModelTests
             _preferenceService,
             _chatService,
             _apiClient,
-            _dispatcher);
+            _dispatcher,
+            _activeProjectService);
     }
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -135,7 +138,7 @@ public sealed class ChatViewModelTests
     {
         // Arrange
         var project = BuildProject("proj-1");
-        _projectService.GetCurrentProjectAsync(Arg.Any<CancellationToken>()).Returns(project);
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>()).Returns(project);
         _preferenceService.GetAsync("proj-1", Arg.Any<CancellationToken>())
             .Returns(new ProjectPreference { ProjectId = "proj-1", DefaultModelId = "anthropic/claude-sonnet-4-5" });
 
@@ -151,7 +154,7 @@ public sealed class ChatViewModelTests
     {
         // Arrange
         var project = BuildProject("proj-1");
-        _projectService.GetCurrentProjectAsync(Arg.Any<CancellationToken>()).Returns(project);
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>()).Returns(project);
         _preferenceService.GetAsync("proj-1", Arg.Any<CancellationToken>())
             .Returns(new ProjectPreference { ProjectId = "proj-1", DefaultModelId = "anthropic/claude-sonnet-4-5" });
 
@@ -167,7 +170,7 @@ public sealed class ChatViewModelTests
     {
         // Arrange
         var project = BuildProject("proj-1");
-        _projectService.GetCurrentProjectAsync(Arg.Any<CancellationToken>()).Returns(project);
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>()).Returns(project);
         _preferenceService.GetAsync("proj-1", Arg.Any<CancellationToken>())
             .Returns((ProjectPreference?)null);
 
@@ -183,7 +186,7 @@ public sealed class ChatViewModelTests
     {
         // Arrange
         var project = BuildProject("proj-1");
-        _projectService.GetCurrentProjectAsync(Arg.Any<CancellationToken>()).Returns(project);
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>()).Returns(project);
         _preferenceService.GetAsync("proj-1", Arg.Any<CancellationToken>())
             .Returns((ProjectPreference?)null);
 
@@ -204,7 +207,7 @@ public sealed class ChatViewModelTests
     {
         // Arrange
         var project = BuildProject("proj-1");
-        _projectService.GetCurrentProjectAsync(Arg.Any<CancellationToken>()).Returns(project);
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>()).Returns(project);
         _preferenceService.GetAsync("proj-1", Arg.Any<CancellationToken>())
             .Returns(new ProjectPreference { ProjectId = "proj-1", DefaultModelId = fullModelId });
 
@@ -219,7 +222,7 @@ public sealed class ChatViewModelTests
     public async Task LoadContextCommand_WhenNoCurrentProject_SelectedModelIdRemainsNull()
     {
         // Arrange
-        _projectService.GetCurrentProjectAsync(Arg.Any<CancellationToken>())
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>())
             .Returns((ProjectDto?)null);
 
         // Act
@@ -235,7 +238,7 @@ public sealed class ChatViewModelTests
     {
         // Arrange
         var project = BuildProject("proj-1");
-        _projectService.GetCurrentProjectAsync(Arg.Any<CancellationToken>()).Returns(project);
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>()).Returns(project);
         _preferenceService.GetAsync("proj-1", Arg.Any<CancellationToken>())
             .Returns(new ProjectPreference { ProjectId = "proj-1", DefaultModelId = null });
 
@@ -254,7 +257,7 @@ public sealed class ChatViewModelTests
     {
         // Arrange
         var project = BuildProject("proj-1", "/home/user/myproject");
-        _projectService.GetCurrentProjectAsync(Arg.Any<CancellationToken>()).Returns(project);
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>()).Returns(project);
 
         // Act
         await _sut.LoadContextCommand.ExecuteAsync(null);
@@ -268,7 +271,7 @@ public sealed class ChatViewModelTests
     public async Task LoadContextCommand_WhenNoProject_SetsProjectNameToDefault()
     {
         // Arrange
-        _projectService.GetCurrentProjectAsync(Arg.Any<CancellationToken>())
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>())
             .Returns((ProjectDto?)null);
 
         // Act
@@ -420,7 +423,7 @@ public sealed class ChatViewModelTests
     public async Task LoadContextCommand_WhenServerOffline_SetsStatusBannerToServerOffline()
     {
         // Arrange
-        _projectService.GetCurrentProjectAsync(Arg.Any<CancellationToken>())
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>())
             .Returns((ProjectDto?)null);
         _connectionManager.ConnectionStatus.Returns(ServerConnectionStatus.Disconnected);
 
@@ -436,7 +439,7 @@ public sealed class ChatViewModelTests
     public async Task LoadContextCommand_WhenNoProviderConfigured_SetsStatusBannerToNoProvider()
     {
         // Arrange
-        _projectService.GetCurrentProjectAsync(Arg.Any<CancellationToken>())
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>())
             .Returns((ProjectDto?)null);
         _connectionManager.ConnectionStatus.Returns(ServerConnectionStatus.Connected);
         _providerService.HasAnyProviderConfiguredAsync(Arg.Any<CancellationToken>()).Returns(false);
@@ -453,7 +456,7 @@ public sealed class ChatViewModelTests
     public async Task LoadContextCommand_WhenServerConnectedAndProviderConfigured_StatusBannerIsNull()
     {
         // Arrange
-        _projectService.GetCurrentProjectAsync(Arg.Any<CancellationToken>())
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>())
             .Returns((ProjectDto?)null);
         _connectionManager.ConnectionStatus.Returns(ServerConnectionStatus.Connected);
         _providerService.HasAnyProviderConfiguredAsync(Arg.Any<CancellationToken>()).Returns(true);

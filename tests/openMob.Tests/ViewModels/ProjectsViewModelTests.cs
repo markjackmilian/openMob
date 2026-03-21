@@ -13,6 +13,7 @@ public sealed class ProjectsViewModelTests
     private readonly IProjectService _projectService;
     private readonly INavigationService _navigationService;
     private readonly IAppPopupService _popupService;
+    private readonly IActiveProjectService _activeProjectService;
     private readonly ProjectsViewModel _sut;
 
     public ProjectsViewModelTests()
@@ -20,8 +21,9 @@ public sealed class ProjectsViewModelTests
         _projectService = Substitute.For<IProjectService>();
         _navigationService = Substitute.For<INavigationService>();
         _popupService = Substitute.For<IAppPopupService>();
+        _activeProjectService = Substitute.For<IActiveProjectService>();
 
-        _sut = new ProjectsViewModel(_projectService, _navigationService, _popupService);
+        _sut = new ProjectsViewModel(_projectService, _navigationService, _popupService, _activeProjectService);
     }
 
     // ─── Helper ───────────────────────────────────────────────────────────────
@@ -55,7 +57,7 @@ public sealed class ProjectsViewModelTests
             BuildProject("p2", "/home/user/beta"),
         };
         _projectService.GetAllProjectsAsync(Arg.Any<CancellationToken>()).Returns(projects);
-        _projectService.GetCurrentProjectAsync(Arg.Any<CancellationToken>()).Returns((ProjectDto?)null);
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>()).Returns((ProjectDto?)null);
 
         // Act
         await _sut.LoadProjectsCommand.ExecuteAsync(null);
@@ -71,7 +73,7 @@ public sealed class ProjectsViewModelTests
         // Arrange
         var projects = new List<ProjectDto> { BuildProject("p1", "/home/user/myproject") };
         _projectService.GetAllProjectsAsync(Arg.Any<CancellationToken>()).Returns(projects);
-        _projectService.GetCurrentProjectAsync(Arg.Any<CancellationToken>()).Returns((ProjectDto?)null);
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>()).Returns((ProjectDto?)null);
 
         // Act
         await _sut.LoadProjectsCommand.ExecuteAsync(null);
@@ -86,7 +88,7 @@ public sealed class ProjectsViewModelTests
         // Arrange
         _projectService.GetAllProjectsAsync(Arg.Any<CancellationToken>())
             .Returns(new List<ProjectDto>());
-        _projectService.GetCurrentProjectAsync(Arg.Any<CancellationToken>())
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>())
             .Returns((ProjectDto?)null);
 
         // Act
@@ -104,7 +106,7 @@ public sealed class ProjectsViewModelTests
         var projects = new List<ProjectDto> { BuildProject("p1") };
         var currentProject = BuildProject("p1");
         _projectService.GetAllProjectsAsync(Arg.Any<CancellationToken>()).Returns(projects);
-        _projectService.GetCurrentProjectAsync(Arg.Any<CancellationToken>()).Returns(currentProject);
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>()).Returns(currentProject);
 
         // Act
         await _sut.LoadProjectsCommand.ExecuteAsync(null);
@@ -124,7 +126,7 @@ public sealed class ProjectsViewModelTests
         };
         var currentProject = BuildProject("p1");
         _projectService.GetAllProjectsAsync(Arg.Any<CancellationToken>()).Returns(projects);
-        _projectService.GetCurrentProjectAsync(Arg.Any<CancellationToken>()).Returns(currentProject);
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>()).Returns(currentProject);
 
         // Act
         await _sut.LoadProjectsCommand.ExecuteAsync(null);
@@ -140,7 +142,7 @@ public sealed class ProjectsViewModelTests
         // Arrange
         _projectService.GetAllProjectsAsync(Arg.Any<CancellationToken>())
             .Returns(new List<ProjectDto>());
-        _projectService.GetCurrentProjectAsync(Arg.Any<CancellationToken>())
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>())
             .Returns((ProjectDto?)null);
 
         // Act
@@ -191,7 +193,7 @@ public sealed class ProjectsViewModelTests
             .Returns(true);
         _projectService.GetAllProjectsAsync(Arg.Any<CancellationToken>())
             .Returns(new List<ProjectDto>());
-        _projectService.GetCurrentProjectAsync(Arg.Any<CancellationToken>())
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>())
             .Returns((ProjectDto?)null);
 
         // Act
@@ -225,7 +227,7 @@ public sealed class ProjectsViewModelTests
             .Returns(true);
         _projectService.GetAllProjectsAsync(Arg.Any<CancellationToken>())
             .Returns(new List<ProjectDto>());
-        _projectService.GetCurrentProjectAsync(Arg.Any<CancellationToken>())
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>())
             .Returns((ProjectDto?)null);
 
         // Act

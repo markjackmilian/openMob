@@ -107,9 +107,9 @@ public sealed partial class AgentPickerViewModel : ObservableObject
             IReadOnlyList<AgentDto> agents;
 
             if (PickerMode == PickerMode.Subagent)
-                agents = await _agentService.GetSubagentAgentsAsync(ct).ConfigureAwait(false);
+                agents = await _agentService.GetSubagentAgentsAsync(ct);
             else
-                agents = await _agentService.GetPrimaryAgentsAsync(ct).ConfigureAwait(false);
+                agents = await _agentService.GetPrimaryAgentsAsync(ct);
 
             var items = agents.Select(a => new AgentItem(
                 Name: a.Name,
@@ -179,7 +179,7 @@ public sealed partial class AgentPickerViewModel : ObservableObject
         var updatedItems = Agents.Select(a => a with { IsSelected = a.Name == agentName }).ToList();
         Agents = new ObservableCollection<AgentItem>(updatedItems);
 
-        await _popupService.PopPopupAsync(ct).ConfigureAwait(false);
+        await _popupService.PopPopupAsync(ct);
 #if DEBUG
         sw.Stop();
         DebugLogger.LogCommand(nameof(SelectAgentAsync), "complete", sw.ElapsedMilliseconds);

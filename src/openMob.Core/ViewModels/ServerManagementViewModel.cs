@@ -101,7 +101,7 @@ public sealed partial class ServerManagementViewModel : ObservableObject
 
         try
         {
-            var servers = await _serverConnectionRepository.GetAllAsync(ct).ConfigureAwait(false);
+            var servers = await _serverConnectionRepository.GetAllAsync(ct);
             Servers = new ObservableCollection<ServerConnectionDto>(servers);
             DiscoveredServers = [];
             ScanCompleted = false;
@@ -152,7 +152,7 @@ public sealed partial class ServerManagementViewModel : ObservableObject
 
         try
         {
-            await foreach (var discovered in _discoveryService.ScanAsync(ct).ConfigureAwait(false))
+            await foreach (var discovered in _discoveryService.ScanAsync(ct))
             {
                 // Deduplicate: skip if any saved server has the same Host and Port.
                 var alreadySaved = Servers.Any(s =>
@@ -205,7 +205,7 @@ public sealed partial class ServerManagementViewModel : ObservableObject
         try
         {
 #endif
-        await _navigationService.GoToAsync("server-detail", ct).ConfigureAwait(false);
+        await _navigationService.GoToAsync("server-detail", ct);
 #if DEBUG
         sw.Stop();
         DebugLogger.LogCommand(nameof(NavigateToAddAsync), "complete", sw.ElapsedMilliseconds);
@@ -236,7 +236,7 @@ public sealed partial class ServerManagementViewModel : ObservableObject
         await _navigationService.GoToAsync("server-detail", new Dictionary<string, object>
         {
             ["serverId"] = dto.Id,
-        }, ct).ConfigureAwait(false);
+        }, ct);
 #if DEBUG
         sw.Stop();
         DebugLogger.LogCommand(nameof(NavigateToEditAsync), "complete", sw.ElapsedMilliseconds);
@@ -269,7 +269,7 @@ public sealed partial class ServerManagementViewModel : ObservableObject
             ["discoveredHost"] = dto.Host,
             ["discoveredPort"] = dto.Port.ToString(),
             ["discoveredName"] = dto.Name,
-        }, ct).ConfigureAwait(false);
+        }, ct);
 #if DEBUG
         sw.Stop();
         DebugLogger.LogCommand(nameof(NavigateToDiscoveredAsync), "complete", sw.ElapsedMilliseconds);

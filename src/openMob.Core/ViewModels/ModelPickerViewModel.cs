@@ -86,7 +86,7 @@ public sealed partial class ModelPickerViewModel : ObservableObject
 
         try
         {
-            var providers = await _providerService.GetConfiguredProvidersAsync(ct).ConfigureAwait(false);
+            var providers = await _providerService.GetConfiguredProvidersAsync(ct);
 
             var allModels = new List<ModelItem>();
 
@@ -150,7 +150,7 @@ public sealed partial class ModelPickerViewModel : ObservableObject
 
         OnModelSelected?.Invoke(SelectedModelId);
 
-        await _popupService.PopPopupAsync(ct).ConfigureAwait(false);
+        await _popupService.PopPopupAsync(ct);
 #if DEBUG
         sw.Stop();
         DebugLogger.LogCommand(nameof(SelectModelAsync), "complete", sw.ElapsedMilliseconds);
@@ -177,8 +177,8 @@ public sealed partial class ModelPickerViewModel : ObservableObject
         try
         {
 #endif
-        await _popupService.PopPopupAsync(ct).ConfigureAwait(false);
-        await _navigationService.GoToAsync("settings", ct).ConfigureAwait(false);
+        await _popupService.PopPopupAsync(ct);
+        await _navigationService.GoToAsync("settings", ct);
 #if DEBUG
         sw.Stop();
         DebugLogger.LogCommand(nameof(ConfigureProvidersAsync), "complete", sw.ElapsedMilliseconds);

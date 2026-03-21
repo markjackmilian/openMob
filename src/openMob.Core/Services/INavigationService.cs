@@ -25,4 +25,8 @@ public interface INavigationService
     /// <summary>Pops the current page from the navigation stack.</summary>
     /// <param name="ct">Cancellation token.</param>
     Task PopAsync(CancellationToken ct = default);
+
+    /// <summary>Closes the Shell flyout drawer if it is open.</summary>
+    /// <param name="ct">Cancellation token.</param>
+    Task CloseFlyoutAsync(CancellationToken ct = default);
 }

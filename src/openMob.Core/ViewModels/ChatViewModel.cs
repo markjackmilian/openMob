@@ -42,6 +42,7 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     private readonly IChatService _chatService;
     private readonly IOpencodeApiClient _apiClient;
     private readonly IDispatcherService _dispatcher;
+    private readonly IActiveProjectService _activeProjectService;
 
     /// <summary>Cancellation token source for the active SSE subscription.</summary>
     private CancellationTokenSource? _sseCts;
@@ -57,6 +58,7 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     /// <param name="chatService">Service for chat operations (messages, prompts, SSE).</param>
     /// <param name="apiClient">Low-level opencode API client (used for session abort).</param>
     /// <param name="dispatcher">UI thread dispatcher for thread-safe collection updates.</param>
+    /// <param name="activeProjectService">Service for managing the client-side active project state.</param>
     public ChatViewModel(
         IProjectService projectService,
         ISessionService sessionService,
@@ -67,7 +69,8 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
         IProjectPreferenceService preferenceService,
         IChatService chatService,
         IOpencodeApiClient apiClient,
-        IDispatcherService dispatcher)
+        IDispatcherService dispatcher,
+        IActiveProjectService activeProjectService)
     {
         ArgumentNullException.ThrowIfNull(projectService);
         ArgumentNullException.ThrowIfNull(sessionService);
@@ -79,6 +82,7 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
         ArgumentNullException.ThrowIfNull(chatService);
         ArgumentNullException.ThrowIfNull(apiClient);
         ArgumentNullException.ThrowIfNull(dispatcher);
+        ArgumentNullException.ThrowIfNull(activeProjectService);
 
         _projectService = projectService;
         _sessionService = sessionService;
@@ -90,6 +94,7 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
         _chatService = chatService;
         _apiClient = apiClient;
         _dispatcher = dispatcher;
+        _activeProjectService = activeProjectService;
 
         // Subscribe to project preference changes published by ContextSheetViewModel [REQ-009]
         WeakReferenceMessenger.Default.Register<ProjectPreferenceChangedMessage>(
@@ -263,6 +268,8 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     /// <summary>
     /// Sets the active session. Called by ChatPage when navigation parameters change.
     /// Cancels any existing SSE subscription, clears messages, and loads the new session.
+    /// Publishes a <see cref="CurrentSessionChangedMessage"/> so <see cref="FlyoutViewModel"/>
+    /// can highlight the active session in the drawer.
     /// </summary>
     /// <remarks>
     /// This method replaces <c>IQueryAttributable.ApplyQueryAttributes</c> to maintain
@@ -283,6 +290,9 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
         _sseCts = null;
 
         CurrentSessionId = sessionId;
+
+        // Notify FlyoutViewModel to highlight the newly active session in the drawer
+        WeakReferenceMessenger.Default.Send(new CurrentSessionChangedMessage(sessionId));
 
         // Clear messages immediately to avoid flash of old content (Q3 resolution)
         Messages.Clear();
@@ -313,15 +323,15 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
             _connectionManager.StatusChanged -= OnConnectionStatusChanged;
             _connectionManager.StatusChanged += OnConnectionStatusChanged;
 
-            // Load current project
-            var currentProject = await _projectService.GetCurrentProjectAsync(ct).ConfigureAwait(false);
+            // Load current project from client-side active project state
+            var currentProject = await _activeProjectService.GetActiveProjectAsync(ct);
             if (currentProject is not null)
             {
                 CurrentProjectId = currentProject.Id;
                 ProjectName = ProjectNameHelper.ExtractFromWorktree(currentProject.Worktree);
 
                 // Load default model preference for this project
-                var pref = await _preferenceService.GetAsync(currentProject.Id, ct).ConfigureAwait(false);
+                var pref = await _preferenceService.GetAsync(currentProject.Id, ct);
                 if (pref?.DefaultModelId is not null)
                 {
                     SelectedModelId = pref.DefaultModelId;
@@ -344,7 +354,7 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
             // Load current session if set
             if (CurrentSessionId is not null)
             {
-                var session = await _sessionService.GetSessionAsync(CurrentSessionId, ct).ConfigureAwait(false);
+                var session = await _sessionService.GetSessionAsync(CurrentSessionId, ct);
                 if (session is not null)
                 {
                     SessionName = session.Title;
@@ -352,7 +362,7 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
             }
 
             // Evaluate provider state
-            HasNoProvider = !await _providerService.HasAnyProviderConfiguredAsync(ct).ConfigureAwait(false);
+            HasNoProvider = !await _providerService.HasAnyProviderConfiguredAsync(ct);
 
             // Evaluate server connection state
             IsServerOffline = _connectionManager.ConnectionStatus
@@ -427,7 +437,10 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
 #endif
         try
         {
-            var session = await _sessionService.CreateSessionAsync(null, ct).ConfigureAwait(false);
+            // Note: no ConfigureAwait(false) here — NewChatAsync runs in a ViewModel and must
+            // remain on the UI SynchronizationContext so that SetSession, ShowErrorAsync, and
+            // any subsequent UI mutations execute on the main thread (required on Android).
+            var session = await _sessionService.CreateSessionAsync(null, ct);
 
             if (session is not null)
             {
@@ -501,7 +514,7 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
                 await _popupService.ShowAgentPickerAsync(agentName =>
                 {
                     SelectedAgentName = agentName;
-                }, ct).ConfigureAwait(false);
+                }, ct);
                 break;
 
             case "Change model":
@@ -511,7 +524,7 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
                 {
                     SelectedModelId = modelId;
                     SelectedModelName = ModelIdHelper.ExtractModelName(modelId);
-                }, ct).ConfigureAwait(false);
+                }, ct);
                 break;
 
             case "Fork session":
@@ -564,7 +577,7 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
 
         try
         {
-            var result = await _chatService.GetMessagesAsync(CurrentSessionId, ct: ct).ConfigureAwait(false);
+            var result = await _chatService.GetMessagesAsync(CurrentSessionId, ct: ct);
 
             if (result.IsSuccess && result.Value is not null)
             {
@@ -675,7 +688,7 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
                 text,
                 modelId,
                 providerId,
-                ct).ConfigureAwait(false);
+                ct);
 
             if (result.IsSuccess)
             {
@@ -743,7 +756,7 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
 
         try
         {
-            await _apiClient.AbortSessionAsync(CurrentSessionId, ct).ConfigureAwait(false);
+            await _apiClient.AbortSessionAsync(CurrentSessionId, ct);
         }
         catch (Exception ex)
         {
@@ -867,7 +880,7 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
         await _popupService.ShowContextSheetAsync(
             CurrentProjectId,
             CurrentSessionId ?? string.Empty,
-            ct).ConfigureAwait(false);
+            ct);
 #if DEBUG
         sw.Stop();
         DebugLogger.LogCommand(nameof(OpenContextSheetAsync), "complete", sw.ElapsedMilliseconds);
@@ -942,7 +955,7 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
 
         try
         {
-            await foreach (var chatEvent in _chatService.SubscribeToEventsAsync(ct).ConfigureAwait(false))
+            await foreach (var chatEvent in _chatService.SubscribeToEventsAsync(ct))
             {
                 switch (chatEvent)
                 {
@@ -1287,7 +1300,7 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
             return;
 
         var success = await _sessionService.UpdateSessionTitleAsync(CurrentSessionId, newName, ct)
-            .ConfigureAwait(false);
+            ;
 
         if (success)
         {
@@ -1309,7 +1322,7 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
         try
         {
             var forkedSession = await _sessionService.ForkSessionAsync(CurrentSessionId, ct)
-                .ConfigureAwait(false);
+                ;
 
             if (forkedSession is not null)
             {
@@ -1365,23 +1378,27 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
         try
         {
             var deleted = await _sessionService.DeleteSessionAsync(CurrentSessionId, ct)
-                .ConfigureAwait(false);
+                ;
 
             if (deleted)
             {
                 // Create a new session to replace the deleted one
                 var newSession = await _sessionService.CreateSessionAsync(null, ct)
-                    .ConfigureAwait(false);
+                    ;
 
                 if (newSession is not null)
                 {
                     CurrentSessionId = newSession.Id;
                     SessionName = newSession.Title;
+                    // Notify FlyoutViewModel to highlight the new session
+                    WeakReferenceMessenger.Default.Send(new CurrentSessionChangedMessage(newSession.Id));
                 }
                 else
                 {
                     CurrentSessionId = null;
                     SessionName = "New chat";
+                    // Notify FlyoutViewModel that no session is active
+                    WeakReferenceMessenger.Default.Send(new CurrentSessionChangedMessage(null));
                 }
 
                 await _popupService.ShowToastAsync("Session deleted.", ct);

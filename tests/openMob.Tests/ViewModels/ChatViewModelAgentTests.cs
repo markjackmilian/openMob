@@ -28,6 +28,7 @@ public sealed class ChatViewModelAgentTests : IDisposable
     private readonly IChatService _chatService;
     private readonly IOpencodeApiClient _apiClient;
     private readonly IDispatcherService _dispatcher;
+    private readonly IActiveProjectService _activeProjectService;
     private readonly ChatViewModel _sut;
 
     public ChatViewModelAgentTests()
@@ -42,6 +43,7 @@ public sealed class ChatViewModelAgentTests : IDisposable
         _chatService = Substitute.For<IChatService>();
         _apiClient = Substitute.For<IOpencodeApiClient>();
         _dispatcher = Substitute.For<IDispatcherService>();
+        _activeProjectService = Substitute.For<IActiveProjectService>();
 
         // CRITICAL: IDispatcherService mock must execute the action synchronously
         _dispatcher.When(d => d.Dispatch(Arg.Any<Action>())).Do(ci => ci.Arg<Action>()());
@@ -60,7 +62,8 @@ public sealed class ChatViewModelAgentTests : IDisposable
             _preferenceService,
             _chatService,
             _apiClient,
-            _dispatcher);
+            _dispatcher,
+            _activeProjectService);
     }
 
     public void Dispose()
@@ -113,7 +116,7 @@ public sealed class ChatViewModelAgentTests : IDisposable
     {
         // Arrange
         var project = BuildProject("proj-1");
-        _projectService.GetCurrentProjectAsync(Arg.Any<CancellationToken>()).Returns(project);
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>()).Returns(project);
         _preferenceService.GetAsync("proj-1", Arg.Any<CancellationToken>())
             .Returns(BuildPreference("proj-1", agentName: "coder"));
 
@@ -129,7 +132,7 @@ public sealed class ChatViewModelAgentTests : IDisposable
     {
         // Arrange
         var project = BuildProject("proj-1");
-        _projectService.GetCurrentProjectAsync(Arg.Any<CancellationToken>()).Returns(project);
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>()).Returns(project);
         _preferenceService.GetAsync("proj-1", Arg.Any<CancellationToken>())
             .Returns((ProjectPreference?)null);
 
@@ -145,7 +148,7 @@ public sealed class ChatViewModelAgentTests : IDisposable
     {
         // Arrange
         var project = BuildProject("proj-1");
-        _projectService.GetCurrentProjectAsync(Arg.Any<CancellationToken>()).Returns(project);
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>()).Returns(project);
         _preferenceService.GetAsync("proj-1", Arg.Any<CancellationToken>())
             .Returns(BuildPreference("proj-1", agentName: null));
 
@@ -161,7 +164,7 @@ public sealed class ChatViewModelAgentTests : IDisposable
     {
         // Arrange
         var project = BuildProject("proj-1");
-        _projectService.GetCurrentProjectAsync(Arg.Any<CancellationToken>()).Returns(project);
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>()).Returns(project);
         _preferenceService.GetAsync("proj-1", Arg.Any<CancellationToken>())
             .Returns(BuildPreference("proj-1", agentName: null));
 

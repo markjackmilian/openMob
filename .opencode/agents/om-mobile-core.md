@@ -325,8 +325,46 @@ public sealed class SessionService : ISessionService
 ### async/await
 
 - Always `await` async calls. Never `.Result` or `.Wait()`.
-- Use `ConfigureAwait(false)` in library/service code (not in ViewModels, which need the UI thread).
 - Wrap `HttpClient` calls in `try/catch` at the service boundary.
+
+#### `ConfigureAwait(false)` — Mandatory Rule
+
+> Violating this rule causes **fatal crashes on Android** (`Can't toast/create handler on a thread that has not called Looper.prepare()`).
+
+| Layer | `ConfigureAwait(false)` | Reason |
+|-------|------------------------|--------|
+| `Services/`, `Repositories/`, `Infrastructure/` | ✅ **Use it** | Pure library code, never touches the UI, avoids deadlocks |
+| `ViewModels/` | ❌ **Never use it** | Continuations must stay on the UI SynchronizationContext so that popup calls (`ShowToastAsync`, `ShowErrorAsync`, `DisplayAlertAsync`), observable property assignments, and navigation calls execute on the main thread |
+
+```csharp
+// ✅ CORRECT — Service layer: use ConfigureAwait(false)
+public async Task<Session?> CreateSessionAsync(string? title, CancellationToken ct = default)
+{
+    var response = await _httpClient.PostAsJsonAsync("/session", body, ct).ConfigureAwait(false);
+    return await response.Content.ReadFromJsonAsync<Session>(ct).ConfigureAwait(false);
+}
+
+// ✅ CORRECT — ViewModel: no ConfigureAwait(false)
+[RelayCommand]
+private async Task SetActiveAsync(CancellationToken ct)
+{
+    var success = await _activeProjectService.SetActiveProjectAsync(ProjectId, ct);
+    // ↑ No ConfigureAwait(false) — continuation stays on main thread
+    if (success)
+        await _popupService.ShowToastAsync("Project activated.", ct); // safe: main thread
+}
+
+// ❌ WRONG — ViewModel with ConfigureAwait(false) before a UI call
+[RelayCommand]
+private async Task SetActiveAsync(CancellationToken ct)
+{
+    var success = await _activeProjectService.SetActiveProjectAsync(ProjectId, ct).ConfigureAwait(false);
+    // ↑ Continuation now runs on a thread pool thread
+    await _popupService.ShowToastAsync("Project activated.", ct); // CRASH on Android
+}
+```
+
+**If you find `ConfigureAwait(false)` in any ViewModel file, remove it immediately** — it is always a bug in this layer.
 
 ---
 

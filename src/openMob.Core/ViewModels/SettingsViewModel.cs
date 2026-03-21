@@ -82,7 +82,12 @@ public sealed partial class SettingsViewModel : ObservableObject
 #endif
     }
 
-    /// <summary>Navigates to the Server Management page.</summary>
+    /// <summary>
+    /// Navigates to the Server Management page.
+    /// Uses <c>"///server-management"</c> because <c>server-management</c> is a
+    /// <c>ShellContent</c> element — MAUI requires the triple-slash prefix for push
+    /// navigation to Shell elements while preserving back navigation.
+    /// </summary>
     /// <param name="ct">Cancellation token.</param>
     [RelayCommand]
     private async Task NavigateToServerManagementAsync(CancellationToken ct)
@@ -93,7 +98,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         try
         {
 #endif
-        await _navigationService.GoToAsync("server-management", ct);
+        await _navigationService.GoToAsync("///server-management", ct);
 #if DEBUG
         sw.Stop();
         DebugLogger.LogCommand(nameof(NavigateToServerManagementAsync), "complete", sw.ElapsedMilliseconds);

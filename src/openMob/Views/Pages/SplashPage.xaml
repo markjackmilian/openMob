@@ -45,6 +45,24 @@
         HorizontalOptions="Center"
         AutomationId="SplashLoadingIndicator" />
 
+    <!-- Status message — visible only when StatusMessage is non-empty (REQ-012) -->
+    <Label
+        Text="{Binding StatusMessage, FallbackValue='', TargetNullValue=''}"
+        FontFamily="InterRegular"
+        FontSize="{StaticResource FontSizeFootnote}"
+        TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
+                                    Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
+        HorizontalTextAlignment="Center"
+        AutomationId="SplashStatusMessage">
+      <Label.Triggers>
+        <DataTrigger TargetType="Label"
+                     Binding="{Binding StatusMessage}"
+                     Value="">
+          <Setter Property="IsVisible" Value="False" />
+        </DataTrigger>
+      </Label.Triggers>
+    </Label>
+
   </VerticalStackLayout>
 
 </ContentPage>

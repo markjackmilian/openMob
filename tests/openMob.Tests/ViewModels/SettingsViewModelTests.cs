@@ -145,8 +145,11 @@ public sealed class SettingsViewModelTests
         await sut.NavigateToServerManagementCommand.ExecuteAsync(null);
 
         // Assert
+        // "///server-management" is required because server-management is a ShellContent element.
+        // MAUI does not allow plain relative routing to Shell elements — the triple-slash prefix
+        // performs a push navigation that preserves back navigation.
         await _navigationService.Received(1).GoToAsync(
-            "server-management",
+            "///server-management",
             Arg.Any<CancellationToken>());
     }
 }

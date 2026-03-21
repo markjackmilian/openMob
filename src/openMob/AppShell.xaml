@@ -42,5 +42,11 @@
       ContentTemplate="{DataTemplate pages:ChatPage}"
       FlyoutItemIsVisible="False" />
 
+  <!-- Server Management — not visible in flyout, no nav bar; declared here to support //server-management absolute route from SplashPage -->
+  <ShellContent
+      Route="server-management"
+      ContentTemplate="{DataTemplate pages:ServerManagementPage}"
+      FlyoutItemIsVisible="False"
+      Shell.NavBarIsVisible="False" />
 
 </Shell>

@@ -1015,4 +1015,40 @@ public sealed class ChatViewModelTests
         _sut.Messages.Should().ContainSingle(m => m.TextContent == "Explain this code");
         _sut.Messages[0].IsFromUser.Should().BeTrue();
     }
+
+    // ─── Status banner — ActionLabel for server offline states ───────────────
+
+    [Theory]
+    [InlineData(ServerConnectionStatus.Disconnected)]
+    [InlineData(ServerConnectionStatus.Error)]
+    public async Task LoadContextCommand_WhenServerOffline_StatusBannerActionLabelIsGestisciServer(
+        ServerConnectionStatus status)
+    {
+        // Arrange
+        _connectionManager.ConnectionStatus.Returns(status);
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>())
+            .Returns((ProjectDto?)null);
+
+        // Act
+        await _sut.LoadContextCommand.ExecuteAsync(null);
+
+        // Assert
+        _sut.StatusBanner.Should().NotBeNull();
+        _sut.StatusBanner!.ActionLabel.Should().Be("Gestisci server");
+    }
+
+    // ─── NavigateToServerManagementCommand ───────────────────────────────────
+
+    [Fact]
+    public async Task NavigateToServerManagementCommand_WhenExecuted_CallsNavigationServiceWithShellPushRoute()
+    {
+        // Act
+        await _sut.NavigateToServerManagementCommand.ExecuteAsync(null);
+
+        // Assert
+        // "///server-management" is required because server-management is a ShellContent element.
+        // MAUI does not allow plain relative routing to Shell elements — the triple-slash prefix
+        // performs a push navigation that preserves back navigation to ChatPage (REQ-011).
+        await _navigationService.Received(1).GoToAsync("///server-management", Arg.Any<CancellationToken>());
+    }
 }

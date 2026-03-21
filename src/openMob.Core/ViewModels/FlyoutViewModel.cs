@@ -157,7 +157,7 @@ public sealed partial class FlyoutViewModel : ObservableObject, IDisposable
 
         try
         {
-            var currentProject = await _activeProjectService.GetActiveProjectAsync(ct).ConfigureAwait(false);
+            var currentProject = await _activeProjectService.GetActiveProjectAsync(ct);
 
             if (currentProject is null)
             {
@@ -171,7 +171,7 @@ public sealed partial class FlyoutViewModel : ObservableObject, IDisposable
             ProjectSectionTitle = ProjectNameHelper.ExtractFromWorktree(currentProject.Worktree).ToUpperInvariant();
 
             var sessions = await _sessionService.GetSessionsByProjectAsync(currentProject.Id, ct)
-                .ConfigureAwait(false);
+                ;
 
             var items = sessions.Select(s => new SessionItem(
                 Id: s.Id,
@@ -263,7 +263,7 @@ public sealed partial class FlyoutViewModel : ObservableObject, IDisposable
 #endif
         try
         {
-            var session = await _sessionService.CreateSessionAsync(null, ct).ConfigureAwait(false);
+            var session = await _sessionService.CreateSessionAsync(null, ct);
 
             if (session is not null)
             {

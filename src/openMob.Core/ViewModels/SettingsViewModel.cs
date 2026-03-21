@@ -67,7 +67,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         try
         {
 #endif
-        await _themeService.SetThemeAsync(preference, ct).ConfigureAwait(false);
+        await _themeService.SetThemeAsync(preference, ct);
         SelectedThemeLabel = MapToLabel(preference);
 #if DEBUG
         sw.Stop();
@@ -93,7 +93,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         try
         {
 #endif
-        await _navigationService.GoToAsync("server-management", ct).ConfigureAwait(false);
+        await _navigationService.GoToAsync("server-management", ct);
 #if DEBUG
         sw.Stop();
         DebugLogger.LogCommand(nameof(NavigateToServerManagementAsync), "complete", sw.ElapsedMilliseconds);

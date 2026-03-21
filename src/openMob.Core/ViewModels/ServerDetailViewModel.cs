@@ -185,7 +185,7 @@ public sealed partial class ServerDetailViewModel : ObservableObject
 
             try
             {
-                var dto = await _serverConnectionRepository.GetByIdAsync(serverId, ct).ConfigureAwait(false);
+                var dto = await _serverConnectionRepository.GetByIdAsync(serverId, ct);
 
                 if (dto is not null)
                 {
@@ -286,12 +286,12 @@ public sealed partial class ServerDetailViewModel : ObservableObject
             if (!IsEditMode)
             {
                 // Add mode — create new record.
-                var saved = await _serverConnectionRepository.AddAsync(dto, ct).ConfigureAwait(false);
+                var saved = await _serverConnectionRepository.AddAsync(dto, ct);
                 _savedServerId = saved.Id;
 
                 if (!string.IsNullOrWhiteSpace(Password))
                 {
-                    await _credentialStore.SavePasswordAsync(saved.Id, Password.Trim(), ct).ConfigureAwait(false);
+                    await _credentialStore.SavePasswordAsync(saved.Id, Password.Trim(), ct);
                 }
 
                 IsSaved = true;
@@ -301,24 +301,24 @@ public sealed partial class ServerDetailViewModel : ObservableObject
             else
             {
                 // Edit mode — update existing record.
-                await _serverConnectionRepository.UpdateAsync(dto with { Id = _savedServerId! }, ct).ConfigureAwait(false);
+                await _serverConnectionRepository.UpdateAsync(dto with { Id = _savedServerId! }, ct);
 
                 if (!string.IsNullOrWhiteSpace(Password))
                 {
                     // New password provided — overwrite stored credential.
-                    await _credentialStore.SavePasswordAsync(_savedServerId!, Password.Trim(), ct).ConfigureAwait(false);
+                    await _credentialStore.SavePasswordAsync(_savedServerId!, Password.Trim(), ct);
                     _originalHasPassword = true;
                 }
                 else if (_originalHasPassword)
                 {
                     // Password field cleared and a credential was previously stored — delete it.
-                    await _credentialStore.DeletePasswordAsync(_savedServerId!, ct).ConfigureAwait(false);
+                    await _credentialStore.DeletePasswordAsync(_savedServerId!, ct);
                     _originalHasPassword = false;
                 }
                 // No-op: field empty and no password was ever stored.
             }
 
-            await _navigationService.PopAsync(ct).ConfigureAwait(false);
+            await _navigationService.PopAsync(ct);
         }
         catch (Exception ex)
         {
@@ -395,7 +395,7 @@ public sealed partial class ServerDetailViewModel : ObservableObject
             // The form probes an arbitrary URL the user typed; failed probes must never
             // trigger the circuit breaker that protects real API calls on the "opencode" client.
             var client = _httpClientFactory.CreateClient("discovery-probe");
-            using var response = await client.GetAsync(healthUrl, timeoutCts.Token).ConfigureAwait(false);
+            using var response = await client.GetAsync(healthUrl, timeoutCts.Token);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -404,7 +404,7 @@ public sealed partial class ServerDetailViewModel : ObservableObject
                 return;
             }
 
-            var body = await response.Content.ReadAsStringAsync(timeoutCts.Token).ConfigureAwait(false);
+            var body = await response.Content.ReadAsStringAsync(timeoutCts.Token);
             using var doc = JsonDocument.Parse(body);
 
             var healthy = doc.RootElement.TryGetProperty("healthy", out var healthyProp)
@@ -484,14 +484,14 @@ public sealed partial class ServerDetailViewModel : ObservableObject
 
         try
         {
-            await _serverConnectionRepository.SetActiveAsync(_savedServerId!, ct).ConfigureAwait(false);
+            await _serverConnectionRepository.SetActiveAsync(_savedServerId!, ct);
 
-            var reachable = await _connectionManager.IsServerReachableAsync(ct).ConfigureAwait(false);
+            var reachable = await _connectionManager.IsServerReachableAsync(ct);
             ActivationStatusMessage = reachable
                 ? "Now active — server reachable"
                 : "Set as active — server unreachable";
 
-            await _navigationService.PopAsync(ct).ConfigureAwait(false);
+            await _navigationService.PopAsync(ct);
         }
         catch (Exception ex)
         {
@@ -544,13 +544,13 @@ public sealed partial class ServerDetailViewModel : ObservableObject
             var confirmed = await _popupService.ShowConfirmDeleteAsync(
                 "Delete Server",
                 "Are you sure you want to remove this server? This action cannot be undone.",
-                ct).ConfigureAwait(false);
+                ct);
 
             if (!confirmed)
                 return;
 
-            await _serverConnectionRepository.DeleteAsync(_savedServerId!, ct).ConfigureAwait(false);
-            await _navigationService.PopAsync(ct).ConfigureAwait(false);
+            await _serverConnectionRepository.DeleteAsync(_savedServerId!, ct);
+            await _navigationService.PopAsync(ct);
         }
         catch (Exception ex)
         {

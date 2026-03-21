@@ -84,7 +84,7 @@ public sealed partial class CommandPaletteViewModel : ObservableObject
 
         try
         {
-            var commands = await _commandService.GetCommandsAsync(ct).ConfigureAwait(false);
+            var commands = await _commandService.GetCommandsAsync(ct);
             Commands = new ObservableCollection<CommandItem>(commands);
         }
         catch (Exception ex)
@@ -138,7 +138,7 @@ public sealed partial class CommandPaletteViewModel : ObservableObject
         try
         {
             var result = await _commandService.ExecuteCommandAsync(CurrentSessionId, command.Name, ct)
-                .ConfigureAwait(false);
+                ;
 
             if (!result.IsSuccess && result.Error is not null)
             {
@@ -204,7 +204,7 @@ public sealed partial class CommandPaletteViewModel : ObservableObject
     {
         try
         {
-            var filtered = await _commandService.SearchCommandsAsync(query).ConfigureAwait(false);
+            var filtered = await _commandService.SearchCommandsAsync(query);
             Commands = new ObservableCollection<CommandItem>(filtered);
             OnPropertyChanged(nameof(IsEmpty));
         }

@@ -175,7 +175,7 @@ public sealed partial class ContextSheetViewModel : ObservableObject
         await _popupService.ShowAgentPickerAsync(agentName =>
         {
             SelectedAgentName = agentName;
-        }, ct).ConfigureAwait(false);
+        }, ct);
 #if DEBUG
         sw.Stop();
         DebugLogger.LogCommand(nameof(SelectAgentAsync), "complete", sw.ElapsedMilliseconds);
@@ -206,7 +206,7 @@ public sealed partial class ContextSheetViewModel : ObservableObject
         await _popupService.ShowModelPickerAsync(modelId =>
         {
             SelectedModelId = modelId;
-        }, ct).ConfigureAwait(false);
+        }, ct);
 #if DEBUG
         sw.Stop();
         DebugLogger.LogCommand(nameof(SelectModelAsync), "complete", sw.ElapsedMilliseconds);
@@ -248,11 +248,11 @@ public sealed partial class ContextSheetViewModel : ObservableObject
         {
             var success = await _preferenceService
                 .SetAutoAcceptAsync(projectId, newValue, ct)
-                .ConfigureAwait(false);
+                ;
 
             if (success)
             {
-                await PublishChangedMessageAsync(projectId).ConfigureAwait(false);
+                await PublishChangedMessageAsync(projectId);
             }
             else
             {
@@ -313,7 +313,7 @@ public sealed partial class ContextSheetViewModel : ObservableObject
 
         try
         {
-            await _popupService.ShowSubagentPickerAsync(OnSubagentSelected, ct).ConfigureAwait(false);
+            await _popupService.ShowSubagentPickerAsync(OnSubagentSelected, ct);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -377,7 +377,7 @@ public sealed partial class ContextSheetViewModel : ObservableObject
         var confirmed = await _popupService.ShowConfirmDeleteAsync(
             "Delete session",
             "Are you sure you want to delete this session? This action cannot be undone.",
-            ct).ConfigureAwait(false);
+            ct);
 
         if (!confirmed)
             return;
@@ -386,7 +386,7 @@ public sealed partial class ContextSheetViewModel : ObservableObject
         try
         {
             var deleted = await _sessionService.DeleteSessionAsync(_currentSessionId, ct)
-                .ConfigureAwait(false);
+                ;
 
             if (deleted)
             {
@@ -394,9 +394,9 @@ public sealed partial class ContextSheetViewModel : ObservableObject
                     new SessionDeletedMessage(_currentSessionId, _currentProjectId));
 
                 // Dismiss the sheet first, then navigate to a new chat
-                await _popupService.PopPopupAsync(ct).ConfigureAwait(false);
+                await _popupService.PopPopupAsync(ct);
                 await _navigationService.GoToAsync("//chat", new Dictionary<string, object>(), ct)
-                    .ConfigureAwait(false);
+                    ;
             }
             else
             {
@@ -455,13 +455,13 @@ public sealed partial class ContextSheetViewModel : ObservableObject
             _currentSessionId = sessionId;
 
             // Load project display name
-            var project = await _projectService.GetProjectByIdAsync(projectId, ct).ConfigureAwait(false);
+            var project = await _projectService.GetProjectByIdAsync(projectId, ct);
             ProjectName = project is not null
                 ? ProjectNameHelper.ExtractFromWorktree(project.Worktree)
                 : "No project";
 
             // Load preferences — returns global defaults if no row exists for this project
-            var pref = await _preferenceService.GetOrDefaultAsync(projectId, ct).ConfigureAwait(false);
+            var pref = await _preferenceService.GetOrDefaultAsync(projectId, ct);
 
             SelectedAgentName = pref.AgentName;
             SelectedModelId = pref.DefaultModelId;
@@ -469,7 +469,7 @@ public sealed partial class ContextSheetViewModel : ObservableObject
             AutoAccept = pref.AutoAccept;
 
             // Load subagent list for InvokeSubagentCommand CanExecute evaluation [REQ-009]
-            _subagentAgents = await _agentService.GetSubagentAgentsAsync(ct).ConfigureAwait(false);
+            _subagentAgents = await _agentService.GetSubagentAgentsAsync(ct);
             InvokeSubagentCommand.NotifyCanExecuteChanged();
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -546,10 +546,10 @@ public sealed partial class ContextSheetViewModel : ObservableObject
         var projectId = _currentProjectId!;
         var success = await _preferenceService
             .SetAgentAsync(projectId, agentName, CancellationToken.None)
-            .ConfigureAwait(false);
+            ;
 
         if (success)
-            await PublishChangedMessageAsync(projectId).ConfigureAwait(false);
+            await PublishChangedMessageAsync(projectId);
         else
             ErrorMessage = "Failed to save agent preference.";
     }
@@ -564,17 +564,17 @@ public sealed partial class ContextSheetViewModel : ObservableObject
         {
             success = await _preferenceService
                 .SetDefaultModelAsync(projectId, modelId, CancellationToken.None)
-                .ConfigureAwait(false);
+                ;
         }
         else
         {
             success = await _preferenceService
                 .ClearDefaultModelAsync(projectId, CancellationToken.None)
-                .ConfigureAwait(false);
+                ;
         }
 
         if (success)
-            await PublishChangedMessageAsync(projectId).ConfigureAwait(false);
+            await PublishChangedMessageAsync(projectId);
         else
             ErrorMessage = "Failed to save model preference.";
     }
@@ -585,10 +585,10 @@ public sealed partial class ContextSheetViewModel : ObservableObject
         var projectId = _currentProjectId!;
         var success = await _preferenceService
             .SetThinkingLevelAsync(projectId, level, CancellationToken.None)
-            .ConfigureAwait(false);
+            ;
 
         if (success)
-            await PublishChangedMessageAsync(projectId).ConfigureAwait(false);
+            await PublishChangedMessageAsync(projectId);
         else
             ErrorMessage = "Failed to save thinking level preference.";
     }
@@ -599,10 +599,10 @@ public sealed partial class ContextSheetViewModel : ObservableObject
         var projectId = _currentProjectId!;
         var success = await _preferenceService
             .SetAutoAcceptAsync(projectId, autoAccept, CancellationToken.None)
-            .ConfigureAwait(false);
+            ;
 
         if (success)
-            await PublishChangedMessageAsync(projectId).ConfigureAwait(false);
+            await PublishChangedMessageAsync(projectId);
         else
             ErrorMessage = "Failed to save auto-accept preference.";
     }
@@ -615,7 +615,7 @@ public sealed partial class ContextSheetViewModel : ObservableObject
     {
         var updatedPref = await _preferenceService
             .GetOrDefaultAsync(projectId, CancellationToken.None)
-            .ConfigureAwait(false);
+            ;
 
         WeakReferenceMessenger.Default.Send(
             new ProjectPreferenceChangedMessage(projectId, updatedPref));

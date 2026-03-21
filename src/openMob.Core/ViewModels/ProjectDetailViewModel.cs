@@ -149,7 +149,7 @@ public sealed partial class ProjectDetailViewModel : ObservableObject
             RecentSessions = new ObservableCollection<SessionItem>(recentItems);
 
             // Load default model preference (REQ-007)
-            var pref = await _preferenceService.GetAsync(id, ct).ConfigureAwait(false);
+            var pref = await _preferenceService.GetAsync(id, ct);
             if (pref?.DefaultModelId is not null)
             {
                 DefaultModelName = ModelIdHelper.ExtractModelName(pref.DefaultModelId);
@@ -195,7 +195,7 @@ public sealed partial class ProjectDetailViewModel : ObservableObject
         try
         {
 #endif
-        var success = await _activeProjectService.SetActiveProjectAsync(ProjectId, ct).ConfigureAwait(false);
+        var success = await _activeProjectService.SetActiveProjectAsync(ProjectId, ct);
 
         if (success)
         {
@@ -309,20 +309,20 @@ public sealed partial class ProjectDetailViewModel : ObservableObject
         {
             selectedModelId = modelId;
             DefaultModelName = ModelIdHelper.ExtractModelName(modelId);
-        }, ct).ConfigureAwait(false);
+        }, ct);
 
         if (selectedModelId is null)
             return;
 
         var persisted = await _preferenceService
             .SetDefaultModelAsync(ProjectId, selectedModelId, ct)
-            .ConfigureAwait(false);
+            ;
 
         if (!persisted)
         {
             DefaultModelName = previousModelName;
             await _popupService.ShowToastAsync(
-                "Failed to save model preference. Please try again.", ct).ConfigureAwait(false);
+                "Failed to save model preference. Please try again.", ct);
         }
 #if DEBUG
         sw.Stop();

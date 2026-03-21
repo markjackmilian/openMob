@@ -37,7 +37,7 @@ public sealed partial class SplashViewModel : ObservableObject
     private readonly IProjectService _projectService;
     private readonly TimeProvider _timeProvider;
 
-    /// <summary>Initialises the SplashViewModel with required dependencies.</summary>
+    /// <summary>Initialises the SplashViewModel with its dependencies.</summary>
     /// <param name="serverConnectionRepository">Repository for server connection data.</param>
     /// <param name="connectionManager">Manager for checking server reachability.</param>
     /// <param name="sessionService">Service for session operations.</param>
@@ -207,9 +207,13 @@ public sealed partial class SplashViewModel : ObservableObject
                 await Task.Delay(TimeSpan.FromSeconds(2), _timeProvider, ct);
                 await _navigationService.GoToAsync("//server-management", ct);
             }
-            catch
+            catch (Exception fallbackEx)
             {
-                // Last resort — nothing more we can do (e.g. ct cancelled during delay)
+                // Last resort — log to Sentry for observability, but do not re-throw.
+                SentryHelper.CaptureException(fallbackEx, new Dictionary<string, object>
+                {
+                    ["context"] = "SplashViewModel.InitializeAsync.FallbackNavigation",
+                });
             }
         }
         finally

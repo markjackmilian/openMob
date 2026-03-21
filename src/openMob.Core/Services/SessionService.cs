@@ -81,7 +81,7 @@ internal sealed class SessionService : ISessionService
     public async Task<SessionDto?> CreateSessionAsync(string? title, CancellationToken ct = default)
     {
         var request = new CreateSessionRequest(Title: title ?? string.Empty, ParentId: string.Empty);
-        var result = await _apiClient.CreateSessionAsync(request, ct).ConfigureAwait(false);
+        var result = await _apiClient.CreateSessionAsync(request, directory: null, ct).ConfigureAwait(false);
 
         if (result.IsSuccess)
             return result.Value;
@@ -97,12 +97,13 @@ internal sealed class SessionService : ISessionService
     }
 
     /// <inheritdoc />
-    public async Task<SessionDto> CreateSessionForProjectAsync(string projectId, CancellationToken ct = default)
+    public async Task<SessionDto> CreateSessionForProjectAsync(string projectId, string directory, CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(projectId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(directory);
 
         var request = new CreateSessionRequest(Title: string.Empty, ParentId: string.Empty);
-        var result = await _apiClient.CreateSessionAsync(request, ct).ConfigureAwait(false);
+        var result = await _apiClient.CreateSessionAsync(request, directory, ct).ConfigureAwait(false);
 
         if (result.IsSuccess && result.Value is not null)
             return result.Value;

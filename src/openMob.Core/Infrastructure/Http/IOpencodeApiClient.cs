@@ -137,8 +137,12 @@ public interface IOpencodeApiClient
 
     /// <summary>Creates a new session. Maps to <c>POST /session</c>.</summary>
     /// <param name="request">The session creation request.</param>
+    /// <param name="directory">
+    /// Optional project directory. When provided, appended as <c>?directory=</c> query parameter
+    /// so the server associates the session with the correct project.
+    /// </param>
     /// <param name="ct">Cancellation token.</param>
-    Task<OpencodeResult<SessionDto>> CreateSessionAsync(CreateSessionRequest request, CancellationToken ct = default);
+    Task<OpencodeResult<SessionDto>> CreateSessionAsync(CreateSessionRequest request, string? directory = null, CancellationToken ct = default);
 
     /// <summary>Updates a session. Maps to <c>PUT /session/{id}</c>.</summary>
     /// <param name="id">The session identifier.</param>

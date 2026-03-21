@@ -435,10 +435,18 @@ internal sealed class OpencodeApiClient : IOpencodeApiClient
     /// <remarks>
     /// The opencode <c>POST /session</c> endpoint accepts no request body.
     /// The <paramref name="request"/> parameter is retained for API compatibility but its fields are not serialised.
+    /// When <paramref name="directory"/> is provided, it is appended as a <c>?directory=</c> query parameter
+    /// so the server associates the new session with the correct project.
     /// </remarks>
-    public Task<OpencodeResult<SessionDto>> CreateSessionAsync(CreateSessionRequest request, CancellationToken ct = default)
+    public Task<OpencodeResult<SessionDto>> CreateSessionAsync(CreateSessionRequest request, string? directory = null, CancellationToken ct = default)
         => ExecuteAsync<SessionDto>(
-            (client, baseUrl, token) => client.PostAsync($"{baseUrl}/session", null, token),
+            (client, baseUrl, token) =>
+            {
+                var url = $"{baseUrl}/session";
+                if (!string.IsNullOrEmpty(directory))
+                    url += $"?directory={Uri.EscapeDataString(directory)}";
+                return client.PostAsync(url, null, token);
+            },
             ct);
 
     /// <inheritdoc />

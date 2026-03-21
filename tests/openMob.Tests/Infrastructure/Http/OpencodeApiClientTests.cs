@@ -132,7 +132,7 @@ public sealed class OpencodeApiClientTests
         var request = new CreateSessionRequest(Title: "New Session", ParentId: string.Empty);
 
         // Act
-        var result = await sut.CreateSessionAsync(request);
+        var result = await sut.CreateSessionAsync(request, "/home/user/myproject");
 
         // Assert
         result.IsSuccess.Should().BeTrue();

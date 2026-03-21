@@ -1,6 +1,9 @@
+using System.Text.Json;
+using NSubstitute.ExceptionExtensions;
 using openMob.Core.Infrastructure.Http;
 using openMob.Core.Infrastructure.Http.Dtos.Opencode;
 using openMob.Core.Infrastructure.Security;
+using openMob.Core.Models;
 using openMob.Core.Services;
 using openMob.Core.ViewModels;
 using openMob.Tests.Helpers;
@@ -557,5 +560,317 @@ public sealed class OnboardingViewModelTests
         await _serverConnectionRepo.Received(1).AddAsync(
             Arg.Is<ServerConnectionDto>(dto => dto.UseHttps == true && dto.Port == 8443),
             Arg.Any<CancellationToken>());
+    }
+
+    // ─── Step 3: CanGoNext — model loading / error states ─────────────────────
+
+    [Fact]
+    public void CanGoNext_WhenOnStep3AndModelsLoading_ReturnsFalse()
+    {
+        // Arrange
+        _sut.CurrentStep = 3;
+        _sut.SelectedModelId = "anthropic/claude-3-opus";
+        _sut.IsLoadingModels = true;
+
+        // Assert
+        _sut.CanGoNext.Should().BeFalse();
+    }
+
+    [Fact]
+    public void CanGoNext_WhenOnStep3AndModelLoadError_ReturnsFalse()
+    {
+        // Arrange
+        _sut.CurrentStep = 3;
+        _sut.SelectedModelId = "anthropic/claude-3-opus";
+        _sut.ModelLoadError = "Failed to load models: Network error";
+
+        // Assert
+        _sut.CanGoNext.Should().BeFalse();
+    }
+
+    // ─── Step 3: LoadModelsAsync (triggered via NextStep from step 2) ─────────
+
+    [Fact]
+    public async Task NextStepAsync_WhenOnStep2_LoadsModelsFromProviderService()
+    {
+        // Arrange
+        _sut.CurrentStep = 2;
+
+        var modelsJson = JsonDocument.Parse("""
+        {
+            "claude-3-opus": {
+                "name": "Claude 3 Opus",
+                "limit": { "context": 200000, "output": 4096 }
+            },
+            "claude-3-sonnet": {
+                "name": "Claude 3 Sonnet",
+                "limit": { "context": 200000, "output": 4096 }
+            }
+        }
+        """).RootElement;
+
+        var providers = new List<ProviderDto>
+        {
+            new("anthropic", "Anthropic", "config", [], null, JsonDocument.Parse("{}").RootElement, modelsJson)
+        };
+
+        _providerService.GetConfiguredProvidersAsync(Arg.Any<CancellationToken>())
+            .Returns(providers);
+
+        // Act
+        await _sut.NextStepCommand.ExecuteAsync(null);
+
+        // Assert
+        _sut.CurrentStep.Should().Be(3);
+        _sut.AvailableModels.Should().HaveCount(2);
+        _sut.AvailableModels.Should().Contain(m => m.Id == "anthropic/claude-3-opus");
+        _sut.AvailableModels.Should().Contain(m => m.Id == "anthropic/claude-3-sonnet");
+        _sut.IsLoadingModels.Should().BeFalse();
+        _sut.ModelLoadError.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task NextStepAsync_WhenOnStep2_ExtractsModelNameAndContextSize()
+    {
+        // Arrange
+        _sut.CurrentStep = 2;
+
+        var modelsJson = JsonDocument.Parse("""
+        {
+            "claude-3-opus": {
+                "name": "Claude 3 Opus",
+                "limit": { "context": 200000, "output": 4096 }
+            }
+        }
+        """).RootElement;
+
+        var providers = new List<ProviderDto>
+        {
+            new("anthropic", "Anthropic", "config", [], null, JsonDocument.Parse("{}").RootElement, modelsJson)
+        };
+
+        _providerService.GetConfiguredProvidersAsync(Arg.Any<CancellationToken>())
+            .Returns(providers);
+
+        // Act
+        await _sut.NextStepCommand.ExecuteAsync(null);
+
+        // Assert
+        var model = _sut.AvailableModels.Single();
+        model.Name.Should().Be("Claude 3 Opus");
+        model.ProviderName.Should().Be("Anthropic");
+        model.ContextSize.Should().Be("200k tokens");
+    }
+
+    [Fact]
+    public async Task NextStepAsync_WhenOnStep2AndProviderServiceFails_SetsModelLoadError()
+    {
+        // Arrange
+        _sut.CurrentStep = 2;
+
+        _providerService.GetConfiguredProvidersAsync(Arg.Any<CancellationToken>())
+            .ThrowsAsync(new HttpRequestException("Network error"));
+
+        // Act
+        await _sut.NextStepCommand.ExecuteAsync(null);
+
+        // Assert
+        _sut.CurrentStep.Should().Be(3);
+        _sut.ModelLoadError.Should().Contain("Failed to load models");
+        _sut.ModelLoadError.Should().Contain("Network error");
+        _sut.AvailableModels.Should().BeEmpty();
+        _sut.IsLoadingModels.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task NextStepAsync_WhenOnStep2AndNoModelsAvailable_SetsModelLoadError()
+    {
+        // Arrange
+        _sut.CurrentStep = 2;
+
+        _providerService.GetConfiguredProvidersAsync(Arg.Any<CancellationToken>())
+            .Returns(new List<ProviderDto>());
+
+        // Act
+        await _sut.NextStepCommand.ExecuteAsync(null);
+
+        // Assert
+        _sut.CurrentStep.Should().Be(3);
+        _sut.ModelLoadError.Should().Contain("No models available");
+        _sut.AvailableModels.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task NextStepAsync_WhenOnStep2WithMultipleProviders_AggregatesAllModels()
+    {
+        // Arrange
+        _sut.CurrentStep = 2;
+
+        var anthropicModels = JsonDocument.Parse("""
+        {
+            "claude-3-opus": { "name": "Claude 3 Opus" }
+        }
+        """).RootElement;
+
+        var openaiModels = JsonDocument.Parse("""
+        {
+            "gpt-4": { "name": "GPT-4" }
+        }
+        """).RootElement;
+
+        var providers = new List<ProviderDto>
+        {
+            new("anthropic", "Anthropic", "config", [], null, JsonDocument.Parse("{}").RootElement, anthropicModels),
+            new("openai", "OpenAI", "config", [], null, JsonDocument.Parse("{}").RootElement, openaiModels)
+        };
+
+        _providerService.GetConfiguredProvidersAsync(Arg.Any<CancellationToken>())
+            .Returns(providers);
+
+        // Act
+        await _sut.NextStepCommand.ExecuteAsync(null);
+
+        // Assert
+        _sut.AvailableModels.Should().HaveCount(2);
+        _sut.AvailableModels.Should().Contain(m => m.Id == "anthropic/claude-3-opus");
+        _sut.AvailableModels.Should().Contain(m => m.Id == "openai/gpt-4");
+    }
+
+    // ─── Step 3: SelectModelCommand ───────────────────────────────────────────
+
+    [Fact]
+    public void SelectModelCommand_WhenCalled_SetsSelectedModelId()
+    {
+        // Arrange
+        _sut.CurrentStep = 3;
+        _sut.AvailableModels = new System.Collections.ObjectModel.ObservableCollection<ModelItem>(
+        [
+            new ModelItem("anthropic/claude-3-opus", "Claude 3 Opus", "Anthropic", "200k tokens", false),
+            new ModelItem("anthropic/claude-3-sonnet", "Claude 3 Sonnet", "Anthropic", "200k tokens", false)
+        ]);
+
+        // Act
+        _sut.SelectModelCommand.Execute("anthropic/claude-3-opus");
+
+        // Assert
+        _sut.SelectedModelId.Should().Be("anthropic/claude-3-opus");
+    }
+
+    [Fact]
+    public void SelectModelCommand_WhenCalled_UpdatesIsSelectedOnModels()
+    {
+        // Arrange
+        _sut.CurrentStep = 3;
+        _sut.AvailableModels = new System.Collections.ObjectModel.ObservableCollection<ModelItem>(
+        [
+            new ModelItem("anthropic/claude-3-opus", "Claude 3 Opus", "Anthropic", "200k tokens", false),
+            new ModelItem("anthropic/claude-3-sonnet", "Claude 3 Sonnet", "Anthropic", "200k tokens", false)
+        ]);
+
+        // Act
+        _sut.SelectModelCommand.Execute("anthropic/claude-3-opus");
+
+        // Assert
+        _sut.AvailableModels.Single(m => m.Id == "anthropic/claude-3-opus").IsSelected.Should().BeTrue();
+        _sut.AvailableModels.Single(m => m.Id == "anthropic/claude-3-sonnet").IsSelected.Should().BeFalse();
+    }
+
+    // ─── CompleteOnboarding — saves default model ─────────────────────────────
+
+    [Fact]
+    public async Task CompleteOnboardingAsync_WhenModelSelected_SavesDefaultModelId()
+    {
+        // Arrange — simulate a successful connection test to set _savedConnectionId
+        _sut.ServerUrl = "http://192.168.1.100:4096";
+
+        var savedConnection = TestDataBuilder.CreateServerConnectionDto(id: "conn-1");
+        _serverConnectionRepo.AddAsync(Arg.Any<ServerConnectionDto>(), Arg.Any<CancellationToken>())
+            .Returns(savedConnection);
+        _serverConnectionRepo.SetActiveAsync("conn-1", Arg.Any<CancellationToken>())
+            .Returns(true);
+
+        var healthDto = new HealthDto(Healthy: true, Version: "1.0.0");
+        _apiClient.GetHealthAsync(Arg.Any<CancellationToken>())
+            .Returns(OpencodeResult<HealthDto>.Success(healthDto));
+
+        await _sut.TestConnectionCommand.ExecuteAsync(null);
+
+        // Set selected model
+        _sut.SelectedModelId = "anthropic/claude-3-opus";
+
+        // Act
+        await _sut.CompleteOnboardingCommand.ExecuteAsync(null);
+
+        // Assert
+        await _serverConnectionRepo.Received(1).SetDefaultModelAsync(
+            "conn-1",
+            "anthropic/claude-3-opus",
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task CompleteOnboardingAsync_WhenNoModelSelected_DoesNotSaveDefaultModel()
+    {
+        // Arrange — no model selected, no saved connection
+        _sut.SelectedModelId = null;
+
+        // Act
+        await _sut.CompleteOnboardingCommand.ExecuteAsync(null);
+
+        // Assert
+        await _serverConnectionRepo.DidNotReceive().SetDefaultModelAsync(
+            Arg.Any<string>(),
+            Arg.Any<string>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    // ─── Step 3: SkipStep also triggers model loading ─────────────────────────
+
+    [Fact]
+    public async Task SkipStepAsync_WhenOnStep2_AdvancesToStep3AndLoadsModels()
+    {
+        // Arrange
+        _sut.CurrentStep = 2;
+        _providerService.GetConfiguredProvidersAsync(Arg.Any<CancellationToken>())
+            .Returns(new List<ProviderDto>());
+
+        // Act
+        await _sut.SkipStepCommand.ExecuteAsync(null);
+
+        // Assert
+        _sut.CurrentStep.Should().Be(3);
+        await _providerService.Received(1).GetConfiguredProvidersAsync(Arg.Any<CancellationToken>());
+    }
+
+    // ─── Step 3: Initial model state ──────────────────────────────────────────
+
+    [Fact]
+    public void Constructor_InitializesWithEmptyAvailableModels()
+    {
+        // Assert
+        _sut.AvailableModels.Should().BeEmpty();
+        _sut.SelectedModelId.Should().BeNull();
+        _sut.IsLoadingModels.Should().BeFalse();
+        _sut.ModelLoadError.Should().BeNull();
+    }
+
+    // ─── Step 3: LoadModels resets state ──────────────────────────────────────
+
+    [Fact]
+    public async Task NextStepAsync_WhenOnStep2_ResetsModelStateBeforeLoading()
+    {
+        // Arrange — pre-set some model state from a previous attempt
+        _sut.CurrentStep = 2;
+        _sut.SelectedModelId = "old-model";
+        _sut.ModelLoadError = "old error";
+
+        _providerService.GetConfiguredProvidersAsync(Arg.Any<CancellationToken>())
+            .Returns(new List<ProviderDto>());
+
+        // Act
+        await _sut.NextStepCommand.ExecuteAsync(null);
+
+        // Assert
+        _sut.SelectedModelId.Should().BeNull();
     }
 }

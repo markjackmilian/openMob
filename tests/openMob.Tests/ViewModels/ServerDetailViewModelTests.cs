@@ -823,4 +823,88 @@ public sealed class ServerDetailViewModelTests
         await _navigationService.DidNotReceive().PopAsync(Arg.Any<CancellationToken>());
         sut.IsDeleting.Should().BeFalse();
     }
+
+    // ─── InitialiseAsync — Default model display ──────────────────────────────
+
+    [Fact]
+    public async Task InitialiseAsync_WhenEditModeWithDefaultModel_SetsDefaultModelName()
+    {
+        // Arrange
+        var dto = TestDataBuilder.CreateServerConnectionDto("id1", defaultModelId: "anthropic/claude-3-opus");
+        _repository.GetByIdAsync("id1", Arg.Any<CancellationToken>())
+            .Returns(dto);
+
+        var sut = CreateSut();
+
+        // Act
+        await sut.InitialiseAsync("id1");
+
+        // Assert
+        sut.DefaultModelName.Should().Be("anthropic/claude-3-opus");
+    }
+
+    [Fact]
+    public async Task InitialiseAsync_WhenEditModeWithoutDefaultModel_SetsNoModelSelected()
+    {
+        // Arrange
+        var dto = TestDataBuilder.CreateServerConnectionDto("id1", defaultModelId: null);
+        _repository.GetByIdAsync("id1", Arg.Any<CancellationToken>())
+            .Returns(dto);
+
+        var sut = CreateSut();
+
+        // Act
+        await sut.InitialiseAsync("id1");
+
+        // Assert
+        sut.DefaultModelName.Should().Be("No model selected");
+    }
+
+    [Fact]
+    public void Constructor_DefaultModelName_InitializesToNoModelSelected()
+    {
+        // Arrange
+        var sut = CreateSut();
+
+        // Assert
+        sut.DefaultModelName.Should().Be("No model selected");
+    }
+
+    // ─── ChangeDefaultModelCommand ────────────────────────────────────────────
+
+    [Fact]
+    public async Task ChangeDefaultModelCommand_WhenCalled_OpensModelPicker()
+    {
+        // Arrange
+        var dto = TestDataBuilder.CreateServerConnectionDto("id1");
+        _repository.GetByIdAsync("id1", Arg.Any<CancellationToken>())
+            .Returns(dto);
+
+        var sut = CreateSut();
+        await sut.InitialiseAsync("id1");
+
+        // Act
+        await sut.ChangeDefaultModelCommand.ExecuteAsync(null);
+
+        // Assert
+        await _popupService.Received(1).ShowModelPickerAsync(
+            Arg.Any<Action<string>>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ChangeDefaultModelCommand_WhenNoSavedServerId_DoesNotOpenModelPicker()
+    {
+        // Arrange — Add mode, no saved server
+        var sut = CreateSut();
+        await sut.InitialiseAsync(null);
+
+        // Act
+        await sut.ChangeDefaultModelCommand.ExecuteAsync(null);
+
+        // Assert
+        await _popupService.DidNotReceive().ShowModelPickerAsync(
+            Arg.Any<Action<string>>(),
+            Arg.Any<CancellationToken>());
+    }
 }

@@ -397,6 +397,100 @@ public sealed class SessionServiceTests
         result.Should().BeNull();
     }
 
+    // ─── CreateSessionForProjectAsync ────────────────────────────────────────
+
+    [Fact]
+    public async Task CreateSessionForProjectAsync_WhenApiSucceeds_ReturnsSessionDto()
+    {
+        // Arrange
+        var session = BuildSession("new-sess", projectId: "proj-1", title: "New Session");
+        _apiClient.CreateSessionAsync(Arg.Any<CreateSessionRequest>(), Arg.Any<CancellationToken>())
+            .Returns(OpencodeResult<openMob.Core.Infrastructure.Http.Dtos.Opencode.SessionDto>.Success(session));
+
+        // Act
+        var result = await _sut.CreateSessionForProjectAsync("proj-1");
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Id.Should().Be("new-sess");
+        result.ProjectId.Should().Be("proj-1");
+    }
+
+    [Fact]
+    public async Task CreateSessionForProjectAsync_WhenApiReturnsFailure_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        _apiClient.CreateSessionAsync(Arg.Any<CreateSessionRequest>(), Arg.Any<CancellationToken>())
+            .Returns(OpencodeResult<openMob.Core.Infrastructure.Http.Dtos.Opencode.SessionDto>.Failure(
+                new OpencodeApiError(ErrorKind.ServerError, "Internal server error", 500, null)));
+
+        // Act
+        var act = async () => await _sut.CreateSessionForProjectAsync("proj-1");
+
+        // Assert
+        await act.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Fact]
+    public async Task CreateSessionForProjectAsync_WhenApiReturnsFailure_ExceptionMessageContainsApiError()
+    {
+        // Arrange
+        _apiClient.CreateSessionAsync(Arg.Any<CreateSessionRequest>(), Arg.Any<CancellationToken>())
+            .Returns(OpencodeResult<openMob.Core.Infrastructure.Http.Dtos.Opencode.SessionDto>.Failure(
+                new OpencodeApiError(ErrorKind.ServerError, "Internal server error", 500, null)));
+
+        // Act
+        var act = async () => await _sut.CreateSessionForProjectAsync("proj-1");
+
+        // Assert
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*Internal server error*");
+    }
+
+    [Fact]
+    public async Task CreateSessionForProjectAsync_WhenProjectIdIsNull_ThrowsArgumentException()
+    {
+        // Act
+        var act = async () => await _sut.CreateSessionForProjectAsync(null!);
+
+        // Assert
+        await act.Should().ThrowAsync<ArgumentException>();
+    }
+
+    [Fact]
+    public async Task CreateSessionForProjectAsync_WhenProjectIdIsEmpty_ThrowsArgumentException()
+    {
+        // Act
+        var act = async () => await _sut.CreateSessionForProjectAsync(string.Empty);
+
+        // Assert
+        await act.Should().ThrowAsync<ArgumentException>();
+    }
+
+    [Fact]
+    public async Task CreateSessionForProjectAsync_WhenProjectIdIsWhitespace_ThrowsArgumentException()
+    {
+        // Act
+        var act = async () => await _sut.CreateSessionForProjectAsync("   ");
+
+        // Assert
+        await act.Should().ThrowAsync<ArgumentException>();
+    }
+
+    [Fact]
+    public async Task CreateSessionForProjectAsync_WhenApiSucceedsButValueIsNull_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        _apiClient.CreateSessionAsync(Arg.Any<CreateSessionRequest>(), Arg.Any<CancellationToken>())
+            .Returns(OpencodeResult<openMob.Core.Infrastructure.Http.Dtos.Opencode.SessionDto>.Success(null!));
+
+        // Act
+        var act = async () => await _sut.CreateSessionForProjectAsync("proj-1");
+
+        // Assert
+        await act.Should().ThrowAsync<InvalidOperationException>();
+    }
+
     // ─── GetLastSessionForProjectAsync ────────────────────────────────────────
 
     [Fact]

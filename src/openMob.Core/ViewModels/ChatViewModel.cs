@@ -1170,7 +1170,8 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
 
     /// <summary>
     /// Handles a <see cref="SessionUpdatedEvent"/> from the SSE stream [REQ-014].
-    /// Updates the session title when the server renames the session.
+    /// Updates the session title when the server renames the session and notifies
+    /// <see cref="FlyoutViewModel"/> to update the drawer list without a full reload.
     /// </summary>
     /// <param name="e">The session updated event.</param>
     private void HandleSessionUpdated(SessionUpdatedEvent e)
@@ -1182,6 +1183,9 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
         {
             SessionName = e.Session.Title;
         });
+
+        // Notify FlyoutViewModel to update the session title in the drawer list
+        WeakReferenceMessenger.Default.Send(new SessionTitleUpdatedMessage(e.Session.Id, e.Session.Title));
     }
 
     /// <summary>

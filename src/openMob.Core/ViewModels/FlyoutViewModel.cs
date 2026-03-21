@@ -15,8 +15,9 @@ namespace openMob.Core.ViewModels;
 /// <summary>
 /// ViewModel for the dynamic flyout body. Displays the current project's sessions
 /// and provides actions for session selection and new chat creation.
-/// Subscribes to <see cref="SessionDeletedMessage"/> to auto-refresh the session list
-/// and to <see cref="CurrentSessionChangedMessage"/> to highlight the active session.
+/// Subscribes to <see cref="SessionDeletedMessage"/> to auto-refresh the session list,
+/// to <see cref="CurrentSessionChangedMessage"/> to highlight the active session,
+/// and to <see cref="SessionTitleUpdatedMessage"/> to update session titles in-place.
 /// </summary>
 /// <remarks>
 /// Registered as Singleton — a single instance is shared between <c>FlyoutHeaderView</c>
@@ -108,7 +109,31 @@ public sealed partial class FlyoutViewModel : ObservableObject, IDisposable
                     return;
                 _ = LoadSessionsCommand.ExecuteAsync(null);
             });
+
+        // Subscribe to session title updates — update the title in the session list without a full reload.
+        WeakReferenceMessenger.Default.Register<SessionTitleUpdatedMessage>(
+            this,
+            (_, message) =>
+            {
+                _dispatcher.Dispatch(() =>
+                {
+                    for (var i = 0; i < Sessions.Count; i++)
+                    {
+                        var s = Sessions[i];
+                        if (s.Id == message.SessionId && s.Title != message.NewTitle)
+                        {
+                            Sessions[i] = s with { Title = message.NewTitle };
+                            break;
+                        }
+                    }
+                });
+            });
     }
+
+    // ─── Constants ────────────────────────────────────────────────────────────
+
+    /// <summary>Fallback title applied to a newly created session when the server returns an empty title.</summary>
+    private const string DefaultSessionTitle = "New Session";
 
     // ─── Properties ───────────────────────────────────────────────────────────
 
@@ -131,6 +156,14 @@ public sealed partial class FlyoutViewModel : ObservableObject, IDisposable
     /// <summary>Gets or sets the identifier of the currently active session, used to highlight it in the list.</summary>
     [ObservableProperty]
     private string? _currentSessionId;
+
+    /// <summary>Gets or sets whether a new session creation is in progress.</summary>
+    [ObservableProperty]
+    private bool _isCreatingSession;
+
+    /// <summary>Gets or sets the inline error message from the last failed session creation attempt, or <c>null</c> if no error.</summary>
+    [ObservableProperty]
+    private string? _creationError;
 
     // ─── Commands ─────────────────────────────────────────────────────────────
 
@@ -170,8 +203,7 @@ public sealed partial class FlyoutViewModel : ObservableObject, IDisposable
             HasProject = true;
             ProjectSectionTitle = ProjectNameHelper.ExtractFromWorktree(currentProject.Worktree).ToUpperInvariant();
 
-            var sessions = await _sessionService.GetSessionsByProjectAsync(currentProject.Id, ct)
-                ;
+            var sessions = await _sessionService.GetSessionsByProjectAsync(currentProject.Id, ct);
 
             var items = sessions.Select(s => new SessionItem(
                 Id: s.Id,
@@ -293,6 +325,104 @@ public sealed partial class FlyoutViewModel : ObservableObject, IDisposable
         {
             sw.Stop();
             DebugLogger.LogCommand(nameof(NewChatAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
+    }
+
+    /// <summary>
+    /// Creates a new session on the active project (auto-selecting the first available project
+    /// if none is active) and navigates to <c>ChatPage</c> with the new session loaded.
+    /// Exposes <see cref="IsCreatingSession"/> and <see cref="CreationError"/> for UI binding.
+    /// </summary>
+    /// <param name="ct">Cancellation token.</param>
+    [RelayCommand]
+    private async Task NewSessionAsync(CancellationToken ct)
+    {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(NewSessionAsync), "start");
+        try
+        {
+#endif
+        CreationError = null;
+        IsCreatingSession = true;
+
+        try
+        {
+            // Step 1: Resolve active project
+            var activeProject = await _activeProjectService.GetActiveProjectAsync(ct);
+
+            if (activeProject is null)
+            {
+                // Step 2: Auto-select first available project
+                var projects = await _projectService.GetAllProjectsAsync(ct);
+                var firstProject = projects.FirstOrDefault();
+
+                if (firstProject is null)
+                {
+                    CreationError = "No projects available. Please add a project first.";
+                    return;
+                }
+
+                var activated = await _activeProjectService.SetActiveProjectAsync(firstProject.Id, ct);
+                if (!activated)
+                {
+                    CreationError = "Failed to activate project. Please try again.";
+                    return;
+                }
+
+                activeProject = await _activeProjectService.GetActiveProjectAsync(ct);
+                if (activeProject is null)
+                {
+                    CreationError = "Failed to activate project. Please try again.";
+                    return;
+                }
+            }
+
+            // Step 3: Create session
+            var session = await _sessionService.CreateSessionForProjectAsync(activeProject.Id, ct);
+
+            // Step 4: Prepend new session to the list
+            var newItem = new SessionItem(
+                Id: session.Id,
+                Title: string.IsNullOrEmpty(session.Title) ? DefaultSessionTitle : session.Title,
+                ProjectId: session.ProjectId,
+                UpdatedAt: DateTimeOffset.FromUnixTimeMilliseconds(session.Time.Updated),
+                IsSelected: false);
+
+            _dispatcher.Dispatch(() => Sessions.Insert(0, newItem));
+
+            // Step 5: Navigate to ChatPage
+            await _navigationService.GoToAsync("//chat", new Dictionary<string, object>
+            {
+                ["sessionId"] = session.Id,
+            }, ct);
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected — do not set error state
+        }
+        catch (Exception ex)
+        {
+            CreationError = ex.Message;
+            SentryHelper.CaptureException(ex, new Dictionary<string, object>
+            {
+                ["context"] = "FlyoutViewModel.NewSessionAsync",
+            });
+        }
+        finally
+        {
+            IsCreatingSession = false;
+        }
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(NewSessionAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(NewSessionAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
             throw;
         }
 #endif

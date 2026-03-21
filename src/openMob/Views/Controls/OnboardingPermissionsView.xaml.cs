@@ -1,9 +1,10 @@
 namespace openMob.Views.Controls;
 
-/// <summary>Onboarding Step 4 — Permissions information.</summary>
+// DEPRECATED: This file is scheduled for deletion.
+// The permissions step has been removed from the onboarding wizard.
+// Run: git rm src/openMob/Views/Controls/OnboardingPermissionsView.xaml src/openMob/Views/Controls/OnboardingPermissionsView.xaml.cs
 public partial class OnboardingPermissionsView : ContentView
 {
-    /// <summary>Initialises the permissions view.</summary>
     public OnboardingPermissionsView()
     {
         InitializeComponent();

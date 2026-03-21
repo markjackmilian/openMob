@@ -131,6 +131,46 @@
           </VerticalStackLayout>
         </Border>
 
+        <!-- ── Default Model section (Edit mode only) ──────────────── -->
+        <Border
+            Style="{StaticResource CardBorder}"
+            Padding="{StaticResource SpacingMd}"
+            IsVisible="{Binding IsEditMode}">
+          <Grid
+              ColumnDefinitions="*,Auto"
+              ColumnSpacing="{StaticResource SpacingSm}"
+              MinimumHeightRequest="{StaticResource MinTouchTarget}">
+            <Grid.GestureRecognizers>
+              <TapGestureRecognizer Command="{Binding ChangeDefaultModelCommand}" />
+            </Grid.GestureRecognizers>
+
+            <VerticalStackLayout
+                Grid.Column="0"
+                Spacing="{StaticResource SpacingXs}"
+                VerticalOptions="Center">
+              <Label
+                  Text="Default Model"
+                  Style="{StaticResource FootnoteLabel}" />
+              <Label
+                  Text="{Binding DefaultModelName, FallbackValue='No model selected', TargetNullValue='No model selected'}"
+                  Style="{StaticResource BodyLabel}"
+                  FontFamily="InterRegular"
+                  LineBreakMode="TailTruncation"
+                  MaxLines="1" />
+            </VerticalStackLayout>
+
+            <Label
+                Grid.Column="1"
+                FontFamily="MaterialSymbols"
+                Text="{x:Static helpers:MaterialIcons.ChevronRight}"
+                FontSize="{StaticResource FontSizeTitle2}"
+                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
+                VerticalOptions="Center"
+                SemanticProperties.Description="Change default model"
+                AutomationId="ServerDetailDefaultModelChevron" />
+          </Grid>
+        </Border>
+
         <!-- ── Action buttons section ────────────────────────────── -->
         <VerticalStackLayout Spacing="{StaticResource SpacingSm}" Margin="0,0,0,32">
 

@@ -1,9 +1,10 @@
 namespace openMob.Views.Controls;
 
-/// <summary>Onboarding Step 3 — AI provider setup (optional).</summary>
+// DEPRECATED: This file is scheduled for deletion.
+// The provider setup step has been removed from the onboarding wizard (REQ-001).
+// Run: git rm src/openMob/Views/Controls/OnboardingProviderSetupView.xaml src/openMob/Views/Controls/OnboardingProviderSetupView.xaml.cs
 public partial class OnboardingProviderSetupView : ContentView
 {
-    /// <summary>Initialises the provider setup view.</summary>
     public OnboardingProviderSetupView()
     {
         InitializeComponent();

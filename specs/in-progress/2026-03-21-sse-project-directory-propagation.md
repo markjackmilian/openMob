@@ -4,7 +4,7 @@
 | Field   | Value                        |
 |---------|------------------------------|
 | Date    | 2026-03-21                   |
-| Status  | Draft                        |
+| Status  | In Progress                  |
 | Version | 1.0                          |
 
 ---
@@ -68,8 +68,7 @@ Il server opencode emette eventi SSE con un envelope che include il campo `direc
 | Component | Impact | Notes |
 |-----------|--------|-------|
 | `src/openMob.Core/Helpers/ChatEventParser.cs` | Modifica | Estrarre `directory` dall'envelope e passarlo ai tipi `ChatEvent` |
-| `src/openMob.Core/Models/Events/ChatEvent.cs` (o base record) | Modifica | Aggiungere `string? ProjectDirectory` |
-| `src/openMob.Core/Models/Events/*Event.cs` (tutti i tipi derivati) | Modifica | Aggiungere `ProjectDirectory` al costruttore del record |
+| `src/openMob.Core/Models/ChatEvent.cs` | Modifica | Aggiungere `string? ProjectDirectory` alla base `abstract record` |
 | `src/openMob.Core/ViewModels/ChatViewModel.cs` | Modifica | Aggiungere `CurrentProjectDirectory`, secondo filtro negli handler |
 | `tests/openMob.Tests/Helpers/ChatEventParserTests.cs` | Modifica + nuovi test | Verificare propagazione `ProjectDirectory` |
 | `tests/openMob.Tests/ViewModels/ChatViewModelSseTests.cs` | Nuovi test | Filtraggio per `ProjectDirectory` |
@@ -89,8 +88,8 @@ Il server opencode emette eventi SSE con un envelope che include il campo `direc
 |---|----------|--------|-------------------|
 | 1 | Il campo `directory` nel wire format SSE corrisponde al path restituito da `IActiveProjectService.GetCachedWorktree()`? | Resolved | Sì. Il server opencode legge il progetto dall'header `x-opencode-directory` (iniettato da `OpencodeApiClient` con il valore di `GetCachedWorktree()`) e lo usa come `directory` nell'envelope SSE. La mappatura è diretta. (ADR: `adr-global-directory-header-injection`) |
 | 2 | I `sessionId` opencode sono univoci globalmente tra progetti diversi? | Resolved — non bloccante | Probabile sì (ULID). Il filtraggio per `ProjectDirectory` è comunque aggiunto per rendere il routing esplicito e robusto, indipendentemente dall'unicità dei `sessionId`. |
-| 3 | `ProjectDirectory` va sulla base `ChatEvent` o solo sui tipi che ne hanno bisogno? | Resolved | Sulla base `ChatEvent` (o come proprietà comune a tutti i tipi). Semplifica il codice del parser e degli handler, e garantisce che futuri consumer abbiano sempre il contesto disponibile. |
-| 4 | `ChatViewModel` deve iniettare `IActiveProjectService` nel costruttore? | Open | Da verificare se `IActiveProjectService` è già iniettato in `ChatViewModel`. Se no, valutare se iniettarlo o ricavare `CurrentProjectDirectory` da un'altra fonte già disponibile (es. `CurrentProjectId` mappato tramite `IProjectService`). |
+| 3 | `ProjectDirectory` va sulla base `ChatEvent` o solo sui tipi che ne hanno bisogno? | Resolved | Sulla base `ChatEvent` (proprietà `init`-only con default `null`). Semplifica il codice del parser e degli handler, e garantisce che futuri consumer abbiano sempre il contesto disponibile. |
+| 4 | `ChatViewModel` deve iniettare `IActiveProjectService` nel costruttore? | Resolved | Sì, `IActiveProjectService` è **già iniettato** in `ChatViewModel` come `_activeProjectService` (field at line 45, constructor parameter at line 73). Nessuna modifica al costruttore necessaria. |
 
 ---
 
@@ -108,7 +107,7 @@ Il server opencode emette eventi SSE con un envelope che include il campo `direc
 
 - [ ] **[AC-005]** Dato un evento SSE con `ProjectDirectory == null`, quando arriva a `ChatViewModel`, allora il filtro per `ProjectDirectory` viene saltato e si applica solo il filtro per `sessionId`. *(REQ-006)*
 
-- [ ] **[AC-006]** Tutti i 884 test esistenti continuano a passare dopo le modifiche ai tipi `ChatEvent` e a `ChatEventParser`. *(REQ-008)*
+- [ ] **[AC-006]** Tutti i test esistenti continuano a passare dopo le modifiche ai tipi `ChatEvent` e a `ChatEventParser`. *(REQ-008)*
 
 - [ ] **[AC-007]** Nuovi test unitari coprono i tre scenari di filtraggio per `ProjectDirectory` (match, mismatch, null). *(REQ-009)*
 
@@ -165,7 +164,7 @@ if (e.ProjectDirectory is not null &&
 ```
 
 ### File da ispezionare prima dell'implementazione
-- `src/openMob.Core/Models/Events/ChatEvent.cs` — struttura del record base e dei tipi derivati
+- `src/openMob.Core/Models/ChatEvent.cs` — struttura del record base e dei tipi derivati
 - `src/openMob.Core/Helpers/ChatEventParser.cs` — logica di parsing attuale
 - `src/openMob.Core/ViewModels/ChatViewModel.cs` — costruttore, `LoadContextAsync`, handler SSE
 - `src/openMob.Core/Services/IActiveProjectService.cs` — firma di `GetCachedWorktree()`
@@ -175,5 +174,76 @@ if (e.ProjectDirectory is not null &&
 - `ChatService` è Singleton e non va modificato.
 - Nessuna modifica a `IChatService` né al loop di riconnessione.
 - I tipi `ChatEvent` sono sealed records: l'aggiunta di `ProjectDirectory` con `init` e valore default `null` è retrocompatibile con i costruttori esistenti solo se il record usa la sintassi `{ ProjectDirectory = ... }` — verificare se i test costruiscono i record con sintassi posizionale o nominale.
-- Suite corrente: 884 test passing — tutti devono continuare a passare.
+- Suite corrente: tutti i test devono continuare a passare.
 - Complessità stimata: **Bassa**. Nessuna nuova interfaccia, nessun nuovo servizio, nessuna migrazione DB.
+
+---
+
+## Technical Analysis
+
+> Added by: om-orchestrator | Date: 2026-03-22
+
+### Change Classification
+
+| Field | Value |
+|-------|-------|
+| Change type | Feature |
+| Git Flow branch | feature/sse-project-directory-propagation |
+| Branches from | develop |
+| Estimated complexity | Low |
+| Estimated agents involved | om-mobile-core, om-tester, om-reviewer |
+
+### Layers Involved
+
+| Layer | Agent | Scope |
+|-------|-------|-------|
+| Business logic / Models | om-mobile-core | `src/openMob.Core/Models/ChatEvent.cs` |
+| Helpers / Parser | om-mobile-core | `src/openMob.Core/Helpers/ChatEventParser.cs` |
+| ViewModels | om-mobile-core | `src/openMob.Core/ViewModels/ChatViewModel.cs` |
+| Unit Tests | om-tester | `tests/openMob.Tests/` |
+| Code Review | om-reviewer | all of the above |
+
+### Files to Create
+
+- None — this feature only modifies existing files.
+
+### Files to Modify
+
+- `src/openMob.Core/Models/ChatEvent.cs` — Add `string? ProjectDirectory { get; init; }` to the abstract base record `ChatEvent`
+- `src/openMob.Core/Helpers/ChatEventParser.cs` — Extract `directory` from SSE envelope before type dispatch; propagate as `ProjectDirectory` on every constructed event
+- `src/openMob.Core/ViewModels/ChatViewModel.cs` — Add `_currentProjectDirectory` field, set it in `LoadContextAsync` via `_activeProjectService.GetCachedWorktree()`, add project directory filter before session ID filter in all 5 SSE handlers
+- `tests/openMob.Tests/Helpers/ChatEventParserTests.cs` — Add tests for `ProjectDirectory` extraction (present, absent, empty)
+- `tests/openMob.Tests/ViewModels/ChatViewModelSseTests.cs` — Add 3 new tests for project directory filtering (match, mismatch, null)
+- All test files constructing `ChatEvent` instances — No changes needed because `ProjectDirectory` has `init` with implicit `null` default; existing nominal-syntax constructions (`new MessageUpdatedEvent { Message = ... }`) remain valid
+
+### Technical Dependencies
+
+- `IActiveProjectService.GetCachedWorktree()` — already exists and is already injected into `ChatViewModel`
+- `ChatEvent` is an `abstract record` — adding `string? ProjectDirectory { get; init; }` to the base is fully backward-compatible
+- All derived types use nominal object-initializer syntax (not positional) — no constructor signature changes needed
+- All existing tests use nominal syntax — they will compile without modification
+
+### Technical Risks
+
+- **None identified.** This is a purely additive change with no breaking interfaces, no new dependencies, and no migrations.
+- The `ProjectDirectory` property defaults to `null` via `init`, so all existing code that constructs `ChatEvent` instances without setting `ProjectDirectory` will continue to work.
+
+### Execution Order
+
+> Steps that can run in parallel are marked with ⟳. Steps that must be sequential are numbered.
+
+1. [Git Flow] Create branch `feature/sse-project-directory-propagation`
+2. [om-mobile-core] Add `ProjectDirectory` to `ChatEvent` base record, update `ChatEventParser`, add filter to `ChatViewModel` SSE handlers
+3. [om-tester] Write unit tests for parser propagation and ViewModel filtering
+4. [om-reviewer] Full review against spec
+5. [Fix loop if needed] Address Critical and Major findings
+6. [Git Flow] Finish branch and merge
+
+### Definition of Done
+
+- [ ] All `[REQ-001]` through `[REQ-009]` requirements implemented
+- [ ] All `[AC-001]` through `[AC-007]` acceptance criteria satisfied
+- [ ] Unit tests written for ChatEventParser (ProjectDirectory propagation) and ChatViewModel (directory filtering)
+- [ ] `om-reviewer` verdict: Approved or Approved with remarks
+- [ ] Git Flow branch finished and deleted
+- [ ] Spec moved to `specs/done/` with Completed status

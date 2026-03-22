@@ -4,7 +4,7 @@
 | Field   | Value                        |
 |---------|------------------------------|
 | Date    | 2026-03-22                   |
-| Status  | Draft                        |
+| Status  | In Progress                  |
 | Version | 1.0                          |
 
 ---
@@ -101,11 +101,11 @@ Il progetto adotta **UXDivers Popups** (`UXDivers.Popups.Maui`) come libreria un
 | `src/openMob/Views/Popups/CommandPaletteSheet.xaml` + `.cs` | Base class `ContentPage` → `PopupPage` | |
 | `src/openMob/Views/Popups/ProjectSwitcherSheet.xaml` + `.cs` | Base class `ContentPage` → `PopupPage` | `OnAppearing` → initialize before push |
 | `src/openMob/Views/Popups/AddProjectSheet.xaml` + `.cs` | Base class `ContentPage` → `PopupPage` | |
-| `src/openMob.Core/ViewModels/ChatViewModel.cs` | `OpenProjectSwitcherAsync` delega a `IAppPopupService` | Aggiungere `IAppPopupService` come dipendenza se assente |
+| `src/openMob.Core/ViewModels/ChatViewModel.cs` | `OpenProjectSwitcherAsync` delega a `IAppPopupService` | `IAppPopupService` already injected |
 | `src/openMob.Core/ViewModels/ProjectsViewModel.cs` | `ShowAddProjectAsync` delega a `IAppPopupService` | Rimuovere toast placeholder |
 
 ### Dependencies
-- `UXDivers.Popups.Maui` v0.9.4 — Apache License 2.0, disponibile su NuGet.org
+- `UXDivers.Popups.Maui` v0.9.4 — Apache License 2.0, disponibile su NuGet.org, supports net10.0
 - `CommunityToolkit.Maui` già presente — nessun conflitto noto con UXDivers Popups
 - `IAppPopupService` (già in `openMob.Core`) — interfaccia estesa, non sostituita
 - Pattern "initialize before push" già stabilito in `session-context-sheet-1of3-core` per `ShowContextSheetAsync` — da applicare uniformemente a `ShowProjectSwitcherAsync`
@@ -116,9 +116,9 @@ Il progetto adotta **UXDivers Popups** (`UXDivers.Popups.Maui`) come libreria un
 
 | # | Question | Status | Answer / Decision |
 |---|----------|--------|-------------------|
-| 1 | `SimpleActionPopup` e `FormPopup` di UXDivers implementano `PopupResultPage<T>` per restituire un risultato tipizzato? Se sì, `ShowConfirmDeleteAsync` e `ShowRenameAsync` possono usare `await IPopupService.Current.PushAsync<SimpleActionPopup, bool>()`. Se no, serve un custom popup o un pattern con `TaskCompletionSource`. | Open | Da verificare nella doc UXDivers o nel codice sorgente della libreria prima dell'implementazione. |
-| 2 | `ProjectSwitcherSheet.OnAppearing` chiama `LoadProjectsCommand.ExecuteAsync(null)`. Con `PopupPage`, il lifecycle `OnAppearing` è ancora garantito? Oppure il caricamento deve essere spostato nel metodo `ShowProjectSwitcherAsync` di `MauiPopupService` (pattern "initialize before push")? | Open | Raccomandato: spostare il caricamento in `MauiPopupService.ShowProjectSwitcherAsync` per coerenza con il pattern già stabilito. Da confermare in implementazione. |
-| 3 | `MauiPopupService` è registrato come `Singleton` in `MauiProgram.cs`. Con UXDivers, `IPopupService.Current` è un singleton statico — nessun conflitto atteso, ma da verificare che non ci siano problemi di thread safety con l'accesso statico da un singleton. | Open | Probabilmente non critico; da verificare in fase di implementazione. |
+| 1 | `SimpleActionPopup` e `FormPopup` di UXDivers implementano `PopupResultPage<T>` per restituire un risultato tipizzato? | Resolved | **Yes.** UXDivers documentation confirms: `FormPopup` returns `List<string?>` via `PopupResultPage<List<string?>>`. `SimpleActionPopup` does NOT return a typed result — it extends `PopupPage`, not `PopupResultPage<T>`. For `ShowConfirmDeleteAsync`, use `PushAsync(popup)` with `waitUntilClosed: true` (default) and check which button was pressed via a callback or `TaskCompletionSource<bool>`. Alternatively, use a custom `PopupResultPage<bool>` wrapper. For `ShowRenameAsync`, `FormPopup` returns `List<string?>` — extract `result[0]`. For `ShowOptionSheetAsync`, `OptionSheetPopup` returns the selected option string. |
+| 2 | `ProjectSwitcherSheet.OnAppearing` chiama `LoadProjectsCommand.ExecuteAsync(null)`. Con `PopupPage`, il lifecycle `OnAppearing` è ancora garantito? | Resolved | `PopupPage` does fire `OnAppearing` after the appearing animation. However, per the established "initialize before push" pattern, the loading should be moved to `MauiPopupService.ShowProjectSwitcherAsync` before `PushAsync`. Remove `OnAppearing` override from `ProjectSwitcherSheet`. |
+| 3 | `MauiPopupService` è registrato come `Singleton` in `MauiProgram.cs`. Con UXDivers, `IPopupService.Current` è un singleton statico — nessun conflitto atteso. | Resolved | No conflict. `IPopupService.Current` is a static singleton managed by UXDivers. `MauiPopupService` as a Singleton accessing a static singleton is safe. Thread safety is handled by UXDivers internally (all popup operations must run on the UI thread, which is the standard MAUI constraint). |
 
 ---
 
@@ -154,46 +154,133 @@ Il progetto adotta **UXDivers Popups** (`UXDivers.Popups.Maui`) come libreria un
 
 ### Key areas to investigate
 
-1. **`SimpleActionPopup` e `FormPopup` come result popup** — Verificare se questi built-in di UXDivers estendono `PopupResultPage<T>`. Se sì, `ShowConfirmDeleteAsync` usa `PushAsync<SimpleActionPopup, bool>()` e `ShowRenameAsync` usa `PushAsync<FormPopup, List<string?>>()`. Se no, valutare: (a) custom `PopupResultPage<bool>` per la conferma, (b) `TaskCompletionSource<T>` con callback, oppure (c) mantenere `DisplayAlert`/`DisplayPrompt` nativi solo per questi due casi (scelta pragmatica accettabile se i built-in non supportano result).
+1. **`SimpleActionPopup` e `FormPopup` come result popup** — Verified: `FormPopup` extends `PopupResultPage<List<string?>>` and returns form field values. `SimpleActionPopup` extends `PopupPage` (not `PopupResultPage<T>`). For `ShowConfirmDeleteAsync`, use `SimpleActionPopup` with `waitUntilClosed: true` and a `TaskCompletionSource<bool>` to capture the button press result. Alternatively, create a minimal custom `ConfirmDeletePopup : PopupResultPage<bool>`.
 
-2. **`ProjectSwitcherSheet.OnAppearing` lifecycle** — Con `PopupPage`, `OnAppearing` è chiamato dopo l'animazione di apertura. Il caricamento dei progetti in `OnAppearing` può causare un flash di lista vuota. Raccomandato: spostare `LoadProjectsCommand.ExecuteAsync` in `MauiPopupService.ShowProjectSwitcherAsync` prima del push (pattern "initialize before push" già stabilito in `session-context-sheet-1of3-core`). Questo richiede di rimuovere l'`OnAppearing` override da `ProjectSwitcherSheet`.
+2. **`ProjectSwitcherSheet.OnAppearing` lifecycle** — Move `LoadProjectsCommand.ExecuteAsync` to `MauiPopupService.ShowProjectSwitcherAsync` before `PushAsync`. Remove `OnAppearing` override.
 
-3. **`IServiceProvider` in `MauiPopupService`** — Con `AddTransientPopup<TPopup, TViewModel>()`, UXDivers gestisce la risoluzione DI internamente quando si usa `PushAsync<TPopup>()`. Tuttavia, per i popup che richiedono inizializzazione pre-push (ContextSheet, ProjectSwitcherSheet), è ancora necessario risolvere l'istanza manualmente per accedere al ViewModel prima del push. Opzioni: (a) mantenere `IServiceProvider` solo per questi casi, (b) usare `PushAsync<TPopup>(parameters)` con `OnNavigatedTo`/`IPopupViewModel.OnPopupNavigatedAsync` per passare i dati. Valutare quale approccio è più pulito rispetto al pattern esistente.
+3. **`IServiceProvider` in `MauiPopupService`** — With `AddTransientPopup<TPopup, TViewModel>()`, UXDivers manages DI resolution internally when using `PushAsync<TPopup>()`. For popups requiring pre-push initialization (ContextSheet, ProjectSwitcherSheet, ModelPickerSheet, AgentPickerSheet), `IServiceProvider` is still needed to resolve the instance, configure the ViewModel, then push the instance. Keep `IServiceProvider` for these cases.
 
-4. **Rimozione route Shell** — Le route `project-switcher`, `agent-picker`, `model-picker`, `add-project` in `AppShell.xaml.cs` devono essere rimosse. Verificare che nessun ViewModel o View le usi ancora tramite `INavigationService.GoToAsync(...)` prima della rimozione.
+4. **Rimozione route Shell** — Routes `project-switcher`, `agent-picker`, `model-picker`, `add-project` in `AppShell.xaml.cs` must be removed. Verified: no ViewModel or View uses these routes via `INavigationService.GoToAsync(...)` — all popup presentation goes through `MauiPopupService`.
 
-5. **`ChatViewModel` e `IAppPopupService`** — Verificare se `ChatViewModel` ha già `IAppPopupService` come dipendenza (probabile, dato che usa `ShowContextSheetAsync`). Se sì, `OpenProjectSwitcherAsync` può delegare direttamente senza modifiche al costruttore.
+5. **`ChatViewModel` e `IAppPopupService`** — Verified: `ChatViewModel` already has `IAppPopupService` as `_popupService` dependency. `OpenProjectSwitcherAsync` can delegate directly without constructor changes.
 
-6. **`MauiPopupService` come Singleton con `IPopupService.Current` statico** — `IPopupService.Current` è un singleton statico gestito da UXDivers. Non ci sono problemi di lifetime, ma verificare che l'accesso statico sia thread-safe (la doc UXDivers non menziona restrizioni di thread).
+6. **`MauiPopupService` as Singleton with `IPopupService.Current` static** — No conflict. Both are effectively singletons. Thread safety is guaranteed by MAUI's UI thread constraint.
 
 ### Suggested implementation approach
 
-1. Aggiungere il NuGet e configurare `MauiProgram.cs` + `App.xaml` (REQ-001/002/003).
-2. Convertire i 6 XAML + code-behind da `ContentPage` a `PopupPage` (REQ-004).
-3. Aggiornare le registrazioni DI con `AddTransientPopup<>` (REQ-005).
-4. Aggiornare `IAppPopupService` con i 2 nuovi metodi (REQ-012/013).
-5. Refactoring `MauiPopupService` metodo per metodo (REQ-006/007/008/009/010/011/014/015).
-6. Aggiornare `ChatViewModel` e `ProjectsViewModel` (REQ-016/017).
-7. Rimuovere le route Shell (REQ-018).
+1. Add NuGet and configure `MauiProgram.cs` + `App.xaml` (REQ-001/002/003).
+2. Convert 6 XAML + code-behind from `ContentPage` to `PopupPage` (REQ-004).
+3. Update DI registrations with `AddTransientPopup<>` (REQ-005).
+4. Update `IAppPopupService` with 2 new methods (REQ-012/013).
+5. Refactor `MauiPopupService` method by method (REQ-006/007/008/009/010/011/014/015).
+6. Update `ChatViewModel` and `ProjectsViewModel` (REQ-016/017).
+7. Remove Shell routes (REQ-018).
 8. Build + smoke test.
 
 ### Constraints to respect
 
-- `openMob.Core` ha **zero dipendenze MAUI** — `IPopupService` di UXDivers non deve mai essere importato in `openMob.Core`. L'interfaccia `IAppPopupService` rimane l'unica astrazione popup nel Core.
-- Il nome `IAppPopupService` è stato scelto esplicitamente per evitare collisione con `IPopupService` di UXDivers (documentato nel file sorgente). Questa convenzione deve essere mantenuta.
-- Tutti i popup rimangono `Transient` — nessuno deve diventare `Singleton` senza motivazione esplicita.
-- Il pattern "initialize before push" (inizializzare il ViewModel prima di `PushAsync`) deve essere applicato uniformemente a tutti i popup che richiedono dati pre-caricati.
-- `async void` è vietato eccetto negli handler MAUI lifecycle (`OnAppearing`, ecc.).
+- `openMob.Core` has **zero MAUI dependencies** — `IPopupService` from UXDivers must never be imported in `openMob.Core`. The `IAppPopupService` interface remains the only popup abstraction in Core.
+- The name `IAppPopupService` was chosen explicitly to avoid collision with `IPopupService` from UXDivers. This convention must be maintained.
+- All popups remain `Transient` — none should become `Singleton` without explicit justification.
+- The "initialize before push" pattern must be applied uniformly to all popups requiring pre-loaded data.
+- `async void` is forbidden except in MAUI lifecycle handlers (`OnAppearing`, etc.).
 
 ### Related files or modules
 
-- `src/openMob/Services/MauiPopupService.cs` — file principale da refactoring
-- `src/openMob.Core/Services/IAppPopupService.cs` — interfaccia da estendere
+- `src/openMob/Services/MauiPopupService.cs` — main file to refactor
+- `src/openMob.Core/Services/IAppPopupService.cs` — interface to extend
 - `src/openMob/MauiProgram.cs` — DI composition root
 - `src/openMob/App.xaml` — resource dictionaries
 - `src/openMob/AppShell.xaml.cs` — route cleanup
-- `src/openMob/Views/Popups/` — tutti e 6 i popup
+- `src/openMob/Views/Popups/` — all 6 popups
 - `src/openMob.Core/ViewModels/ChatViewModel.cs` — `OpenProjectSwitcherAsync`
 - `src/openMob.Core/ViewModels/ProjectsViewModel.cs` — `ShowAddProjectAsync`
-- Past spec: `session-context-sheet-1of3-core` — pattern "initialize before push" per `ShowContextSheetAsync`
-- Past spec: `drawer-sessions-delete-refactor` — `ContextSheetViewModel.DeleteSessionCommand` e `PopPopupAsync` (origine del crash)
+
+---
+
+## Technical Analysis
+
+> Added by: om-orchestrator | Date: 2026-03-22
+
+### Change Classification
+
+| Field | Value |
+|-------|-------|
+| Change type | Feature |
+| Git Flow branch | feature/uxd-popups-migration |
+| Branches from | develop |
+| Estimated complexity | High |
+| Estimated agents involved | om-mobile-core, om-mobile-ui, om-tester, om-reviewer |
+
+### Layers Involved
+
+| Layer | Agent | Scope |
+|-------|-------|-------|
+| Core Interface | om-mobile-core | `src/openMob.Core/Services/IAppPopupService.cs` |
+| Core ViewModels | om-mobile-core | `ChatViewModel.cs`, `ProjectsViewModel.cs` |
+| MAUI Service | om-mobile-core | `src/openMob/Services/MauiPopupService.cs` |
+| DI / Config | om-mobile-core | `MauiProgram.cs`, `openMob.csproj` |
+| XAML Popups | om-mobile-ui | `src/openMob/Views/Popups/` (6 popups) |
+| App Resources | om-mobile-ui | `src/openMob/App.xaml` |
+| Shell Routes | om-mobile-ui | `src/openMob/AppShell.xaml.cs` |
+| Unit Tests | om-tester | `tests/openMob.Tests/` |
+| Code Review | om-reviewer | all of the above |
+
+### Files to Create
+
+- None — this feature modifies existing files only. No new popup files are created.
+
+### Files to Modify
+
+- `src/openMob/openMob.csproj` — Add `<PackageReference Include="UXDivers.Popups.Maui" Version="0.9.4" />`
+- `src/openMob/MauiProgram.cs` — Add `.UseUXDiversPopups()`, replace 6 `AddTransient<>` with `AddTransientPopup<TPopup, TViewModel>()`, remove `AddTransient<ProjectDetailPage>()` (if not already removed by project-list-one-tap-selection)
+- `src/openMob/App.xaml` — Add `xmlns:uxd` namespace, add `<uxd:DarkTheme />` and `<uxd:PopupStyles />` to MergedDictionaries
+- `src/openMob/AppShell.xaml.cs` — Remove 4 popup route registrations
+- `src/openMob/Services/MauiPopupService.cs` — Complete refactoring: all Show*/Pop* methods use `IPopupService.Current`; add `ShowProjectSwitcherAsync` and `ShowAddProjectAsync`; keep `IServiceProvider` for pre-push initialization pattern
+- `src/openMob.Core/Services/IAppPopupService.cs` — Add `ShowProjectSwitcherAsync` and `ShowAddProjectAsync` method signatures with XML docs
+- `src/openMob/Views/Popups/ContextSheet.xaml` + `.cs` — Change base from `ContentPage` to `PopupPage`; update close to use `IPopupService.Current.PopAsync(this)`
+- `src/openMob/Views/Popups/ModelPickerSheet.xaml` + `.cs` — Same migration; remove `OnAppearing` (loading handled by MauiPopupService)
+- `src/openMob/Views/Popups/AgentPickerSheet.xaml` + `.cs` — Same migration; remove `OnAppearing`
+- `src/openMob/Views/Popups/CommandPaletteSheet.xaml` + `.cs` — Same migration; remove `OnAppearing`
+- `src/openMob/Views/Popups/ProjectSwitcherSheet.xaml` + `.cs` — Same migration; remove `OnAppearing` (loading moved to MauiPopupService)
+- `src/openMob/Views/Popups/AddProjectSheet.xaml` + `.cs` — Same migration
+- `src/openMob.Core/ViewModels/ChatViewModel.cs` — `OpenProjectSwitcherAsync` delegates to `_popupService.ShowProjectSwitcherAsync(ct)`
+- `src/openMob.Core/ViewModels/ProjectsViewModel.cs` — `ShowAddProjectAsync` delegates to `_popupService.ShowAddProjectAsync(ct)`
+
+### Technical Dependencies
+
+- `UXDivers.Popups.Maui` v0.9.4 — new NuGet dependency (Apache 2.0 license, supports net10.0)
+- `IPopupService.Current` — UXDivers static singleton for popup navigation
+- `PopupPage` — UXDivers base class for custom popups (namespace `UXDivers.Popups.Maui`)
+- `SimpleActionPopup` — UXDivers built-in for confirmation dialogs
+- `FormPopup` — UXDivers built-in for form input, returns `List<string?>` via `PopupResultPage<List<string?>>`
+- `OptionSheetPopup` — UXDivers built-in for option selection
+- `AddTransientPopup<TPopup, TViewModel>()` — UXDivers DI extension method
+
+### Technical Risks
+
+- **`SimpleActionPopup` does not extend `PopupResultPage<T>`**: For `ShowConfirmDeleteAsync`, cannot use typed result. Must use `TaskCompletionSource<bool>` pattern or a custom `ConfirmDeletePopup : PopupResultPage<bool>`. Pragmatic approach: keep `DisplayAlert` for confirm/delete only, or use `SimpleActionPopup` with event callbacks.
+- **XAML migration from `ContentPage` to `PopupPage`**: All `Shell.PresentationMode` attributes must be removed. All `Shell.Current.GoToAsync("..")` close calls must be replaced with `IPopupService.Current.PopAsync(this)`. The `SheetHandleBar` BoxView styling may need adjustment for the popup overlay context.
+- **`OnAppearing` removal**: 4 popups use `OnAppearing` to trigger data loading. This must be moved to `MauiPopupService` pre-push initialization. If any popup's ViewModel doesn't expose an `InitializeAsync` or equivalent, one must be added.
+- **`IServiceProvider` retention**: Despite REQ-019 suggesting removal, `IServiceProvider` is still needed for popups requiring pre-push ViewModel configuration (callbacks, initialization). The refactoring should minimize but not eliminate `IServiceProvider` usage.
+
+### Execution Order
+
+> Steps that can run in parallel are marked with ⟳. Steps that must be sequential are numbered.
+
+1. [Git Flow] Create branch `feature/uxd-popups-migration`
+2. [om-mobile-core] Add NuGet package, configure `MauiProgram.cs` with `UseUXDiversPopups()` and `AddTransientPopup<>` registrations; add 2 new methods to `IAppPopupService`; refactor `MauiPopupService` completely; update `ChatViewModel.OpenProjectSwitcherAsync` and `ProjectsViewModel.ShowAddProjectAsync`
+3. ⟳ [om-mobile-ui] Convert 6 popup XAML + code-behind from `ContentPage` to `PopupPage`; update `App.xaml` with UXDivers resources; remove popup routes from `AppShell.xaml.cs` (can start once om-mobile-core defines the new close pattern)
+4. [om-tester] Write unit tests for new `IAppPopupService` methods on ViewModels
+5. [om-reviewer] Full review against spec
+6. [Fix loop if needed] Address Critical and Major findings
+7. [Git Flow] Finish branch and merge
+
+### Definition of Done
+
+- [ ] All `[REQ-001]` through `[REQ-020]` requirements implemented
+- [ ] All `[AC-001]` through `[AC-010]` acceptance criteria satisfied
+- [ ] Unit tests written for ViewModel changes (ChatViewModel, ProjectsViewModel)
+- [ ] `om-reviewer` verdict: Approved or Approved with remarks
+- [ ] Git Flow branch finished and deleted
+- [ ] Spec moved to `specs/done/` with Completed status

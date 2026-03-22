@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
+using openMob.Core.Helpers;
 using openMob.Core.Messages;
 using openMob.Core.Models;
 using openMob.Core.Services;
@@ -73,6 +74,14 @@ public partial class MessageComposerViewModel : ObservableObject, IDisposable
     /// <summary>Display name for the session agent override.</summary>
     public string SessionAgentDisplayName => SessionAgentName ?? "Default";
 
+    /// <summary>The model ID override for this session (e.g., "anthropic/claude-sonnet-4-5"), or <c>null</c> for default.</summary>
+    [ObservableProperty]
+    private string? _sessionModelId;
+
+    /// <summary>Display name for the session model override.</summary>
+    public string SessionModelDisplayName =>
+        SessionModelId is not null ? ModelIdHelper.ExtractModelName(SessionModelId) : "No model";
+
     /// <summary>The thinking-level override for this session [REQ-011].</summary>
     [ObservableProperty]
     private ThinkingLevel _sessionThinkingLevel = ThinkingLevel.Medium;
@@ -101,6 +110,12 @@ public partial class MessageComposerViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(SessionAgentDisplayName));
     }
 
+    /// <summary>Updates <see cref="SessionModelDisplayName"/> when model ID changes.</summary>
+    partial void OnSessionModelIdChanged(string? value)
+    {
+        OnPropertyChanged(nameof(SessionModelDisplayName));
+    }
+
     /// <summary>Updates <see cref="SendButtonText"/> when streaming state changes.</summary>
     partial void OnIsStreamingChanged(bool value)
     {
@@ -126,6 +141,7 @@ public partial class MessageComposerViewModel : ObservableObject, IDisposable
         // Load preferences
         var pref = await _preferenceService.GetOrDefaultAsync(projectId, ct);
         SessionAgentName = pref.AgentName;
+        SessionModelId = pref.DefaultModelId;
         SessionThinkingLevel = pref.ThinkingLevel;
         SessionAutoAccept = pref.AutoAccept;
 
@@ -142,6 +158,16 @@ public partial class MessageComposerViewModel : ObservableObject, IDisposable
         await _popupService.ShowAgentPickerAsync(agentName =>
         {
             SessionAgentName = agentName;
+        }, ct);
+    }
+
+    /// <summary>Opens the model picker popup to select an AI model.</summary>
+    [RelayCommand]
+    private async Task SelectModelAsync(CancellationToken ct)
+    {
+        await _popupService.ShowModelPickerAsync(modelId =>
+        {
+            SessionModelId = modelId;
         }, ct);
     }
 
@@ -207,6 +233,7 @@ public partial class MessageComposerViewModel : ObservableObject, IDisposable
             SessionId,
             text,
             SessionAgentName,
+            SessionModelId,
             SessionThinkingLevel,
             SessionAutoAccept));
 

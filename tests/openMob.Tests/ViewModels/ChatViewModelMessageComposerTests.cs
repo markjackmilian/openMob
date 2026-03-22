@@ -171,7 +171,7 @@ public sealed class ChatViewModelMessageComposerTests : IDisposable
 
         // Act
         WeakReferenceMessenger.Default.Send(new MessageComposedMessage(
-            "proj-1", "sess-1", "Hello from composer", null, ThinkingLevel.Medium, false));
+            "proj-1", "sess-1", "Hello from composer", null, null, ThinkingLevel.Medium, false));
 
         // Allow async handler to complete
         await Task.Delay(100);
@@ -195,7 +195,7 @@ public sealed class ChatViewModelMessageComposerTests : IDisposable
 
         // Act
         WeakReferenceMessenger.Default.Send(new MessageComposedMessage(
-            "proj-1", "sess-OTHER", "Hello", null, ThinkingLevel.Medium, false));
+            "proj-1", "sess-OTHER", "Hello", null, null, ThinkingLevel.Medium, false));
 
         // Allow async handler to complete
         await Task.Delay(100);
@@ -219,7 +219,7 @@ public sealed class ChatViewModelMessageComposerTests : IDisposable
 
         // Act
         WeakReferenceMessenger.Default.Send(new MessageComposedMessage(
-            "proj-1", "sess-1", "Hello", "custom-agent", ThinkingLevel.Medium, false));
+            "proj-1", "sess-1", "Hello", "custom-agent", null, ThinkingLevel.Medium, false));
 
         // Allow async handler to complete
         await Task.Delay(100);
@@ -247,7 +247,7 @@ public sealed class ChatViewModelMessageComposerTests : IDisposable
 
         // Act
         WeakReferenceMessenger.Default.Send(new MessageComposedMessage(
-            "proj-1", "sess-1", "Hello", "same-agent", ThinkingLevel.Medium, false));
+            "proj-1", "sess-1", "Hello", "same-agent", null, ThinkingLevel.Medium, false));
 
         // Allow async handler to complete
         await Task.Delay(100);
@@ -275,7 +275,7 @@ public sealed class ChatViewModelMessageComposerTests : IDisposable
 
         // Act
         WeakReferenceMessenger.Default.Send(new MessageComposedMessage(
-            "proj-1", "sess-1", "Hello", null, ThinkingLevel.Medium, false));
+            "proj-1", "sess-1", "Hello", null, null, ThinkingLevel.Medium, false));
 
         // Allow async handler to complete
         await Task.Delay(100);

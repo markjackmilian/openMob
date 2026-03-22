@@ -11,6 +11,7 @@ public sealed record MessageComposedMessage(
     string SessionId,
     string Text,
     string? AgentOverride,
+    string? ModelIdOverride,
     ThinkingLevel ThinkingLevelOverride,
     bool AutoAcceptOverride
 );

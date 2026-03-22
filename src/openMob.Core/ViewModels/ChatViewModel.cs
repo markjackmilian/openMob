@@ -803,11 +803,28 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
             text = $"@{message.AgentOverride} {text}";
         }
 
+        // Apply model override for this send only (does not persist)
+        var previousModelId = SelectedModelId;
+        if (message.ModelIdOverride is not null)
+        {
+            SelectedModelId = message.ModelIdOverride;
+            SelectedModelName = Helpers.ModelIdHelper.ExtractModelName(message.ModelIdOverride);
+        }
+
         // Use InputText + SendMessageCommand to leverage existing optimistic UI logic
         InputText = text;
         if (SendMessageCommand.CanExecute(null))
         {
             await SendMessageCommand.ExecuteAsync(null);
+        }
+
+        // Restore previous model after send
+        if (message.ModelIdOverride is not null && previousModelId != message.ModelIdOverride)
+        {
+            SelectedModelId = previousModelId;
+            SelectedModelName = previousModelId is not null
+                ? Helpers.ModelIdHelper.ExtractModelName(previousModelId)
+                : null;
         }
     }
 

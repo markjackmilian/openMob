@@ -85,6 +85,24 @@
           </HorizontalStackLayout>
         </Border>
 
+        <!-- Model chip -->
+        <Border StrokeThickness="1"
+                Stroke="{AppThemeBinding Light={StaticResource ColorOutlineLight}, Dark={StaticResource ColorOutlineDark}}"
+                BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceSecondaryLight}, Dark={StaticResource ColorSurfaceSecondaryDark}}"
+                Padding="10,5" HeightRequest="32">
+          <Border.StrokeShape><RoundRectangle CornerRadius="16" /></Border.StrokeShape>
+          <Border.GestureRecognizers><TapGestureRecognizer Command="{Binding SelectModelCommand}" /></Border.GestureRecognizers>
+          <HorizontalStackLayout Spacing="4" VerticalOptions="Center">
+            <Label Text="{x:Static helpers:IconKeys.Cpu}" FontFamily="TablerIcons" FontSize="14"
+                   TextColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}" VerticalOptions="Center" />
+            <Label Text="Model:" FontFamily="InterRegular" FontSize="12"
+                   TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}" VerticalOptions="Center" />
+            <Label Text="{Binding SessionModelDisplayName, FallbackValue='No model'}" FontFamily="InterSemiBold" FontSize="12"
+                   TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}" VerticalOptions="Center"
+                   LineBreakMode="TailTruncation" MaximumWidthRequest="120" />
+          </HorizontalStackLayout>
+        </Border>
+
         <!-- Think level chip -->
         <Border StrokeThickness="1"
                 Stroke="{AppThemeBinding Light={StaticResource ColorOutlineLight}, Dark={StaticResource ColorOutlineDark}}"

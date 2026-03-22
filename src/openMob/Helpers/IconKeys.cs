@@ -129,4 +129,7 @@ public static class IconKeys
 
     /// <summary>Chevron up / collapse icon. Tabler: chevron-up.</summary>
     public const string ChevronUp = "\uea63";
+
+    /// <summary>CPU / processor icon (for AI model selection). Tabler: cpu.</summary>
+    public const string Cpu = "\uef8e";
 }

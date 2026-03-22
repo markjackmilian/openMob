@@ -137,7 +137,6 @@ public static class CoreServiceExtensions
         services.AddTransient<SplashViewModel>();
         services.AddTransient<OnboardingViewModel>();
         services.AddTransient<ProjectsViewModel>();
-        services.AddTransient<ProjectDetailViewModel>();
         services.AddTransient<AddProjectViewModel>();
         services.AddTransient<ProjectSwitcherViewModel>();
         services.AddTransient<AgentPickerViewModel>();

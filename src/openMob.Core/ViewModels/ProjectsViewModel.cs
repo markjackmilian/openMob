@@ -122,9 +122,12 @@ public sealed partial class ProjectsViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Navigates to the project detail page for the specified project (REQ-023).
+    /// Sets the tapped project as the active project via one-tap selection (REQ-001, REQ-005).
+    /// If the tapped project is already active, no action is taken (REQ-002).
+    /// Updates <see cref="ActiveProjectId"/> and rebuilds the <see cref="Projects"/>
+    /// collection with updated <see cref="ProjectItem.IsActive"/> flags (REQ-010).
     /// </summary>
-    /// <param name="projectId">The project ID to view.</param>
+    /// <param name="projectId">The project ID to set as active.</param>
     /// <param name="ct">Cancellation token.</param>
     [RelayCommand]
     private async Task SelectProjectAsync(string projectId, CancellationToken ct)
@@ -137,10 +140,21 @@ public sealed partial class ProjectsViewModel : ObservableObject
 #endif
         ArgumentException.ThrowIfNullOrWhiteSpace(projectId);
 
-        await _navigationService.GoToAsync("project-detail", new Dictionary<string, object>
-        {
-            ["projectId"] = projectId,
-        }, ct);
+        // Guard: if already active, do nothing (REQ-002)
+        if (projectId == ActiveProjectId)
+            return;
+
+        // Set as active project (REQ-001) — this also publishes ActiveProjectChangedMessage
+        var success = await _activeProjectService.SetActiveProjectAsync(projectId, ct);
+        if (!success)
+            return;
+
+        // Update local state (REQ-010)
+        ActiveProjectId = projectId;
+
+        // Update IsActive on all ProjectItem instances for badge binding
+        var updatedItems = Projects.Select(p => p with { IsActive = p.Id == projectId }).ToList();
+        Projects = new ObservableCollection<ProjectItem>(updatedItems);
 #if DEBUG
         sw.Stop();
         DebugLogger.LogCommand(nameof(SelectProjectAsync), "complete", sw.ElapsedMilliseconds);

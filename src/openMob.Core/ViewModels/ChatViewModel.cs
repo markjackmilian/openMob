@@ -128,6 +128,16 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
                 });
             });
 
+        // Subscribe to active project changes — navigate to the most recent session
+        // of the new project, or to a new session if none exist (REQ-009).
+        WeakReferenceMessenger.Default.Register<ActiveProjectChangedMessage>(
+            this,
+            (r, m) =>
+            {
+                var vm = (ChatViewModel)r;
+                _ = vm.HandleActiveProjectChangedAsync(m);
+            });
+
         // Populate default suggestion chips [REQ-017]
         SuggestionChips = new ObservableCollection<SuggestionChip>
         {
@@ -1499,6 +1509,52 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
             throw;
         }
 #endif
+    }
+
+    // ─── Active Project Change Handler [REQ-009] ───────────────────────────────
+
+    /// <summary>
+    /// Handles the <see cref="ActiveProjectChangedMessage"/> by navigating to the most
+    /// recent session of the new active project, or to a new chat if no sessions exist (REQ-009).
+    /// Navigation is dispatched to the UI thread via <see cref="IDispatcherService"/>.
+    /// </summary>
+    /// <param name="message">The active project changed message containing the new project.</param>
+    private async Task HandleActiveProjectChangedAsync(ActiveProjectChangedMessage message)
+    {
+        try
+        {
+            var projectId = message.Project.Id;
+
+            // Get the most recent session for the new project
+            var lastSession = await _sessionService.GetLastSessionForProjectAsync(projectId);
+
+            if (lastSession is not null)
+            {
+                // Navigate to the most recent session
+                _dispatcher.Dispatch(async () =>
+                {
+                    await _navigationService.GoToAsync("//chat", new Dictionary<string, object>
+                    {
+                        ["sessionId"] = lastSession.Id,
+                    });
+                });
+            }
+            else
+            {
+                // Navigate to new session for this project (no sessions exist)
+                _dispatcher.Dispatch(async () =>
+                {
+                    await _navigationService.GoToAsync("//chat");
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            SentryHelper.CaptureException(ex, new Dictionary<string, object>
+            {
+                ["context"] = "ChatViewModel.HandleActiveProjectChangedAsync",
+            });
+        }
     }
 
     // ─── IDisposable [REQ-018] ────────────────────────────────────────────────

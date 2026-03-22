@@ -12,11 +12,17 @@ namespace openMob.Core.ViewModels;
 public partial class FilePickerViewModel : ObservableObject
 {
     private readonly IFileService _fileService;
+    private readonly IAppPopupService _popupService;
 
-    public FilePickerViewModel(IFileService fileService)
+    /// <summary>Initialises the file picker ViewModel with required dependencies.</summary>
+    /// <param name="fileService">Service for loading project files from the opencode server.</param>
+    /// <param name="popupService">Service for popup operations (used to pop the sheet after selection).</param>
+    public FilePickerViewModel(IFileService fileService, IAppPopupService popupService)
     {
         ArgumentNullException.ThrowIfNull(fileService);
+        ArgumentNullException.ThrowIfNull(popupService);
         _fileService = fileService;
+        _popupService = popupService;
     }
 
     /// <summary>The full list of files loaded from the project.</summary>
@@ -61,7 +67,7 @@ public partial class FilePickerViewModel : ObservableObject
 
         try
         {
-            var result = await _fileService.GetFilesAsync(ct).ConfigureAwait(false);
+            var result = await _fileService.GetFilesAsync(ct);
 
             if (!result.IsSuccess)
             {
@@ -90,11 +96,12 @@ public partial class FilePickerViewModel : ObservableObject
         }
     }
 
-    /// <summary>Selects a file and invokes the callback or pops the popup.</summary>
+    /// <summary>Selects a file, invokes the callback, and pops the popup (REQ-022).</summary>
     [RelayCommand]
     private async Task SelectFileAsync(FileDto file)
     {
         OnFileSelected?.Invoke(file.RelativePath);
+        await _popupService.PopPopupAsync();
     }
 
     /// <summary>Filters <see cref="Files"/> into <see cref="FilteredFiles"/> based on <see cref="SearchText"/>.</summary>

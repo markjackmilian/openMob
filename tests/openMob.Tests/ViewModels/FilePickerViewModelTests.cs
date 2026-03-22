@@ -12,12 +12,14 @@ namespace openMob.Tests.ViewModels;
 public sealed class FilePickerViewModelTests
 {
     private readonly IFileService _fileService;
+    private readonly IAppPopupService _popupService;
     private readonly FilePickerViewModel _sut;
 
     public FilePickerViewModelTests()
     {
         _fileService = Substitute.For<IFileService>();
-        _sut = new FilePickerViewModel(_fileService);
+        _popupService = Substitute.For<IAppPopupService>();
+        _sut = new FilePickerViewModel(_fileService, _popupService);
     }
 
     // ─── Helpers ─────────────────────────────────────────────────────────────

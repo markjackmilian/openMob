@@ -14,7 +14,7 @@ using openMob.Services;
 using openMob.Views.Controls.Markdown;
 using openMob.Views.Pages;
 using openMob.Views.Popups;
-using UXDivers.Popups.Maui.Controls;
+using UXDivers.Popups.Maui;
 
 namespace openMob;
 

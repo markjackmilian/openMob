@@ -1,35 +1,26 @@
 using openMob.Core.ViewModels;
+using UXDivers.Popups.Maui;
+using UXDivers.Popups.Services;
 
 namespace openMob.Views.Popups;
 
-/// <summary>Model picker bottom sheet — displays a flat, virtualised list of AI models for selection.</summary>
-public partial class ModelPickerSheet : ContentPage
+/// <summary>
+/// Model picker popup — displays a flat, virtualised list of AI models for selection.
+/// Model loading is handled by MauiPopupService before this popup is pushed.
+/// </summary>
+public partial class ModelPickerSheet : PopupPage
 {
-    private readonly ModelPickerViewModel _viewModel;
-
     /// <summary>Initialises the model picker sheet with its ViewModel.</summary>
     /// <param name="viewModel">The model picker ViewModel.</param>
     public ModelPickerSheet(ModelPickerViewModel viewModel)
     {
         InitializeComponent();
-        _viewModel = viewModel;
-        BindingContext = _viewModel;
+        BindingContext = viewModel;
     }
 
-    /// <summary>Closes the sheet when the close button is tapped.</summary>
+    /// <summary>Closes the popup when the close button is tapped.</summary>
     private async void OnCloseButtonTapped(object? sender, EventArgs e)
     {
-        await Shell.Current.GoToAsync("..");
-    }
-
-    /// <inheritdoc />
-    protected override async void OnAppearing()
-    {
-        base.OnAppearing();
-
-        if (_viewModel.LoadModelsCommand.CanExecute(null))
-        {
-            await _viewModel.LoadModelsCommand.ExecuteAsync(null);
-        }
+        await IPopupService.Current.PopAsync(this);
     }
 }

@@ -1,11 +1,11 @@
-using CommunityToolkit.Maui.Alerts;
 using CommunityToolkit.Maui.Core;
 using openMob.Core.Models;
 using openMob.Core.Services;
 using openMob.Core.ViewModels;
 using openMob.Views.Popups;
 using UXDivers.Popups.Maui;
-using UXDivers.Popups.Maui.Controls;
+using UXDivers.Popups.Services;
+using Toast = CommunityToolkit.Maui.Alerts.Toast;
 
 namespace openMob.Services;
 

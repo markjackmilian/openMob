@@ -1,14 +1,16 @@
 using openMob.Core.ViewModels;
+using UXDivers.Popups.Maui;
+using UXDivers.Popups.Services;
 
 namespace openMob.Views.Popups;
 
 /// <summary>
-/// Context Sheet bottom sheet — displays and allows editing of session-level settings:
+/// Context Sheet popup — displays and allows editing of session-level settings:
 /// project, agent, model, thinking level, auto-accept, and subagent invocation.
 /// Preferences are loaded by <see cref="openMob.Services.MauiPopupService.ShowContextSheetAsync"/>
-/// before this page is pushed modally.
+/// before this popup is pushed via <see cref="IPopupService"/>.
 /// </summary>
-public partial class ContextSheet : ContentPage
+public partial class ContextSheet : PopupPage
 {
     private readonly ContextSheetViewModel _viewModel;
 
@@ -21,17 +23,9 @@ public partial class ContextSheet : ContentPage
         BindingContext = _viewModel;
     }
 
-    /// <summary>Closes the sheet when the close button is tapped.</summary>
+    /// <summary>Closes the popup when the close button is tapped.</summary>
     private async void OnCloseButtonTapped(object? sender, EventArgs e)
     {
-        await Shell.Current.GoToAsync("..");
-    }
-
-    /// <inheritdoc />
-    protected override void OnAppearing()
-    {
-        base.OnAppearing();
-        // Initialization is performed by MauiPopupService.ShowContextSheetAsync
-        // before this page is pushed modally. No action needed here.
+        await IPopupService.Current.PopAsync(this);
     }
 }

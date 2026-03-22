@@ -1,35 +1,26 @@
 using openMob.Core.ViewModels;
+using UXDivers.Popups.Maui;
+using UXDivers.Popups.Services;
 
 namespace openMob.Views.Popups;
 
-/// <summary>Agent picker bottom sheet — displays available agents for selection.</summary>
-public partial class AgentPickerSheet : ContentPage
+/// <summary>
+/// Agent picker popup — displays available agents for selection.
+/// Agent loading is handled by MauiPopupService before this popup is pushed.
+/// </summary>
+public partial class AgentPickerSheet : PopupPage
 {
-    private readonly AgentPickerViewModel _viewModel;
-
     /// <summary>Initialises the agent picker sheet with its ViewModel.</summary>
     /// <param name="viewModel">The agent picker ViewModel.</param>
     public AgentPickerSheet(AgentPickerViewModel viewModel)
     {
         InitializeComponent();
-        _viewModel = viewModel;
-        BindingContext = _viewModel;
+        BindingContext = viewModel;
     }
 
-    /// <summary>Closes the sheet when the close button is tapped.</summary>
+    /// <summary>Closes the popup when the close button is tapped.</summary>
     private async void OnCloseButtonTapped(object? sender, EventArgs e)
     {
-        await Shell.Current.GoToAsync("..");
-    }
-
-    /// <inheritdoc />
-    protected override async void OnAppearing()
-    {
-        base.OnAppearing();
-
-        if (_viewModel.LoadAgentsCommand.CanExecute(null))
-        {
-            await _viewModel.LoadAgentsCommand.ExecuteAsync(null);
-        }
+        await IPopupService.Current.PopAsync(this);
     }
 }

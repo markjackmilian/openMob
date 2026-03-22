@@ -822,7 +822,9 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
             _ = _preferenceService.SetAutoAcceptAsync(CurrentProjectId, message.AutoAcceptOverride);
         }
 
-        // Build the text — prepend agent mention if different from original agent
+        // The primary agent is a project-level preference (persisted above) — it is NOT
+        // sent as @mention in the text. Only subagents (inserted via the @ toolbar button
+        // in the composer) appear as @mentions in the message text.
         var text = message.Text;
 
         // Use InputText + SendMessageCommand to leverage existing optimistic UI logic

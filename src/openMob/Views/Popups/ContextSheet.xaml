@@ -209,7 +209,7 @@
                   Padding="12,8"
                   MinimumHeightRequest="{StaticResource SpacingXxl}"
                   MinimumWidthRequest="0"
-                  CornerRadius="{StaticResource RadiusSm}"
+                  CornerRadius="8"
                   Command="{Binding ChangeThinkingLevelCommand}"
                   CommandParameter="{x:Static models:ThinkingLevel.Low}"
                   BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceSecondaryLight},
@@ -237,7 +237,7 @@
                   Padding="12,8"
                   MinimumHeightRequest="{StaticResource SpacingXxl}"
                   MinimumWidthRequest="0"
-                  CornerRadius="{StaticResource RadiusSm}"
+                  CornerRadius="8"
                   Command="{Binding ChangeThinkingLevelCommand}"
                   CommandParameter="{x:Static models:ThinkingLevel.Medium}"
                   BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceSecondaryLight},
@@ -265,7 +265,7 @@
                   Padding="12,8"
                   MinimumHeightRequest="{StaticResource SpacingXxl}"
                   MinimumWidthRequest="0"
-                  CornerRadius="{StaticResource RadiusSm}"
+                  CornerRadius="8"
                   Command="{Binding ChangeThinkingLevelCommand}"
                   CommandParameter="{x:Static models:ThinkingLevel.High}"
                   BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceSecondaryLight},

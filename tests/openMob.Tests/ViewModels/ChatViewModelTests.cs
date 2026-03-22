@@ -1051,4 +1051,55 @@ public sealed class ChatViewModelTests
         // performs a push navigation that preserves back navigation to ChatPage (REQ-011).
         await _navigationService.Received(1).GoToAsync("///server-management", Arg.Any<CancellationToken>());
     }
+
+    // ─── OpenContextSheetCommand ──────────────────────────────────────────────────
+
+    [Fact]
+    public async Task OpenContextSheetCommand_WhenProjectIsActive_CallsShowContextSheetWithCorrectIds()
+    {
+        // Arrange
+        _sut.CurrentProjectId = "proj-abc";
+        _sut.CurrentSessionId = "sess-xyz";
+
+        // Act
+        await _sut.OpenContextSheetCommand.ExecuteAsync(null);
+
+        // Assert
+        await _popupService.Received(1).ShowContextSheetAsync(
+            "proj-abc",
+            "sess-xyz",
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task OpenContextSheetCommand_WhenProjectIdIsNull_DoesNotCallPopupService()
+    {
+        // Arrange — CurrentProjectId is null by default in a freshly constructed _sut
+
+        // Act
+        await _sut.OpenContextSheetCommand.ExecuteAsync(null);
+
+        // Assert
+        await _popupService.DidNotReceive().ShowContextSheetAsync(
+            Arg.Any<string>(),
+            Arg.Any<string>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task OpenContextSheetCommand_WhenSessionIdIsNull_PassesEmptyStringToPopupService()
+    {
+        // Arrange
+        _sut.CurrentProjectId = "proj-abc";
+        // CurrentSessionId is null by default — not set explicitly
+
+        // Act
+        await _sut.OpenContextSheetCommand.ExecuteAsync(null);
+
+        // Assert
+        await _popupService.Received(1).ShowContextSheetAsync(
+            "proj-abc",
+            string.Empty,
+            Arg.Any<CancellationToken>());
+    }
 }

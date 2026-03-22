@@ -234,13 +234,18 @@
         <Border.GestureRecognizers>
           <TapGestureRecognizer Command="{Binding OpenMessageComposerCommand}" />
         </Border.GestureRecognizers>
-        <Label Text="{x:Static helpers:IconKeys.Edit}"
-               FontFamily="TablerIcons"
-               FontSize="{StaticResource FontSizeIconXl}"
-               TextColor="{AppThemeBinding Light={StaticResource ColorOnPrimaryLight},
-                                            Dark={StaticResource ColorOnPrimaryDark}}"
-               HorizontalOptions="Center"
-               VerticalOptions="Center" />
+        <Image HorizontalOptions="Center"
+               VerticalOptions="Center"
+               WidthRequest="24"
+               HeightRequest="24">
+          <Image.Source>
+            <FontImageSource FontFamily="TablerIcons"
+                             Glyph="{x:Static helpers:IconKeys.Edit}"
+                             Size="{StaticResource FontSizeIconXl}"
+                             Color="{AppThemeBinding Light={StaticResource ColorOnPrimaryLight},
+                                                      Dark={StaticResource ColorOnPrimaryDark}}" />
+          </Image.Source>
+        </Image>
       </Border>
 
     </Grid>

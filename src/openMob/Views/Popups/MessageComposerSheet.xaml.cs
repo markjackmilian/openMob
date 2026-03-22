@@ -1,5 +1,6 @@
 using openMob.Core.ViewModels;
 using UXDivers.Popups.Maui;
+using UXDivers.Popups.Services;
 
 namespace openMob.Views.Popups;
 
@@ -16,5 +17,18 @@ public partial class MessageComposerSheet : PopupPage
     {
         InitializeComponent();
         BindingContext = viewModel;
+    }
+
+    /// <summary>Closes the popup when the close button is tapped, saving draft first.</summary>
+    private async void OnCloseButtonTapped(object? sender, EventArgs e)
+    {
+        // Save draft before closing
+        if (BindingContext is MessageComposerViewModel vm)
+        {
+            vm.CloseCommand.Execute(null);
+            return;
+        }
+
+        await IPopupService.Current.PopAsync(this);
     }
 }

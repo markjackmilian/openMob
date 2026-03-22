@@ -63,18 +63,17 @@
                Color="{AppThemeBinding Light={StaticResource ColorSeparatorLight},
                                         Dark={StaticResource ColorSeparatorDark}}" />
 
-      <!-- Session chips row -->
-      <HorizontalStackLayout Spacing="6" Padding="16,10">
+      <!-- Session chips row — compact inline pills -->
+      <HorizontalStackLayout Spacing="6" Padding="16,8">
 
         <!-- Agent chip -->
-        <Border StrokeThickness="1"
-                Stroke="{AppThemeBinding Light={StaticResource ColorOutlineLight}, Dark={StaticResource ColorOutlineDark}}"
+        <Border StrokeThickness="0"
                 BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceSecondaryLight}, Dark={StaticResource ColorSurfaceSecondaryDark}}"
-                Padding="8,4" HeightRequest="30">
-          <Border.StrokeShape><RoundRectangle CornerRadius="6" /></Border.StrokeShape>
+                Padding="8,3" HeightRequest="26">
+          <Border.StrokeShape><RoundRectangle CornerRadius="13" /></Border.StrokeShape>
           <Border.GestureRecognizers><TapGestureRecognizer Command="{Binding SelectAgentCommand}" /></Border.GestureRecognizers>
           <HorizontalStackLayout Spacing="4" VerticalOptions="Center">
-            <Label Text="{x:Static helpers:IconKeys.Robot}" FontFamily="TablerIcons" FontSize="12"
+            <Label Text="{x:Static helpers:IconKeys.Robot}" FontFamily="TablerIcons" FontSize="11"
                    TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}" VerticalOptions="Center" />
             <Label Text="{Binding SessionAgentDisplayName, FallbackValue='Default'}" FontFamily="InterMedium" FontSize="12"
                    TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}" VerticalOptions="Center"
@@ -83,14 +82,13 @@
         </Border>
 
         <!-- Think level chip -->
-        <Border StrokeThickness="1"
-                Stroke="{AppThemeBinding Light={StaticResource ColorOutlineLight}, Dark={StaticResource ColorOutlineDark}}"
+        <Border StrokeThickness="0"
                 BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceSecondaryLight}, Dark={StaticResource ColorSurfaceSecondaryDark}}"
-                Padding="8,4" HeightRequest="30">
-          <Border.StrokeShape><RoundRectangle CornerRadius="6" /></Border.StrokeShape>
+                Padding="8,3" HeightRequest="26">
+          <Border.StrokeShape><RoundRectangle CornerRadius="13" /></Border.StrokeShape>
           <Border.GestureRecognizers><TapGestureRecognizer Command="{Binding ToggleThinkLevelExpandedCommand}" /></Border.GestureRecognizers>
           <HorizontalStackLayout Spacing="4" VerticalOptions="Center">
-            <Label Text="{x:Static helpers:IconKeys.Brain}" FontFamily="TablerIcons" FontSize="12"
+            <Label Text="{x:Static helpers:IconKeys.Brain}" FontFamily="TablerIcons" FontSize="11"
                    TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}" VerticalOptions="Center" />
             <Label Text="{Binding SessionThinkingLevel, FallbackValue='Medium'}" FontFamily="InterMedium" FontSize="12"
                    TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}" VerticalOptions="Center" />
@@ -104,23 +102,25 @@
         </Border>
 
         <!-- Auto-accept chip -->
-        <Border StrokeThickness="1"
-                Stroke="{AppThemeBinding Light={StaticResource ColorOutlineLight}, Dark={StaticResource ColorOutlineDark}}"
+        <Border StrokeThickness="0"
                 BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceSecondaryLight}, Dark={StaticResource ColorSurfaceSecondaryDark}}"
-                Padding="6,4" HeightRequest="30" WidthRequest="36">
-          <Border.StrokeShape><RoundRectangle CornerRadius="6" /></Border.StrokeShape>
+                Padding="8,3" HeightRequest="26">
+          <Border.StrokeShape><RoundRectangle CornerRadius="13" /></Border.StrokeShape>
           <Border.GestureRecognizers><TapGestureRecognizer Command="{Binding ToggleAutoAcceptCommand}" /></Border.GestureRecognizers>
-          <Label Text="{x:Static helpers:IconKeys.AutoAwesome}" FontFamily="TablerIcons" FontSize="14"
-                 HorizontalOptions="Center" VerticalOptions="Center">
-            <Label.TextColor>
-              <AppThemeBinding Light="{StaticResource ColorOnBackgroundSecondaryLight}" Dark="{StaticResource ColorOnBackgroundSecondaryDark}" />
-            </Label.TextColor>
-            <Label.Triggers>
-              <DataTrigger TargetType="Label" Binding="{Binding SessionAutoAccept}" Value="True">
-                <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}" />
-              </DataTrigger>
-            </Label.Triggers>
-          </Label>
+          <HorizontalStackLayout Spacing="4" VerticalOptions="Center">
+            <Label Text="{x:Static helpers:IconKeys.AutoAwesome}" FontFamily="TablerIcons" FontSize="11" VerticalOptions="Center">
+              <Label.TextColor>
+                <AppThemeBinding Light="{StaticResource ColorOnBackgroundSecondaryLight}" Dark="{StaticResource ColorOnBackgroundSecondaryDark}" />
+              </Label.TextColor>
+              <Label.Triggers>
+                <DataTrigger TargetType="Label" Binding="{Binding SessionAutoAccept}" Value="True">
+                  <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}" />
+                </DataTrigger>
+              </Label.Triggers>
+            </Label>
+            <Label Text="Auto" FontFamily="InterMedium" FontSize="12" VerticalOptions="Center"
+                   TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}" />
+          </HorizontalStackLayout>
         </Border>
 
       </HorizontalStackLayout>
@@ -166,9 +166,9 @@
       <Editor Text="{Binding MessageText, Mode=TwoWay}"
               Placeholder="Scrivi un messaggio..."
               AutoSize="TextChanges"
-              MinimumHeightRequest="80"
-              MaximumHeightRequest="160"
-              Margin="16,8,16,8"
+              MinimumHeightRequest="60"
+              MaximumHeightRequest="140"
+              Margin="16,6,16,6"
               Style="{StaticResource InputBarEditor}"
               AutomationId="ComposerEditor"
               SemanticProperties.Hint="Type your message here" />
@@ -220,8 +220,8 @@
                 SemanticProperties.Description="Send message" />
       </Grid>
 
-      <!-- Bottom safe area padding -->
-      <BoxView HeightRequest="8" Color="Transparent" />
+      <!-- Bottom safe area padding for Android gesture nav bar -->
+      <BoxView HeightRequest="48" Color="Transparent" />
 
     </VerticalStackLayout>
   </Border>

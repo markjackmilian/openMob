@@ -12,7 +12,9 @@
                AppearingAnimation="{uxd:FadeInPopupAnimation Duration=300}"
                DisappearingAnimation="{uxd:FadeOutPopupAnimation Duration=300}">
 
-    <Grid RowDefinitions="Auto,Auto,Auto,*">
+    <Grid RowDefinitions="Auto,Auto,Auto,*"
+          BackgroundColor="{AppThemeBinding Light={StaticResource ColorBackgroundLight},
+                                            Dark={StaticResource ColorBackgroundDark}}">
 
       <!-- ═══════════════════════════════════════════════════════════
            Row 0: Handle bar

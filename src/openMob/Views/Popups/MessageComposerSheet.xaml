@@ -13,7 +13,9 @@
                DisappearingAnimation="{uxd:FadeOutPopupAnimation Duration=300}">
 
   <ScrollView>
-    <VerticalStackLayout Spacing="0">
+    <VerticalStackLayout Spacing="0"
+                         BackgroundColor="{AppThemeBinding Light={StaticResource ColorBackgroundLight},
+                                                           Dark={StaticResource ColorBackgroundDark}}">
 
       <!-- ═══════════════════════════════════════════════════════════
            Handle bar

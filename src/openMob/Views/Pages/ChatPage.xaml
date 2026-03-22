@@ -279,14 +279,41 @@
     </VerticalStackLayout>
 
     <!-- ═══════════════════════════════════════════════════════════════
-         ROW 6 — Input Bar (modified with command palette button)
+         ROW 6 — FAB (Floating Action Button) [REQ-001, REQ-002, REQ-003]
+         Replaces the inline InputBarView. Opens the MessageComposerSheet.
+         The FAB is always visible and tappable, even during streaming [REQ-005].
          ═══════════════════════════════════════════════════════════════ -->
-    <controls:InputBarView Grid.Row="6"
-                            Text="{Binding InputText, Mode=TwoWay}"
-                            SendCommand="{Binding SendMessageCommand}"
-                            IsInputEnabled="{Binding IsAiResponding, Converter={StaticResource InvertedBoolConverter}}"
-                            OpenCommandPaletteCommand="{Binding OpenCommandPaletteCommand}"
-                            Placeholder="Message..." />
+    <Grid Grid.Row="6"
+          HeightRequest="72"
+          Padding="0,0,16,8">
+
+      <!-- FAB — compose icon, bottom-right -->
+      <ImageButton Command="{Binding OpenMessageComposerCommand}"
+                   WidthRequest="56"
+                   HeightRequest="56"
+                   CornerRadius="28"
+                   BackgroundColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight},
+                                                     Dark={StaticResource ColorPrimaryDark}}"
+                   HorizontalOptions="End"
+                   VerticalOptions="Center"
+                   AutomationId="ComposerFabButton"
+                   SemanticProperties.Description="Open message composer">
+        <ImageButton.Source>
+          <FontImageSource FontFamily="TablerIcons"
+                           Glyph="{x:Static helpers:IconKeys.Edit}"
+                           Size="{StaticResource FontSizeIconXl}"
+                           Color="{AppThemeBinding Light={StaticResource ColorOnPrimaryLight},
+                                                    Dark={StaticResource ColorOnPrimaryDark}}" />
+        </ImageButton.Source>
+        <ImageButton.Shadow>
+          <Shadow Brush="Black"
+                  Opacity="0.3"
+                  Offset="0,4"
+                  Radius="8" />
+        </ImageButton.Shadow>
+      </ImageButton>
+
+    </Grid>
 
   </Grid>
 

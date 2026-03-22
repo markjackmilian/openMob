@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<uxd:PopupPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+               xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+               xmlns:uxd="clr-namespace:UXDivers.Popups.Maui;assembly=UXDivers.Popups.Maui"
+               xmlns:vm="clr-namespace:openMob.Core.ViewModels;assembly=openMob.Core"
+               xmlns:svc="clr-namespace:openMob.Core.Services;assembly=openMob.Core"
+               xmlns:helpers="clr-namespace:openMob.Helpers"
+               x:Class="openMob.Views.Popups.FilePickerSheet"
+               x:DataType="vm:FilePickerViewModel"
+               BackgroundColor="{DynamicResource PopupBackdropColor}"
+               CloseWhenBackgroundIsClicked="True"
+               AppearingAnimation="{uxd:FadeInPopupAnimation Duration=300}"
+               DisappearingAnimation="{uxd:FadeOutPopupAnimation Duration=300}">
+
+  <Grid RowDefinitions="Auto,Auto,Auto,*">
+
+    <!-- Handle bar -->
+    <BoxView Grid.Row="0"
+             Style="{StaticResource SheetHandleBar}"
+             Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
+                                       Dark={StaticResource ColorOnBackgroundTertiaryDark}}" />
+
+    <!-- Header with title and close button -->
+    <Grid Grid.Row="1"
+          ColumnDefinitions="*,Auto"
+          Padding="16,0,16,16">
+      <Label Grid.Column="0"
+             Text="Select File"
+             Style="{StaticResource Title3Label}"
+             VerticalOptions="Center" />
+      <ImageButton Grid.Column="1"
+                   Clicked="OnCloseButtonTapped"
+                   MinimumHeightRequest="{StaticResource MinTouchTarget}"
+                   MinimumWidthRequest="{StaticResource MinTouchTarget}"
+                   BackgroundColor="Transparent"
+                   AutomationId="FilePickerCloseButton"
+                   SemanticProperties.Description="Close file picker">
+        <ImageButton.Source>
+          <FontImageSource FontFamily="TablerIcons"
+                           Glyph="{x:Static helpers:IconKeys.X}"
+                           Size="{StaticResource FontSizeIconXl}"
+                           Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight},
+                                                    Dark={StaticResource ColorOnBackgroundDark}}" />
+        </ImageButton.Source>
+      </ImageButton>
+    </Grid>
+
+    <!-- Search field -->
+    <Border Grid.Row="2"
+            Margin="16,0,16,8"
+            Padding="0"
+            StrokeThickness="1"
+            Stroke="{AppThemeBinding Light={StaticResource ColorOutlineLight},
+                                      Dark={StaticResource ColorOutlineDark}}"
+            BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceSecondaryLight},
+                                               Dark={StaticResource ColorSurfaceSecondaryDark}}">
+      <Border.StrokeShape>
+        <RoundRectangle CornerRadius="8" />
+      </Border.StrokeShape>
+      <Grid ColumnDefinitions="Auto,*"
+            ColumnSpacing="{StaticResource SpacingSm}"
+            Padding="12,0">
+        <Label Grid.Column="0"
+               Text="{x:Static helpers:IconKeys.Search}"
+               FontFamily="TablerIcons"
+               FontSize="{StaticResource FontSizeCallout}"
+               TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
+                                            Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
+               VerticalOptions="Center" />
+        <Entry Grid.Column="1"
+               Text="{Binding SearchText, Mode=TwoWay}"
+               Placeholder="Search files…"
+               BackgroundColor="Transparent"
+               FontFamily="InterRegular"
+               FontSize="{StaticResource FontSizeBody}"
+               MinimumHeightRequest="{StaticResource MinTouchTarget}"
+               AutomationId="FilePickerSearchEntry"
+               SemanticProperties.Hint="Search for files by name or path" />
+      </Grid>
+    </Border>
+
+    <!-- File list area -->
+    <Grid Grid.Row="3">
+
+      <!-- Loading indicator -->
+      <ActivityIndicator IsRunning="{Binding IsLoading}"
+                         IsVisible="{Binding IsLoading}"
+                         HorizontalOptions="Center"
+                         VerticalOptions="Center" />
+
+      <!-- Error state -->
+      <VerticalStackLayout IsVisible="{Binding HasError}"
+                           HorizontalOptions="Center"
+                           VerticalOptions="Center"
+                           Spacing="{StaticResource SpacingSm}"
+                           Padding="{StaticResource SpacingLg}">
+        <Label Text="{x:Static helpers:IconKeys.AlertCircle}"
+               FontFamily="TablerIcons"
+               FontSize="{StaticResource FontSizeIconXxl}"
+               TextColor="{AppThemeBinding Light={StaticResource ColorErrorLight},
+                                            Dark={StaticResource ColorErrorDark}}"
+               HorizontalTextAlignment="Center" />
+        <Label Text="{Binding ErrorMessage, FallbackValue='Failed to load files.', TargetNullValue='Failed to load files.'}"
+               Style="{StaticResource CalloutLabel}"
+               HorizontalTextAlignment="Center" />
+      </VerticalStackLayout>
+
+      <!-- File CollectionView -->
+      <CollectionView ItemsSource="{Binding FilteredFiles}"
+                      SelectionMode="None"
+                      IsVisible="{Binding IsLoading, Converter={StaticResource InvertedBoolConverter}}">
+        <CollectionView.ItemTemplate>
+          <DataTemplate x:DataType="svc:FileDto">
+            <VerticalStackLayout Spacing="0" Padding="16,0">
+              <Grid ColumnDefinitions="Auto,*"
+                    Padding="0,10"
+                    ColumnSpacing="{StaticResource SpacingMd}"
+                    MinimumHeightRequest="{StaticResource MinTouchTarget}">
+                <Grid.GestureRecognizers>
+                  <TapGestureRecognizer
+                      Command="{Binding SelectFileCommand, Source={RelativeSource AncestorType={x:Type vm:FilePickerViewModel}}}"
+                      CommandParameter="{Binding .}" />
+                </Grid.GestureRecognizers>
+
+                <!-- File icon -->
+                <Label Grid.Column="0"
+                       Text="{x:Static helpers:IconKeys.File}"
+                       FontFamily="TablerIcons"
+                       FontSize="{StaticResource FontSizeIconXl}"
+                       TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
+                                                    Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
+                       VerticalOptions="Center"
+                       SemanticProperties.Description="File icon" />
+
+                <VerticalStackLayout Grid.Column="1"
+                                     Spacing="{StaticResource SpacingXxs}"
+                                     VerticalOptions="Center">
+                  <Label Text="{Binding RelativePath, FallbackValue='file.txt'}"
+                         FontFamily="InterMedium"
+                         FontSize="{StaticResource FontSizeSubheadline}"
+                         TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight},
+                                                      Dark={StaticResource ColorOnBackgroundDark}}"
+                         LineBreakMode="MiddleTruncation" />
+                  <Label Text="{Binding Name, FallbackValue='', TargetNullValue=''}"
+                         FontFamily="InterRegular"
+                         FontSize="{StaticResource FontSizeCaption1}"
+                         TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
+                                                      Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
+                         IsVisible="{Binding Name, Converter={StaticResource NullToVisibilityConverter}}" />
+                </VerticalStackLayout>
+              </Grid>
+
+              <BoxView HeightRequest="0.5"
+                       Color="{AppThemeBinding Light={StaticResource ColorSeparatorLight},
+                                                Dark={StaticResource ColorSeparatorDark}}" />
+            </VerticalStackLayout>
+          </DataTemplate>
+        </CollectionView.ItemTemplate>
+
+        <CollectionView.EmptyView>
+          <VerticalStackLayout HorizontalOptions="Center"
+                               VerticalOptions="Center"
+                               Spacing="{StaticResource SpacingSm}"
+                               Padding="{StaticResource SpacingXl}">
+            <Label Text="{x:Static helpers:IconKeys.Folder}"
+                   FontFamily="TablerIcons"
+                   FontSize="{StaticResource FontSizeIconXxl}"
+                   TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
+                                                Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
+                   HorizontalTextAlignment="Center" />
+            <Label Text="No files found"
+                   FontFamily="InterRegular"
+                   FontSize="{StaticResource FontSizeCallout}"
+                   TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
+                                                Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
+                   HorizontalTextAlignment="Center" />
+          </VerticalStackLayout>
+        </CollectionView.EmptyView>
+      </CollectionView>
+
+    </Grid>
+
+  </Grid>
+
+</uxd:PopupPage>

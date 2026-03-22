@@ -117,4 +117,16 @@ public static class IconKeys
 
     /// <summary>Adjustments icon (for context/settings). Tabler: adjustments-horizontal.</summary>
     public const string Adjustments = "\uec38";
+
+    /// <summary>File icon (for file picker). Tabler: file.</summary>
+    public const string File = "\ueaa2";
+
+    /// <summary>At sign icon (for subagent mention). Tabler: at.</summary>
+    public const string At = "\uea29";
+
+    /// <summary>Hash icon (for file reference). Tabler: hash.</summary>
+    public const string Hash = "\ueab0";
+
+    /// <summary>Chevron up / collapse icon. Tabler: chevron-up.</summary>
+    public const string ChevronUp = "\uea63";
 }

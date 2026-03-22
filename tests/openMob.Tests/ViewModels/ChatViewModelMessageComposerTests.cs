@@ -206,7 +206,7 @@ public sealed class ChatViewModelMessageComposerTests : IDisposable
     }
 
     [Fact]
-    public async Task MessageComposedMessage_WhenAgentOverrideDiffersFromSelected_PrependsAgentMention()
+    public async Task MessageComposedMessage_WhenAgentOverrideDiffersFromSelected_UpdatesSelectedAgentAndPersists()
     {
         // Arrange
         _sut.CurrentSessionId = "sess-1";
@@ -224,13 +224,15 @@ public sealed class ChatViewModelMessageComposerTests : IDisposable
         // Allow async handler to complete
         await Task.Delay(100);
 
-        // Assert — text should be "@custom-agent Hello"
+        // Assert — agent is updated as new default, text sent without @mention prefix
+        _sut.SelectedAgentName.Should().Be("custom-agent");
         await _chatService.Received(1).SendPromptAsync(
             "sess-1",
-            "@custom-agent Hello",
+            "Hello",
             Arg.Any<string?>(),
             Arg.Any<string?>(),
             Arg.Any<CancellationToken>());
+        await _preferenceService.Received(1).SetAgentAsync("proj-1", "custom-agent", Arg.Any<CancellationToken>());
     }
 
     [Fact]

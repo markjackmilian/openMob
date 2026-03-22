@@ -793,38 +793,43 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     /// <param name="message">The composed message with text and session overrides.</param>
     private async Task HandleMessageComposedAsync(MessageComposedMessage message)
     {
-        if (message.SessionId != CurrentSessionId)
+        if (message.SessionId != CurrentSessionId || CurrentProjectId is null)
             return;
 
-        // Build the text — prepend agent mention if different from current agent
-        var text = message.Text;
+        // Apply and persist all overrides from the composer as new project defaults
         if (message.AgentOverride is not null && message.AgentOverride != SelectedAgentName)
         {
-            text = $"@{message.AgentOverride} {text}";
+            SelectedAgentName = message.AgentOverride;
+            _ = _preferenceService.SetAgentAsync(CurrentProjectId, message.AgentOverride);
         }
 
-        // Apply model override for this send only (does not persist)
-        var previousModelId = SelectedModelId;
-        if (message.ModelIdOverride is not null)
+        if (message.ModelIdOverride is not null && message.ModelIdOverride != SelectedModelId)
         {
             SelectedModelId = message.ModelIdOverride;
             SelectedModelName = Helpers.ModelIdHelper.ExtractModelName(message.ModelIdOverride);
+            _ = _preferenceService.SetDefaultModelAsync(CurrentProjectId, message.ModelIdOverride);
         }
+
+        if (message.ThinkingLevelOverride != ThinkingLevel)
+        {
+            ThinkingLevel = message.ThinkingLevelOverride;
+            _ = _preferenceService.SetThinkingLevelAsync(CurrentProjectId, message.ThinkingLevelOverride);
+        }
+
+        if (message.AutoAcceptOverride != AutoAccept)
+        {
+            AutoAccept = message.AutoAcceptOverride;
+            _ = _preferenceService.SetAutoAcceptAsync(CurrentProjectId, message.AutoAcceptOverride);
+        }
+
+        // Build the text — prepend agent mention if different from original agent
+        var text = message.Text;
 
         // Use InputText + SendMessageCommand to leverage existing optimistic UI logic
         InputText = text;
         if (SendMessageCommand.CanExecute(null))
         {
             await SendMessageCommand.ExecuteAsync(null);
-        }
-
-        // Restore previous model after send
-        if (message.ModelIdOverride is not null && previousModelId != message.ModelIdOverride)
-        {
-            SelectedModelId = previousModelId;
-            SelectedModelName = previousModelId is not null
-                ? Helpers.ModelIdHelper.ExtractModelName(previousModelId)
-                : null;
         }
     }
 

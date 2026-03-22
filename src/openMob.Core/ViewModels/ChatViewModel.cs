@@ -765,23 +765,10 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     /// <returns><c>true</c> if input text is non-empty and the AI is not currently responding.</returns>
     private bool CanSendMessage() => !string.IsNullOrWhiteSpace(InputText) && !IsAiResponding;
 
-    /// <summary>Publishes <see cref="StreamingStateChangedMessage"/> when streaming state changes [REQ-016].</summary>
-    partial void OnIsAiRespondingChanged(bool value)
-    {
-        try
-        {
-            WeakReferenceMessenger.Default.Send(new StreamingStateChangedMessage(value));
-        }
-        catch (Exception ex)
-        {
-            // Never let messenger delivery failures break the SSE event processing pipeline.
-            SentryHelper.CaptureException(ex, new Dictionary<string, object>
-            {
-                ["context"] = "ChatViewModel.OnIsAiRespondingChanged",
-                ["isAiResponding"] = value,
-            });
-        }
-    }
+    // NOTE: OnIsAiRespondingChanged removed — it was causing SSE streaming regression.
+    // The StreamingStateChangedMessage for the composer's streaming guard will be sent
+    // explicitly when opening the composer (via the isStreaming parameter) instead of
+    // reactively on every IsAiResponding change.
 
     // ─── Message Composer [REQ-004, REQ-023, REQ-024] ─────────────────────────
 

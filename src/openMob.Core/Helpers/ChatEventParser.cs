@@ -38,6 +38,15 @@ internal sealed class ChatEventParser
         Debug.WriteLine($"[SSE_PARSER] raw envelope JSON: {envelope}");
 #endif
 
+        // Extract the project directory from the SSE envelope (REQ-001, REQ-007).
+        // The field may be absent in older server versions — fall back to null.
+        string? projectDirectory = null;
+        if (envelope.TryGetProperty("directory", out var dirEl) &&
+            dirEl.ValueKind == JsonValueKind.String)
+        {
+            projectDirectory = dirEl.GetString();
+        }
+
         if (!envelope.TryGetProperty("payload", out var payloadEl) ||
             payloadEl.ValueKind != JsonValueKind.Object)
         {
@@ -76,15 +85,16 @@ internal sealed class ChatEventParser
             "server.connected" => new ServerConnectedEvent
             {
                 RawEventId = unwrapped.EventId,
+                ProjectDirectory = projectDirectory,
             },
 
-            "message.updated" => ParseMessageUpdated(unwrapped),
-            "message.part.updated" => ParseMessagePartUpdated(unwrapped),
-            "message.part.delta" => ParseMessagePartDelta(unwrapped),
-            "session.updated" => ParseSessionUpdated(unwrapped),
-            "session.error" => ParseSessionError(unwrapped),
-            "permission.requested" => ParsePermissionRequested(unwrapped),
-            "permission.updated" => ParsePermissionUpdated(unwrapped),
+            "message.updated" => ParseMessageUpdated(unwrapped, projectDirectory),
+            "message.part.updated" => ParseMessagePartUpdated(unwrapped, projectDirectory),
+            "message.part.delta" => ParseMessagePartDelta(unwrapped, projectDirectory),
+            "session.updated" => ParseSessionUpdated(unwrapped, projectDirectory),
+            "session.error" => ParseSessionError(unwrapped, projectDirectory),
+            "permission.requested" => ParsePermissionRequested(unwrapped, projectDirectory),
+            "permission.updated" => ParsePermissionUpdated(unwrapped, projectDirectory),
 
             _ => new UnknownEvent
             {
@@ -92,6 +102,7 @@ internal sealed class ChatEventParser
                 RawType = eventType,
                 // Preserve the original envelope (not the unwrapped properties) for diagnostics.
                 RawData = dto.Data,
+                ProjectDirectory = projectDirectory,
             },
         };
 
@@ -102,7 +113,7 @@ internal sealed class ChatEventParser
         return result;
     }
 
-    private static ChatEvent ParseMessageUpdated(OpencodeEventDto dto)
+    private static ChatEvent ParseMessageUpdated(OpencodeEventDto dto, string? projectDirectory)
     {
         if (dto.Data is not { } data)
             return MakeUnknown(dto);
@@ -131,6 +142,7 @@ internal sealed class ChatEventParser
             {
                 RawEventId = dto.EventId,
                 Message = message,
+                ProjectDirectory = projectDirectory,
             };
         }
         catch
@@ -139,7 +151,7 @@ internal sealed class ChatEventParser
         }
     }
 
-    private static ChatEvent ParseMessagePartUpdated(OpencodeEventDto dto)
+    private static ChatEvent ParseMessagePartUpdated(OpencodeEventDto dto, string? projectDirectory)
     {
         if (dto.Data is not { } data)
             return MakeUnknown(dto);
@@ -158,6 +170,7 @@ internal sealed class ChatEventParser
                 {
                     RawEventId = dto.EventId,
                     Part = part,
+                    ProjectDirectory = projectDirectory,
                 };
             }
 
@@ -170,6 +183,7 @@ internal sealed class ChatEventParser
             {
                 RawEventId = dto.EventId,
                 Part = directPart,
+                ProjectDirectory = projectDirectory,
             };
         }
         catch
@@ -178,7 +192,7 @@ internal sealed class ChatEventParser
         }
     }
 
-    private static ChatEvent ParseMessagePartDelta(OpencodeEventDto dto)
+    private static ChatEvent ParseMessagePartDelta(OpencodeEventDto dto, string? projectDirectory)
     {
         if (dto.Data is not { } data)
             return MakeUnknown(dto);
@@ -203,6 +217,7 @@ internal sealed class ChatEventParser
                 PartId = partId,
                 Field = field,
                 Delta = delta,
+                ProjectDirectory = projectDirectory,
             };
         }
         catch
@@ -211,7 +226,7 @@ internal sealed class ChatEventParser
         }
     }
 
-    private static ChatEvent ParseSessionUpdated(OpencodeEventDto dto)
+    private static ChatEvent ParseSessionUpdated(OpencodeEventDto dto, string? projectDirectory)
     {
         if (dto.Data is not { } data)
             return MakeUnknown(dto);
@@ -230,6 +245,7 @@ internal sealed class ChatEventParser
                 {
                     RawEventId = dto.EventId,
                     Session = session,
+                    ProjectDirectory = projectDirectory,
                 };
             }
 
@@ -242,6 +258,7 @@ internal sealed class ChatEventParser
             {
                 RawEventId = dto.EventId,
                 Session = directSession,
+                ProjectDirectory = projectDirectory,
             };
         }
         catch
@@ -250,7 +267,7 @@ internal sealed class ChatEventParser
         }
     }
 
-    private static ChatEvent ParseSessionError(OpencodeEventDto dto)
+    private static ChatEvent ParseSessionError(OpencodeEventDto dto, string? projectDirectory)
     {
         if (dto.Data is not { } data)
             return MakeUnknown(dto);
@@ -273,6 +290,7 @@ internal sealed class ChatEventParser
                 RawEventId = dto.EventId,
                 SessionId = sessionId,
                 ErrorMessage = errorMessage,
+                ProjectDirectory = projectDirectory,
             };
         }
         catch
@@ -281,7 +299,7 @@ internal sealed class ChatEventParser
         }
     }
 
-    private static ChatEvent ParsePermissionRequested(OpencodeEventDto dto)
+    private static ChatEvent ParsePermissionRequested(OpencodeEventDto dto, string? projectDirectory)
     {
         if (dto.Data is not { } data)
             return MakeUnknown(dto);
@@ -305,6 +323,7 @@ internal sealed class ChatEventParser
                 SessionId = sessionId,
                 PermissionId = permissionId,
                 RawPayload = data,
+                ProjectDirectory = projectDirectory,
             };
         }
         catch
@@ -313,7 +332,7 @@ internal sealed class ChatEventParser
         }
     }
 
-    private static ChatEvent ParsePermissionUpdated(OpencodeEventDto dto)
+    private static ChatEvent ParsePermissionUpdated(OpencodeEventDto dto, string? projectDirectory)
     {
         if (dto.Data is not { } data)
             return MakeUnknown(dto);
@@ -337,6 +356,7 @@ internal sealed class ChatEventParser
                 SessionId = sessionId,
                 PermissionId = permissionId,
                 RawPayload = data,
+                ProjectDirectory = projectDirectory,
             };
         }
         catch

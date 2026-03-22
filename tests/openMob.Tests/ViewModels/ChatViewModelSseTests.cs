@@ -525,4 +525,140 @@ public sealed class ChatViewModelSseTests
             await Task.Yield();
         }
     }
+
+    // ─── Project directory filtering helpers ──────────────────────────────────
+
+    /// <summary>
+    /// Configures <see cref="IActiveProjectService"/> to return a project with the given
+    /// worktree, then triggers <see cref="ChatViewModel.LoadContextCommand"/> to populate
+    /// the private <c>_currentProjectDirectory</c> field.
+    /// </summary>
+    private async Task SetCurrentProjectDirectory(string? worktree)
+    {
+        if (worktree is not null)
+        {
+            var project = new ProjectDto(
+                Id: "proj-1",
+                Worktree: worktree,
+                VcsDir: null,
+                Vcs: null,
+                Time: new ProjectTimeDto(Created: 0L, Initialized: null));
+
+            _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>()).Returns(project);
+            _activeProjectService.GetCachedWorktree().Returns(worktree);
+        }
+        else
+        {
+            _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>())
+                .Returns((ProjectDto?)null);
+            _activeProjectService.GetCachedWorktree().Returns((string?)null);
+        }
+
+        await _sut.LoadContextCommand.ExecuteAsync(null);
+    }
+
+    /// <summary>
+    /// Sets up the ViewModel with a project directory, session "sess-1", mocks
+    /// GetMessagesAsync to return <paramref name="existingMessages"/> (or empty),
+    /// mocks SubscribeToEventsAsync to yield <paramref name="events"/>, calls SetSession,
+    /// and waits for SSE processing.
+    /// </summary>
+    private async Task TriggerSseEventsWithProjectDirectory(
+        string? projectDirectory,
+        ChatEvent[] events,
+        List<MessageWithPartsDto>? existingMessages = null)
+    {
+        await SetCurrentProjectDirectory(projectDirectory);
+
+        var messages = existingMessages ?? new List<MessageWithPartsDto>();
+
+        _chatService
+            .GetMessagesAsync("sess-1", Arg.Any<int?>(), Arg.Any<CancellationToken>())
+            .Returns(ChatServiceResult<IReadOnlyList<MessageWithPartsDto>>.Ok(messages));
+
+        _chatService
+            .SubscribeToEventsAsync(Arg.Any<CancellationToken>())
+            .Returns(YieldEvents(events));
+
+        _sut.SetSession("sess-1");
+
+        // Allow the background SSE task to process all yielded events
+        await Task.Delay(200);
+    }
+
+    // ─── HandleMessageUpdated — ProjectDirectory filtering ────────────────────
+
+    [Fact]
+    public async Task HandleMessageUpdated_WhenProjectDirectoryMatches_ProcessesEvent()
+    {
+        // Arrange
+        var newDto = BuildMessageDto(
+            id: "msg-new",
+            sessionId: "sess-1",
+            role: "assistant",
+            text: "Hello from matching project");
+        var messageUpdatedEvent = new MessageUpdatedEvent
+        {
+            Message = newDto,
+            ProjectDirectory = "/home/user/my-project",
+        };
+
+        // Act
+        await TriggerSseEventsWithProjectDirectory(
+            "/home/user/my-project",
+            new ChatEvent[] { messageUpdatedEvent });
+
+        // Assert — event processed because ProjectDirectory matches _currentProjectDirectory
+        _sut.Messages.Should().ContainSingle(m => m.Id == "msg-new");
+        _sut.Messages.First().TextContent.Should().Be("Hello from matching project");
+    }
+
+    [Fact]
+    public async Task HandleMessageUpdated_WhenProjectDirectoryMismatches_DiscardsEvent()
+    {
+        // Arrange
+        var newDto = BuildMessageDto(
+            id: "msg-new",
+            sessionId: "sess-1",
+            role: "assistant",
+            text: "Should not appear");
+        var messageUpdatedEvent = new MessageUpdatedEvent
+        {
+            Message = newDto,
+            ProjectDirectory = "/home/user/other-project",
+        };
+
+        // Act
+        await TriggerSseEventsWithProjectDirectory(
+            "/home/user/my-project",
+            new ChatEvent[] { messageUpdatedEvent });
+
+        // Assert — event discarded because ProjectDirectory does not match _currentProjectDirectory
+        _sut.Messages.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task HandleMessageUpdated_WhenProjectDirectoryIsNull_ProcessesEvent()
+    {
+        // Arrange — event has no ProjectDirectory (null), so the filter is skipped
+        var newDto = BuildMessageDto(
+            id: "msg-new",
+            sessionId: "sess-1",
+            role: "assistant",
+            text: "Hello from null directory");
+        var messageUpdatedEvent = new MessageUpdatedEvent
+        {
+            Message = newDto,
+            ProjectDirectory = null,
+        };
+
+        // Act
+        await TriggerSseEventsWithProjectDirectory(
+            "/home/user/my-project",
+            new ChatEvent[] { messageUpdatedEvent });
+
+        // Assert — event processed because null ProjectDirectory skips the filter
+        _sut.Messages.Should().ContainSingle(m => m.Id == "msg-new");
+        _sut.Messages.First().TextContent.Should().Be("Hello from null directory");
+    }
 }

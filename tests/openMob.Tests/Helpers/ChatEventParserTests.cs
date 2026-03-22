@@ -398,4 +398,83 @@ public sealed class ChatEventParserTests
         // Assert
         result.Should().BeOfType<UnknownEvent>();
     }
+
+    // ─── ProjectDirectory extraction ──────────────────────────────────────────
+
+    /// <summary>
+    /// Wraps a payload in the opencode SSE envelope WITH a <c>directory</c> field:
+    /// <c>{ "directory": "&lt;dir&gt;", "payload": { "type": "&lt;type&gt;", "properties": &lt;properties&gt; } }</c>.
+    /// </summary>
+    private static JsonElement BuildEnvelopeWithDirectory(string type, object directory, object? properties = null)
+    {
+        return JsonSerializer.SerializeToElement(new Dictionary<string, object?>
+        {
+            ["directory"] = directory,
+            ["payload"] = new
+            {
+                type,
+                properties = properties ?? new { }
+            }
+        });
+    }
+
+    [Fact]
+    public void Parse_WhenEnvelopeHasDirectory_SetsProjectDirectoryOnEvent()
+    {
+        // Arrange
+        var data = BuildEnvelopeWithDirectory("server.connected", "/path/to/project");
+        var dto = new OpencodeEventDto("unknown", null, data);
+
+        // Act
+        var result = ChatEventParser.Parse(dto);
+
+        // Assert
+        result.Should().BeOfType<ServerConnectedEvent>();
+        result.ProjectDirectory.Should().Be("/path/to/project");
+    }
+
+    [Fact]
+    public void Parse_WhenEnvelopeHasNoDirectory_SetsProjectDirectoryToNull()
+    {
+        // Arrange — standard envelope without directory field
+        var data = BuildEnvelope("server.connected");
+        var dto = new OpencodeEventDto("unknown", null, data);
+
+        // Act
+        var result = ChatEventParser.Parse(dto);
+
+        // Assert
+        result.Should().BeOfType<ServerConnectedEvent>();
+        result.ProjectDirectory.Should().BeNull();
+    }
+
+    [Fact]
+    public void Parse_WhenDirectoryIsEmptyString_SetsProjectDirectoryToEmpty()
+    {
+        // Arrange
+        var data = BuildEnvelopeWithDirectory("server.connected", "");
+        var dto = new OpencodeEventDto("unknown", null, data);
+
+        // Act
+        var result = ChatEventParser.Parse(dto);
+
+        // Assert
+        result.Should().BeOfType<ServerConnectedEvent>();
+        result.ProjectDirectory.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Parse_WhenDirectoryIsNotString_SetsProjectDirectoryToNull()
+    {
+        // Arrange — directory is a number, not a string
+        var data = BuildEnvelopeWithDirectory("server.connected", 123);
+        var dto = new OpencodeEventDto("unknown", null, data);
+
+        // Act
+        var result = ChatEventParser.Parse(dto);
+
+        // Assert
+        result.Should().BeOfType<ServerConnectedEvent>();
+        result.ProjectDirectory.Should().BeNull();
+    }
 }

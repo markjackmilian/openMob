@@ -183,6 +183,22 @@ public sealed class ProjectsViewModelTests
             Arg.Any<CancellationToken>());
     }
 
+    // ─── ShowAddProjectCommand ────────────────────────────────────────────────
+
+    [Fact]
+    public async Task ShowAddProjectCommand_WhenExecuted_CallsShowAddProjectAsync()
+    {
+        // Arrange
+        _popupService.ShowAddProjectAsync(Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+
+        // Act
+        await _sut.ShowAddProjectCommand.ExecuteAsync(null);
+
+        // Assert
+        await _popupService.Received(1).ShowAddProjectAsync(Arg.Any<CancellationToken>());
+    }
+
     // ─── DeleteProjectCommand ─────────────────────────────────────────────────
 
     [Fact]

@@ -243,6 +243,22 @@ public sealed class ChatViewModelRedesignTests : IDisposable
             Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
+    // ─── OpenProjectSwitcherCommand ─────────────────────────────────────────
+
+    [Fact]
+    public async Task OpenProjectSwitcherCommand_WhenExecuted_CallsShowProjectSwitcherAsync()
+    {
+        // Arrange
+        _popupService.ShowProjectSwitcherAsync(Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+
+        // Act
+        await _sut.OpenProjectSwitcherCommand.ExecuteAsync(null);
+
+        // Assert
+        await _popupService.Received(1).ShowProjectSwitcherAsync(Arg.Any<CancellationToken>());
+    }
+
     // ─── OpenCommandPaletteCommand ───────────────────────────────────────────
 
     [Fact]

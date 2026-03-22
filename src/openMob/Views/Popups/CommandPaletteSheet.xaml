@@ -16,7 +16,7 @@
           HorizontalOptions="Fill"
           StrokeThickness="0"
           Padding="0"
-          MaximumHeightRequest="500"
+          HeightRequest="460"
           BackgroundColor="{AppThemeBinding Light={StaticResource ColorBackgroundLight},
                                             Dark={StaticResource ColorBackgroundDark}}">
     <Border.StrokeShape>

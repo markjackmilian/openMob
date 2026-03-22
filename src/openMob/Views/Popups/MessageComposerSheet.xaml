@@ -9,24 +9,31 @@
                x:DataType="vm:MessageComposerViewModel"
                BackgroundColor="{DynamicResource PopupBackdropColor}"
                CloseWhenBackgroundIsClicked="False"
-               AppearingAnimation="{uxd:FadeInPopupAnimation Duration=300}"
-               DisappearingAnimation="{uxd:FadeOutPopupAnimation Duration=300}">
+               AppearingAnimation="{uxd:MoveInPopupAnimation MoveDirection=Bottom, Duration=300, Easing=CubicOut}"
+               DisappearingAnimation="{uxd:MoveOutPopupAnimation MoveDirection=Bottom, Duration=250, Easing=CubicIn}">
 
-  <ScrollView>
-    <VerticalStackLayout Spacing="0"
-                         BackgroundColor="{AppThemeBinding Light={StaticResource ColorBackgroundLight},
-                                                           Dark={StaticResource ColorBackgroundDark}}">
+  <!-- Bottom-sheet panel: anchored to bottom, rounded top corners, solid background -->
+  <Border VerticalOptions="End"
+          HorizontalOptions="Fill"
+          StrokeThickness="0"
+          Padding="0"
+          BackgroundColor="{AppThemeBinding Light={StaticResource ColorBackgroundLight},
+                                            Dark={StaticResource ColorBackgroundDark}}">
+    <Border.StrokeShape>
+      <RoundRectangle CornerRadius="20,20,0,0" />
+    </Border.StrokeShape>
+    <Border.Shadow>
+      <Shadow Brush="Black" Opacity="0.15" Offset="0,-2" Radius="16" />
+    </Border.Shadow>
 
-      <!-- ═══════════════════════════════════════════════════════════
-           Handle bar
-           ═══════════════════════════════════════════════════════════ -->
+    <VerticalStackLayout Spacing="0" Padding="0">
+
+      <!-- Handle bar -->
       <BoxView Style="{StaticResource SheetHandleBar}"
                Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
-                                         Dark={StaticResource ColorOnBackgroundTertiaryDark}}" />
+                                        Dark={StaticResource ColorOnBackgroundTertiaryDark}}" />
 
-      <!-- ═══════════════════════════════════════════════════════════
-           Header: Title + Close button
-           ═══════════════════════════════════════════════════════════ -->
+      <!-- Header -->
       <Grid ColumnDefinitions="*,Auto"
             Padding="16,0"
             HeightRequest="{StaticResource MinTouchTarget}">
@@ -54,126 +61,63 @@
       <!-- Divider -->
       <BoxView HeightRequest="0.5"
                Color="{AppThemeBinding Light={StaticResource ColorSeparatorLight},
-                                         Dark={StaticResource ColorSeparatorDark}}"
-               Margin="16,0" />
+                                        Dark={StaticResource ColorSeparatorDark}}" />
 
-      <!-- ═══════════════════════════════════════════════════════════
-           Session context chips [REQ-007]
-           Agent | Think level | Auto-accept — compact inline row
-           ═══════════════════════════════════════════════════════════ -->
-      <HorizontalStackLayout Spacing="8"
-                             Padding="16,12">
+      <!-- Session chips row -->
+      <HorizontalStackLayout Spacing="6" Padding="16,10">
 
         <!-- Agent chip -->
         <Border StrokeThickness="1"
-                Stroke="{AppThemeBinding Light={StaticResource ColorOutlineLight},
-                                          Dark={StaticResource ColorOutlineDark}}"
-                BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceSecondaryLight},
-                                                   Dark={StaticResource ColorSurfaceSecondaryDark}}"
-                Padding="8,5"
-                AutomationId="ComposerAgentChip"
-                SemanticProperties.Description="Select agent">
-          <Border.StrokeShape>
-            <RoundRectangle CornerRadius="8" />
-          </Border.StrokeShape>
-          <Border.GestureRecognizers>
-            <TapGestureRecognizer Command="{Binding SelectAgentCommand}" />
-          </Border.GestureRecognizers>
-          <HorizontalStackLayout Spacing="4">
-            <Label Text="{x:Static helpers:IconKeys.Robot}"
-                   FontFamily="TablerIcons"
-                   FontSize="13"
-                   TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
-                                                Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
-                   VerticalOptions="Center" />
-            <Label Text="{Binding SessionAgentDisplayName, FallbackValue='Default'}"
-                   FontFamily="InterMedium"
-                   FontSize="13"
-                   TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight},
-                                                Dark={StaticResource ColorOnBackgroundDark}}"
-                   VerticalOptions="Center"
-                   LineBreakMode="TailTruncation"
-                   MaximumWidthRequest="100" />
+                Stroke="{AppThemeBinding Light={StaticResource ColorOutlineLight}, Dark={StaticResource ColorOutlineDark}}"
+                BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceSecondaryLight}, Dark={StaticResource ColorSurfaceSecondaryDark}}"
+                Padding="8,4" HeightRequest="30">
+          <Border.StrokeShape><RoundRectangle CornerRadius="6" /></Border.StrokeShape>
+          <Border.GestureRecognizers><TapGestureRecognizer Command="{Binding SelectAgentCommand}" /></Border.GestureRecognizers>
+          <HorizontalStackLayout Spacing="4" VerticalOptions="Center">
+            <Label Text="{x:Static helpers:IconKeys.Robot}" FontFamily="TablerIcons" FontSize="12"
+                   TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}" VerticalOptions="Center" />
+            <Label Text="{Binding SessionAgentDisplayName, FallbackValue='Default'}" FontFamily="InterMedium" FontSize="12"
+                   TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}" VerticalOptions="Center"
+                   LineBreakMode="TailTruncation" MaximumWidthRequest="90" />
           </HorizontalStackLayout>
         </Border>
 
         <!-- Think level chip -->
         <Border StrokeThickness="1"
-                Stroke="{AppThemeBinding Light={StaticResource ColorOutlineLight},
-                                          Dark={StaticResource ColorOutlineDark}}"
-                BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceSecondaryLight},
-                                                   Dark={StaticResource ColorSurfaceSecondaryDark}}"
-                Padding="8,5"
-                AutomationId="ComposerThinkLevelChip"
-                SemanticProperties.Description="Change thinking level">
-          <Border.StrokeShape>
-            <RoundRectangle CornerRadius="8" />
-          </Border.StrokeShape>
-          <Border.GestureRecognizers>
-            <TapGestureRecognizer Command="{Binding ToggleThinkLevelExpandedCommand}" />
-          </Border.GestureRecognizers>
-          <HorizontalStackLayout Spacing="4">
-            <Label Text="{x:Static helpers:IconKeys.Brain}"
-                   FontFamily="TablerIcons"
-                   FontSize="13"
-                   TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
-                                                Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
-                   VerticalOptions="Center" />
-            <Label Text="{Binding SessionThinkingLevel, FallbackValue='Medium'}"
-                   FontFamily="InterMedium"
-                   FontSize="13"
-                   TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight},
-                                                Dark={StaticResource ColorOnBackgroundDark}}"
-                   VerticalOptions="Center" />
-            <Label Text="{x:Static helpers:IconKeys.ChevronDown}"
-                   FontFamily="TablerIcons"
-                   FontSize="11"
-                   TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
-                                                Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
-                   VerticalOptions="Center"
+                Stroke="{AppThemeBinding Light={StaticResource ColorOutlineLight}, Dark={StaticResource ColorOutlineDark}}"
+                BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceSecondaryLight}, Dark={StaticResource ColorSurfaceSecondaryDark}}"
+                Padding="8,4" HeightRequest="30">
+          <Border.StrokeShape><RoundRectangle CornerRadius="6" /></Border.StrokeShape>
+          <Border.GestureRecognizers><TapGestureRecognizer Command="{Binding ToggleThinkLevelExpandedCommand}" /></Border.GestureRecognizers>
+          <HorizontalStackLayout Spacing="4" VerticalOptions="Center">
+            <Label Text="{x:Static helpers:IconKeys.Brain}" FontFamily="TablerIcons" FontSize="12"
+                   TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}" VerticalOptions="Center" />
+            <Label Text="{Binding SessionThinkingLevel, FallbackValue='Medium'}" FontFamily="InterMedium" FontSize="12"
+                   TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}" VerticalOptions="Center" />
+            <Label Text="{x:Static helpers:IconKeys.ChevronDown}" FontFamily="TablerIcons" FontSize="10"
+                   TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}" VerticalOptions="Center"
                    IsVisible="{Binding IsThinkLevelExpanded, Converter={StaticResource InvertedBoolConverter}}" />
-            <Label Text="{x:Static helpers:IconKeys.ChevronUp}"
-                   FontFamily="TablerIcons"
-                   FontSize="11"
-                   TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
-                                                Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
-                   VerticalOptions="Center"
+            <Label Text="{x:Static helpers:IconKeys.ChevronUp}" FontFamily="TablerIcons" FontSize="10"
+                   TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}" VerticalOptions="Center"
                    IsVisible="{Binding IsThinkLevelExpanded}" />
           </HorizontalStackLayout>
         </Border>
 
         <!-- Auto-accept chip -->
         <Border StrokeThickness="1"
-                Stroke="{AppThemeBinding Light={StaticResource ColorOutlineLight},
-                                          Dark={StaticResource ColorOutlineDark}}"
-                BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceSecondaryLight},
-                                                   Dark={StaticResource ColorSurfaceSecondaryDark}}"
-                Padding="8,5"
-                MinimumWidthRequest="38"
-                AutomationId="ComposerAutoAcceptToggle"
-                SemanticProperties.Description="Toggle auto-accept">
-          <Border.StrokeShape>
-            <RoundRectangle CornerRadius="8" />
-          </Border.StrokeShape>
-          <Border.GestureRecognizers>
-            <TapGestureRecognizer Command="{Binding ToggleAutoAcceptCommand}" />
-          </Border.GestureRecognizers>
-          <Label Text="{x:Static helpers:IconKeys.AutoAwesome}"
-                 FontFamily="TablerIcons"
-                 FontSize="13"
-                 HorizontalOptions="Center"
-                 VerticalOptions="Center">
+                Stroke="{AppThemeBinding Light={StaticResource ColorOutlineLight}, Dark={StaticResource ColorOutlineDark}}"
+                BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceSecondaryLight}, Dark={StaticResource ColorSurfaceSecondaryDark}}"
+                Padding="6,4" HeightRequest="30" WidthRequest="36">
+          <Border.StrokeShape><RoundRectangle CornerRadius="6" /></Border.StrokeShape>
+          <Border.GestureRecognizers><TapGestureRecognizer Command="{Binding ToggleAutoAcceptCommand}" /></Border.GestureRecognizers>
+          <Label Text="{x:Static helpers:IconKeys.AutoAwesome}" FontFamily="TablerIcons" FontSize="14"
+                 HorizontalOptions="Center" VerticalOptions="Center">
             <Label.TextColor>
-              <AppThemeBinding Light="{StaticResource ColorOnBackgroundSecondaryLight}"
-                               Dark="{StaticResource ColorOnBackgroundSecondaryDark}" />
+              <AppThemeBinding Light="{StaticResource ColorOnBackgroundSecondaryLight}" Dark="{StaticResource ColorOnBackgroundSecondaryDark}" />
             </Label.TextColor>
             <Label.Triggers>
-              <DataTrigger TargetType="Label"
-                           Binding="{Binding SessionAutoAccept}"
-                           Value="True">
-                <Setter Property="TextColor"
-                        Value="{AppThemeBinding Light={StaticResource ColorPrimaryLight},
-                                                Dark={StaticResource ColorPrimaryDark}}" />
+              <DataTrigger TargetType="Label" Binding="{Binding SessionAutoAccept}" Value="True">
+                <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}" />
               </DataTrigger>
             </Label.Triggers>
           </Label>
@@ -181,115 +125,50 @@
 
       </HorizontalStackLayout>
 
-      <!-- ═══════════════════════════════════════════════════════════
-           Think level segmented control [REQ-011]
-           Visible only when IsThinkLevelExpanded = true
-           ═══════════════════════════════════════════════════════════ -->
-      <HorizontalStackLayout Spacing="{StaticResource SpacingXs}"
-                             Padding="16,0,16,8"
-                             IsVisible="{Binding IsThinkLevelExpanded}">
-
-        <Button Text="Low"
-                FontFamily="InterMedium"
-                FontSize="{StaticResource FontSizeCaption1}"
-                Padding="12,8"
-                MinimumHeightRequest="{StaticResource SpacingXxl}"
-                MinimumWidthRequest="0"
-                CornerRadius="8"
-                Command="{Binding SetThinkingLevelCommand}"
-                CommandParameter="{x:Static models:ThinkingLevel.Low}"
-                BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceSecondaryLight},
-                                                  Dark={StaticResource ColorSurfaceSecondaryDark}}"
-                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight},
-                                             Dark={StaticResource ColorOnBackgroundDark}}"
-                AutomationId="ComposerThinkLow">
+      <!-- Think level segmented (conditional) -->
+      <HorizontalStackLayout Spacing="4" Padding="16,0,16,8" IsVisible="{Binding IsThinkLevelExpanded}">
+        <Button Text="Low" FontFamily="InterMedium" FontSize="12" Padding="12,6" MinimumHeightRequest="28" MinimumWidthRequest="0" CornerRadius="6"
+                Command="{Binding SetThinkingLevelCommand}" CommandParameter="{x:Static models:ThinkingLevel.Low}"
+                BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceSecondaryLight}, Dark={StaticResource ColorSurfaceSecondaryDark}}"
+                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}">
           <Button.Triggers>
-            <DataTrigger TargetType="Button"
-                         Binding="{Binding SessionThinkingLevel}"
-                         Value="{x:Static models:ThinkingLevel.Low}">
-              <Setter Property="BackgroundColor"
-                      Value="{AppThemeBinding Light={StaticResource ColorPrimaryLight},
-                                              Dark={StaticResource ColorPrimaryDark}}" />
-              <Setter Property="TextColor"
-                      Value="{AppThemeBinding Light={StaticResource ColorOnPrimaryLight},
-                                              Dark={StaticResource ColorOnPrimaryDark}}" />
+            <DataTrigger TargetType="Button" Binding="{Binding SessionThinkingLevel}" Value="{x:Static models:ThinkingLevel.Low}">
+              <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}" />
+              <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource ColorOnPrimaryLight}, Dark={StaticResource ColorOnPrimaryDark}}" />
             </DataTrigger>
           </Button.Triggers>
         </Button>
-
-        <Button Text="Medium"
-                FontFamily="InterMedium"
-                FontSize="{StaticResource FontSizeCaption1}"
-                Padding="12,8"
-                MinimumHeightRequest="{StaticResource SpacingXxl}"
-                MinimumWidthRequest="0"
-                CornerRadius="8"
-                Command="{Binding SetThinkingLevelCommand}"
-                CommandParameter="{x:Static models:ThinkingLevel.Medium}"
-                BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceSecondaryLight},
-                                                  Dark={StaticResource ColorSurfaceSecondaryDark}}"
-                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight},
-                                             Dark={StaticResource ColorOnBackgroundDark}}"
-                AutomationId="ComposerThinkMedium">
+        <Button Text="Medium" FontFamily="InterMedium" FontSize="12" Padding="12,6" MinimumHeightRequest="28" MinimumWidthRequest="0" CornerRadius="6"
+                Command="{Binding SetThinkingLevelCommand}" CommandParameter="{x:Static models:ThinkingLevel.Medium}"
+                BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceSecondaryLight}, Dark={StaticResource ColorSurfaceSecondaryDark}}"
+                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}">
           <Button.Triggers>
-            <DataTrigger TargetType="Button"
-                         Binding="{Binding SessionThinkingLevel}"
-                         Value="{x:Static models:ThinkingLevel.Medium}">
-              <Setter Property="BackgroundColor"
-                      Value="{AppThemeBinding Light={StaticResource ColorPrimaryLight},
-                                              Dark={StaticResource ColorPrimaryDark}}" />
-              <Setter Property="TextColor"
-                      Value="{AppThemeBinding Light={StaticResource ColorOnPrimaryLight},
-                                              Dark={StaticResource ColorOnPrimaryDark}}" />
+            <DataTrigger TargetType="Button" Binding="{Binding SessionThinkingLevel}" Value="{x:Static models:ThinkingLevel.Medium}">
+              <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}" />
+              <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource ColorOnPrimaryLight}, Dark={StaticResource ColorOnPrimaryDark}}" />
             </DataTrigger>
           </Button.Triggers>
         </Button>
-
-        <Button Text="High"
-                FontFamily="InterMedium"
-                FontSize="{StaticResource FontSizeCaption1}"
-                Padding="12,8"
-                MinimumHeightRequest="{StaticResource SpacingXxl}"
-                MinimumWidthRequest="0"
-                CornerRadius="8"
-                Command="{Binding SetThinkingLevelCommand}"
-                CommandParameter="{x:Static models:ThinkingLevel.High}"
-                BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceSecondaryLight},
-                                                  Dark={StaticResource ColorSurfaceSecondaryDark}}"
-                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight},
-                                             Dark={StaticResource ColorOnBackgroundDark}}"
-                AutomationId="ComposerThinkHigh">
+        <Button Text="High" FontFamily="InterMedium" FontSize="12" Padding="12,6" MinimumHeightRequest="28" MinimumWidthRequest="0" CornerRadius="6"
+                Command="{Binding SetThinkingLevelCommand}" CommandParameter="{x:Static models:ThinkingLevel.High}"
+                BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceSecondaryLight}, Dark={StaticResource ColorSurfaceSecondaryDark}}"
+                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}">
           <Button.Triggers>
-            <DataTrigger TargetType="Button"
-                         Binding="{Binding SessionThinkingLevel}"
-                         Value="{x:Static models:ThinkingLevel.High}">
-              <Setter Property="BackgroundColor"
-                      Value="{AppThemeBinding Light={StaticResource ColorPrimaryLight},
-                                              Dark={StaticResource ColorPrimaryDark}}" />
-              <Setter Property="TextColor"
-                      Value="{AppThemeBinding Light={StaticResource ColorOnPrimaryLight},
-                                              Dark={StaticResource ColorOnPrimaryDark}}" />
+            <DataTrigger TargetType="Button" Binding="{Binding SessionThinkingLevel}" Value="{x:Static models:ThinkingLevel.High}">
+              <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}" />
+              <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource ColorOnPrimaryLight}, Dark={StaticResource ColorOnPrimaryDark}}" />
             </DataTrigger>
           </Button.Triggers>
         </Button>
-
       </HorizontalStackLayout>
 
-      <!-- Divider -->
-      <BoxView HeightRequest="0.5"
-               Color="{AppThemeBinding Light={StaticResource ColorSeparatorLight},
-                                         Dark={StaticResource ColorSeparatorDark}}"
-               Margin="16,0" />
-
-      <!-- ═══════════════════════════════════════════════════════════
-           Editor area [REQ-007]
-           ═══════════════════════════════════════════════════════════ -->
+      <!-- Editor -->
       <Editor Text="{Binding MessageText, Mode=TwoWay}"
               Placeholder="Scrivi un messaggio..."
               AutoSize="TextChanges"
-              MinimumHeightRequest="100"
-              MaximumHeightRequest="200"
-              Margin="16,12"
+              MinimumHeightRequest="80"
+              MaximumHeightRequest="160"
+              Margin="16,8,16,8"
               Style="{StaticResource InputBarEditor}"
               AutomationId="ComposerEditor"
               SemanticProperties.Hint="Type your message here" />
@@ -297,119 +176,54 @@
       <!-- Divider -->
       <BoxView HeightRequest="0.5"
                Color="{AppThemeBinding Light={StaticResource ColorSeparatorLight},
-                                         Dark={StaticResource ColorSeparatorDark}}"
-               Margin="16,0" />
+                                        Dark={StaticResource ColorSeparatorDark}}" />
 
-      <!-- ═══════════════════════════════════════════════════════════
-           Picker toolbar [REQ-007]
-           @ Subagent | / Command | # File
-           ═══════════════════════════════════════════════════════════ -->
-      <Grid ColumnDefinitions="*,*,*"
-            Padding="16,8">
+      <!-- Picker toolbar + Send row combined -->
+      <Grid ColumnDefinitions="*,*,*,Auto" Padding="8,4,12,4" ColumnSpacing="0">
 
-        <!-- @ Subagent button -->
-        <VerticalStackLayout Grid.Column="0"
-                             Spacing="{StaticResource SpacingXxs}"
-                             HorizontalOptions="Center"
-                             Padding="0,8"
-                             AutomationId="ComposerSubagentButton"
-                             SemanticProperties.Description="Insert subagent mention">
-          <VerticalStackLayout.GestureRecognizers>
-            <TapGestureRecognizer Command="{Binding InsertSubagentCommand}" />
-          </VerticalStackLayout.GestureRecognizers>
-          <Label Text="{x:Static helpers:IconKeys.At}"
-                 FontFamily="TablerIcons"
-                 FontSize="16"
-                 TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
-                                              Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
-                 HorizontalTextAlignment="Center" />
-          <Label Text="Subagent"
-                 FontFamily="InterRegular"
-                 FontSize="11"
-                 TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
-                                              Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
-                 HorizontalTextAlignment="Center" />
+        <VerticalStackLayout Grid.Column="0" Spacing="1" HorizontalOptions="Center" Padding="4,6">
+          <VerticalStackLayout.GestureRecognizers><TapGestureRecognizer Command="{Binding InsertSubagentCommand}" /></VerticalStackLayout.GestureRecognizers>
+          <Label Text="{x:Static helpers:IconKeys.At}" FontFamily="TablerIcons" FontSize="18" HorizontalTextAlignment="Center"
+                 TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}" />
+          <Label Text="Subagent" FontFamily="InterRegular" FontSize="10" HorizontalTextAlignment="Center"
+                 TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}" />
         </VerticalStackLayout>
 
-        <!-- / Command button -->
-        <VerticalStackLayout Grid.Column="1"
-                             Spacing="{StaticResource SpacingXxs}"
-                             HorizontalOptions="Center"
-                             Padding="0,8"
-                             AutomationId="ComposerCommandButton"
-                             SemanticProperties.Description="Insert command">
-          <VerticalStackLayout.GestureRecognizers>
-            <TapGestureRecognizer Command="{Binding InsertCommandCommand}" />
-          </VerticalStackLayout.GestureRecognizers>
-          <Label Text="{x:Static helpers:IconKeys.Terminal}"
-                 FontFamily="TablerIcons"
-                 FontSize="16"
-                 TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
-                                              Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
-                 HorizontalTextAlignment="Center" />
-          <Label Text="Command"
-                 FontFamily="InterRegular"
-                 FontSize="11"
-                 TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
-                                              Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
-                 HorizontalTextAlignment="Center" />
+        <VerticalStackLayout Grid.Column="1" Spacing="1" HorizontalOptions="Center" Padding="4,6">
+          <VerticalStackLayout.GestureRecognizers><TapGestureRecognizer Command="{Binding InsertCommandCommand}" /></VerticalStackLayout.GestureRecognizers>
+          <Label Text="{x:Static helpers:IconKeys.Terminal}" FontFamily="TablerIcons" FontSize="18" HorizontalTextAlignment="Center"
+                 TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}" />
+          <Label Text="Command" FontFamily="InterRegular" FontSize="10" HorizontalTextAlignment="Center"
+                 TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}" />
         </VerticalStackLayout>
 
-        <!-- # File button -->
-        <VerticalStackLayout Grid.Column="2"
-                             Spacing="{StaticResource SpacingXxs}"
-                             HorizontalOptions="Center"
-                             Padding="0,8"
-                             AutomationId="ComposerFileButton"
-                             SemanticProperties.Description="Insert file reference">
-          <VerticalStackLayout.GestureRecognizers>
-            <TapGestureRecognizer Command="{Binding InsertFileCommand}" />
-          </VerticalStackLayout.GestureRecognizers>
-          <Label Text="{x:Static helpers:IconKeys.File}"
-                 FontFamily="TablerIcons"
-                 FontSize="16"
-                 TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
-                                              Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
-                 HorizontalTextAlignment="Center" />
-          <Label Text="File"
-                 FontFamily="InterRegular"
-                 FontSize="11"
-                 TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
-                                              Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
-                 HorizontalTextAlignment="Center" />
+        <VerticalStackLayout Grid.Column="2" Spacing="1" HorizontalOptions="Center" Padding="4,6">
+          <VerticalStackLayout.GestureRecognizers><TapGestureRecognizer Command="{Binding InsertFileCommand}" /></VerticalStackLayout.GestureRecognizers>
+          <Label Text="{x:Static helpers:IconKeys.File}" FontFamily="TablerIcons" FontSize="18" HorizontalTextAlignment="Center"
+                 TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}" />
+          <Label Text="File" FontFamily="InterRegular" FontSize="10" HorizontalTextAlignment="Center"
+                 TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}" />
         </VerticalStackLayout>
 
-      </Grid>
-
-      <!-- Divider -->
-      <BoxView HeightRequest="0.5"
-               Color="{AppThemeBinding Light={StaticResource ColorSeparatorLight},
-                                         Dark={StaticResource ColorSeparatorDark}}"
-               Margin="16,0" />
-
-      <!-- ═══════════════════════════════════════════════════════════
-           Action row [REQ-007]
-           Send button (right-aligned)
-           ═══════════════════════════════════════════════════════════ -->
-      <Grid ColumnDefinitions="*,Auto"
-            Padding="16,12,16,16">
-
-        <Label Grid.Column="0"
-               Style="{StaticResource Caption2Label}"
-               VerticalOptions="Center" />
-
-        <Button Grid.Column="1"
+        <!-- Send button integrated in the toolbar row -->
+        <Button Grid.Column="3"
                 Text="{Binding SendButtonText, FallbackValue='Invia'}"
                 Command="{Binding SendCommand}"
                 Style="{StaticResource PrimaryButton}"
                 FontFamily="InterSemiBold"
-                MinimumWidthRequest="80"
-                Padding="20,0"
+                FontSize="15"
+                MinimumWidthRequest="72"
+                HeightRequest="40"
+                Padding="16,0"
+                VerticalOptions="Center"
                 AutomationId="ComposerSendButton"
                 SemanticProperties.Description="Send message" />
       </Grid>
 
+      <!-- Bottom safe area padding -->
+      <BoxView HeightRequest="8" Color="Transparent" />
+
     </VerticalStackLayout>
-  </ScrollView>
+  </Border>
 
 </uxd:PopupPage>

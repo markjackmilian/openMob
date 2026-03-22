@@ -8,7 +8,7 @@
                x:Class="openMob.Views.Popups.MessageComposerSheet"
                x:DataType="vm:MessageComposerViewModel"
                BackgroundColor="{DynamicResource PopupBackdropColor}"
-               CloseWhenBackgroundIsClicked="False"
+               CloseWhenBackgroundIsClicked="True"
                AppearingAnimation="{uxd:MoveInPopupAnimation MoveDirection=Bottom, Duration=300, Easing=CubicOut}"
                DisappearingAnimation="{uxd:MoveOutPopupAnimation MoveDirection=Bottom, Duration=250, Easing=CubicIn}">
 
@@ -43,17 +43,17 @@
                VerticalOptions="Center" />
         <ImageButton Grid.Column="1"
                      Clicked="OnCloseButtonTapped"
-                     MinimumHeightRequest="{StaticResource MinTouchTarget}"
-                     MinimumWidthRequest="{StaticResource MinTouchTarget}"
+                     HeightRequest="44"
+                     WidthRequest="44"
                      BackgroundColor="Transparent"
                      AutomationId="ComposerCloseButton"
                      SemanticProperties.Description="Close message composer">
           <ImageButton.Source>
             <FontImageSource FontFamily="TablerIcons"
                              Glyph="{x:Static helpers:IconKeys.X}"
-                             Size="20"
-                             Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
-                                                      Dark={StaticResource ColorOnBackgroundSecondaryDark}}" />
+                             Size="24"
+                             Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight},
+                                                      Dark={StaticResource ColorOnBackgroundDark}}" />
           </ImageButton.Source>
         </ImageButton>
       </Grid>
@@ -73,12 +73,14 @@
                 Padding="10,5" HeightRequest="32">
           <Border.StrokeShape><RoundRectangle CornerRadius="16" /></Border.StrokeShape>
           <Border.GestureRecognizers><TapGestureRecognizer Command="{Binding SelectAgentCommand}" /></Border.GestureRecognizers>
-          <HorizontalStackLayout Spacing="5" VerticalOptions="Center">
+          <HorizontalStackLayout Spacing="4" VerticalOptions="Center">
             <Label Text="{x:Static helpers:IconKeys.Robot}" FontFamily="TablerIcons" FontSize="14"
                    TextColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}" VerticalOptions="Center" />
-            <Label Text="{Binding SessionAgentDisplayName, FallbackValue='Default'}" FontFamily="InterMedium" FontSize="13"
+            <Label Text="Agent:" FontFamily="InterRegular" FontSize="12"
+                   TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}" VerticalOptions="Center" />
+            <Label Text="{Binding SessionAgentDisplayName, FallbackValue='Default'}" FontFamily="InterSemiBold" FontSize="12"
                    TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}" VerticalOptions="Center"
-                   LineBreakMode="TailTruncation" MaximumWidthRequest="90" />
+                   LineBreakMode="TailTruncation" MaximumWidthRequest="80" />
           </HorizontalStackLayout>
         </Border>
 
@@ -89,10 +91,12 @@
                 Padding="10,5" HeightRequest="32">
           <Border.StrokeShape><RoundRectangle CornerRadius="16" /></Border.StrokeShape>
           <Border.GestureRecognizers><TapGestureRecognizer Command="{Binding ToggleThinkLevelExpandedCommand}" /></Border.GestureRecognizers>
-          <HorizontalStackLayout Spacing="5" VerticalOptions="Center">
+          <HorizontalStackLayout Spacing="4" VerticalOptions="Center">
             <Label Text="{x:Static helpers:IconKeys.Brain}" FontFamily="TablerIcons" FontSize="14"
                    TextColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}" VerticalOptions="Center" />
-            <Label Text="{Binding SessionThinkingLevel, FallbackValue='Medium'}" FontFamily="InterMedium" FontSize="13"
+            <Label Text="Think:" FontFamily="InterRegular" FontSize="12"
+                   TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}" VerticalOptions="Center" />
+            <Label Text="{Binding SessionThinkingLevel, FallbackValue='Medium'}" FontFamily="InterSemiBold" FontSize="12"
                    TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}" VerticalOptions="Center" />
             <Label Text="{x:Static helpers:IconKeys.ChevronDown}" FontFamily="TablerIcons" FontSize="11"
                    TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}" VerticalOptions="Center"
@@ -239,7 +243,7 @@
       </Grid>
 
       <!-- Bottom safe area for Android gesture nav -->
-      <BoxView HeightRequest="24" Color="Transparent" />
+      <BoxView HeightRequest="56" Color="Transparent" />
 
     </VerticalStackLayout>
   </Border>

@@ -4,7 +4,7 @@
 | Field   | Value                        |
 |---------|------------------------------|
 | Date    | 2026-03-22                   |
-| Status  | Draft                        |
+| Status  | In Progress                  |
 | Version | 1.0                          |
 
 ---
@@ -183,12 +183,12 @@ Replaces the inline textarea at the bottom of the chat page with a **Floating Ac
 | `IFileService.cs` + `FileService.cs` | **New** — `openMob.Core` | `src/openMob.Core/Services/` |
 | `IAppPopupService.cs` | **Extended** — add `ShowMessageComposerAsync`, `ShowFilePickerAsync` | `src/openMob.Core/Services/` |
 | `MauiPopupService.cs` | **Extended** — implement new Show* methods with `MainThread` guard | `src/openMob/Services/` |
-| `IOpencodeApiClient.cs` | **Possibly extended** — add file listing method (TBD) | `src/openMob.Core/Infrastructure/Http/` |
-| `OpencodeApiClient.cs` | **Possibly extended** — implement file listing | `src/openMob.Core/Infrastructure/Http/` |
+| `IOpencodeApiClient.cs` | **No change needed** — `GetFileTreeAsync` already exists | `src/openMob.Core/Infrastructure/Http/` |
+| `OpencodeApiClient.cs` | **No change needed** — `GetFileTreeAsync` already implemented | `src/openMob.Core/Infrastructure/Http/` |
 | `MessageComposedMessage.cs` | **New** — `openMob.Core/Messages/` | New message type |
 | `CoreServiceExtensions.cs` | **Extended** — register `MessageComposerViewModel`, `FilePickerViewModel`, `IFileService` | `src/openMob.Core/Infrastructure/DI/` |
 | `MauiProgram.cs` | **Extended** — `AddTransientPopup<MessageComposerSheet, MessageComposerViewModel>()`, `AddTransientPopup<FilePickerSheet, FilePickerViewModel>()` | `src/openMob/` |
-| `CommandPaletteSheet` | **Possibly modified** — add `Action<string>` callback mode (see Open Questions) | `src/openMob/Views/Popups/` |
+| `CommandPaletteSheet` | **Modified** — add `Action<string>` callback mode | `src/openMob/Views/Popups/` |
 
 ### Dependencies
 - `UXDivers.Popups.Maui` v0.9.4 — already installed (`adr-uxdivers-popups-adoption`)
@@ -196,10 +196,10 @@ Replaces the inline textarea at the bottom of the chat page with a **Floating Ac
 - `IAppPopupService.ShowSubagentPickerAsync` — implemented in `session-context-sheet-3of3` (in-progress)
 - `IAppPopupService.ShowCommandPaletteAsync` — already implemented (`chat-page-redesign`)
 - `AgentPickerSheet` (primary mode) — already implemented
-- `CommandPaletteSheet` — already implemented (may need callback adaptation)
+- `CommandPaletteSheet` — already implemented (needs callback adaptation)
 - `WeakReferenceMessenger` pattern — established in `adr-weakreferencemessenger-viewmodel-communication`
 - `MainThread.InvokeOnMainThreadAsync` guard — established in `adr-maui-popup-service-main-thread-guard`
-- opencode file listing API endpoint — **to be determined** (Open Question #1)
+- opencode file listing API — **resolved**: `IOpencodeApiClient.GetFileTreeAsync()` → `GET /file/tree` → `IReadOnlyList<FileNodeDto>`
 
 ---
 
@@ -207,12 +207,12 @@ Replaces the inline textarea at the bottom of the chat page with a **Floating Ac
 
 | # | Question | Status | Answer / Decision |
 |---|----------|--------|-------------------|
-| 1 | What is the opencode server endpoint for listing project files? Candidates: `GET /file`, `GET /ls`, `GET /project/files`, or a directory listing endpoint. Must be verified against the running opencode API or its OpenAPI spec. | **Open** | To be determined during Technical Analysis |
-| 2 | Is the file path inserted as relative (e.g., `@src/foo.ts`) or absolute? | **Open** | Likely relative to the project root (consistent with opencode `@` mention syntax). To be confirmed against opencode behavior. |
-| 3 | `CommandPaletteSheet` currently executes commands directly when selected. For the composer popup, we need it to return the command name as a token to insert into the text. Should we: (a) add a callback mode to `CommandPaletteViewModel` (similar to `AgentPickerViewModel`'s `OnAgentSelected`), or (b) create a separate `CommandPickerSheet` for token insertion? | **Open** | Recommended: option (a) — add `Action<string>? OnCommandSelected` callback to `CommandPaletteViewModel`; when set, selection inserts the token instead of executing. Consistent with the agent picker pattern. |
-| 4 | How is `IsStreaming` communicated to `MessageComposerViewModel` if streaming starts while the popup is already open? Options: (a) `WeakReferenceMessenger` `StreamingStateChangedMessage`, (b) pass a `Func<bool>` delegate, (c) poll `ChatViewModel` state. | **Open** | Recommended: option (a) — new `StreamingStateChangedMessage` sent by `ChatViewModel` when streaming starts/stops. `MessageComposerViewModel` subscribes and updates `IsStreaming`. |
-| 5 | Should the `MessageComposerSheet` have an explicit **close/dismiss button** (X) in addition to the Android back button? | **Open** | Recommended: yes — a small `X` icon button in the top-right of the handle bar area, calling `IPopupService.Current.PopAsync(this)` without sending. Improves discoverability on iOS where there is no back button. |
-| 6 | Draft persistence scope: should `MessageText` be preserved only for the current app session (in-memory in `MessageComposerViewModel`), or persisted to SQLite across app restarts? | **Open** | Recommended: in-memory only (simpler, no migration needed). The ViewModel is Transient — the draft lives as long as the ViewModel instance. If the app is killed, the draft is lost. |
+| 1 | What is the opencode server endpoint for listing project files? | **Resolved** | `IOpencodeApiClient.GetFileTreeAsync(path?)` maps to `GET /file/tree?path=`. Returns `IReadOnlyList<FileNodeDto>` with `Name`, `Path` (relative), `Absolute`, `Type` ("file"/"directory"), `Ignored`. `IFileService` wraps this call, filters to `Type == "file"` and `Ignored == false`, and maps to `FileDto`. No new API client methods needed. |
+| 2 | Is the file path inserted as relative or absolute? | **Resolved** | Relative to project root. `FileNodeDto.Path` is already relative. Insert as `@<Path>` (e.g., `@src/foo.ts`). Consistent with opencode `@` mention syntax. |
+| 3 | `CommandPaletteSheet` callback mode: (a) add callback to existing, or (b) create separate sheet? | **Resolved** | Option (a): add `Action<string>? OnCommandSelected` callback to `CommandPaletteViewModel`. When set, selection invokes callback instead of executing. Add `ShowCommandPaletteAsync(Action<string>, ct)` overload to `IAppPopupService`. Consistent with `AgentPickerViewModel.OnAgentSelected` pattern. |
+| 4 | How is `IsStreaming` communicated to `MessageComposerViewModel`? | **Resolved** | New `StreamingStateChangedMessage(bool IsStreaming)` sent by `ChatViewModel` when `IsAiResponding` changes. `MessageComposerViewModel` subscribes in constructor, unregisters in `Dispose()`. Handler dispatches to UI thread via `_dispatcher.Dispatch()`. |
+| 5 | Should `MessageComposerSheet` have an explicit close button? | **Resolved** | Yes. Small X icon button in the top-right of the handle bar area. Calls `IPopupService.Current.PopAsync(this)` without sending. Saves draft via `IDraftService` before closing. |
+| 6 | Draft persistence scope: in-memory or SQLite? | **Resolved** | In-memory only via `IDraftService` (Singleton). Simple `ConcurrentDictionary<string, string>` keyed by `sessionId`. Draft cleared on send, preserved on dismiss. No EF Core migration needed. |
 
 ---
 
@@ -309,10 +309,10 @@ Replaces the inline textarea at the bottom of the chat page with a **Floating Ac
 | `src/openMob/Services/MauiPopupService.cs` | Implement new Show* methods |
 | `src/openMob/MauiProgram.cs` | Register new popups |
 | `src/openMob.Core/Infrastructure/DI/CoreServiceExtensions.cs` | Register new services/ViewModels |
-| `src/openMob.Core/Infrastructure/Http/IOpencodeApiClient.cs` | Possibly add file listing method |
-| `src/openMob.Core/Infrastructure/Http/OpencodeApiClient.cs` | Possibly implement file listing |
-| `src/openMob/Views/Popups/CommandPaletteSheet.xaml` | Possibly adapt for callback mode |
-| `src/openMob.Core/ViewModels/CommandPaletteViewModel.cs` | Possibly add `OnCommandSelected` callback |
+| `src/openMob.Core/Infrastructure/Http/IOpencodeApiClient.cs` | Already has `GetFileTreeAsync` — no changes needed |
+| `src/openMob.Core/Infrastructure/Http/OpencodeApiClient.cs` | Already has `GetFileTreeAsync` — no changes needed |
+| `src/openMob/Views/Popups/CommandPaletteSheet.xaml` | Adapt for callback mode |
+| `src/openMob.Core/ViewModels/CommandPaletteViewModel.cs` | Add `OnCommandSelected` callback |
 | `src/openMob.Core/Messages/` | New message types |
 
 ### References to Past Decisions
@@ -325,3 +325,148 @@ Replaces the inline textarea at the bottom of the chat page with a **Floating Ac
 - As established in **`session-context-sheet-3of3-thinking-autoaccept-subagent`** (in-progress): `IAppPopupService.ShowSubagentPickerAsync(Action<string>, ct)`.
 - As established in **`chat-page-redesign`** (in-progress): `CommandPaletteSheet` and `IAppPopupService.ShowCommandPaletteAsync` are already implemented; `InputBarView` is the current input component to be replaced.
 - As established in **`adr-safe-fire-and-forget-callback-pattern`** (2026-03-21): `Action<T>` callbacks that need async work must use the safe fire-and-forget pattern (`_ = SafeMethodAsync(arg)` with try/catch + Sentry).
+
+---
+
+## Technical Analysis
+
+> Added by: om-orchestrator | Date: 2026-03-22
+
+### Change Classification
+
+| Field | Value |
+|-------|-------|
+| Change type | Feature |
+| Git Flow branch | feature/message-composer-popup |
+| Branches from | develop |
+| Estimated complexity | High |
+| Estimated agents involved | om-mobile-core, om-mobile-ui, om-tester, om-reviewer |
+
+### Layers Involved
+
+| Layer | Agent | Scope |
+|-------|-------|-------|
+| Business logic / Services | om-mobile-core | `src/openMob.Core/Services/` — `IFileService`, `FileService`, `IDraftService`, `DraftService`, `IAppPopupService` extension |
+| ViewModels | om-mobile-core | `src/openMob.Core/ViewModels/` — `MessageComposerViewModel`, `FilePickerViewModel`, `ChatViewModel` extension, `CommandPaletteViewModel` extension |
+| Messages | om-mobile-core | `src/openMob.Core/Messages/` — `MessageComposedMessage`, `StreamingStateChangedMessage` |
+| DTOs | om-mobile-core | `src/openMob.Core/Services/` — `FileDto` |
+| XAML Views | om-mobile-ui | `src/openMob/Views/Popups/` — `MessageComposerSheet`, `FilePickerSheet` |
+| Chat Page | om-mobile-ui | `src/openMob/Views/Pages/ChatPage.xaml` — remove InputBarView, add FAB |
+| Platform Services | om-mobile-ui | `src/openMob/Services/MauiPopupService.cs` — new Show* methods |
+| DI Registration | om-mobile-core + om-mobile-ui | `CoreServiceExtensions.cs` + `MauiProgram.cs` |
+| Unit Tests | om-tester | `tests/openMob.Tests/` |
+| Code Review | om-reviewer | all of the above |
+
+### Open Questions Resolution
+
+All 6 open questions from the spec have been resolved during Technical Analysis:
+
+1. **File listing endpoint** → `IOpencodeApiClient.GetFileTreeAsync(path?)` already exists. Maps to `GET /file/tree?path=`. Returns `IReadOnlyList<FileNodeDto>` with `Name`, `Path` (relative), `Absolute`, `Type` ("file"/"directory"), `Ignored`. `IFileService` wraps this, filters `Type == "file" && !Ignored`, maps to `FileDto`. **No new API client methods needed.**
+
+2. **File path format** → Relative. `FileNodeDto.Path` is already relative to project root. Insert as `@<Path>`.
+
+3. **CommandPaletteSheet callback** → Option (a): add `Action<string>? OnCommandSelected` to `CommandPaletteViewModel`. When set, `ExecuteCommandCommand` invokes callback instead of executing. Add `ShowCommandPaletteAsync(Action<string>, CancellationToken)` overload to `IAppPopupService`.
+
+4. **IsStreaming propagation** → New `StreamingStateChangedMessage(bool IsStreaming)` via `WeakReferenceMessenger`. `ChatViewModel` sends when `IsAiResponding` changes. `MessageComposerViewModel` subscribes.
+
+5. **Close button** → Yes. X icon button in handle bar area.
+
+6. **Draft persistence** → In-memory `IDraftService` (Singleton). `ConcurrentDictionary<string, string>` keyed by sessionId.
+
+### Critical Technical Finding — Agent Override
+
+The opencode API's `SendPromptRequest` has **no agent field**. The `IChatService.SendPromptAsync` signature is `(sessionId, text, modelId?, providerId?)` — no agent parameter. The `SelectedAgentName` on `ChatViewModel` is a display-only property loaded from `ProjectPreference.AgentName`.
+
+**Impact on REQ-024**: The agent override from `MessageComposedMessage.AgentOverride` cannot be passed to the server API per-message. The agent is a project-level setting.
+
+**Decision**: When `ChatViewModel` receives a `MessageComposedMessage` with a non-null `AgentOverride` that differs from the current `SelectedAgentName`, it will:
+1. **Not mutate** `SelectedAgentName` (as required by REQ-024)
+2. Include the agent name as a prefix in the message text (e.g., prepend `@agentName ` to the text) — this is how opencode handles agent mentions in prompts
+3. The think level and auto-accept overrides are similarly display-only in the current API — they will be included as metadata but the actual behavior depends on the server-side session configuration
+
+This is a known limitation of the opencode API. The composer popup's session controls provide a **preview of intent** — the actual enforcement depends on the server.
+
+### Files to Create
+
+- `src/openMob.Core/Messages/MessageComposedMessage.cs` — sealed record for composed message data
+- `src/openMob.Core/Messages/StreamingStateChangedMessage.cs` — sealed record for streaming state changes
+- `src/openMob.Core/Services/IDraftService.cs` — interface for in-memory draft storage
+- `src/openMob.Core/Services/DraftService.cs` — ConcurrentDictionary-based implementation
+- `src/openMob.Core/Services/IFileService.cs` — interface wrapping file tree API
+- `src/openMob.Core/Services/FileService.cs` — implementation using `IOpencodeApiClient.GetFileTreeAsync`
+- `src/openMob.Core/Services/FileDto.cs` — sealed record (RelativePath, Name, Type)
+- `src/openMob.Core/ViewModels/MessageComposerViewModel.cs` — popup state management
+- `src/openMob.Core/ViewModels/FilePickerViewModel.cs` — file picker state management
+- `src/openMob/Views/Popups/MessageComposerSheet.xaml` + `.xaml.cs` — UXDivers PopupPage
+- `src/openMob/Views/Popups/FilePickerSheet.xaml` + `.xaml.cs` — UXDivers PopupPage
+
+### Files to Modify
+
+- `src/openMob.Core/Services/IAppPopupService.cs` — add `ShowMessageComposerAsync`, `ShowFilePickerAsync`, `ShowCommandPaletteAsync(Action<string>, ct)` overload
+- `src/openMob.Core/ViewModels/ChatViewModel.cs` — add `OpenMessageComposerCommand`, subscribe to `MessageComposedMessage`, send `StreamingStateChangedMessage` when `IsAiResponding` changes
+- `src/openMob.Core/ViewModels/CommandPaletteViewModel.cs` — add `Action<string>? OnCommandSelected` callback property, dual-mode execution in `ExecuteCommandCommand`
+- `src/openMob/Views/Pages/ChatPage.xaml` — remove `InputBarView` from Row 6, add FAB overlay
+- `src/openMob/Services/MauiPopupService.cs` — implement `ShowMessageComposerAsync`, `ShowFilePickerAsync`, `ShowCommandPaletteAsync` callback overload
+- `src/openMob/MauiProgram.cs` — register `MessageComposerSheet`, `FilePickerSheet` via `AddTransientPopup`
+- `src/openMob.Core/Infrastructure/DI/CoreServiceExtensions.cs` — register `IDraftService` (Singleton), `IFileService` (Transient), `MessageComposerViewModel` (Transient), `FilePickerViewModel` (Transient)
+
+### Technical Dependencies
+
+- `IOpencodeApiClient.GetFileTreeAsync()` — already implemented, maps to `GET /file/tree`
+- `IAppPopupService.ShowAgentPickerAsync(Action<string?>, ct)` — already implemented
+- `IAppPopupService.ShowSubagentPickerAsync(Action<string>, ct)` — implemented in `session-context-sheet-3of3` (in-progress, assumed available)
+- `IAppPopupService.ShowCommandPaletteAsync(ct)` — already implemented (needs callback overload)
+- `IProjectPreferenceService.GetOrDefaultAsync(projectId, ct)` — already implemented
+- `WeakReferenceMessenger` — CommunityToolkit.Mvvm, already in use
+- `IDispatcherService` — already implemented
+- No new NuGet packages required
+
+### Technical Risks
+
+1. **`AvoidKeyboard="True"` with bottom-anchored popup**: UXDivers shifts content via `TranslationY`. Combined with `VerticalOptions="End"` and `SafeAreaAsPadding="Bottom"`, there is a risk of double-offsetting on iOS. Must be tested on both platforms. Mitigation: test early on iOS simulator.
+
+2. **Popup stacking**: `MessageComposerSheet` opens picker popups (`AgentPickerSheet`, `CommandPaletteSheet`, `FilePickerSheet`) on top of itself. UXDivers supports popup stacking via `IPopupService.Current.PushAsync`, but the visual layering and backdrop behavior must be verified. The inner picker popups should have `CloseWhenBackgroundIsClicked="True"` (they already do).
+
+3. **`IsAiResponding` race condition**: If streaming starts between the time the user opens the composer and taps Send, the `StreamingStateChangedMessage` must arrive and disable the Send button before the tap is processed. The `WeakReferenceMessenger` delivery is synchronous on the sending thread, but the UI update via `_dispatcher.Dispatch()` is asynchronous. Mitigation: the `SendCommand.CanExecute` check provides a second guard.
+
+4. **Draft service memory**: `ConcurrentDictionary<string, string>` grows unbounded if sessions are never cleared. Mitigation: `ClearDraft(sessionId)` is called on send; drafts for old sessions are lost on app restart (acceptable per Open Question #6 resolution).
+
+5. **`CommandPaletteViewModel` dual-mode**: Adding `OnCommandSelected` callback changes the behavior of `ExecuteCommandCommand`. Must ensure the existing direct-execution path (when `OnCommandSelected` is null) is not broken. The `CurrentSessionId` property is still needed for direct execution mode.
+
+### Execution Order
+
+> Steps that can run in parallel are marked with ⟳. Steps that must be sequential are numbered.
+
+1. **[Git Flow]** Create branch `feature/message-composer-popup` from `develop`
+2. **[om-mobile-core]** Implement all Core layer changes:
+   - Messages: `MessageComposedMessage`, `StreamingStateChangedMessage`
+   - Services: `IDraftService`/`DraftService`, `IFileService`/`FileService`, `FileDto`
+   - ViewModels: `MessageComposerViewModel`, `FilePickerViewModel`
+   - Extensions: `IAppPopupService` new methods, `CommandPaletteViewModel` callback
+   - `ChatViewModel` extensions: `OpenMessageComposerCommand`, message subscriptions, streaming state publishing
+   - DI: `CoreServiceExtensions` registrations
+3. ⟳ **[om-mobile-ui]** Implement all UI layer changes (can start layout/styles immediately; bindings after step 2):
+   - Popups: `MessageComposerSheet.xaml`, `FilePickerSheet.xaml`
+   - `ChatPage.xaml`: remove InputBarView, add FAB
+   - `MauiPopupService`: implement new Show* methods
+   - `MauiProgram.cs`: register new popups
+   - `CommandPaletteSheet`: no XAML changes needed (callback is ViewModel-level)
+4. **[om-tester]** Write unit tests for:
+   - `MessageComposerViewModel` (all commands, streaming guard, draft save/restore, token insertion)
+   - `FilePickerViewModel` (load, search, select, error handling)
+   - `FileService` (tree flattening, filtering)
+   - `DraftService` (get/save/clear)
+   - `ChatViewModel` extensions (message subscription, streaming state publishing)
+   - `CommandPaletteViewModel` callback mode
+5. **[om-reviewer]** Full review against spec — all REQ and AC items
+6. **[Fix loop if needed]** Address Critical and Major findings
+7. **[Git Flow]** Finish branch and merge
+
+### Definition of Done
+
+- [ ] All `[REQ-001]` through `[REQ-024]` requirements implemented
+- [ ] All `[AC-001]` through `[AC-015]` acceptance criteria satisfied
+- [ ] Unit tests written for `MessageComposerViewModel`, `FilePickerViewModel`, `FileService`, `DraftService`, `ChatViewModel` extensions, `CommandPaletteViewModel` callback mode
+- [ ] `om-reviewer` verdict: ✅ Approved or ⚠️ Approved with remarks
+- [ ] Git Flow branch finished and deleted
+- [ ] Spec moved to `specs/done/` with Completed status

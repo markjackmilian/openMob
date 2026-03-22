@@ -1,11 +1,14 @@
 # Message Composer Popup — FAB Trigger with Inline Session Controls
 
 ## Metadata
-| Field   | Value                        |
-|---------|------------------------------|
-| Date    | 2026-03-22                   |
-| Status  | In Progress                  |
-| Version | 1.0                          |
+| Field       | Value                                          |
+|-------------|------------------------------------------------|
+| Date        | 2026-03-22                                     |
+| Status      | **Completed**                                  |
+| Version     | 1.0                                            |
+| Completed   | 2026-03-22                                     |
+| Branch      | feature/message-composer-popup (merged)         |
+| Merged into | develop                                        |
 
 ---
 

@@ -47,6 +47,13 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     /// <summary>Cancellation token source for the active SSE subscription.</summary>
     private CancellationTokenSource? _sseCts;
 
+    /// <summary>
+    /// The absolute path of the current project's working directory, used to filter
+    /// incoming SSE events by project context (REQ-004). Set once during
+    /// <see cref="LoadContextAsync"/> from <see cref="IActiveProjectService.GetCachedWorktree"/>.
+    /// </summary>
+    private string? _currentProjectDirectory;
+
     /// <summary>Initialises the ChatViewModel with required dependencies.</summary>
     /// <param name="projectService">Service for project operations.</param>
     /// <param name="sessionService">Service for session operations.</param>
@@ -330,6 +337,9 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
                 CurrentProjectId = currentProject.Id;
                 ProjectName = ProjectNameHelper.ExtractFromWorktree(currentProject.Worktree);
 
+                // Cache the project directory for SSE event filtering (REQ-004).
+                _currentProjectDirectory = _activeProjectService.GetCachedWorktree();
+
                 // Load default model preference for this project
                 var pref = await _preferenceService.GetAsync(currentProject.Id, ct);
                 if (pref?.DefaultModelId is not null)
@@ -349,6 +359,7 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
             {
                 CurrentProjectId = null;
                 ProjectName = "No project";
+                _currentProjectDirectory = null;
             }
 
             // Load current session if set
@@ -1005,6 +1016,11 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     /// <param name="e">The message updated event.</param>
     private void HandleMessageUpdated(MessageUpdatedEvent e)
     {
+        // Filter by project directory first (REQ-003, REQ-005, REQ-006).
+        if (e.ProjectDirectory is not null &&
+            e.ProjectDirectory != _currentProjectDirectory)
+            return;
+
         if (e.Message.Info.SessionId != CurrentSessionId)
             return;
 
@@ -1105,6 +1121,11 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     /// <param name="e">The message part updated event.</param>
     private void HandleMessagePartUpdated(MessagePartUpdatedEvent e)
     {
+        // Filter by project directory first (REQ-003, REQ-005, REQ-006).
+        if (e.ProjectDirectory is not null &&
+            e.ProjectDirectory != _currentProjectDirectory)
+            return;
+
         if (e.Part.SessionId != CurrentSessionId)
             return;
 
@@ -1134,6 +1155,11 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     /// <param name="e">The message part delta event.</param>
     private void HandleMessagePartDelta(MessagePartDeltaEvent e)
     {
+        // Filter by project directory first (REQ-003, REQ-005, REQ-006).
+        if (e.ProjectDirectory is not null &&
+            e.ProjectDirectory != _currentProjectDirectory)
+            return;
+
         if (e.SessionId != CurrentSessionId)
             return;
 
@@ -1176,6 +1202,11 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     /// <param name="e">The session updated event.</param>
     private void HandleSessionUpdated(SessionUpdatedEvent e)
     {
+        // Filter by project directory first (REQ-003, REQ-005, REQ-006).
+        if (e.ProjectDirectory is not null &&
+            e.ProjectDirectory != _currentProjectDirectory)
+            return;
+
         if (e.Session.Id != CurrentSessionId)
             return;
 
@@ -1195,6 +1226,11 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     /// <param name="e">The session error event.</param>
     private void HandleSessionError(SessionErrorEvent e)
     {
+        // Filter by project directory first (REQ-003, REQ-005, REQ-006).
+        if (e.ProjectDirectory is not null &&
+            e.ProjectDirectory != _currentProjectDirectory)
+            return;
+
         if (e.SessionId != CurrentSessionId)
             return;
 

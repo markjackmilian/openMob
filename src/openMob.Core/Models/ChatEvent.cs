@@ -17,6 +17,13 @@ public abstract record ChatEvent
     /// did not include an <c>id:</c> field. Used for <c>Last-Event-ID</c> reconnect.
     /// </summary>
     public string? RawEventId { get; init; }
+
+    /// <summary>
+    /// Gets the absolute path of the project directory extracted from the SSE envelope's
+    /// <c>directory</c> field, or <c>null</c> if the field was absent or empty.
+    /// Used by consumers to filter events by project context.
+    /// </summary>
+    public string? ProjectDirectory { get; init; }
 }
 
 /// <summary>

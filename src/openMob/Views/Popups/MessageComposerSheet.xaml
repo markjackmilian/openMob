@@ -162,21 +162,22 @@
         </Button>
       </HorizontalStackLayout>
 
-      <!-- Editor -->
+      <!-- Editor — clean, no background box, just text on the sheet surface -->
       <Editor Text="{Binding MessageText, Mode=TwoWay}"
               Placeholder="Scrivi un messaggio..."
+              PlaceholderColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
+                                                  Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
               AutoSize="TextChanges"
-              MinimumHeightRequest="60"
-              MaximumHeightRequest="140"
-              Margin="16,6,16,6"
-              Style="{StaticResource InputBarEditor}"
+              MinimumHeightRequest="100"
+              MaximumHeightRequest="220"
+              Margin="16,4,16,4"
+              FontFamily="InterRegular"
+              FontSize="{StaticResource FontSizeBody}"
+              TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight},
+                                           Dark={StaticResource ColorOnBackgroundDark}}"
+              BackgroundColor="Transparent"
               AutomationId="ComposerEditor"
               SemanticProperties.Hint="Type your message here" />
-
-      <!-- Divider -->
-      <BoxView HeightRequest="0.5"
-               Color="{AppThemeBinding Light={StaticResource ColorSeparatorLight},
-                                        Dark={StaticResource ColorSeparatorDark}}" />
 
       <!-- Picker toolbar + Send row combined -->
       <Grid ColumnDefinitions="*,*,*,Auto" Padding="8,4,12,4" ColumnSpacing="0">

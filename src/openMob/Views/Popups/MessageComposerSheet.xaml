@@ -9,10 +9,18 @@
                x:DataType="vm:MessageComposerViewModel"
                BackgroundColor="{DynamicResource PopupBackdropColor}"
                CloseWhenBackgroundIsClicked="False"
-               AppearingAnimation="{uxd:FadeInPopupAnimation Duration=300}"
-               DisappearingAnimation="{uxd:FadeOutPopupAnimation Duration=300}">
+               AppearingAnimation="{uxd:MoveInPopupAnimation MoveDirection=Bottom, Duration=300, Easing=CubicOut}"
+               DisappearingAnimation="{uxd:MoveOutPopupAnimation MoveDirection=Bottom, Duration=300, Easing=CubicIn}">
 
-  <ScrollView>
+  <Border VerticalOptions="End"
+          HorizontalOptions="Fill"
+          StrokeThickness="0"
+          BackgroundColor="{AppThemeBinding Light={StaticResource ColorBackgroundLight},
+                                            Dark={StaticResource ColorBackgroundDark}}">
+    <Border.StrokeShape>
+      <RoundRectangle CornerRadius="20,20,0,0" />
+    </Border.StrokeShape>
+
     <VerticalStackLayout Spacing="0">
 
       <!-- ═══════════════════════════════════════════════════════════
@@ -42,9 +50,9 @@
           <ImageButton.Source>
             <FontImageSource FontFamily="TablerIcons"
                              Glyph="{x:Static helpers:IconKeys.X}"
-                             Size="{StaticResource FontSizeIconXl}"
-                             Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight},
-                                                      Dark={StaticResource ColorOnBackgroundDark}}" />
+                             Size="20"
+                             Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
+                                                      Dark={StaticResource ColorOnBackgroundSecondaryDark}}" />
           </ImageButton.Source>
         </ImageButton>
       </Grid>
@@ -59,8 +67,8 @@
            Session context chips [REQ-007]
            Agent | Think level | Auto-accept — compact inline row
            ═══════════════════════════════════════════════════════════ -->
-      <HorizontalStackLayout Spacing="{StaticResource SpacingSm}"
-                             Padding="16,8">
+      <HorizontalStackLayout Spacing="8"
+                             Padding="16,12">
 
         <!-- Agent chip -->
         <Border StrokeThickness="1"
@@ -68,7 +76,7 @@
                                           Dark={StaticResource ColorOutlineDark}}"
                 BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceSecondaryLight},
                                                    Dark={StaticResource ColorSurfaceSecondaryDark}}"
-                Padding="8,4"
+                Padding="8,5"
                 AutomationId="ComposerAgentChip"
                 SemanticProperties.Description="Select agent">
           <Border.StrokeShape>
@@ -77,16 +85,16 @@
           <Border.GestureRecognizers>
             <TapGestureRecognizer Command="{Binding SelectAgentCommand}" />
           </Border.GestureRecognizers>
-          <HorizontalStackLayout Spacing="{StaticResource SpacingXs}">
+          <HorizontalStackLayout Spacing="4">
             <Label Text="{x:Static helpers:IconKeys.Robot}"
                    FontFamily="TablerIcons"
-                   FontSize="{StaticResource FontSizeCaption1}"
+                   FontSize="13"
                    TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
                                                 Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
                    VerticalOptions="Center" />
             <Label Text="{Binding SessionAgentDisplayName, FallbackValue='Default'}"
                    FontFamily="InterMedium"
-                   FontSize="{StaticResource FontSizeCaption1}"
+                   FontSize="13"
                    TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight},
                                                 Dark={StaticResource ColorOnBackgroundDark}}"
                    VerticalOptions="Center"
@@ -101,7 +109,7 @@
                                           Dark={StaticResource ColorOutlineDark}}"
                 BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceSecondaryLight},
                                                    Dark={StaticResource ColorSurfaceSecondaryDark}}"
-                Padding="8,4"
+                Padding="8,5"
                 AutomationId="ComposerThinkLevelChip"
                 SemanticProperties.Description="Change thinking level">
           <Border.StrokeShape>
@@ -110,29 +118,29 @@
           <Border.GestureRecognizers>
             <TapGestureRecognizer Command="{Binding ToggleThinkLevelExpandedCommand}" />
           </Border.GestureRecognizers>
-          <HorizontalStackLayout Spacing="{StaticResource SpacingXs}">
+          <HorizontalStackLayout Spacing="4">
             <Label Text="{x:Static helpers:IconKeys.Brain}"
                    FontFamily="TablerIcons"
-                   FontSize="{StaticResource FontSizeCaption1}"
+                   FontSize="13"
                    TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
                                                 Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
                    VerticalOptions="Center" />
             <Label Text="{Binding SessionThinkingLevel, FallbackValue='Medium'}"
                    FontFamily="InterMedium"
-                   FontSize="{StaticResource FontSizeCaption1}"
+                   FontSize="13"
                    TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight},
                                                 Dark={StaticResource ColorOnBackgroundDark}}"
                    VerticalOptions="Center" />
             <Label Text="{x:Static helpers:IconKeys.ChevronDown}"
                    FontFamily="TablerIcons"
-                   FontSize="{StaticResource FontSizeCaption2}"
+                   FontSize="11"
                    TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
                                                 Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
                    VerticalOptions="Center"
                    IsVisible="{Binding IsThinkLevelExpanded, Converter={StaticResource InvertedBoolConverter}}" />
             <Label Text="{x:Static helpers:IconKeys.ChevronUp}"
                    FontFamily="TablerIcons"
-                   FontSize="{StaticResource FontSizeCaption2}"
+                   FontSize="11"
                    TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
                                                 Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
                    VerticalOptions="Center"
@@ -146,7 +154,8 @@
                                           Dark={StaticResource ColorOutlineDark}}"
                 BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceSecondaryLight},
                                                    Dark={StaticResource ColorSurfaceSecondaryDark}}"
-                Padding="8,4"
+                Padding="8,5"
+                MinimumWidthRequest="38"
                 AutomationId="ComposerAutoAcceptToggle"
                 SemanticProperties.Description="Toggle auto-accept">
           <Border.StrokeShape>
@@ -157,7 +166,7 @@
           </Border.GestureRecognizers>
           <Label Text="{x:Static helpers:IconKeys.AutoAwesome}"
                  FontFamily="TablerIcons"
-                 FontSize="{StaticResource FontSizeCaption1}"
+                 FontSize="13"
                  HorizontalOptions="Center"
                  VerticalOptions="Center">
             <Label.TextColor>
@@ -286,7 +295,7 @@
               AutoSize="TextChanges"
               MinimumHeightRequest="100"
               MaximumHeightRequest="200"
-              Margin="16,8"
+              Margin="16,12"
               Style="{StaticResource InputBarEditor}"
               AutomationId="ComposerEditor"
               SemanticProperties.Hint="Type your message here" />
@@ -302,7 +311,7 @@
            @ Subagent | / Command | # File
            ═══════════════════════════════════════════════════════════ -->
       <Grid ColumnDefinitions="*,*,*"
-            Padding="16,4">
+            Padding="16,8">
 
         <!-- @ Subagent button -->
         <VerticalStackLayout Grid.Column="0"
@@ -316,13 +325,13 @@
           </VerticalStackLayout.GestureRecognizers>
           <Label Text="{x:Static helpers:IconKeys.At}"
                  FontFamily="TablerIcons"
-                 FontSize="{StaticResource FontSizeCaption1}"
+                 FontSize="16"
                  TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
                                               Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
                  HorizontalTextAlignment="Center" />
           <Label Text="Subagent"
                  FontFamily="InterRegular"
-                 FontSize="{StaticResource FontSizeCaption2}"
+                 FontSize="11"
                  TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
                                               Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
                  HorizontalTextAlignment="Center" />
@@ -340,13 +349,13 @@
           </VerticalStackLayout.GestureRecognizers>
           <Label Text="{x:Static helpers:IconKeys.Terminal}"
                  FontFamily="TablerIcons"
-                 FontSize="{StaticResource FontSizeCaption1}"
+                 FontSize="16"
                  TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
                                               Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
                  HorizontalTextAlignment="Center" />
           <Label Text="Command"
                  FontFamily="InterRegular"
-                 FontSize="{StaticResource FontSizeCaption2}"
+                 FontSize="11"
                  TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
                                               Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
                  HorizontalTextAlignment="Center" />
@@ -364,13 +373,13 @@
           </VerticalStackLayout.GestureRecognizers>
           <Label Text="{x:Static helpers:IconKeys.File}"
                  FontFamily="TablerIcons"
-                 FontSize="{StaticResource FontSizeCaption1}"
+                 FontSize="16"
                  TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
                                               Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
                  HorizontalTextAlignment="Center" />
           <Label Text="File"
                  FontFamily="InterRegular"
-                 FontSize="{StaticResource FontSizeCaption2}"
+                 FontSize="11"
                  TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
                                               Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
                  HorizontalTextAlignment="Center" />
@@ -389,27 +398,24 @@
            Send button (right-aligned)
            ═══════════════════════════════════════════════════════════ -->
       <Grid ColumnDefinitions="*,Auto"
-            Padding="16,8,16,16">
+            Padding="16,12,16,16">
 
-        <!-- Spacer column -->
-        <BoxView Grid.Column="0"
-                 Color="Transparent"
-                 HeightRequest="0" />
+        <Label Grid.Column="0"
+               Style="{StaticResource Caption2Label}"
+               VerticalOptions="Center" />
 
-        <!-- Send button -->
         <Button Grid.Column="1"
                 Text="{Binding SendButtonText, FallbackValue='Invia'}"
                 Command="{Binding SendCommand}"
                 Style="{StaticResource PrimaryButton}"
                 FontFamily="InterSemiBold"
-                FontSize="{StaticResource FontSizeBody}"
                 MinimumWidthRequest="80"
-                Padding="16,0"
+                Padding="20,0"
                 AutomationId="ComposerSendButton"
                 SemanticProperties.Description="Send message" />
       </Grid>
 
     </VerticalStackLayout>
-  </ScrollView>
+  </Border>
 
 </uxd:PopupPage>

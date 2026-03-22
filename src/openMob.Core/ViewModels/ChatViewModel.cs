@@ -768,7 +768,19 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     /// <summary>Publishes <see cref="StreamingStateChangedMessage"/> when streaming state changes [REQ-016].</summary>
     partial void OnIsAiRespondingChanged(bool value)
     {
-        WeakReferenceMessenger.Default.Send(new StreamingStateChangedMessage(value));
+        try
+        {
+            WeakReferenceMessenger.Default.Send(new StreamingStateChangedMessage(value));
+        }
+        catch (Exception ex)
+        {
+            // Never let messenger delivery failures break the SSE event processing pipeline.
+            SentryHelper.CaptureException(ex, new Dictionary<string, object>
+            {
+                ["context"] = "ChatViewModel.OnIsAiRespondingChanged",
+                ["isAiResponding"] = value,
+            });
+        }
     }
 
     // ─── Message Composer [REQ-004, REQ-023, REQ-024] ─────────────────────────

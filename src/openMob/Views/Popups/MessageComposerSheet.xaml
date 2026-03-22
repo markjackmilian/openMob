@@ -9,32 +9,16 @@
                x:DataType="vm:MessageComposerViewModel"
                BackgroundColor="{DynamicResource PopupBackdropColor}"
                CloseWhenBackgroundIsClicked="False"
-               AvoidKeyboard="True"
-               SafeAreaAsPadding="Bottom"
-               VerticalOptions="End"
-               HorizontalOptions="Fill"
-               AppearingAnimation="{uxd:MoveInPopupAnimation MoveDirection=Bottom, Duration=300, Easing=CubicOut}"
-               DisappearingAnimation="{uxd:MoveOutPopupAnimation MoveDirection=Bottom, Duration=250, Easing=CubicIn}">
+               AppearingAnimation="{uxd:FadeInPopupAnimation Duration=300}"
+               DisappearingAnimation="{uxd:FadeOutPopupAnimation Duration=300}">
 
-  <!-- ═══════════════════════════════════════════════════════════════
-       Main panel — bottom sheet with rounded top corners
-       ═══════════════════════════════════════════════════════════════ -->
-  <Border StrokeThickness="0"
-          BackgroundColor="{AppThemeBinding Light={StaticResource ColorBackgroundLight},
-                                            Dark={StaticResource ColorBackgroundDark}}"
-          Padding="0">
-    <Border.StrokeShape>
-      <RoundRectangle CornerRadius="20,20,0,0" />
-    </Border.StrokeShape>
-
-    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto,Auto"
-          RowSpacing="0">
+  <ScrollView>
+    <VerticalStackLayout Spacing="0">
 
       <!-- ═══════════════════════════════════════════════════════════
-           ROW 0 — Handle bar + Close button
+           Handle bar + Close button
            ═══════════════════════════════════════════════════════════ -->
-      <Grid Grid.Row="0"
-            ColumnDefinitions="*,Auto"
+      <Grid ColumnDefinitions="*,Auto"
             Padding="0,0,8,0">
 
         <!-- Handle bar -->
@@ -62,11 +46,10 @@
       </Grid>
 
       <!-- ═══════════════════════════════════════════════════════════
-           ROW 1 — Session context row [REQ-007]
+           Session context row [REQ-007]
            Agent chip | Think level label | Auto-accept toggle
            ═══════════════════════════════════════════════════════════ -->
-      <HorizontalStackLayout Grid.Row="1"
-                             Spacing="{StaticResource SpacingSm}"
+      <HorizontalStackLayout Spacing="{StaticResource SpacingSm}"
                              Padding="12,4,12,8">
 
         <!-- Agent chip -->
@@ -191,11 +174,10 @@
       </HorizontalStackLayout>
 
       <!-- ═══════════════════════════════════════════════════════════
-           ROW 2 — Think level segmented control [REQ-011]
+           Think level segmented control [REQ-011]
            Visible only when IsThinkLevelExpanded = true
            ═══════════════════════════════════════════════════════════ -->
-      <HorizontalStackLayout Grid.Row="2"
-                             Spacing="{StaticResource SpacingXs}"
+      <HorizontalStackLayout Spacing="{StaticResource SpacingXs}"
                              Padding="12,0,12,8"
                              IsVisible="{Binding IsThinkLevelExpanded}">
 
@@ -286,26 +268,29 @@
       </HorizontalStackLayout>
 
       <!-- ═══════════════════════════════════════════════════════════
-           ROW 3 — Editor area (star row) [REQ-007]
+           Editor area [REQ-007]
            ═══════════════════════════════════════════════════════════ -->
-      <ScrollView Grid.Row="3"
-                  Padding="12,0">
-        <Editor Text="{Binding MessageText, Mode=TwoWay}"
-                Placeholder="Scrivi un messaggio…"
-                AutoSize="TextChanges"
-                MinimumHeightRequest="100"
-                MaximumHeightRequest="300"
-                Style="{StaticResource InputBarEditor}"
-                AutomationId="ComposerEditor"
-                SemanticProperties.Hint="Type your message here" />
-      </ScrollView>
+      <Editor Text="{Binding MessageText, Mode=TwoWay}"
+              Placeholder="Scrivi un messaggio..."
+              AutoSize="TextChanges"
+              MinimumHeightRequest="120"
+              MaximumHeightRequest="300"
+              Margin="12,0"
+              Style="{StaticResource InputBarEditor}"
+              AutomationId="ComposerEditor"
+              SemanticProperties.Hint="Type your message here" />
 
       <!-- ═══════════════════════════════════════════════════════════
-           ROW 4 — Picker toolbar [REQ-007]
+           Picker toolbar [REQ-007]
            @ Subagent | / Command | # File
            ═══════════════════════════════════════════════════════════ -->
-      <Grid Grid.Row="4"
-            ColumnDefinitions="*,*,*"
+
+      <!-- Separator above picker toolbar -->
+      <BoxView HeightRequest="0.5"
+               Color="{AppThemeBinding Light={StaticResource ColorSeparatorLight},
+                                        Dark={StaticResource ColorSeparatorDark}}" />
+
+      <Grid ColumnDefinitions="*,*,*"
             Padding="12,4,12,4">
 
         <!-- @ Subagent button -->
@@ -403,19 +388,11 @@
 
       </Grid>
 
-      <!-- Separator above action row -->
-      <BoxView Grid.Row="4"
-               HeightRequest="0.5"
-               VerticalOptions="Start"
-               Color="{AppThemeBinding Light={StaticResource ColorSeparatorLight},
-                                        Dark={StaticResource ColorSeparatorDark}}" />
-
       <!-- ═══════════════════════════════════════════════════════════
-           ROW 5 — Action row [REQ-007]
+           Action row [REQ-007]
            Send button (right-aligned)
            ═══════════════════════════════════════════════════════════ -->
-      <Grid Grid.Row="5"
-            ColumnDefinitions="*,Auto"
+      <Grid ColumnDefinitions="*,Auto"
             Padding="12,8,12,12">
 
         <!-- Character count (optional, placeholder for future) -->
@@ -436,7 +413,7 @@
                 SemanticProperties.Description="Send message" />
       </Grid>
 
-    </Grid>
-  </Border>
+    </VerticalStackLayout>
+  </ScrollView>
 
 </uxd:PopupPage>

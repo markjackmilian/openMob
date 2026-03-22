@@ -12,7 +12,7 @@
 
   <!-- ChatPage uses edge-to-edge layout for the message list (standard chat UI pattern).
        Horizontal padding is applied to the input bar and header, not the message area. -->
-  <Grid RowDefinitions="Auto,Auto,Auto,*,Auto,Auto,Auto">
+  <Grid RowDefinitions="Auto,Auto,Auto,*,Auto,Auto">
 
     <!-- ═══════════════════════════════════════════════════════════════
          ROW 0 — Redesigned Header (REQ-017, REQ-018)
@@ -106,7 +106,7 @@
                                BannerType="{Binding StatusBanner.Type, FallbackValue=None}" />
 
     <!-- ═══════════════════════════════════════════════════════════════
-         ROW 3 — Message area (star row)
+         ROW 3 — Message area (star row) + FAB overlay
          ═══════════════════════════════════════════════════════════════ -->
     <Grid Grid.Row="3"
           RowDefinitions="*,Auto"
@@ -205,6 +205,44 @@
 
       </Grid>
 
+      <!-- ═══════════════════════════════════════════════════════════
+           FAB — Floating Action Button overlay [REQ-001, REQ-002, REQ-003]
+           Overlays the message area, bottom-right. Always visible and
+           tappable, even during streaming [REQ-005].
+           ═══════════════════════════════════════════════════════════ -->
+      <Border Grid.RowSpan="2"
+              ZIndex="1"
+              WidthRequest="56"
+              HeightRequest="56"
+              StrokeThickness="0"
+              BackgroundColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight},
+                                                Dark={StaticResource ColorPrimaryDark}}"
+              HorizontalOptions="End"
+              VerticalOptions="End"
+              Margin="0,0,16,16"
+              AutomationId="ComposerFabButton"
+              SemanticProperties.Description="Open message composer">
+        <Border.StrokeShape>
+          <RoundRectangle CornerRadius="28" />
+        </Border.StrokeShape>
+        <Border.Shadow>
+          <Shadow Brush="Black"
+                  Opacity="0.3"
+                  Offset="0,4"
+                  Radius="8" />
+        </Border.Shadow>
+        <Border.GestureRecognizers>
+          <TapGestureRecognizer Command="{Binding OpenMessageComposerCommand}" />
+        </Border.GestureRecognizers>
+        <Label Text="{x:Static helpers:IconKeys.Edit}"
+               FontFamily="TablerIcons"
+               FontSize="{StaticResource FontSizeIconXl}"
+               TextColor="{AppThemeBinding Light={StaticResource ColorOnPrimaryLight},
+                                            Dark={StaticResource ColorOnPrimaryDark}}"
+               HorizontalOptions="Center"
+               VerticalOptions="Center" />
+      </Border>
+
     </Grid>
 
     <!-- ═══════════════════════════════════════════════════════════════
@@ -277,43 +315,6 @@
       </CollectionView>
 
     </VerticalStackLayout>
-
-    <!-- ═══════════════════════════════════════════════════════════════
-         ROW 6 — FAB (Floating Action Button) [REQ-001, REQ-002, REQ-003]
-         Replaces the inline InputBarView. Opens the MessageComposerSheet.
-         The FAB is always visible and tappable, even during streaming [REQ-005].
-         ═══════════════════════════════════════════════════════════════ -->
-    <Grid Grid.Row="6"
-          HeightRequest="72"
-          Padding="0,0,16,8">
-
-      <!-- FAB — compose icon, bottom-right -->
-      <ImageButton Command="{Binding OpenMessageComposerCommand}"
-                   WidthRequest="56"
-                   HeightRequest="56"
-                   CornerRadius="28"
-                   BackgroundColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight},
-                                                     Dark={StaticResource ColorPrimaryDark}}"
-                   HorizontalOptions="End"
-                   VerticalOptions="Center"
-                   AutomationId="ComposerFabButton"
-                   SemanticProperties.Description="Open message composer">
-        <ImageButton.Source>
-          <FontImageSource FontFamily="TablerIcons"
-                           Glyph="{x:Static helpers:IconKeys.Edit}"
-                           Size="{StaticResource FontSizeIconXl}"
-                           Color="{AppThemeBinding Light={StaticResource ColorOnPrimaryLight},
-                                                    Dark={StaticResource ColorOnPrimaryDark}}" />
-        </ImageButton.Source>
-        <ImageButton.Shadow>
-          <Shadow Brush="Black"
-                  Opacity="0.3"
-                  Offset="0,4"
-                  Radius="8" />
-        </ImageButton.Shadow>
-      </ImageButton>
-
-    </Grid>
 
   </Grid>
 

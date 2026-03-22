@@ -131,8 +131,9 @@ public partial class MessageComposerViewModel : ObservableObject, IDisposable
     /// <param name="projectId">The project identifier.</param>
     /// <param name="sessionId">The session identifier.</param>
     /// <param name="isStreaming">Whether the AI is currently streaming.</param>
+    /// <param name="currentModelId">The currently active model ID from ChatViewModel, or <c>null</c>.</param>
     /// <param name="ct">Cancellation token.</param>
-    public async Task InitializeAsync(string projectId, string sessionId, bool isStreaming, CancellationToken ct = default)
+    public async Task InitializeAsync(string projectId, string sessionId, bool isStreaming, string? currentModelId = null, CancellationToken ct = default)
     {
         ProjectId = projectId;
         SessionId = sessionId;
@@ -141,7 +142,7 @@ public partial class MessageComposerViewModel : ObservableObject, IDisposable
         // Load preferences
         var pref = await _preferenceService.GetOrDefaultAsync(projectId, ct);
         SessionAgentName = pref.AgentName;
-        SessionModelId = pref.DefaultModelId;
+        SessionModelId = currentModelId ?? pref.DefaultModelId;
         SessionThinkingLevel = pref.ThinkingLevel;
         SessionAutoAccept = pref.AutoAccept;
 

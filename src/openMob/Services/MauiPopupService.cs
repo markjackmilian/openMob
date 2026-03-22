@@ -269,7 +269,7 @@ internal sealed class MauiPopupService : IAppPopupService
     }
 
     /// <inheritdoc />
-    public async Task ShowMessageComposerAsync(string projectId, string sessionId, bool isStreaming, CancellationToken ct = default)
+    public async Task ShowMessageComposerAsync(string projectId, string sessionId, bool isStreaming, string? currentModelId = null, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
@@ -278,7 +278,7 @@ internal sealed class MauiPopupService : IAppPopupService
         // Initialize the ViewModel with project/session context before presenting
         if (sheet.BindingContext is MessageComposerViewModel vm)
         {
-            await vm.InitializeAsync(projectId, sessionId, isStreaming, ct);
+            await vm.InitializeAsync(projectId, sessionId, isStreaming, currentModelId, ct);
         }
 
         // Ensure PushAsync is called on the main thread.

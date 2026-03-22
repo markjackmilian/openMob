@@ -126,28 +126,26 @@
           </HorizontalStackLayout>
         </Border>
 
-        <!-- Auto-accept chip -->
-        <Border StrokeThickness="1"
-                Stroke="{AppThemeBinding Light={StaticResource ColorOutlineLight}, Dark={StaticResource ColorOutlineDark}}"
+        <!-- Auto-accept chip — uses Button to avoid ScrollView gesture conflict -->
+        <Button Command="{Binding ToggleAutoAcceptCommand}"
+                Text="&#x2728; Auto"
+                FontFamily="InterMedium"
+                FontSize="12"
+                HeightRequest="32"
+                MinimumWidthRequest="0"
+                Padding="10,0"
+                CornerRadius="16"
+                BorderWidth="1"
+                BorderColor="{AppThemeBinding Light={StaticResource ColorOutlineLight}, Dark={StaticResource ColorOutlineDark}}"
                 BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceSecondaryLight}, Dark={StaticResource ColorSurfaceSecondaryDark}}"
-                Padding="10,5" HeightRequest="32">
-          <Border.StrokeShape><RoundRectangle CornerRadius="16" /></Border.StrokeShape>
-          <Border.GestureRecognizers><TapGestureRecognizer Command="{Binding ToggleAutoAcceptCommand}" /></Border.GestureRecognizers>
-          <HorizontalStackLayout Spacing="5" VerticalOptions="Center">
-            <Label Text="{x:Static helpers:IconKeys.AutoAwesome}" FontFamily="TablerIcons" FontSize="14" VerticalOptions="Center">
-              <Label.TextColor>
-                <AppThemeBinding Light="{StaticResource ColorOnBackgroundSecondaryLight}" Dark="{StaticResource ColorOnBackgroundSecondaryDark}" />
-              </Label.TextColor>
-              <Label.Triggers>
-                <DataTrigger TargetType="Label" Binding="{Binding SessionAutoAccept}" Value="True">
-                  <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}" />
-                </DataTrigger>
-              </Label.Triggers>
-            </Label>
-            <Label Text="Auto" FontFamily="InterMedium" FontSize="13" VerticalOptions="Center"
-                   TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}" />
-          </HorizontalStackLayout>
-        </Border>
+                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}">
+          <Button.Triggers>
+            <DataTrigger TargetType="Button" Binding="{Binding SessionAutoAccept}" Value="True">
+              <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}" />
+              <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource ColorOnPrimaryLight}, Dark={StaticResource ColorOnPrimaryDark}}" />
+            </DataTrigger>
+          </Button.Triggers>
+        </Button>
 
       </HorizontalStackLayout>
       </ScrollView>

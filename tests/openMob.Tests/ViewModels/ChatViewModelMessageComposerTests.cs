@@ -83,7 +83,7 @@ public sealed class ChatViewModelMessageComposerTests : IDisposable
 
         // Assert
         await _popupService.Received(1).ShowMessageComposerAsync(
-            "proj-1", "sess-1", false, Arg.Any<CancellationToken>());
+            "proj-1", "sess-1", false, Arg.Any<string?>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -98,7 +98,7 @@ public sealed class ChatViewModelMessageComposerTests : IDisposable
 
         // Assert
         await _popupService.DidNotReceive().ShowMessageComposerAsync(
-            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<bool>(), Arg.Any<CancellationToken>());
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<bool>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -113,7 +113,7 @@ public sealed class ChatViewModelMessageComposerTests : IDisposable
 
         // Assert
         await _popupService.DidNotReceive().ShowMessageComposerAsync(
-            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<bool>(), Arg.Any<CancellationToken>());
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<bool>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
     }
 
     // ─── OnIsAiRespondingChanged — StreamingStateChangedMessage ──────────────

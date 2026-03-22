@@ -118,7 +118,7 @@ public interface IAppPopupService
     /// <param name="sessionId">The session identifier.</param>
     /// <param name="isStreaming">Whether the AI is currently streaming a response (disables Send button).</param>
     /// <param name="ct">Cancellation token.</param>
-    Task ShowMessageComposerAsync(string projectId, string sessionId, bool isStreaming, CancellationToken ct = default);
+    Task ShowMessageComposerAsync(string projectId, string sessionId, bool isStreaming, string? currentModelId = null, CancellationToken ct = default);
 
     /// <summary>Opens the file picker popup. Invokes <paramref name="onFileSelected"/> with the relative path on selection.</summary>
     /// <param name="onFileSelected">Callback invoked with the selected file's relative path.</param>

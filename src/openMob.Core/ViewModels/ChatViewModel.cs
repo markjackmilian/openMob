@@ -783,7 +783,7 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
         if (CurrentProjectId is null || CurrentSessionId is null)
             return;
 
-        await _popupService.ShowMessageComposerAsync(CurrentProjectId, CurrentSessionId, IsAiResponding, ct);
+        await _popupService.ShowMessageComposerAsync(CurrentProjectId, CurrentSessionId, IsAiResponding, SelectedModelId, ct);
     }
 
     /// <summary>

@@ -1,11 +1,14 @@
 # UXDivers Popups Migration
 
 ## Metadata
-| Field   | Value                        |
-|---------|------------------------------|
-| Date    | 2026-03-22                   |
-| Status  | In Progress                  |
-| Version | 1.0                          |
+| Field       | Value                                      |
+|-------------|--------------------------------------------|
+| Date        | 2026-03-22                                 |
+| Status      | **Completed**                              |
+| Version     | 1.0                                        |
+| Completed   | 2026-03-22                                 |
+| Branch      | feature/uxd-popups-migration (merged)       |
+| Merged into | develop                                    |
 
 ---
 

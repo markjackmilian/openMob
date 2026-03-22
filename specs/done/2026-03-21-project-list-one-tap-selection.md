@@ -1,11 +1,14 @@
 # Project List — One-Tap Active Project Selection
 
 ## Metadata
-| Field   | Value                        |
-|---------|------------------------------|
-| Date    | 2026-03-21                   |
-| Status  | In Progress                  |
-| Version | 1.0                          |
+| Field       | Value                                                |
+|-------------|------------------------------------------------------|
+| Date        | 2026-03-21                                           |
+| Status      | **Completed**                                        |
+| Version     | 1.0                                                  |
+| Completed   | 2026-03-22                                           |
+| Branch      | feature/project-list-one-tap-selection (merged)       |
+| Merged into | develop                                              |
 
 ---
 

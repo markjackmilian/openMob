@@ -105,14 +105,23 @@ internal sealed class MauiPopupService : IAppPopupService
         // Resolve from DI for pre-push ViewModel callback configuration
         var sheet = _serviceProvider.GetRequiredService<ModelPickerSheet>();
 
-        // Set the callback on the ViewModel before presenting
+        // Set the callback and load models before presenting
         if (sheet.BindingContext is ModelPickerViewModel vm)
         {
             vm.OnModelSelected = onModelSelected;
+
+            if (vm.LoadModelsCommand.CanExecute(null))
+            {
+                await vm.LoadModelsCommand.ExecuteAsync(null);
+            }
         }
 
-        // Present via UXDivers popup stack
-        await IPopupService.Current.PushAsync(sheet);
+        // Ensure PushAsync is called on the main thread.
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            ct.ThrowIfCancellationRequested();
+            return IPopupService.Current.PushAsync(sheet);
+        });
     }
 
     /// <inheritdoc />

@@ -145,6 +145,15 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
                 _ = vm.HandleActiveProjectChangedAsync(m);
             });
 
+        // Subscribe to composed messages from MessageComposerSheet [REQ-023, REQ-024]
+        WeakReferenceMessenger.Default.Register<MessageComposedMessage>(
+            this,
+            (r, m) =>
+            {
+                var vm = (ChatViewModel)r;
+                vm._dispatcher.Dispatch(() => _ = vm.HandleMessageComposedAsync(m));
+            });
+
         // Populate default suggestion chips [REQ-017]
         SuggestionChips = new ObservableCollection<SuggestionChip>
         {
@@ -755,6 +764,52 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     /// <summary>Determines whether <see cref="SendMessageCommand"/> can execute.</summary>
     /// <returns><c>true</c> if input text is non-empty and the AI is not currently responding.</returns>
     private bool CanSendMessage() => !string.IsNullOrWhiteSpace(InputText) && !IsAiResponding;
+
+    /// <summary>Publishes <see cref="StreamingStateChangedMessage"/> when streaming state changes [REQ-016].</summary>
+    partial void OnIsAiRespondingChanged(bool value)
+    {
+        WeakReferenceMessenger.Default.Send(new StreamingStateChangedMessage(value));
+    }
+
+    // ─── Message Composer [REQ-004, REQ-023, REQ-024] ─────────────────────────
+
+    /// <summary>
+    /// Opens the message composer popup for the current project and session [REQ-004].
+    /// </summary>
+    /// <param name="ct">Cancellation token.</param>
+    [RelayCommand]
+    private async Task OpenMessageComposerAsync(CancellationToken ct)
+    {
+        if (CurrentProjectId is null || CurrentSessionId is null)
+            return;
+
+        await _popupService.ShowMessageComposerAsync(CurrentProjectId, CurrentSessionId, ct);
+    }
+
+    /// <summary>
+    /// Handles a composed message from <see cref="MessageComposerViewModel"/> [REQ-024].
+    /// Uses the override values for this single send only — does not mutate persistent state.
+    /// </summary>
+    /// <param name="message">The composed message with text and session overrides.</param>
+    private async Task HandleMessageComposedAsync(MessageComposedMessage message)
+    {
+        if (message.SessionId != CurrentSessionId)
+            return;
+
+        // Build the text — prepend agent mention if different from current agent
+        var text = message.Text;
+        if (message.AgentOverride is not null && message.AgentOverride != SelectedAgentName)
+        {
+            text = $"@{message.AgentOverride} {text}";
+        }
+
+        // Use InputText + SendMessageCommand to leverage existing optimistic UI logic
+        InputText = text;
+        if (SendMessageCommand.CanExecute(null))
+        {
+            await SendMessageCommand.ExecuteAsync(null);
+        }
+    }
 
     /// <summary>
     /// Cancels the AI response currently in progress [REQ-008].

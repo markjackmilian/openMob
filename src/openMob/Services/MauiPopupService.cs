@@ -248,4 +248,59 @@ internal sealed class MauiPopupService : IAppPopupService
         // Present via UXDivers popup stack
         await IPopupService.Current.PushAsync(sheet);
     }
+
+    /// <inheritdoc />
+    public async Task ShowMessageComposerAsync(string projectId, string sessionId, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        var sheet = _serviceProvider.GetRequiredService<MessageComposerSheet>();
+
+        // Initialize the ViewModel with project/session context before presenting
+        if (sheet.BindingContext is MessageComposerViewModel vm)
+        {
+            await vm.InitializeAsync(projectId, sessionId, false, ct);
+        }
+
+        // Ensure PushAsync is called on the main thread.
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            ct.ThrowIfCancellationRequested();
+            return IPopupService.Current.PushAsync(sheet);
+        });
+    }
+
+    /// <inheritdoc />
+    public async Task ShowFilePickerAsync(Action<string> onFileSelected, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        var sheet = _serviceProvider.GetRequiredService<FilePickerSheet>();
+
+        // Set the callback on the ViewModel before presenting
+        if (sheet.BindingContext is FilePickerViewModel vm)
+        {
+            vm.OnFileSelected = onFileSelected;
+        }
+
+        // Present via UXDivers popup stack
+        await IPopupService.Current.PushAsync(sheet);
+    }
+
+    /// <inheritdoc />
+    public async Task ShowCommandPaletteAsync(Action<string> onCommandSelected, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        var sheet = _serviceProvider.GetRequiredService<CommandPaletteSheet>();
+
+        // Set the callback on the ViewModel before presenting
+        if (sheet.BindingContext is CommandPaletteViewModel vm)
+        {
+            vm.OnCommandSelected = onCommandSelected;
+        }
+
+        // Present via UXDivers popup stack
+        await IPopupService.Current.PushAsync(sheet);
+    }
 }

@@ -18,6 +18,17 @@ public partial class ModelPickerSheet : PopupPage
         BindingContext = viewModel;
     }
 
+    /// <summary>Loads models when the popup is navigated to.</summary>
+    public override void OnNavigatedTo(IReadOnlyDictionary<string, object?> parameters)
+    {
+        base.OnNavigatedTo(parameters);
+
+        if (BindingContext is ModelPickerViewModel vm && vm.LoadModelsCommand.CanExecute(null))
+        {
+            _ = vm.LoadModelsCommand.ExecuteAsync(null);
+        }
+    }
+
     /// <summary>Closes the popup when the close button is tapped.</summary>
     private async void OnCloseButtonTapped(object? sender, EventArgs e)
     {

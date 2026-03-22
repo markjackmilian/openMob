@@ -105,7 +105,8 @@ internal sealed class MauiPopupService : IAppPopupService
         // Resolve from DI for pre-push ViewModel callback configuration
         var sheet = _serviceProvider.GetRequiredService<ModelPickerSheet>();
 
-        // Set the callback on the ViewModel before presenting
+        // Set the callback on the ViewModel before presenting.
+        // Model loading is triggered by OnNavigatedTo in the sheet.
         if (sheet.BindingContext is ModelPickerViewModel vm)
         {
             vm.OnModelSelected = onModelSelected;
@@ -192,6 +193,24 @@ internal sealed class MauiPopupService : IAppPopupService
     }
 
     /// <inheritdoc />
+    public async Task ShowCommandPaletteAsync(Action<string> onCommandSelected, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        var sheet = _serviceProvider.GetRequiredService<CommandPaletteSheet>();
+
+        // Set the callback on the ViewModel before presenting.
+        // Command loading is triggered by OnNavigatedTo in the sheet.
+        if (sheet.BindingContext is CommandPaletteViewModel vm)
+        {
+            vm.OnCommandSelected = onCommandSelected;
+        }
+
+        // Present via UXDivers popup stack
+        await IPopupService.Current.PushAsync(sheet);
+    }
+
+    /// <inheritdoc />
     public async Task ShowSubagentPickerAsync(Action<string> onSubagentSelected, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
@@ -244,6 +263,44 @@ internal sealed class MauiPopupService : IAppPopupService
         ct.ThrowIfCancellationRequested();
 
         var sheet = _serviceProvider.GetRequiredService<AddProjectSheet>();
+
+        // Present via UXDivers popup stack
+        await IPopupService.Current.PushAsync(sheet);
+    }
+
+    /// <inheritdoc />
+    public async Task ShowMessageComposerAsync(string projectId, string sessionId, bool isStreaming, string? currentModelId = null, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        var sheet = _serviceProvider.GetRequiredService<MessageComposerSheet>();
+
+        // Initialize the ViewModel with project/session context before presenting
+        if (sheet.BindingContext is MessageComposerViewModel vm)
+        {
+            await vm.InitializeAsync(projectId, sessionId, isStreaming, currentModelId, ct);
+        }
+
+        // Ensure PushAsync is called on the main thread.
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            ct.ThrowIfCancellationRequested();
+            return IPopupService.Current.PushAsync(sheet);
+        });
+    }
+
+    /// <inheritdoc />
+    public async Task ShowFilePickerAsync(Action<string> onFileSelected, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        var sheet = _serviceProvider.GetRequiredService<FilePickerSheet>();
+
+        // Set the callback on the ViewModel before presenting
+        if (sheet.BindingContext is FilePickerViewModel vm)
+        {
+            vm.OnFileSelected = onFileSelected;
+        }
 
         // Present via UXDivers popup stack
         await IPopupService.Current.PushAsync(sheet);

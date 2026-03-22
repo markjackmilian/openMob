@@ -17,7 +17,8 @@ namespace openMob.Tests.ViewModels;
 /// All tests use <see cref="IChatService.SubscribeToEventsAsync"/> to inject SSE events
 /// and verify the resulting <see cref="ChatViewModel.Messages"/> state.
 /// </summary>
-public sealed class ChatViewModelSseTests
+[Collection(MessengerTestCollection.Name)]
+public sealed class ChatViewModelSseTests : IDisposable
 {
     private readonly IProjectService _projectService;
     private readonly ISessionService _sessionService;
@@ -660,5 +661,10 @@ public sealed class ChatViewModelSseTests
         // Assert — event processed because null ProjectDirectory skips the filter
         _sut.Messages.Should().ContainSingle(m => m.Id == "msg-new");
         _sut.Messages.First().TextContent.Should().Be("Hello from null directory");
+    }
+
+    public void Dispose()
+    {
+        _sut.Dispose();
     }
 }

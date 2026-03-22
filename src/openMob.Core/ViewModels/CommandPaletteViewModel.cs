@@ -56,6 +56,12 @@ public sealed partial class CommandPaletteViewModel : ObservableObject
     public bool IsEmpty => Commands.Count == 0 && !IsLoading;
 
     /// <summary>
+    /// When set, command selection invokes this callback instead of executing the command.
+    /// Used by the message composer for token insertion mode.
+    /// </summary>
+    public Action<string>? OnCommandSelected { get; set; }
+
+    /// <summary>
     /// Called by the source generator when <see cref="SearchText"/> changes.
     /// Triggers an asynchronous search of the command list.
     /// </summary>
@@ -128,6 +134,14 @@ public sealed partial class CommandPaletteViewModel : ObservableObject
         {
 #endif
         ArgumentNullException.ThrowIfNull(command);
+
+        // Callback mode: return the command name to the caller instead of executing [REQ-014]
+        if (OnCommandSelected is not null)
+        {
+            OnCommandSelected(command.Name);
+            await _popupService.PopPopupAsync(ct);
+            return;
+        }
 
         if (CurrentSessionId is null)
         {

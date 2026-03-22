@@ -133,6 +133,12 @@ public static class CoreServiceExtensions
         // Command service (transient — each consumer owns its own cache lifecycle)
         services.AddTransient<ICommandService, CommandService>();
 
+        // Draft service (singleton — in-memory, survives popup lifecycle)
+        services.AddSingleton<IDraftService, DraftService>();
+
+        // File service (transient — stateless, depends on IOpencodeApiClient)
+        services.AddTransient<IFileService, FileService>();
+
         // ─── ViewModels ───────────────────────────────────────────────────────
         services.AddTransient<SplashViewModel>();
         services.AddTransient<OnboardingViewModel>();
@@ -144,6 +150,8 @@ public static class CoreServiceExtensions
         services.AddTransient<ChatViewModel>();
         services.AddTransient<ContextSheetViewModel>();
         services.AddTransient<CommandPaletteViewModel>();
+        services.AddTransient<MessageComposerViewModel>();
+        services.AddTransient<FilePickerViewModel>();
         // FlyoutViewModel is Singleton — both FlyoutHeaderView and FlyoutContentView resolve
         // it via Application.Current?.Handler?.MauiContext?.Services.GetService<FlyoutViewModel>()
         // and must share the same instance for consistent binding and messenger subscriptions.

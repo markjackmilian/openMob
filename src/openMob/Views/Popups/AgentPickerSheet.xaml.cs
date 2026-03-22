@@ -18,6 +18,17 @@ public partial class AgentPickerSheet : PopupPage
         BindingContext = viewModel;
     }
 
+    /// <summary>Loads agents when the popup is navigated to.</summary>
+    public override void OnNavigatedTo(IReadOnlyDictionary<string, object?> parameters)
+    {
+        base.OnNavigatedTo(parameters);
+
+        if (BindingContext is AgentPickerViewModel vm && vm.LoadAgentsCommand.CanExecute(null))
+        {
+            _ = vm.LoadAgentsCommand.ExecuteAsync(null);
+        }
+    }
+
     /// <summary>Closes the popup when the close button is tapped.</summary>
     private async void OnCloseButtonTapped(object? sender, EventArgs e)
     {

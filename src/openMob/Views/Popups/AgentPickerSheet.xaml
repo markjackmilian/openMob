@@ -9,8 +9,22 @@
                x:DataType="vm:AgentPickerViewModel"
                BackgroundColor="{DynamicResource PopupBackdropColor}"
                CloseWhenBackgroundIsClicked="True"
-               AppearingAnimation="{uxd:FadeInPopupAnimation Duration=300}"
-               DisappearingAnimation="{uxd:FadeOutPopupAnimation Duration=300}">
+               AppearingAnimation="{uxd:MoveInPopupAnimation MoveDirection=Bottom, Duration=300, Easing=CubicOut}"
+               DisappearingAnimation="{uxd:MoveOutPopupAnimation MoveDirection=Bottom, Duration=250, Easing=CubicIn}">
+
+  <Border VerticalOptions="End"
+          HorizontalOptions="Fill"
+          StrokeThickness="0"
+          Padding="0"
+          HeightRequest="460"
+          BackgroundColor="{AppThemeBinding Light={StaticResource ColorBackgroundLight},
+                                            Dark={StaticResource ColorBackgroundDark}}">
+    <Border.StrokeShape>
+      <RoundRectangle CornerRadius="20,20,0,0" />
+    </Border.StrokeShape>
+    <Border.Shadow>
+      <Shadow Brush="Black" Opacity="0.15" Offset="0,-2" Radius="16" />
+    </Border.Shadow>
 
   <VerticalStackLayout Spacing="0">
 
@@ -128,5 +142,6 @@
     </CollectionView>
 
   </VerticalStackLayout>
+  </Border>
 
 </uxd:PopupPage>

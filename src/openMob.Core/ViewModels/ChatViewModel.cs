@@ -145,6 +145,15 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
                 _ = vm.HandleActiveProjectChangedAsync(m);
             });
 
+        // Subscribe to composed messages from MessageComposerSheet [REQ-023, REQ-024]
+        WeakReferenceMessenger.Default.Register<MessageComposedMessage>(
+            this,
+            (r, m) =>
+            {
+                var vm = (ChatViewModel)r;
+                vm._dispatcher.Dispatch(() => _ = vm.HandleMessageComposedAsync(m));
+            });
+
         // Populate default suggestion chips [REQ-017]
         SuggestionChips = new ObservableCollection<SuggestionChip>
         {
@@ -755,6 +764,75 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     /// <summary>Determines whether <see cref="SendMessageCommand"/> can execute.</summary>
     /// <returns><c>true</c> if input text is non-empty and the AI is not currently responding.</returns>
     private bool CanSendMessage() => !string.IsNullOrWhiteSpace(InputText) && !IsAiResponding;
+
+    // NOTE: OnIsAiRespondingChanged removed — it was causing SSE streaming regression.
+    // The StreamingStateChangedMessage for the composer's streaming guard will be sent
+    // explicitly when opening the composer (via the isStreaming parameter) instead of
+    // reactively on every IsAiResponding change.
+
+    // ─── Message Composer [REQ-004, REQ-023, REQ-024] ─────────────────────────
+
+    /// <summary>
+    /// Opens the message composer popup for the current project and session [REQ-004].
+    /// </summary>
+    /// <param name="ct">Cancellation token.</param>
+    [RelayCommand]
+    private async Task OpenMessageComposerAsync(CancellationToken ct)
+    {
+        if (CurrentProjectId is null || CurrentSessionId is null)
+            return;
+
+        await _popupService.ShowMessageComposerAsync(CurrentProjectId, CurrentSessionId, IsAiResponding, SelectedModelId, ct);
+    }
+
+    /// <summary>
+    /// Handles a composed message from <see cref="MessageComposerViewModel"/> [REQ-024].
+    /// Uses the override values for this single send only — does not mutate persistent state.
+    /// </summary>
+    /// <param name="message">The composed message with text and session overrides.</param>
+    private async Task HandleMessageComposedAsync(MessageComposedMessage message)
+    {
+        if (message.SessionId != CurrentSessionId || CurrentProjectId is null)
+            return;
+
+        // Apply and persist all overrides from the composer as new project defaults
+        if (message.AgentOverride is not null && message.AgentOverride != SelectedAgentName)
+        {
+            SelectedAgentName = message.AgentOverride;
+            _ = _preferenceService.SetAgentAsync(CurrentProjectId, message.AgentOverride);
+        }
+
+        if (message.ModelIdOverride is not null && message.ModelIdOverride != SelectedModelId)
+        {
+            SelectedModelId = message.ModelIdOverride;
+            SelectedModelName = Helpers.ModelIdHelper.ExtractModelName(message.ModelIdOverride);
+            _ = _preferenceService.SetDefaultModelAsync(CurrentProjectId, message.ModelIdOverride);
+        }
+
+        if (message.ThinkingLevelOverride != ThinkingLevel)
+        {
+            ThinkingLevel = message.ThinkingLevelOverride;
+            _ = _preferenceService.SetThinkingLevelAsync(CurrentProjectId, message.ThinkingLevelOverride);
+        }
+
+        if (message.AutoAcceptOverride != AutoAccept)
+        {
+            AutoAccept = message.AutoAcceptOverride;
+            _ = _preferenceService.SetAutoAcceptAsync(CurrentProjectId, message.AutoAcceptOverride);
+        }
+
+        // The primary agent is a project-level preference (persisted above) — it is NOT
+        // sent as @mention in the text. Only subagents (inserted via the @ toolbar button
+        // in the composer) appear as @mentions in the message text.
+        var text = message.Text;
+
+        // Use InputText + SendMessageCommand to leverage existing optimistic UI logic
+        InputText = text;
+        if (SendMessageCommand.CanExecute(null))
+        {
+            await SendMessageCommand.ExecuteAsync(null);
+        }
+    }
 
     /// <summary>
     /// Cancels the AI response currently in progress [REQ-008].

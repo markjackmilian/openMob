@@ -112,4 +112,21 @@ public interface IAppPopupService
     /// <summary>Opens the Add Project popup to allow the user to create a new project.</summary>
     /// <param name="ct">Cancellation token.</param>
     Task ShowAddProjectAsync(CancellationToken ct = default);
+
+    /// <summary>Opens the message composer popup for the specified project and session.</summary>
+    /// <param name="projectId">The project identifier.</param>
+    /// <param name="sessionId">The session identifier.</param>
+    /// <param name="isStreaming">Whether the AI is currently streaming a response (disables Send button).</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task ShowMessageComposerAsync(string projectId, string sessionId, bool isStreaming, string? currentModelId = null, CancellationToken ct = default);
+
+    /// <summary>Opens the file picker popup. Invokes <paramref name="onFileSelected"/> with the relative path on selection.</summary>
+    /// <param name="onFileSelected">Callback invoked with the selected file's relative path.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task ShowFilePickerAsync(Action<string> onFileSelected, CancellationToken ct = default);
+
+    /// <summary>Opens the command palette in callback mode. Invokes <paramref name="onCommandSelected"/> with the command on selection.</summary>
+    /// <param name="onCommandSelected">Callback invoked with the selected command string.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task ShowCommandPaletteAsync(Action<string> onCommandSelected, CancellationToken ct = default);
 }

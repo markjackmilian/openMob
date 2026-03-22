@@ -6,6 +6,7 @@ using openMob.Core.Infrastructure.Security;
 using openMob.Core.Infrastructure.Settings;
 using openMob.Core.Services;
 using openMob.Core.Services.Markdown;
+using openMob.Core.ViewModels;
 using openMob.Infrastructure;
 using openMob.Infrastructure.Security;
 using openMob.Infrastructure.Settings;
@@ -13,6 +14,7 @@ using openMob.Services;
 using openMob.Views.Controls.Markdown;
 using openMob.Views.Pages;
 using openMob.Views.Popups;
+using UXDivers.Popups.Maui.Controls;
 
 namespace openMob;
 
@@ -32,6 +34,7 @@ public static class MauiProgram
         builder
             .UseMauiApp<App>()
             .UseMauiCommunityToolkit()
+            .UseUXDiversPopups()
             // .UseSentry(options =>
             // {
             //     // DSN will be configured via app settings feature (user-secrets / SecureStorage).
@@ -86,13 +89,13 @@ public static class MauiProgram
         builder.Services.AddTransient<ServerManagementPage>();
         builder.Services.AddTransient<ServerDetailPage>();
 
-        // Register Popups as Transient
-        builder.Services.AddTransient<ProjectSwitcherSheet>();
-        builder.Services.AddTransient<AgentPickerSheet>();
-        builder.Services.AddTransient<ModelPickerSheet>();
-        builder.Services.AddTransient<AddProjectSheet>();
-        builder.Services.AddTransient<ContextSheet>();
-        builder.Services.AddTransient<CommandPaletteSheet>();
+        // Register Popups as Transient (UXDivers DI extension wires TPopup ↔ TViewModel)
+        builder.Services.AddTransientPopup<ProjectSwitcherSheet, ProjectSwitcherViewModel>();
+        builder.Services.AddTransientPopup<AgentPickerSheet, AgentPickerViewModel>();
+        builder.Services.AddTransientPopup<ModelPickerSheet, ModelPickerViewModel>();
+        builder.Services.AddTransientPopup<AddProjectSheet, AddProjectViewModel>();
+        builder.Services.AddTransientPopup<ContextSheet, ContextSheetViewModel>();
+        builder.Services.AddTransientPopup<CommandPaletteSheet, CommandPaletteViewModel>();
 
         var app = builder.Build();
 

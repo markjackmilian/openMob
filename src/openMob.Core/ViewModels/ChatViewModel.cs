@@ -405,9 +405,9 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
         try
         {
 #endif
-        // The View layer creates and pushes the ProjectSwitcherSheet popup.
-        // This command signals the intent for testability.
-        await Task.CompletedTask;
+        // Delegate to IAppPopupService which resolves and presents the ProjectSwitcherSheet
+        // via UXDivers popup stack with pre-loaded project data.
+        await _popupService.ShowProjectSwitcherAsync(ct);
 #if DEBUG
         sw.Stop();
         DebugLogger.LogCommand(nameof(OpenProjectSwitcherAsync), "complete", sw.ElapsedMilliseconds);

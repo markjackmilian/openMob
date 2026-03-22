@@ -13,6 +13,7 @@ namespace openMob.Tests.ViewModels;
 /// Unit tests for <see cref="ChatViewModel"/> WeakReferenceMessenger subscription
 /// and OpenContextSheetCommand behaviour added in the Session Context Sheet spec.
 /// </summary>
+[Collection(MessengerTestCollection.Name)]
 public sealed class ChatViewModelPreferenceTests : IDisposable
 {
     private readonly IProjectService _projectService;

@@ -12,7 +12,8 @@ namespace openMob.Tests.ViewModels;
 /// Covers model selection, preference loading, more-menu model change behaviour,
 /// conversation loop (message loading, sending, cancellation, grouping), and disposal.
 /// </summary>
-public sealed class ChatViewModelTests
+[Collection(MessengerTestCollection.Name)]
+public sealed class ChatViewModelTests : IDisposable
 {
     private readonly IProjectService _projectService;
     private readonly ISessionService _sessionService;
@@ -1101,5 +1102,10 @@ public sealed class ChatViewModelTests
             "proj-abc",
             string.Empty,
             Arg.Any<CancellationToken>());
+    }
+
+    public void Dispose()
+    {
+        _sut.Dispose();
     }
 }

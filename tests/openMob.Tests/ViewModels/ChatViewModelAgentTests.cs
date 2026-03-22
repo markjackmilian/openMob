@@ -16,6 +16,7 @@ namespace openMob.Tests.ViewModels;
 /// <see cref="ChatViewModel.LoadContextCommand"/>, and
 /// <see cref="ProjectPreferenceChangedMessage"/> handling for agent updates.
 /// </summary>
+[Collection(MessengerTestCollection.Name)]
 public sealed class ChatViewModelAgentTests : IDisposable
 {
     private readonly IProjectService _projectService;

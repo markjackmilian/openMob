@@ -14,6 +14,7 @@ namespace openMob.Tests.ViewModels;
 /// Covers REQ-009: ChatViewModel subscribes to ActiveProjectChangedMessage and navigates
 /// to the most recent session of the new active project, or to new chat if none exist.
 /// </summary>
+[Collection(MessengerTestCollection.Name)]
 public sealed class ChatViewModelProjectChangeTests : IDisposable
 {
     private readonly IProjectService _projectService;

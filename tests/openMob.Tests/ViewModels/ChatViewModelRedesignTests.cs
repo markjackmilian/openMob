@@ -13,6 +13,7 @@ namespace openMob.Tests.ViewModels;
 /// IsContextBarVisible), new commands (RenameSession, OpenContextSheet, OpenCommandPalette),
 /// and scroll direction handling.
 /// </summary>
+[Collection(MessengerTestCollection.Name)]
 public sealed class ChatViewModelRedesignTests : IDisposable
 {
     private readonly IProjectService _projectService;

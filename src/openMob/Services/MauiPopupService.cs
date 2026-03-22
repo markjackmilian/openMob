@@ -105,23 +105,15 @@ internal sealed class MauiPopupService : IAppPopupService
         // Resolve from DI for pre-push ViewModel callback configuration
         var sheet = _serviceProvider.GetRequiredService<ModelPickerSheet>();
 
-        // Set the callback and load models before presenting
+        // Set the callback on the ViewModel before presenting.
+        // Model loading is triggered by OnNavigatedTo in the sheet.
         if (sheet.BindingContext is ModelPickerViewModel vm)
         {
             vm.OnModelSelected = onModelSelected;
-
-            if (vm.LoadModelsCommand.CanExecute(null))
-            {
-                await vm.LoadModelsCommand.ExecuteAsync(null);
-            }
         }
 
-        // Ensure PushAsync is called on the main thread.
-        await MainThread.InvokeOnMainThreadAsync(() =>
-        {
-            ct.ThrowIfCancellationRequested();
-            return IPopupService.Current.PushAsync(sheet);
-        });
+        // Present via UXDivers popup stack
+        await IPopupService.Current.PushAsync(sheet);
     }
 
     /// <inheritdoc />
@@ -195,6 +187,24 @@ internal sealed class MauiPopupService : IAppPopupService
         ct.ThrowIfCancellationRequested();
 
         var sheet = _serviceProvider.GetRequiredService<CommandPaletteSheet>();
+
+        // Present via UXDivers popup stack
+        await IPopupService.Current.PushAsync(sheet);
+    }
+
+    /// <inheritdoc />
+    public async Task ShowCommandPaletteAsync(Action<string> onCommandSelected, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        var sheet = _serviceProvider.GetRequiredService<CommandPaletteSheet>();
+
+        // Set the callback on the ViewModel before presenting.
+        // Command loading is triggered by OnNavigatedTo in the sheet.
+        if (sheet.BindingContext is CommandPaletteViewModel vm)
+        {
+            vm.OnCommandSelected = onCommandSelected;
+        }
 
         // Present via UXDivers popup stack
         await IPopupService.Current.PushAsync(sheet);
@@ -294,33 +304,5 @@ internal sealed class MauiPopupService : IAppPopupService
 
         // Present via UXDivers popup stack
         await IPopupService.Current.PushAsync(sheet);
-    }
-
-    /// <inheritdoc />
-    public async Task ShowCommandPaletteAsync(Action<string> onCommandSelected, CancellationToken ct = default)
-    {
-        ct.ThrowIfCancellationRequested();
-
-        var sheet = _serviceProvider.GetRequiredService<CommandPaletteSheet>();
-
-        // Set the callback on the ViewModel and load commands before presenting
-        if (sheet.BindingContext is CommandPaletteViewModel vm)
-        {
-            vm.OnCommandSelected = onCommandSelected;
-
-            // Load commands — the callback overload needs to trigger loading
-            // since there may be no CurrentSessionId set in this mode.
-            if (vm.LoadCommandsCommand.CanExecute(null))
-            {
-                await vm.LoadCommandsCommand.ExecuteAsync(null);
-            }
-        }
-
-        // Ensure PushAsync is called on the main thread.
-        await MainThread.InvokeOnMainThreadAsync(() =>
-        {
-            ct.ThrowIfCancellationRequested();
-            return IPopupService.Current.PushAsync(sheet);
-        });
     }
 }

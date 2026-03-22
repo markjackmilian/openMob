@@ -294,13 +294,24 @@ internal sealed class MauiPopupService : IAppPopupService
 
         var sheet = _serviceProvider.GetRequiredService<CommandPaletteSheet>();
 
-        // Set the callback on the ViewModel before presenting
+        // Set the callback on the ViewModel and load commands before presenting
         if (sheet.BindingContext is CommandPaletteViewModel vm)
         {
             vm.OnCommandSelected = onCommandSelected;
+
+            // Load commands — the callback overload needs to trigger loading
+            // since there may be no CurrentSessionId set in this mode.
+            if (vm.LoadCommandsCommand.CanExecute(null))
+            {
+                await vm.LoadCommandsCommand.ExecuteAsync(null);
+            }
         }
 
-        // Present via UXDivers popup stack
-        await IPopupService.Current.PushAsync(sheet);
+        // Ensure PushAsync is called on the main thread.
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            ct.ThrowIfCancellationRequested();
+            return IPopupService.Current.PushAsync(sheet);
+        });
     }
 }

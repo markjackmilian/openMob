@@ -9,18 +9,10 @@
                x:DataType="vm:MessageComposerViewModel"
                BackgroundColor="{DynamicResource PopupBackdropColor}"
                CloseWhenBackgroundIsClicked="False"
-               AppearingAnimation="{uxd:MoveInPopupAnimation MoveDirection=Bottom, Duration=300, Easing=CubicOut}"
-               DisappearingAnimation="{uxd:MoveOutPopupAnimation MoveDirection=Bottom, Duration=300, Easing=CubicIn}">
+               AppearingAnimation="{uxd:FadeInPopupAnimation Duration=300}"
+               DisappearingAnimation="{uxd:FadeOutPopupAnimation Duration=300}">
 
-  <Border VerticalOptions="End"
-          HorizontalOptions="Fill"
-          StrokeThickness="0"
-          BackgroundColor="{AppThemeBinding Light={StaticResource ColorBackgroundLight},
-                                            Dark={StaticResource ColorBackgroundDark}}">
-    <Border.StrokeShape>
-      <RoundRectangle CornerRadius="20,20,0,0" />
-    </Border.StrokeShape>
-
+  <ScrollView>
     <VerticalStackLayout Spacing="0">
 
       <!-- ═══════════════════════════════════════════════════════════
@@ -416,6 +408,6 @@
       </Grid>
 
     </VerticalStackLayout>
-  </Border>
+  </ScrollView>
 
 </uxd:PopupPage>

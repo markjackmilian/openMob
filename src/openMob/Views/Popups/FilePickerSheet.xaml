@@ -9,18 +9,8 @@
                x:DataType="vm:FilePickerViewModel"
                BackgroundColor="{DynamicResource PopupBackdropColor}"
                CloseWhenBackgroundIsClicked="True"
-               AppearingAnimation="{uxd:MoveInPopupAnimation MoveDirection=Bottom, Duration=300, Easing=CubicOut}"
-               DisappearingAnimation="{uxd:MoveOutPopupAnimation MoveDirection=Bottom, Duration=300, Easing=CubicIn}">
-
-  <Border VerticalOptions="End"
-          HorizontalOptions="Fill"
-          StrokeThickness="0"
-          MaximumHeightRequest="500"
-          BackgroundColor="{AppThemeBinding Light={StaticResource ColorBackgroundLight},
-                                            Dark={StaticResource ColorBackgroundDark}}">
-    <Border.StrokeShape>
-      <RoundRectangle CornerRadius="20,20,0,0" />
-    </Border.StrokeShape>
+               AppearingAnimation="{uxd:FadeInPopupAnimation Duration=300}"
+               DisappearingAnimation="{uxd:FadeOutPopupAnimation Duration=300}">
 
     <Grid RowDefinitions="Auto,Auto,Auto,*">
 
@@ -199,6 +189,5 @@
       </Grid>
 
     </Grid>
-  </Border>
 
 </uxd:PopupPage>

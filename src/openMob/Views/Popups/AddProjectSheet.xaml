@@ -1,13 +1,15 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-              xmlns:vm="clr-namespace:openMob.Core.ViewModels;assembly=openMob.Core"
-              xmlns:helpers="clr-namespace:openMob.Helpers"
-             x:Class="openMob.Views.Popups.AddProjectSheet"
-             x:DataType="vm:AddProjectViewModel"
-             Title="New Project"
-             Shell.PresentationMode="ModalAnimated"
-             BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceLight}, Dark={StaticResource ColorSurfaceDark}}">
+<uxd:PopupPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+               xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+               xmlns:uxd="clr-namespace:UXDivers.Popups.Maui;assembly=UXDivers.Popups.Maui"
+               xmlns:vm="clr-namespace:openMob.Core.ViewModels;assembly=openMob.Core"
+               xmlns:helpers="clr-namespace:openMob.Helpers"
+               x:Class="openMob.Views.Popups.AddProjectSheet"
+               x:DataType="vm:AddProjectViewModel"
+               BackgroundColor="{DynamicResource PopupBackdropColor}"
+               CloseWhenBackgroundIsClicked="True"
+               AppearingAnimation="{uxd:FadeInPopupAnimation Duration=300}"
+               DisappearingAnimation="{uxd:FadeOutPopupAnimation Duration=300}">
 
   <VerticalStackLayout Spacing="0">
 
@@ -101,4 +103,4 @@
 
   </VerticalStackLayout>
 
-</ContentPage>
+</uxd:PopupPage>

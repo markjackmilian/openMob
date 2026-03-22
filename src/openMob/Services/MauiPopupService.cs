@@ -1,23 +1,30 @@
-using CommunityToolkit.Maui.Alerts;
 using CommunityToolkit.Maui.Core;
 using openMob.Core.Models;
 using openMob.Core.Services;
 using openMob.Core.ViewModels;
 using openMob.Views.Popups;
+using UXDivers.Popups.Maui;
+using UXDivers.Popups.Services;
+using Toast = CommunityToolkit.Maui.Alerts.Toast;
 
 namespace openMob.Services;
 
 /// <summary>
-/// MAUI implementation of <see cref="IAppPopupService"/> using native MAUI alerts
-/// and CommunityToolkit.Maui toasts. UXDivers popup integration will be added
-/// when the package is fully configured.
+/// MAUI implementation of <see cref="IAppPopupService"/> using UXDivers Popups
+/// for custom popup presentation and CommunityToolkit.Maui toasts.
+/// Native <c>DisplayAlert</c> / <c>DisplayPrompt</c> / <c>DisplayActionSheet</c>
+/// are retained for simple confirm, rename, and option-sheet dialogs where
+/// UXDivers built-in popups do not support typed results.
 /// </summary>
 internal sealed class MauiPopupService : IAppPopupService
 {
     private readonly IServiceProvider _serviceProvider;
 
     /// <summary>Initialises the popup service with the DI service provider.</summary>
-    /// <param name="serviceProvider">The application service provider for resolving popup pages.</param>
+    /// <param name="serviceProvider">
+    /// The application service provider for resolving popup pages that require
+    /// pre-push ViewModel initialisation (callbacks, data loading).
+    /// </param>
     public MauiPopupService(IServiceProvider serviceProvider)
     {
         ArgumentNullException.ThrowIfNull(serviceProvider);
@@ -29,6 +36,9 @@ internal sealed class MauiPopupService : IAppPopupService
     {
         ct.ThrowIfCancellationRequested();
 
+        // Pragmatic decision: SimpleActionPopup does not extend PopupResultPage<T>,
+        // so it cannot return a typed bool result. We keep DisplayAlertAsync for
+        // confirmation dialogs until a custom PopupResultPage<bool> is warranted.
         var page = Shell.Current?.CurrentPage;
         if (page is null)
             return false;
@@ -41,6 +51,9 @@ internal sealed class MauiPopupService : IAppPopupService
     {
         ct.ThrowIfCancellationRequested();
 
+        // Pragmatic decision: FormPopup returns List<string?> which adds integration
+        // complexity not justified for a simple single-field rename dialog.
+        // We keep DisplayPromptAsync for rename dialogs.
         var page = Shell.Current?.CurrentPage;
         if (page is null)
             return null;
@@ -74,6 +87,8 @@ internal sealed class MauiPopupService : IAppPopupService
     {
         ct.ThrowIfCancellationRequested();
 
+        // Pragmatic decision: OptionSheetPopup integration complexity is not justified
+        // for a simple action sheet. We keep DisplayActionSheetAsync.
         var page = Shell.Current?.CurrentPage;
         if (page is null)
             return null;
@@ -87,11 +102,7 @@ internal sealed class MauiPopupService : IAppPopupService
     {
         ct.ThrowIfCancellationRequested();
 
-        var navigation = Shell.Current?.Navigation;
-        if (navigation is null)
-            return;
-
-        // Resolve the ModelPickerSheet from DI (registered as Transient)
+        // Resolve from DI for pre-push ViewModel callback configuration
         var sheet = _serviceProvider.GetRequiredService<ModelPickerSheet>();
 
         // Set the callback on the ViewModel before presenting
@@ -100,8 +111,8 @@ internal sealed class MauiPopupService : IAppPopupService
             vm.OnModelSelected = onModelSelected;
         }
 
-        // Present as a modal page (Shell.PresentationMode="ModalAnimated" on the page)
-        await navigation.PushModalAsync(sheet, animated: true);
+        // Present via UXDivers popup stack
+        await IPopupService.Current.PushAsync(sheet);
     }
 
     /// <inheritdoc />
@@ -109,11 +120,7 @@ internal sealed class MauiPopupService : IAppPopupService
     {
         ct.ThrowIfCancellationRequested();
 
-        var navigation = Shell.Current?.Navigation;
-        if (navigation is null)
-            return;
-
-        // Resolve the AgentPickerSheet from DI (registered as Transient)
+        // Resolve from DI for pre-push ViewModel callback configuration
         var sheet = _serviceProvider.GetRequiredService<AgentPickerSheet>();
 
         // Set the callback on the ViewModel before presenting; ensure primary mode
@@ -123,17 +130,18 @@ internal sealed class MauiPopupService : IAppPopupService
             vm.PickerMode = PickerMode.Primary;
         }
 
-        // Present as a modal page
-        await navigation.PushModalAsync(sheet, animated: true);
+        // Present via UXDivers popup stack
+        await IPopupService.Current.PushAsync(sheet);
     }
 
     /// <inheritdoc />
-    public Task PushPopupAsync(object popup, CancellationToken ct = default)
+    public async Task PushPopupAsync(object popup, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
-        // UXDivers popup push will be integrated here.
-        // For now, this is a no-op placeholder.
-        return Task.CompletedTask;
+
+        // Push the popup instance onto the UXDivers popup stack.
+        // The caller is responsible for providing a valid PopupPage instance.
+        await IPopupService.Current.PushAsync((PopupPage)popup);
     }
 
     /// <inheritdoc />
@@ -141,15 +149,8 @@ internal sealed class MauiPopupService : IAppPopupService
     {
         ct.ThrowIfCancellationRequested();
 
-        var navigation = Shell.Current?.Navigation;
-        if (navigation is null)
-            return;
-
-        // Pop the topmost modal page if one exists
-        if (navigation.ModalStack.Count > 0)
-        {
-            await navigation.PopModalAsync(animated: true);
-        }
+        // Pop the topmost popup from the UXDivers popup stack
+        await IPopupService.Current.PopAsync();
     }
 
     /// <inheritdoc />
@@ -160,16 +161,14 @@ internal sealed class MauiPopupService : IAppPopupService
         var sheet = _serviceProvider.GetRequiredService<ContextSheet>();
 
         // Initialize the ViewModel with project preferences before presenting the sheet
+        // ("initialize before push" pattern)
         if (sheet.BindingContext is ContextSheetViewModel vm)
         {
-            await vm.InitializeAsync(projectId, sessionId, ct).ConfigureAwait(false);
+            await vm.InitializeAsync(projectId, sessionId, ct);
         }
 
-        var page = GetCurrentPage();
-        if (page is not null)
-        {
-            await page.Navigation.PushModalAsync(sheet, animated: true);
-        }
+        // Present via UXDivers popup stack
+        await IPopupService.Current.PushAsync(sheet);
     }
 
     /// <inheritdoc />
@@ -178,21 +177,15 @@ internal sealed class MauiPopupService : IAppPopupService
         ct.ThrowIfCancellationRequested();
 
         var sheet = _serviceProvider.GetRequiredService<CommandPaletteSheet>();
-        var page = GetCurrentPage();
-        if (page is not null)
-        {
-            await page.Navigation.PushModalAsync(sheet, animated: true);
-        }
+
+        // Present via UXDivers popup stack
+        await IPopupService.Current.PushAsync(sheet);
     }
 
     /// <inheritdoc />
     public async Task ShowSubagentPickerAsync(Action<string> onSubagentSelected, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
-
-        var navigation = Shell.Current?.Navigation;
-        if (navigation is null)
-            return;
 
         var sheet = _serviceProvider.GetRequiredService<AgentPickerSheet>();
 
@@ -207,13 +200,36 @@ internal sealed class MauiPopupService : IAppPopupService
             };
         }
 
-        await navigation.PushModalAsync(sheet, animated: true);
+        // Present via UXDivers popup stack
+        await IPopupService.Current.PushAsync(sheet);
     }
 
-    /// <summary>Gets the current visible page from Shell navigation.</summary>
-    /// <returns>The current page, or <c>null</c> if unavailable.</returns>
-    private static Page? GetCurrentPage()
+    /// <inheritdoc />
+    public async Task ShowProjectSwitcherAsync(CancellationToken ct = default)
     {
-        return Shell.Current?.CurrentPage;
+        ct.ThrowIfCancellationRequested();
+
+        var sheet = _serviceProvider.GetRequiredService<ProjectSwitcherSheet>();
+
+        // "Initialize before push" pattern: load projects before presenting the sheet
+        // so the list is populated when the popup appears.
+        if (sheet.BindingContext is ProjectSwitcherViewModel vm)
+        {
+            await vm.LoadProjectsCommand.ExecuteAsync(null);
+        }
+
+        // Present via UXDivers popup stack
+        await IPopupService.Current.PushAsync(sheet);
+    }
+
+    /// <inheritdoc />
+    public async Task ShowAddProjectAsync(CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        var sheet = _serviceProvider.GetRequiredService<AddProjectSheet>();
+
+        // Present via UXDivers popup stack
+        await IPopupService.Current.PushAsync(sheet);
     }
 }

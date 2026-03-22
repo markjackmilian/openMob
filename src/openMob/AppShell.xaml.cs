@@ -1,5 +1,4 @@
 using openMob.Views.Pages;
-using openMob.Views.Popups;
 
 namespace openMob;
 
@@ -16,10 +15,7 @@ public partial class AppShell : Shell
         Routing.RegisterRoute("settings", typeof(SettingsPage));
         Routing.RegisterRoute("server-detail", typeof(ServerDetailPage));
 
-        // Register popup routes (for Shell-based modal navigation)
-        Routing.RegisterRoute("project-switcher", typeof(ProjectSwitcherSheet));
-        Routing.RegisterRoute("agent-picker", typeof(AgentPickerSheet));
-        Routing.RegisterRoute("model-picker", typeof(ModelPickerSheet));
-        Routing.RegisterRoute("add-project", typeof(AddProjectSheet));
+        // Popup routes removed — all popups are now presented via UXDivers IPopupService.Current
+        // through MauiPopupService, not Shell navigation.
     }
 }

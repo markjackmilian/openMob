@@ -58,11 +58,11 @@ Il progetto adotta **UXDivers Popups** (`UXDivers.Popups.Maui`) come libreria un
 
 8. **[REQ-008]** `ShowContextSheetAsync` deve mantenere il pattern "initialize before push": `vm.InitializeAsync(projectId, sessionId, ct)` viene chiamato prima di `IPopupService.Current.PushAsync(popup)`, garantendo che il sheet sia popolato al momento dell'apertura.
 
-9. **[REQ-009]** `ShowConfirmDeleteAsync` deve essere reimplementato usando `SimpleActionPopup` di UXDivers con due bottoni (testo configurabile per conferma e annulla). Il metodo deve restituire `true` se l'utente preme il bottone di conferma, `false` altrimenti (incluso dismiss via backdrop).
+9. **[REQ-009]** `ShowConfirmDeleteAsync` mantiene l'implementazione nativa `DisplayAlertAsync`. **Decisione pragmatica:** `SimpleActionPopup` di UXDivers non estende `PopupResultPage<T>` e non supporta risultati tipizzati. L'integrazione richiederebbe un custom `PopupResultPage<bool>` con complessità non giustificata per un semplice dialog di conferma. La migrazione a UXDivers per questo metodo è rimandata a una spec futura dedicata al theming custom dei popup.
 
-10. **[REQ-010]** `ShowRenameAsync` deve essere reimplementato usando `FormPopup` di UXDivers con un singolo campo testo pre-compilato con `currentName`. Il metodo deve restituire il testo inserito se confermato, `null` se annullato o dismissed.
+10. **[REQ-010]** `ShowRenameAsync` mantiene l'implementazione nativa `DisplayPromptAsync`. **Decisione pragmatica:** `FormPopup` restituisce `List<string?>` che aggiunge complessità di integrazione non giustificata per un singolo campo di testo. La migrazione è rimandata a una spec futura.
 
-11. **[REQ-011]** `ShowOptionSheetAsync` deve essere reimplementato usando `OptionSheetPopup` di UXDivers con le opzioni fornite. Il metodo deve restituire la stringa dell'opzione selezionata, `null` se dismissed.
+11. **[REQ-011]** `ShowOptionSheetAsync` mantiene l'implementazione nativa `DisplayActionSheetAsync`. **Decisione pragmatica:** la complessità di integrazione di `OptionSheetPopup` non è giustificata per un semplice action sheet. La migrazione è rimandata a una spec futura.
 
 12. **[REQ-012]** `IAppPopupService` deve esporre un nuovo metodo `Task ShowProjectSwitcherAsync(CancellationToken ct = default)` con documentazione XML `<summary>`.
 

@@ -223,9 +223,9 @@ public sealed partial class ProjectsViewModel : ObservableObject
         try
         {
 #endif
-        // The popup instance is created and pushed by the MAUI layer.
-        // This command signals the intent; the View layer handles the popup lifecycle.
-        await _popupService.ShowToastAsync("Add project sheet requested.", ct);
+        // Delegate to IAppPopupService which resolves and presents the AddProjectSheet
+        // via UXDivers popup stack.
+        await _popupService.ShowAddProjectAsync(ct);
 #if DEBUG
         sw.Stop();
         DebugLogger.LogCommand(nameof(ShowAddProjectAsync), "complete", sw.ElapsedMilliseconds);

@@ -104,4 +104,12 @@ public interface IAppPopupService
     /// <param name="onSubagentSelected">Callback invoked with the selected subagent name.</param>
     /// <param name="ct">Cancellation token.</param>
     Task ShowSubagentPickerAsync(Action<string> onSubagentSelected, CancellationToken ct = default);
+
+    /// <summary>Opens the Project Switcher popup to allow the user to switch the active project.</summary>
+    /// <param name="ct">Cancellation token.</param>
+    Task ShowProjectSwitcherAsync(CancellationToken ct = default);
+
+    /// <summary>Opens the Add Project popup to allow the user to create a new project.</summary>
+    /// <param name="ct">Cancellation token.</param>
+    Task ShowAddProjectAsync(CancellationToken ct = default);
 }

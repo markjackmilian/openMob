@@ -1,35 +1,26 @@
 using openMob.Core.ViewModels;
+using UXDivers.Popups.Maui;
+using UXDivers.Popups.Services;
 
 namespace openMob.Views.Popups;
 
-/// <summary>Project switcher bottom sheet — allows rapid project switching from the chat header.</summary>
-public partial class ProjectSwitcherSheet : ContentPage
+/// <summary>
+/// Project switcher popup — allows rapid project switching from the chat header.
+/// Project loading is handled by MauiPopupService.ShowProjectSwitcherAsync before this popup is pushed.
+/// </summary>
+public partial class ProjectSwitcherSheet : PopupPage
 {
-    private readonly ProjectSwitcherViewModel _viewModel;
-
     /// <summary>Initialises the project switcher sheet with its ViewModel.</summary>
     /// <param name="viewModel">The project switcher ViewModel.</param>
     public ProjectSwitcherSheet(ProjectSwitcherViewModel viewModel)
     {
         InitializeComponent();
-        _viewModel = viewModel;
-        BindingContext = _viewModel;
+        BindingContext = viewModel;
     }
 
-    /// <summary>Closes the sheet when the close button is tapped.</summary>
+    /// <summary>Closes the popup when the close button is tapped.</summary>
     private async void OnCloseButtonTapped(object? sender, EventArgs e)
     {
-        await Shell.Current.GoToAsync("..");
-    }
-
-    /// <inheritdoc />
-    protected override async void OnAppearing()
-    {
-        base.OnAppearing();
-
-        if (_viewModel.LoadProjectsCommand.CanExecute(null))
-        {
-            await _viewModel.LoadProjectsCommand.ExecuteAsync(null);
-        }
+        await IPopupService.Current.PopAsync(this);
     }
 }

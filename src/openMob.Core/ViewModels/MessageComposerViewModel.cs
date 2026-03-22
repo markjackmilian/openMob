@@ -139,15 +139,26 @@ public partial class MessageComposerViewModel : ObservableObject, IDisposable
         SessionId = sessionId;
         IsStreaming = isStreaming;
 
-        // Load preferences
-        var pref = await _preferenceService.GetOrDefaultAsync(projectId, ct);
-        SessionAgentName = pref.AgentName;
-        SessionModelId = currentModelId ?? pref.DefaultModelId;
-        SessionThinkingLevel = pref.ThinkingLevel;
-        SessionAutoAccept = pref.AutoAccept;
-
-        // Restore draft
-        MessageText = _draftService.GetDraft(sessionId) ?? string.Empty;
+        // Restore full composer state from draft if available
+        var draft = _draftService.GetComposerDraft(sessionId);
+        if (draft is not null)
+        {
+            MessageText = draft.Text;
+            SessionAgentName = draft.AgentName;
+            SessionModelId = draft.ModelId ?? currentModelId;
+            SessionThinkingLevel = draft.ThinkingLevel;
+            SessionAutoAccept = draft.AutoAccept;
+        }
+        else
+        {
+            // First open — load from preferences
+            var pref = await _preferenceService.GetOrDefaultAsync(projectId, ct);
+            SessionAgentName = pref.AgentName;
+            SessionModelId = currentModelId ?? pref.DefaultModelId;
+            SessionThinkingLevel = pref.ThinkingLevel;
+            SessionAutoAccept = pref.AutoAccept;
+            MessageText = _draftService.GetDraft(sessionId) ?? string.Empty;
+        }
     }
 
     // ─── Commands ─────────────────────────────────────────────────────────────
@@ -239,22 +250,19 @@ public partial class MessageComposerViewModel : ObservableObject, IDisposable
             SessionAutoAccept));
 
         _draftService.ClearDraft(SessionId);
+        _draftService.ClearComposerDraft(SessionId);
 
         await _popupService.PopPopupAsync(ct);
     }
 
     /// <summary>
     /// Closes the composer popup without sending [REQ-018].
-    /// Saves the current text as a draft before closing.
+    /// Saves the full composer state as a draft before closing.
     /// </summary>
     [RelayCommand]
     private async Task CloseAsync(CancellationToken ct)
     {
-        if (!string.IsNullOrEmpty(MessageText))
-        {
-            _draftService.SaveDraft(SessionId, MessageText);
-        }
-
+        SaveFullDraft();
         await _popupService.PopPopupAsync(ct);
     }
 
@@ -272,6 +280,26 @@ public partial class MessageComposerViewModel : ObservableObject, IDisposable
             : $"{text} {token}";
     }
 
+    /// <summary>Saves the full composer state (text + all overrides) to the draft service.</summary>
+    private void SaveFullDraft()
+    {
+        if (string.IsNullOrEmpty(SessionId))
+            return;
+
+        _draftService.SaveComposerDraft(SessionId, new ComposerDraft(
+            Text: MessageText,
+            AgentName: SessionAgentName,
+            ModelId: SessionModelId,
+            ThinkingLevel: SessionThinkingLevel,
+            AutoAccept: SessionAutoAccept));
+
+        // Also save text-only draft for backward compatibility
+        if (!string.IsNullOrEmpty(MessageText))
+        {
+            _draftService.SaveDraft(SessionId, MessageText);
+        }
+    }
+
     // ─── Dispose ──────────────────────────────────────────────────────────────
 
     /// <inheritdoc />
@@ -279,10 +307,7 @@ public partial class MessageComposerViewModel : ObservableObject, IDisposable
     {
         WeakReferenceMessenger.Default.UnregisterAll(this);
 
-        // Save draft on dispose (e.g. popup dismissed without explicit close)
-        if (!string.IsNullOrWhiteSpace(MessageText) && !string.IsNullOrEmpty(SessionId))
-        {
-            _draftService.SaveDraft(SessionId, MessageText);
-        }
+        // Save full draft on dispose (e.g. popup dismissed without explicit close)
+        SaveFullDraft();
     }
 }

@@ -167,8 +167,17 @@ internal sealed class MauiPopupService : IAppPopupService
             await vm.InitializeAsync(projectId, sessionId, ct);
         }
 
-        // Present via UXDivers popup stack
-        await IPopupService.Current.PushAsync(sheet);
+        // Ensure PushAsync is called on the main thread.
+        // InitializeAsync internally awaits services that use ConfigureAwait(false),
+        // which can cause the continuation to resume on a thread pool thread.
+        // IPopupService.Current.PushAsync requires the main thread on Android.
+        // The cancellation check inside the lambda closes the narrow window between
+        // InitializeAsync completing and PushAsync executing on the main thread.
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            ct.ThrowIfCancellationRequested();
+            return IPopupService.Current.PushAsync(sheet);
+        });
     }
 
     /// <inheritdoc />
@@ -218,8 +227,15 @@ internal sealed class MauiPopupService : IAppPopupService
             await vm.LoadProjectsCommand.ExecuteAsync(null);
         }
 
-        // Present via UXDivers popup stack
-        await IPopupService.Current.PushAsync(sheet);
+        // Ensure PushAsync is called on the main thread.
+        // LoadProjectsCommand.ExecuteAsync may resume on a thread pool thread.
+        // The cancellation check inside the lambda closes the narrow window between
+        // LoadProjectsCommand completing and PushAsync executing on the main thread.
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            ct.ThrowIfCancellationRequested();
+            return IPopupService.Current.PushAsync(sheet);
+        });
     }
 
     /// <inheritdoc />

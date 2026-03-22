@@ -81,7 +81,6 @@ public static class MauiProgram
         builder.Services.AddTransient<OnboardingPage>();
         builder.Services.AddTransient<ChatPage>();
         builder.Services.AddTransient<ProjectsPage>();
-        builder.Services.AddTransient<ProjectDetailPage>();
         builder.Services.AddTransient<SettingsPage>();
         builder.Services.AddTransient<ServerManagementPage>();
         builder.Services.AddTransient<ServerDetailPage>();

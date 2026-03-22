@@ -13,7 +13,6 @@ public partial class AppShell : Shell
 
         // Register routes for pages not declared as ShellContent
         Routing.RegisterRoute("projects", typeof(ProjectsPage));
-        Routing.RegisterRoute("project-detail", typeof(ProjectDetailPage));
         Routing.RegisterRoute("settings", typeof(SettingsPage));
         Routing.RegisterRoute("server-detail", typeof(ServerDetailPage));
 

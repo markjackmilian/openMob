@@ -114,20 +114,24 @@
                     LineBreakMode="MiddleTruncation" />
               </VerticalStackLayout>
 
-              <!-- Active badge -->
+              <!-- Active project badge — checkmark icon in accent-tinted circle -->
               <Border
                   Grid.Column="1"
                   IsVisible="{Binding IsActive}"
-                  StrokeShape="RoundRectangle 8"
+                  StrokeShape="RoundRectangle 12"
                   StrokeThickness="0"
                   BackgroundColor="{AppThemeBinding Light={StaticResource ColorPrimaryContainerLight}, Dark={StaticResource ColorPrimaryContainerDark}}"
-                  Padding="8,4"
-                  VerticalOptions="Center">
+                  HeightRequest="{StaticResource SpacingXl}"
+                  WidthRequest="{StaticResource SpacingXl}"
+                  VerticalOptions="Center"
+                  SemanticProperties.Description="Active project">
                 <Label
-                    Text="Active"
-                    FontFamily="InterMedium"
-                    FontSize="{StaticResource FontSizeCaption1}"
-                    TextColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}" />
+                    Text="{x:Static helpers:IconKeys.Check}"
+                    FontFamily="TablerIcons"
+                    FontSize="{StaticResource FontSizeFootnote}"
+                    TextColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}"
+                    HorizontalTextAlignment="Center"
+                    VerticalTextAlignment="Center" />
               </Border>
             </Grid>
           </SwipeView>

@@ -168,18 +168,88 @@ public sealed class ProjectsViewModelTests
         _sut.IsLoading.Should().BeFalse();
     }
 
-    // ─── SelectProjectCommand ─────────────────────────────────────────────────
+    // ─── SelectProjectCommand (one-tap selection) ───────────────────────────────
 
     [Fact]
-    public async Task SelectProjectCommand_NavigatesToProjectDetail()
+    public async Task SelectProjectCommand_WhenDifferentProject_SetsActiveProject()
     {
+        // Arrange
+        _activeProjectService.SetActiveProjectAsync("p1", Arg.Any<CancellationToken>())
+            .Returns(true);
+
         // Act
         await _sut.SelectProjectCommand.ExecuteAsync("p1");
 
         // Assert
-        await _navigationService.Received(1).GoToAsync(
+        await _activeProjectService.Received(1).SetActiveProjectAsync("p1", Arg.Any<CancellationToken>());
+        _sut.ActiveProjectId.Should().Be("p1");
+    }
+
+    [Fact]
+    public async Task SelectProjectCommand_WhenAlreadyActive_DoesNotCallService()
+    {
+        // Arrange — set the active project first
+        _sut.ActiveProjectId = "p1";
+
+        // Act
+        await _sut.SelectProjectCommand.ExecuteAsync("p1");
+
+        // Assert
+        await _activeProjectService.DidNotReceive().SetActiveProjectAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task SelectProjectCommand_WhenSetActiveFails_DoesNotUpdateActiveProjectId()
+    {
+        // Arrange
+        _activeProjectService.SetActiveProjectAsync("p2", Arg.Any<CancellationToken>())
+            .Returns(false);
+
+        // Act
+        await _sut.SelectProjectCommand.ExecuteAsync("p2");
+
+        // Assert
+        _sut.ActiveProjectId.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task SelectProjectCommand_WhenSuccessful_UpdatesIsActiveOnProjectItems()
+    {
+        // Arrange — load projects first
+        var projects = new List<ProjectDto>
+        {
+            BuildProject("p1", "/path/a"),
+            BuildProject("p2", "/path/b"),
+        };
+        _projectService.GetAllProjectsAsync(Arg.Any<CancellationToken>()).Returns(projects);
+        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>()).Returns(BuildProject("p1"));
+        await _sut.LoadProjectsCommand.ExecuteAsync(null);
+
+        _activeProjectService.SetActiveProjectAsync("p2", Arg.Any<CancellationToken>())
+            .Returns(true);
+
+        // Act
+        await _sut.SelectProjectCommand.ExecuteAsync("p2");
+
+        // Assert
+        _sut.Projects.Should().ContainSingle(p => p.IsActive && p.Id == "p2");
+        _sut.Projects.Should().ContainSingle(p => !p.IsActive && p.Id == "p1");
+    }
+
+    [Fact]
+    public async Task SelectProjectCommand_DoesNotNavigateToProjectDetail()
+    {
+        // Arrange
+        _activeProjectService.SetActiveProjectAsync("p1", Arg.Any<CancellationToken>())
+            .Returns(true);
+
+        // Act
+        await _sut.SelectProjectCommand.ExecuteAsync("p1");
+
+        // Assert — no navigation to project-detail should occur
+        await _navigationService.DidNotReceive().GoToAsync(
             "project-detail",
-            Arg.Is<IDictionary<string, object>>(d => (string)d["projectId"] == "p1"),
+            Arg.Any<IDictionary<string, object>>(),
             Arg.Any<CancellationToken>());
     }
 

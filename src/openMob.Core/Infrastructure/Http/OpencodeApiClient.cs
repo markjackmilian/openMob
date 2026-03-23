@@ -616,7 +616,7 @@ internal sealed class OpencodeApiClient : IOpencodeApiClient
             ct);
 
     /// <inheritdoc />
-    public Task<OpencodeResult<IReadOnlyList<string>>> FindFilesAsync(FindFilesRequest request, CancellationToken ct = default)
+    public Task<OpencodeResult<IReadOnlyList<FileNodeDto>>> FindFilesAsync(FindFilesRequest request, CancellationToken ct = default)
     {
         var sb = new StringBuilder("/file");
         var hasQuery = false;
@@ -635,7 +635,9 @@ internal sealed class OpencodeApiClient : IOpencodeApiClient
 
         var relativeUrl = sb.ToString();
 
-        return ExecuteAsync<IReadOnlyList<string>>(
+        // The server always returns FileNodeDto[] — never string[].
+        // Deserialise as IReadOnlyList<FileNodeDto> to match the actual wire format.
+        return ExecuteAsync<IReadOnlyList<FileNodeDto>>(
             (client, baseUrl, token) => client.GetAsync($"{baseUrl}{relativeUrl}", token),
             ct);
     }

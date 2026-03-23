@@ -1,4 +1,5 @@
 using openMob.Core.Infrastructure.Http;
+using openMob.Core.Infrastructure.Http.Dtos.Opencode;
 using openMob.Core.Infrastructure.Http.Dtos.Opencode.Requests;
 
 namespace openMob.Core.Services;
@@ -7,8 +8,22 @@ namespace openMob.Core.Services;
 /// Implementation of <see cref="IFileService"/> that wraps
 /// <see cref="IOpencodeApiClient"/> file endpoints to return project files.
 /// </summary>
+/// <remarks>
+/// <para>
+/// The opencode server <c>GET /file</c> endpoint does NOT support recursive glob patterns.
+/// When <c>path</c> is empty the server ignores the pattern entirely and returns all root
+/// entries. Therefore <see cref="FindFilesAsync"/> performs a client-side BFS traversal
+/// up to <see cref="MaxSearchDepth"/> levels deep, then filters by name.
+/// </para>
+/// </remarks>
 internal sealed class FileService : IFileService
 {
+    /// <summary>
+    /// Maximum directory depth explored during BFS file search.
+    /// Limits the number of API calls for very large project trees.
+    /// </summary>
+    private const int MaxSearchDepth = 4;
+
     private readonly IOpencodeApiClient _apiClient;
 
     /// <summary>Initialises the file service with the API client.</summary>
@@ -20,21 +35,31 @@ internal sealed class FileService : IFileService
     }
 
     /// <inheritdoc />
+    /// <remarks>
+    /// Retrieves the root-level file tree and returns all entries as a flat list.
+    /// Uses <see cref="IOpencodeApiClient.GetFileTreeAsync"/> with <c>path=null</c>
+    /// (project root) rather than the broken <c>FindFilesAsync</c> with an empty path.
+    /// </remarks>
     public async Task<OpencodeResult<IReadOnlyList<FileDto>>> GetFilesAsync(CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        // Use FindFilesAsync with a wildcard pattern to get a flat list of all file paths.
-        // This avoids the need to recursively traverse the file tree from GetFileTreeAsync.
-        var result = await _apiClient.FindFilesAsync(new FindFilesRequest(Pattern: "**", Path: ""), ct)
-            .ConfigureAwait(false);
+        var result = await _apiClient.GetFileTreeAsync(null, ct).ConfigureAwait(false);
 
         if (!result.IsSuccess)
         {
             return OpencodeResult<IReadOnlyList<FileDto>>.Failure(result.Error!);
         }
 
-        return OpencodeResult<IReadOnlyList<FileDto>>.Success(MapPathsToFileDtos(result.Value!));
+        var nodes = result.Value!;
+        var files = new List<FileDto>(nodes.Count);
+
+        foreach (var node in nodes)
+        {
+            files.Add(MapNodeToFileDto(node));
+        }
+
+        return OpencodeResult<IReadOnlyList<FileDto>>.Success(files.AsReadOnly());
     }
 
     /// <inheritdoc />
@@ -59,49 +84,85 @@ internal sealed class FileService : IFileService
 
         foreach (var node in nodes)
         {
-            // Map FileNodeDto.Path → FileDto.RelativePath and propagate Type.
-            files.Add(new FileDto(RelativePath: node.Path, Name: node.Name, Type: node.Type));
+            files.Add(MapNodeToFileDto(node));
         }
 
         return OpencodeResult<IReadOnlyList<FileDto>>.Success(files.AsReadOnly());
     }
 
     /// <inheritdoc />
+    /// <remarks>
+    /// <para>
+    /// Because the opencode server ignores the glob pattern when <c>path</c> is empty,
+    /// this method performs a client-side BFS traversal of the project tree up to
+    /// <see cref="MaxSearchDepth"/> levels deep, then filters the collected nodes by
+    /// whether their <c>Name</c> contains the search term extracted from the pattern.
+    /// </para>
+    /// <para>
+    /// Pattern extraction: <c>*foo*</c> → search term <c>foo</c>. Leading and trailing
+    /// <c>*</c> wildcards are stripped. An empty or wildcard-only pattern returns all nodes.
+    /// </para>
+    /// <para>
+    /// Nodes with <c>Ignored = true</c> are skipped during traversal and excluded from results.
+    /// </para>
+    /// </remarks>
     public async Task<OpencodeResult<IReadOnlyList<FileDto>>> FindFilesAsync(
         string pattern,
         CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        var result = await _apiClient.FindFilesAsync(new FindFilesRequest(Pattern: pattern, Path: ""), ct)
-            .ConfigureAwait(false);
+        // Extract the search term from the glob pattern (strip leading/trailing '*').
+        var searchTerm = pattern.Trim('*');
 
-        if (!result.IsSuccess)
+        // BFS queue: (directoryPath, currentDepth).
+        // null path = project root (GetFileTreeAsync normalises null → empty string internally).
+        var queue = new Queue<(string? Path, int Depth)>();
+        queue.Enqueue((null, 0));
+
+        var matches = new List<FileDto>();
+
+        while (queue.Count > 0)
         {
-            return OpencodeResult<IReadOnlyList<FileDto>>.Failure(result.Error!);
+            ct.ThrowIfCancellationRequested();
+
+            var (dirPath, depth) = queue.Dequeue();
+
+            var result = await _apiClient.GetFileTreeAsync(dirPath, ct).ConfigureAwait(false);
+
+            if (!result.IsSuccess)
+            {
+                // Propagate the first API error encountered.
+                return OpencodeResult<IReadOnlyList<FileDto>>.Failure(result.Error!);
+            }
+
+            foreach (var node in result.Value!)
+            {
+                // Skip VCS-ignored entries entirely.
+                if (node.Ignored)
+                    continue;
+
+                // Collect files (and directories) whose name matches the search term.
+                if (string.IsNullOrEmpty(searchTerm) ||
+                    node.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
+                {
+                    matches.Add(MapNodeToFileDto(node));
+                }
+
+                // Enqueue subdirectories for further traversal if within depth limit.
+                if (node.Type == "directory" && depth < MaxSearchDepth)
+                {
+                    queue.Enqueue((node.Path, depth + 1));
+                }
+            }
         }
 
-        return OpencodeResult<IReadOnlyList<FileDto>>.Success(MapPathsToFileDtos(result.Value!));
+        return OpencodeResult<IReadOnlyList<FileDto>>.Success(matches.AsReadOnly());
     }
 
-    /// <summary>Maps a list of relative path strings to <see cref="FileDto"/> instances.</summary>
-    private static IReadOnlyList<FileDto> MapPathsToFileDtos(IReadOnlyList<string> paths)
-    {
-        var files = new List<FileDto>(paths.Count);
-
-        foreach (var path in paths)
-        {
-            var name = ExtractFileName(path);
-            files.Add(new FileDto(RelativePath: path, Name: name));
-        }
-
-        return files.AsReadOnly();
-    }
-
-    /// <summary>Extracts the file name from a relative path.</summary>
-    private static string ExtractFileName(string relativePath)
-    {
-        var lastSlash = relativePath.LastIndexOf('/');
-        return lastSlash >= 0 ? relativePath[(lastSlash + 1)..] : relativePath;
-    }
+    /// <summary>Maps a <see cref="FileNodeDto"/> to a <see cref="FileDto"/>.</summary>
+    /// <param name="node">The file node returned by the API.</param>
+    /// <returns>A <see cref="FileDto"/> with <c>RelativePath</c>, <c>Name</c>, and <c>Type</c> populated.</returns>
+    private static FileDto MapNodeToFileDto(FileNodeDto node)
+        => new(RelativePath: node.Path, Name: node.Name, Type: node.Type);
 }

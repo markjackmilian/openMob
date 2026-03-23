@@ -275,10 +275,18 @@ public interface IOpencodeApiClient
     /// <param name="ct">Cancellation token.</param>
     Task<OpencodeResult<IReadOnlyList<TextMatchDto>>> FindTextAsync(string pattern, CancellationToken ct = default);
 
-    /// <summary>Finds files matching a pattern. Maps to <c>GET /file?pattern=&amp;path=</c>.</summary>
+    /// <summary>
+    /// Lists file-system entries matching a pattern at a given path.
+    /// Maps to <c>GET /file?pattern=&amp;path=</c>.
+    /// </summary>
+    /// <remarks>
+    /// The server always returns <see cref="FileNodeDto"/> objects regardless of the pattern.
+    /// When <c>path</c> is empty the server ignores the pattern and returns all root entries.
+    /// Use <see cref="GetFileTreeAsync"/> for recursive traversal instead.
+    /// </remarks>
     /// <param name="request">The find files request.</param>
     /// <param name="ct">Cancellation token.</param>
-    Task<OpencodeResult<IReadOnlyList<string>>> FindFilesAsync(FindFilesRequest request, CancellationToken ct = default);
+    Task<OpencodeResult<IReadOnlyList<FileNodeDto>>> FindFilesAsync(FindFilesRequest request, CancellationToken ct = default);
 
     /// <summary>Searches for code symbols by name. Maps to <c>GET /file/symbol?query=</c>.</summary>
     /// <param name="query">The symbol name query.</param>

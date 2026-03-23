@@ -117,6 +117,16 @@ public partial class FilePickerViewModel : ObservableObject, IDisposable
         {
             // Cancelled — no action needed
         }
+        catch (Exception ex)
+        {
+            // Catch-all for unexpected failures (e.g. JsonException when the server returns
+            // HTML instead of JSON, HttpRequestException for network errors, etc.).
+            // Without this block the exception propagates silently, leaving HasError = false
+            // and the list empty with no feedback to the user.
+            Items.Clear();
+            ErrorMessage = $"Failed to load files: {ex.Message}";
+            HasError = true;
+        }
         finally
         {
             linkedCts.Dispose();

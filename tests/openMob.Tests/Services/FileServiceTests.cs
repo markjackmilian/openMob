@@ -275,9 +275,11 @@ public sealed class FileServiceTests
     }
 
     [Fact]
-    public async Task GetFileTreeAsync_WhenPathIsNull_PassesEmptyStringToApiClient()
+    public async Task GetFileTreeAsync_WhenPathIsNull_PassesNullToApiClient()
     {
         // Arrange
+        // FileService passes path as-is (null for root). OpencodeApiClient normalises null
+        // to an empty string internally when building the /file?pattern=*&path= query parameter.
         _apiClient
             .GetFileTreeAsync(Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(SuccessNodes());
@@ -287,7 +289,7 @@ public sealed class FileServiceTests
 
         // Assert
         await _apiClient.Received(1).GetFileTreeAsync(
-            Arg.Is<string?>(p => p == ""),
+            Arg.Is<string?>(p => p == null),
             Arg.Any<CancellationToken>());
     }
 

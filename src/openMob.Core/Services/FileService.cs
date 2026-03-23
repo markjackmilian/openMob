@@ -44,7 +44,10 @@ internal sealed class FileService : IFileService
     {
         ct.ThrowIfCancellationRequested();
 
-        var result = await _apiClient.GetFileTreeAsync(path ?? "", ct).ConfigureAwait(false);
+        // Pass path as-is (null for root). OpencodeApiClient.GetFileTreeAsync normalises null
+        // to an empty string when building the query parameter, so /file?pattern=*&path= is used
+        // for the project root — matching the verified curl behaviour.
+        var result = await _apiClient.GetFileTreeAsync(path, ct).ConfigureAwait(false);
 
         if (!result.IsSuccess)
         {

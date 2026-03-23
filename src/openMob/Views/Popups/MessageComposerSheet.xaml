@@ -12,12 +12,11 @@
                AppearingAnimation="{uxd:MoveInPopupAnimation MoveDirection=Bottom, Duration=300, Easing=CubicOut}"
                DisappearingAnimation="{uxd:MoveOutPopupAnimation MoveDirection=Bottom, Duration=250, Easing=CubicIn}">
 
-  <!-- Full-screen bottom-sheet panel: fills from 48dp top margin, rounded top corners, solid background -->
-  <Border VerticalOptions="Fill"
+  <!-- Bottom-anchored composer panel: hugs the bottom of the screen, height driven by content -->
+  <Border VerticalOptions="End"
           HorizontalOptions="Fill"
           StrokeThickness="0"
           Padding="0"
-          Margin="0,48,0,0"
           BackgroundColor="{AppThemeBinding Light={StaticResource ColorBackgroundLight},
                                             Dark={StaticResource ColorBackgroundDark}}">
     <Border.StrokeShape>

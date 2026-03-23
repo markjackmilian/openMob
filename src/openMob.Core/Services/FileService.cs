@@ -5,7 +5,7 @@ namespace openMob.Core.Services;
 
 /// <summary>
 /// Implementation of <see cref="IFileService"/> that wraps
-/// <see cref="IOpencodeApiClient.FindFilesAsync"/> to return a flat list of project files.
+/// <see cref="IOpencodeApiClient"/> file endpoints to return project files.
 /// </summary>
 internal sealed class FileService : IFileService
 {
@@ -26,7 +26,7 @@ internal sealed class FileService : IFileService
 
         // Use FindFilesAsync with a wildcard pattern to get a flat list of all file paths.
         // This avoids the need to recursively traverse the file tree from GetFileTreeAsync.
-        var result = await _apiClient.FindFilesAsync(new FindFilesRequest(Pattern: "**", Path: null), ct)
+        var result = await _apiClient.FindFilesAsync(new FindFilesRequest(Pattern: "**", Path: ""), ct)
             .ConfigureAwait(false);
 
         if (!result.IsSuccess)
@@ -34,7 +34,56 @@ internal sealed class FileService : IFileService
             return OpencodeResult<IReadOnlyList<FileDto>>.Failure(result.Error!);
         }
 
-        var paths = result.Value!;
+        return OpencodeResult<IReadOnlyList<FileDto>>.Success(MapPathsToFileDtos(result.Value!));
+    }
+
+    /// <inheritdoc />
+    public async Task<OpencodeResult<IReadOnlyList<FileDto>>> GetFileTreeAsync(
+        string? path = null,
+        CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        var result = await _apiClient.GetFileTreeAsync(path ?? "", ct).ConfigureAwait(false);
+
+        if (!result.IsSuccess)
+        {
+            return OpencodeResult<IReadOnlyList<FileDto>>.Failure(result.Error!);
+        }
+
+        var nodes = result.Value!;
+        var files = new List<FileDto>(nodes.Count);
+
+        foreach (var node in nodes)
+        {
+            // Map FileNodeDto.Path → FileDto.RelativePath and propagate Type.
+            files.Add(new FileDto(RelativePath: node.Path, Name: node.Name, Type: node.Type));
+        }
+
+        return OpencodeResult<IReadOnlyList<FileDto>>.Success(files.AsReadOnly());
+    }
+
+    /// <inheritdoc />
+    public async Task<OpencodeResult<IReadOnlyList<FileDto>>> FindFilesAsync(
+        string pattern,
+        CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        var result = await _apiClient.FindFilesAsync(new FindFilesRequest(Pattern: pattern, Path: ""), ct)
+            .ConfigureAwait(false);
+
+        if (!result.IsSuccess)
+        {
+            return OpencodeResult<IReadOnlyList<FileDto>>.Failure(result.Error!);
+        }
+
+        return OpencodeResult<IReadOnlyList<FileDto>>.Success(MapPathsToFileDtos(result.Value!));
+    }
+
+    /// <summary>Maps a list of relative path strings to <see cref="FileDto"/> instances.</summary>
+    private static IReadOnlyList<FileDto> MapPathsToFileDtos(IReadOnlyList<string> paths)
+    {
         var files = new List<FileDto>(paths.Count);
 
         foreach (var path in paths)
@@ -43,7 +92,7 @@ internal sealed class FileService : IFileService
             files.Add(new FileDto(RelativePath: path, Name: name));
         }
 
-        return OpencodeResult<IReadOnlyList<FileDto>>.Success(files.AsReadOnly());
+        return files.AsReadOnly();
     }
 
     /// <summary>Extracts the file name from a relative path.</summary>

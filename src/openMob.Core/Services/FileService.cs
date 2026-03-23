@@ -103,6 +103,12 @@ internal sealed class FileService : IFileService
     /// <c>*</c> wildcards are stripped. An empty or wildcard-only pattern returns all nodes.
     /// </para>
     /// <para>
+    /// A node matches if the search term is found in its <c>Name</c> (last path segment)
+    /// <em>or</em> in its full <c>RelativePath</c>. This means searching for
+    /// <c>in-progress</c> returns both the <c>in-progress</c> directory and every file
+    /// whose path contains that segment (e.g. <c>specs/in-progress/foo.md</c>).
+    /// </para>
+    /// <para>
     /// Nodes with <c>Ignored = true</c> are skipped during traversal and excluded from results.
     /// </para>
     /// </remarks>
@@ -142,9 +148,12 @@ internal sealed class FileService : IFileService
                 if (node.Ignored)
                     continue;
 
-                // Collect files (and directories) whose name matches the search term.
+                // Collect nodes whose name OR relative path contains the search term.
+                // Matching on Path allows queries like "in-progress" to surface both the
+                // directory itself and all files nested under it (e.g. specs/in-progress/foo.md).
                 if (string.IsNullOrEmpty(searchTerm) ||
-                    node.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
+                    node.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                    node.Path.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
                 {
                     matches.Add(MapNodeToFileDto(node));
                 }

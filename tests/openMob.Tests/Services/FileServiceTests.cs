@@ -566,6 +566,55 @@ public sealed class FileServiceTests
         result.Value.Should().HaveCount(1);
     }
 
+    // ─── FindFilesAsync — Path-Segment Matching ──────────────────────────────
+
+    [Fact]
+    public async Task FindFilesAsync_WhenSearchTermMatchesPathSegment_ReturnsFilesWithMatchingPath()
+    {
+        // Arrange — "in-progress" is a directory; its child file has "in-progress" in its path
+        // but NOT in its name. Searching "*in-progress*" must return both.
+        _apiClient
+            .GetFileTreeAsync(null, Arg.Any<CancellationToken>())
+            .Returns(SuccessNodes(
+                BuildDirNode("in-progress", "specs/in-progress")));
+
+        _apiClient
+            .GetFileTreeAsync("specs/in-progress", Arg.Any<CancellationToken>())
+            .Returns(SuccessNodes(
+                BuildFileNode("2026-03-23-file-picker.md", "specs/in-progress/2026-03-23-file-picker.md")));
+
+        // Act
+        var result = await _sut.FindFilesAsync("*in-progress*");
+
+        // Assert — directory matches by name; file matches by path (not by name)
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().HaveCount(2);
+        result.Value.Should().Contain(f => f.RelativePath == "specs/in-progress" && f.Type == "directory");
+        result.Value.Should().Contain(f => f.RelativePath == "specs/in-progress/2026-03-23-file-picker.md");
+    }
+
+    [Fact]
+    public async Task FindFilesAsync_PathMatchIsCaseInsensitive()
+    {
+        // Arrange — file name does not contain the term; only the path does
+        _apiClient
+            .GetFileTreeAsync(null, Arg.Any<CancellationToken>())
+            .Returns(SuccessNodes(
+                BuildDirNode("Specs", "Specs")));
+
+        _apiClient
+            .GetFileTreeAsync("Specs", Arg.Any<CancellationToken>())
+            .Returns(SuccessNodes(
+                BuildFileNode("note.md", "Specs/In-Progress/note.md")));
+
+        // Act
+        var result = await _sut.FindFilesAsync("*in-progress*");
+
+        // Assert — path match is case-insensitive: "In-Progress" matches "in-progress"
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().Contain(f => f.Name == "note.md");
+    }
+
     // ─── FindFilesAsync — Empty Result ───────────────────────────────────────
 
     [Fact]

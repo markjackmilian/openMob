@@ -12,11 +12,11 @@
                AppearingAnimation="{uxd:MoveInPopupAnimation MoveDirection=Bottom, Duration=300, Easing=CubicOut}"
                DisappearingAnimation="{uxd:MoveOutPopupAnimation MoveDirection=Bottom, Duration=250, Easing=CubicIn}">
 
-  <Border VerticalOptions="End"
+  <Border VerticalOptions="Fill"
           HorizontalOptions="Fill"
           StrokeThickness="0"
           Padding="0"
-          HeightRequest="460"
+          Margin="0,48,0,0"
           BackgroundColor="{AppThemeBinding Light={StaticResource ColorBackgroundLight},
                                             Dark={StaticResource ColorBackgroundDark}}">
     <Border.StrokeShape>
@@ -37,17 +37,40 @@
                                          Dark={StaticResource ColorOnBackgroundTertiaryDark}}" />
 
       <!-- ═══════════════════════════════════════════════════════════
-           Row 1: Header with title and close button
+           Row 1: Header with back button, title, and close button
            ═══════════════════════════════════════════════════════════ -->
       <Grid Grid.Row="1"
-            ColumnDefinitions="*,Auto"
+            ColumnDefinitions="Auto,*,Auto"
             Padding="16,0"
             HeightRequest="{StaticResource MinTouchTarget}">
-        <Label Grid.Column="0"
-               Text="Select File"
+
+        <!-- Back button — visible only when directory navigation allows going back -->
+        <ImageButton Grid.Column="0"
+                     Command="{Binding BackCommand}"
+                     IsVisible="{Binding CanGoBack}"
+                     MinimumHeightRequest="{StaticResource MinTouchTarget}"
+                     MinimumWidthRequest="{StaticResource MinTouchTarget}"
+                     BackgroundColor="Transparent"
+                     AutomationId="FilePickerBackButton"
+                     SemanticProperties.Description="Go back to parent directory">
+          <ImageButton.Source>
+            <FontImageSource FontFamily="TablerIcons"
+                             Glyph="{x:Static helpers:IconKeys.ArrowLeft}"
+                             Size="20"
+                             Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
+                                                      Dark={StaticResource ColorOnBackgroundSecondaryDark}}" />
+          </ImageButton.Source>
+        </ImageButton>
+
+        <!-- Title — shows current path when navigated, or default title at root -->
+        <Label Grid.Column="1"
+               Text="{Binding CurrentPath, FallbackValue='Select File', TargetNullValue='Select File'}"
                Style="{StaticResource Title3Label}"
+               LineBreakMode="MiddleTruncation"
                VerticalOptions="Center" />
-        <ImageButton Grid.Column="1"
+
+        <!-- Close button -->
+        <ImageButton Grid.Column="2"
                      Clicked="OnCloseButtonTapped"
                      MinimumHeightRequest="{StaticResource MinTouchTarget}"
                      MinimumWidthRequest="{StaticResource MinTouchTarget}"
@@ -129,7 +152,7 @@
         </VerticalStackLayout>
 
         <!-- File CollectionView -->
-        <CollectionView ItemsSource="{Binding FilteredFiles}"
+        <CollectionView ItemsSource="{Binding Items}"
                         SelectionMode="None"
                         IsVisible="{Binding IsLoading, Converter={StaticResource InvertedBoolConverter}}">
           <CollectionView.ItemTemplate>
@@ -145,7 +168,7 @@
                         CommandParameter="{Binding .}" />
                   </Grid.GestureRecognizers>
 
-                  <!-- File icon -->
+                  <!-- File/Folder icon — defaults to file, switches to folder for directories -->
                   <Label Grid.Column="0"
                          Text="{x:Static helpers:IconKeys.File}"
                          FontFamily="TablerIcons"
@@ -153,21 +176,29 @@
                          TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
                                                       Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
                          VerticalOptions="Center"
-                         SemanticProperties.Description="File icon" />
+                         SemanticProperties.Description="File icon">
+                    <Label.Triggers>
+                      <DataTrigger TargetType="Label" Binding="{Binding Type}" Value="directory">
+                        <Setter Property="Text" Value="{x:Static helpers:IconKeys.Folder}" />
+                        <Setter Property="SemanticProperties.Description" Value="Folder icon" />
+                      </DataTrigger>
+                    </Label.Triggers>
+                  </Label>
 
-                  <!-- File path and name -->
+                  <!-- Name (primary) and relative path (secondary) -->
                   <VerticalStackLayout Grid.Column="1"
                                        Spacing="{StaticResource SpacingXxs}"
                                        VerticalOptions="Center">
-                    <Label Text="{Binding RelativePath, FallbackValue='file.txt'}"
+                    <Label Text="{Binding Name, FallbackValue='file.txt'}"
                            FontFamily="InterMedium"
                            FontSize="{StaticResource FontSizeSubheadline}"
                            TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight},
                                                         Dark={StaticResource ColorOnBackgroundDark}}"
-                           LineBreakMode="MiddleTruncation" />
-                    <Label Text="{Binding Name, FallbackValue='', TargetNullValue=''}"
+                           LineBreakMode="TailTruncation" />
+                    <Label Text="{Binding RelativePath, FallbackValue='', TargetNullValue=''}"
                            Style="{StaticResource Caption2Label}"
-                           IsVisible="{Binding Name, Converter={StaticResource NullToVisibilityConverter}}" />
+                           LineBreakMode="MiddleTruncation"
+                           IsVisible="{Binding RelativePath, Converter={StaticResource NullToVisibilityConverter}}" />
                   </VerticalStackLayout>
                 </Grid>
 

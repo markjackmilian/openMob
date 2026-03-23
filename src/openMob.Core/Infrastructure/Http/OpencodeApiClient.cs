@@ -616,7 +616,7 @@ internal sealed class OpencodeApiClient : IOpencodeApiClient
             ct);
 
     /// <inheritdoc />
-    public Task<OpencodeResult<IReadOnlyList<string>>> FindFilesAsync(FindFilesRequest request, CancellationToken ct = default)
+    public Task<OpencodeResult<IReadOnlyList<FileNodeDto>>> FindFilesAsync(FindFilesRequest request, CancellationToken ct = default)
     {
         var sb = new StringBuilder("/file");
         var hasQuery = false;
@@ -635,7 +635,9 @@ internal sealed class OpencodeApiClient : IOpencodeApiClient
 
         var relativeUrl = sb.ToString();
 
-        return ExecuteAsync<IReadOnlyList<string>>(
+        // The server always returns FileNodeDto[] — never string[].
+        // Deserialise as IReadOnlyList<FileNodeDto> to match the actual wire format.
+        return ExecuteAsync<IReadOnlyList<FileNodeDto>>(
             (client, baseUrl, token) => client.GetAsync($"{baseUrl}{relativeUrl}", token),
             ct);
     }
@@ -647,11 +649,19 @@ internal sealed class OpencodeApiClient : IOpencodeApiClient
             ct);
 
     /// <inheritdoc />
+    /// <remarks>
+    /// The opencode server does not expose a <c>/file/tree</c> endpoint — that path returns
+    /// the SPA HTML page (200 OK) rather than JSON, causing a <see cref="System.Text.Json.JsonException"/>
+    /// during deserialization. The <c>GET /file?pattern=*&amp;path={path}</c> endpoint returns the
+    /// same <see cref="FileNodeDto"/> structure (name, path, absolute, type, ignored) and is used here
+    /// as the correct replacement. Verified via curl against the live opencode server.
+    /// </remarks>
     public Task<OpencodeResult<IReadOnlyList<FileNodeDto>>> GetFileTreeAsync(string? path = null, CancellationToken ct = default)
     {
-        var url = path is not null
-            ? $"/file/tree?path={Uri.EscapeDataString(path)}"
-            : "/file/tree";
+        // Use /file?pattern=*&path={path} — returns FileNodeDto[] for the given directory level.
+        // An empty or null path lists the project root.
+        var encodedPath = Uri.EscapeDataString(path ?? string.Empty);
+        var url = $"/file?pattern=*&path={encodedPath}";
 
         return ExecuteAsync<IReadOnlyList<FileNodeDto>>(
             (client, baseUrl, token) => client.GetAsync($"{baseUrl}{url}", token),

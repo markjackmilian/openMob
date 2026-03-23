@@ -7,7 +7,8 @@ namespace openMob.Views.Popups;
 /// <summary>
 /// File picker popup — displays a searchable list of project files
 /// loaded from the opencode server via <see cref="FilePickerViewModel"/>.
-/// File loading is handled by MauiPopupService before this popup is pushed.
+/// Triggers file loading via <see cref="FilePickerViewModel.LoadFilesCommand"/>
+/// when the popup is navigated to.
 /// </summary>
 public partial class FilePickerSheet : PopupPage
 {
@@ -17,6 +18,17 @@ public partial class FilePickerSheet : PopupPage
     {
         InitializeComponent();
         BindingContext = viewModel;
+    }
+
+    /// <summary>Triggers file loading when the popup appears.</summary>
+    public override void OnNavigatedTo(IReadOnlyDictionary<string, object?> parameters)
+    {
+        base.OnNavigatedTo(parameters);
+
+        if (BindingContext is FilePickerViewModel vm && vm.LoadFilesCommand.CanExecute(null))
+        {
+            _ = vm.LoadFilesCommand.ExecuteAsync(null);
+        }
     }
 
     /// <summary>Closes the popup when the close button is tapped.</summary>

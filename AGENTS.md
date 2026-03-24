@@ -66,19 +66,31 @@ dotnet test tests/openMob.Tests/openMob.Tests.csproj \
 
 ## EF Core Migrations
 
+> ⚠️ **Load the `ef-migrations` skill before any migration operation.** It contains the full workflow, all commands, and the compiled model regeneration step that is mandatory for iOS Release builds.
+
 ```bash
-# Add a new migration (run from repo root)
+# Add a new migration
 dotnet ef migrations add <MigrationName> \
   --project src/openMob.Core/openMob.Core.csproj \
-  --startup-project src/openMob/openMob.csproj
+  --startup-project src/openMob/openMob.csproj \
+  --framework net10.0-android
 
 # Apply migrations locally
 dotnet ef database update \
   --project src/openMob.Core/openMob.Core.csproj \
-  --startup-project src/openMob/openMob.csproj
+  --startup-project src/openMob/openMob.csproj \
+  --framework net10.0-android
+
+# ✅ MANDATORY after every migration — regenerate the compiled model for iOS Release
+dotnet ef dbcontext optimize \
+  --project src/openMob.Core/openMob.Core.csproj \
+  --output-dir Data/CompiledModels \
+  --namespace openMob.Core.Data.CompiledModels
 ```
 
-Never use `EnsureCreated()` in production code. Migrations are applied at startup via `db.Database.Migrate()`.
+**Never use `EnsureCreated()` in production code.** Migrations are applied at startup via `db.Database.Migrate()`.
+
+**Always regenerate the compiled model after every migration.** The iOS Release linker strips EF Core's runtime reflection — without a compiled model the app crashes with `InvalidOperationException: Model building is not supported when publishing with NativeAOT`. See `docs/howto-ef-migrations-and-compiled-model.md` for full details.
 
 ---
 

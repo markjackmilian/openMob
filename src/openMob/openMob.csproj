@@ -16,11 +16,17 @@
          Re-enable once MAUI fixes this issue. -->
     <!--<MauiXamlInflator>SourceGen</MauiXamlInflator>-->
     <ApplicationTitle>openMob</ApplicationTitle>
-    <ApplicationId>com.openmob.app</ApplicationId>
-    <ApplicationVersion>1</ApplicationVersion>
+    <ApplicationId>com.openmob.mjm</ApplicationId>
+    <ApplicationVersion>2</ApplicationVersion>
     <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
     <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">15.0</SupportedOSPlatformVersion>
     <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">21.0</SupportedOSPlatformVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(TargetFramework)'=='net10.0-ios'">
+    <ProvisioningType>manual</ProvisioningType>
+    <CodesignKey>Apple Distribution: Marco Milani (93E884Z4Q5)</CodesignKey>
+    <CodesignProvision>OpenMob Distro</CodesignProvision>
+    <CodesignEntitlements>Platforms\iOS\Entitlements.plist</CodesignEntitlements>
   </PropertyGroup>
 
   <ItemGroup>

@@ -37,7 +37,18 @@ internal sealed class MauiServerCredentialStore : IServerCredentialStore
         ArgumentException.ThrowIfNullOrWhiteSpace(connectionId);
 
         var key = BuildKey(connectionId);
-        return await SecureStorage.Default.GetAsync(key).ConfigureAwait(false);
+
+        // On iOS, SecureStorage.GetAsync can throw if the Keychain is temporarily
+        // unavailable (e.g. device locked, missing entitlement, first boot before first unlock).
+        // Treat any exception as "no password stored" — the caller handles null gracefully.
+        try
+        {
+            return await SecureStorage.Default.GetAsync(key).ConfigureAwait(false);
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     /// <inheritdoc />

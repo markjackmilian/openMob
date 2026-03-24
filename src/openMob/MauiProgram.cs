@@ -1,7 +1,10 @@
 using CommunityToolkit.Maui;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using openMob.Core.Data;
+using openMob.Core.Infrastructure.Monitoring;
+using Sentry;
 using openMob.Core.Infrastructure.Security;
 using openMob.Core.Infrastructure.Settings;
 using openMob.Core.Services;
@@ -31,18 +34,42 @@ public static class MauiProgram
             (tag, msg) => Android.Util.Log.Debug(tag, msg);
 #endif
 
+        // ── IConfiguration from embedded appsettings.json / appsettings.Release.json ──
+        // Files are embedded as resources in the assembly so they work on iOS and Android
+        // without relying on the file system. appsettings.Release.json is gitignored and
+        // must be created locally with the real Sentry DSN before a Release build.
+        var assembly = typeof(MauiProgram).Assembly;
+        using var baseStream = assembly.GetManifestResourceStream("appsettings.json");
+        var configBuilder = new ConfigurationBuilder();
+        if (baseStream is not null)
+            configBuilder.AddJsonStream(baseStream);
+
+#if !DEBUG
+        // In Release builds, overlay appsettings.Release.json if it was embedded.
+        using var releaseStream = assembly.GetManifestResourceStream("appsettings.Release.json");
+        if (releaseStream is not null)
+            configBuilder.AddJsonStream(releaseStream);
+#endif
+
+        var configuration = configBuilder.Build();
+        builder.Configuration.AddConfiguration(configuration);
+
+        // Read Sentry DSN from configuration — never hardcoded.
+        var sentryDsn = configuration["Sentry:Dsn"] ?? string.Empty;
+
         builder
             .UseMauiApp<App>()
             .UseMauiCommunityToolkit()
             .UseUXDiversPopups()
-            // .UseSentry(options =>
-            // {
-            //     // DSN will be configured via app settings feature (user-secrets / SecureStorage).
-            //     // Never hardcode the DSN here — this is a public repository.
-            //     options.Dsn = string.Empty;
-            //     options.Debug = false;
-            //     options.TracesSampleRate = 1.0;
-            // })
+            .UseSentry(options =>
+            {
+                options.Dsn = sentryDsn;
+                options.Debug = false;
+                options.TracesSampleRate = double.TryParse(
+                    configuration["Sentry:TracesSampleRate"], out var rate) ? rate : 0.2;
+                options.IsGlobalModeEnabled = true;
+                options.AttachStacktrace = true;
+            })
             .ConfigureFonts(fonts =>
             {
                 fonts.AddFont("Inter-Regular.ttf", "InterRegular");
@@ -106,15 +133,24 @@ public static class MauiProgram
 
         // Apply EF Core migrations on startup.
         // Wrapped in try-catch to prevent startup crash if migrations fail.
+        // Any failure is captured to Sentry so it is visible in production builds.
         try
         {
+            SentryHelper.AddBreadcrumb("EF Core migration starting", "startup");
             using var scope = app.Services.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             db.Database.Migrate();
+            SentryHelper.AddBreadcrumb("EF Core migration completed", "startup");
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"[openMob] EF Core migration failed: {ex.Message}");
+            SentryHelper.CaptureException(ex, new Dictionary<string, object>
+            {
+                ["context"] = "MauiProgram.EFCoreMigration",
+                ["exceptionType"] = ex.GetType().FullName ?? "Unknown",
+                ["message"] = ex.Message,
+            });
         }
 
         return app;

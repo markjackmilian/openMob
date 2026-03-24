@@ -11,6 +11,10 @@
 *.sln.docstates
 *.env
 
+# App settings overrides containing secrets (Sentry DSN, API keys, etc.)
+# Add your real values to appsettings.Release.json locally — never commit it.
+appsettings.Release.json
+
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 

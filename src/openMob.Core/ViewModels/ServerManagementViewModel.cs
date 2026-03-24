@@ -112,6 +112,9 @@ public sealed partial class ServerManagementViewModel : ObservableObject
             SentryHelper.CaptureException(ex, new Dictionary<string, object>
             {
                 ["context"] = "ServerManagementViewModel.LoadAsync",
+                ["exceptionType"] = ex.GetType().FullName ?? "Unknown",
+                ["message"] = ex.Message,
+                ["innerException"] = ex.InnerException?.Message ?? "none",
             });
         }
         finally

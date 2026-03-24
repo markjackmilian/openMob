@@ -1,10 +1,8 @@
 using CommunityToolkit.Maui;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using openMob.Core.Data;
 using openMob.Core.Infrastructure.Monitoring;
-using Sentry;
 using openMob.Core.Infrastructure.Security;
 using openMob.Core.Infrastructure.Settings;
 using openMob.Core.Services;
@@ -34,39 +32,18 @@ public static class MauiProgram
             (tag, msg) => Android.Util.Log.Debug(tag, msg);
 #endif
 
-        // ── IConfiguration from embedded appsettings.json / appsettings.Release.json ──
-        // Files are embedded as resources in the assembly so they work on iOS and Android
-        // without relying on the file system. appsettings.Release.json is gitignored and
-        // must be created locally with the real Sentry DSN before a Release build.
-        var assembly = typeof(MauiProgram).Assembly;
-        using var baseStream = assembly.GetManifestResourceStream("appsettings.json");
-        var configBuilder = new ConfigurationBuilder();
-        if (baseStream is not null)
-            configBuilder.AddJsonStream(baseStream);
-
-#if !DEBUG
-        // In Release builds, overlay appsettings.Release.json if it was embedded.
-        using var releaseStream = assembly.GetManifestResourceStream("appsettings.Release.json");
-        if (releaseStream is not null)
-            configBuilder.AddJsonStream(releaseStream);
-#endif
-
-        var configuration = configBuilder.Build();
-        builder.Configuration.AddConfiguration(configuration);
-
-        // Read Sentry DSN from configuration — never hardcoded.
-        var sentryDsn = configuration["Sentry:Dsn"] ?? string.Empty;
-
         builder
             .UseMauiApp<App>()
             .UseMauiCommunityToolkit()
             .UseUXDiversPopups()
+            // DSN is supplied at compile-time via AppSecrets.Local.cs (gitignored).
+            // When AppSecrets.Local.cs is absent the DSN is empty and Sentry runs in no-op mode.
+            // See AppSecrets.cs for the template to create AppSecrets.Local.cs locally.
             .UseSentry(options =>
             {
-                options.Dsn = sentryDsn;
+                options.Dsn = AppSecrets.SentryDsn;
                 options.Debug = false;
-                options.TracesSampleRate = double.TryParse(
-                    configuration["Sentry:TracesSampleRate"], out var rate) ? rate : 0.2;
+                options.TracesSampleRate = 0.2;
                 options.IsGlobalModeEnabled = true;
                 options.AttachStacktrace = true;
             })

@@ -514,4 +514,4 @@ When given a task (from a spec document or direct request), follow this sequence
 5. **Propose structure** — for screens or components with multiple new files, outline what you will create and wait for confirmation.
 6. **Implement** — write XAML and C# following all rules in this prompt. No business logic, no hardcoded tokens.
 7. **Verify accessibility** — before finishing, confirm touch targets, contrast, and `SemanticProperties` are in place.
-8. **Never run bash commands** — building, package management, and migrations are handled by `@om-mobile-core`.
+8. **Never run bash commands** — building and package management are handled by `@om-mobile-core`.

@@ -30,7 +30,7 @@ You have access to **context7** for xUnit, NSubstitute, and FluentAssertions API
 ### What you never test
 
 - XAML rendering, visual layout, or any UI behavior
-- Real database (SQLite, EF Core against a file)
+- Real database (SQLite against a real file via sqlite-net-pcl)
 - Real HTTP calls (opencode server, any external API)
 - MAUI platform APIs (`SecureStorage`, `FileSystem`, `Shell.Current`, `Launcher`, `Connectivity`)
 - Sentry SDK calls (do not assert on `SentrySdk.*` — it is a side effect, not business logic)
@@ -442,7 +442,7 @@ If any of the following appear as real (non-mocked) dependencies in the code und
 
 | Forbidden dependency | Required abstraction | Action if missing |
 |----------------------|---------------------|-------------------|
-| `AppDbContext` (real) | `IRepository<T>` | Report to `@om-mobile-core` |
+| `AppDatabase` (real sqlite-net-pcl) | `IRepository<T>` | Report to `@om-mobile-core` |
 | `HttpClient` (real) | `IOpenCodeApiClient` | Report to `@om-mobile-core` |
 | `SecureStorage.Default` | `ISecureStorageService` | Report to `@om-mobile-core` |
 | `FileSystem.AppDataDirectory` | `IFileSystemService` | Report to `@om-mobile-core` |

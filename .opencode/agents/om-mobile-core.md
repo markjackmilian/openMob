@@ -1,5 +1,5 @@
 ---
-description: .NET MAUI cross-platform mobile expert for iOS and Android. Implements features using MVVM (CommunityToolkit), SQLite/EF Core with migrations, Sentry monitoring, and opencode server API integration. Writes clean, testable, well-commented code. Never exposes secrets in source code.
+description: .NET MAUI cross-platform mobile expert for iOS and Android. Implements features using MVVM (CommunityToolkit), SQLite via sqlite-net-pcl, Sentry monitoring, and opencode server API integration. Writes clean, testable, well-commented code. Never exposes secrets in source code.
 mode: subagent
 temperature: 0.2
 color: "#4a9eff"
@@ -26,7 +26,7 @@ These are the **fixed, non-negotiable** technologies for this project. Never sug
 |----------------------|-------------------------------------------------|
 | UI Framework         | .NET MAUI (latest stable)                       |
 | MVVM                 | CommunityToolkit.Mvvm (source generators)       |
-| Local persistence    | SQLite via EF Core + Migrations                 |
+| Local persistence    | SQLite via sqlite-net-pcl                       |
 | Monitoring & logging | Sentry SDK for .NET                             |
 | HTTP client          | IHttpClientFactory + typed client               |
 | Dependency Injection | MauiAppBuilder (built-in .NET DI)               |
@@ -80,34 +80,31 @@ private async Task LoadDataAsync(CancellationToken ct)
 ### Models
 
 - Models are plain C# classes (POCOs) — no UI dependencies.
-- EF Core entity models live in `Models/` and are annotated with Data Annotations or Fluent API in `DbContext`.
+- Entity classes live in `src/openMob.Core/Data/Entities/` and must have `[Table("TableName")]`, `[Preserve(AllMembers = true)]`, and `[PrimaryKey]` attributes.
 
 ---
 
-## Persistence — EF Core + SQLite + Migrations
+## Persistence — sqlite-net-pcl
 
-### DbContext
+The project uses **sqlite-net-pcl** for local persistence. There are no migrations, no `DbContext`, and no EF Core tooling.
 
-- One `AppDbContext : DbContext` per project.
-- Configure entities via `OnModelCreating` using Fluent API (preferred over Data Annotations for complex rules).
-- Register in DI as scoped: `builder.Services.AddDbContext<AppDbContext>(...)`.
+### Schema Evolution
 
-### Migrations
+- Add a new column by adding a property to the entity class. `CreateTableAsync<T>()` is called at every startup and automatically runs `ALTER TABLE ADD COLUMN` for any missing columns.
+- sqlite-net-pcl can **add** columns automatically but **cannot rename or drop** columns.
+- Enum properties **must** be stored as `int`. Use a computed `[Ignore]` property for typed enum access.
+- `DateTime` values are stored as ticks (`storeDateTimeAsTicks: true` in `AppDatabase`).
 
-- Always use EF Core migrations. Never call `EnsureCreated()` in production code.
-- Apply migrations at startup:
+### AppDatabase
 
-```csharp
-// In MauiProgram.cs or a startup service
-using var scope = app.Services.CreateScope();
-var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-await db.Database.MigrateAsync();
-```
+- One `AppDatabase` singleton registered in DI.
+- Tables are created via `CreateTableAsync<T>()` at startup — call this for every entity type.
+- Inject `AppDatabase` (or a wrapping `IRepository<T>`) into services — never into ViewModels directly.
 
 ### Repository Pattern
 
 - Define a generic interface `IRepository<T>` and specific interfaces per aggregate.
-- Concrete implementations are registered in DI and injected into ViewModels or Services.
+- Concrete implementations are registered in DI and injected into Services.
 
 ```csharp
 /// <summary>Generic repository interface for data access.</summary>
@@ -371,19 +368,19 @@ private async Task SetActiveAsync(CancellationToken ct)
 ## Project Folder Structure
 
 ```
-src/
-├── Models/                  # EF Core entities (POCOs)
-├── ViewModels/              # ObservableObject subclasses
-├── Views/                   # XAML pages + minimal code-behind
-├── Services/                # Business logic, IRepository<T>, IOpenCodeApiClient
+src/openMob.Core/
 ├── Data/
-│   ├── AppDbContext.cs      # EF Core DbContext
-│   └── Migrations/          # EF Core migration files (auto-generated)
+│   ├── AppDatabase.cs       # sqlite-net-pcl connection wrapper
+│   ├── Entities/            # Entity classes (POCOs with sqlite-net-pcl attributes)
+│   └── Repositories/        # IRepository<T> implementations
+├── ViewModels/              # ObservableObject subclasses
+├── Services/                # Business logic, IOpenCodeApiClient
 ├── Infrastructure/
 │   ├── Http/                # OpenCodeApiClient, typed HTTP client
 │   ├── Monitoring/          # Sentry configuration helpers
 │   └── DI/                  # Extension methods for service registration
-└── MauiProgram.cs           # App entry point, DI wiring, Sentry init, migrations
+src/openMob/
+└── MauiProgram.cs           # App entry point, DI wiring, Sentry init
 ```
 
 ---
@@ -394,7 +391,7 @@ When given a task (from a spec document or direct request), follow this sequence
 
 1. **Read the spec** — if a `specs/todo/*.md` file is referenced or present, read it fully before writing any code.
 2. **Explore the codebase** — use the Explore subagent or file tools to understand existing structure, naming conventions, and registered services before adding new code.
-3. **Consult documentation** — use `@context7` for MAUI, EF Core, CommunityToolkit, Sentry APIs. Use webfetch for NuGet package pages or GitHub issues when needed.
+3. **Consult documentation** — use `@context7` for MAUI, sqlite-net-pcl, CommunityToolkit, Sentry APIs. Use webfetch for NuGet package pages or GitHub issues when needed.
 4. **Propose structure** — for non-trivial features, outline the files and classes you will create/modify and wait for confirmation before writing code.
 5. **Implement** — write code following all patterns defined in this prompt. Include XML docs and unit tests for ViewModels and Services.
 6. **Verify secrets** — before finishing, scan all new/modified files for hardcoded secrets. Report any findings immediately.

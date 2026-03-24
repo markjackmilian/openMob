@@ -103,7 +103,7 @@ Verify adherence to the MVVM patterns and layering rules established by `om-mobi
 - Missing `[RelayCommand]` — manually implemented `ICommand` where the source generator should be used
 
 **Layering violations:**
-- View directly accessing a repository or `AppDbContext`
+- View directly accessing a repository or `AppDatabase`
 - Service layer referencing any MAUI UI type (`ContentPage`, `Shell`, `Application`)
 - Missing interface on a class that is used as a dependency (untestable concrete coupling)
 

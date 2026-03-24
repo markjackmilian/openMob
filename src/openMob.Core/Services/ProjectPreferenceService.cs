@@ -6,19 +6,19 @@ using openMob.Core.Models;
 namespace openMob.Core.Services;
 
 /// <summary>
-/// Manages per-project user preferences using EF Core and SQLite.
+/// Manages per-project user preferences using sqlite-net-pcl and SQLite.
 /// </summary>
 /// <remarks>
 /// Registered as Transient in DI — follows the same lifetime pattern as other business services.
-/// Uses <see cref="AppDbContext"/> for persistence.
+/// Injects <see cref="IAppDatabase"/> (Singleton) for persistence.
 /// </remarks>
 public sealed class ProjectPreferenceService : IProjectPreferenceService
 {
-    private readonly AppDbContext _db;
+    private readonly IAppDatabase _db;
 
-    /// <summary>Initialises the service with the required database context.</summary>
-    /// <param name="db">The EF Core database context.</param>
-    public ProjectPreferenceService(AppDbContext db)
+    /// <summary>Initialises the service with the required database.</summary>
+    /// <param name="db">The application database (Singleton).</param>
+    public ProjectPreferenceService(IAppDatabase db)
     {
         ArgumentNullException.ThrowIfNull(db);
         _db = db;
@@ -29,8 +29,10 @@ public sealed class ProjectPreferenceService : IProjectPreferenceService
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(projectId);
 
-        return await _db.ProjectPreferences
-            .FindAsync([projectId], ct)
+        return await _db.Connection
+            .Table<ProjectPreference>()
+            .Where(p => p.ProjectId == projectId)
+            .FirstOrDefaultAsync()
             .ConfigureAwait(false);
     }
 
@@ -39,8 +41,10 @@ public sealed class ProjectPreferenceService : IProjectPreferenceService
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(projectId);
 
-        var existing = await _db.ProjectPreferences
-            .FindAsync([projectId], ct)
+        var existing = await _db.Connection
+            .Table<ProjectPreference>()
+            .Where(p => p.ProjectId == projectId)
+            .FirstOrDefaultAsync()
             .ConfigureAwait(false);
 
         if (existing is not null)
@@ -64,25 +68,26 @@ public sealed class ProjectPreferenceService : IProjectPreferenceService
 
         try
         {
-            var existing = await _db.ProjectPreferences
-                .FindAsync([projectId], ct)
+            var existing = await _db.Connection
+                .Table<ProjectPreference>()
+                .Where(p => p.ProjectId == projectId)
+                .FirstOrDefaultAsync()
                 .ConfigureAwait(false);
 
             if (existing is not null)
             {
                 existing.DefaultModelId = modelId;
+                await _db.Connection.UpdateAsync(existing).ConfigureAwait(false);
             }
             else
             {
-                var preference = new ProjectPreference
+                await _db.Connection.InsertAsync(new ProjectPreference
                 {
                     ProjectId = projectId,
                     DefaultModelId = modelId,
-                };
-                _db.ProjectPreferences.Add(preference);
+                }).ConfigureAwait(false);
             }
 
-            await _db.SaveChangesAsync(ct).ConfigureAwait(false);
             return true;
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -104,25 +109,27 @@ public sealed class ProjectPreferenceService : IProjectPreferenceService
 
         try
         {
-            var existing = await _db.ProjectPreferences
-                .FindAsync([projectId], ct)
+            var existing = await _db.Connection
+                .Table<ProjectPreference>()
+                .Where(p => p.ProjectId == projectId)
+                .FirstOrDefaultAsync()
                 .ConfigureAwait(false);
 
             if (existing is not null)
             {
                 existing.DefaultModelId = null;
+                await _db.Connection.UpdateAsync(existing).ConfigureAwait(false);
             }
             else
             {
-                _db.ProjectPreferences.Add(new ProjectPreference
+                await _db.Connection.InsertAsync(new ProjectPreference
                 {
                     ProjectId = projectId,
                     DefaultModelId = null,
                     ThinkingLevel = ThinkingLevel.Medium,
-                });
+                }).ConfigureAwait(false);
             }
 
-            await _db.SaveChangesAsync(ct).ConfigureAwait(false);
             return true;
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -143,25 +150,27 @@ public sealed class ProjectPreferenceService : IProjectPreferenceService
 
         try
         {
-            var existing = await _db.ProjectPreferences
-                .FindAsync([projectId], ct)
+            var existing = await _db.Connection
+                .Table<ProjectPreference>()
+                .Where(p => p.ProjectId == projectId)
+                .FirstOrDefaultAsync()
                 .ConfigureAwait(false);
 
             if (existing is not null)
             {
                 existing.AgentName = agentName;
+                await _db.Connection.UpdateAsync(existing).ConfigureAwait(false);
             }
             else
             {
-                _db.ProjectPreferences.Add(new ProjectPreference
+                await _db.Connection.InsertAsync(new ProjectPreference
                 {
                     ProjectId = projectId,
                     AgentName = agentName,
                     ThinkingLevel = ThinkingLevel.Medium,
-                });
+                }).ConfigureAwait(false);
             }
 
-            await _db.SaveChangesAsync(ct).ConfigureAwait(false);
             return true;
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -183,24 +192,26 @@ public sealed class ProjectPreferenceService : IProjectPreferenceService
 
         try
         {
-            var existing = await _db.ProjectPreferences
-                .FindAsync([projectId], ct)
+            var existing = await _db.Connection
+                .Table<ProjectPreference>()
+                .Where(p => p.ProjectId == projectId)
+                .FirstOrDefaultAsync()
                 .ConfigureAwait(false);
 
             if (existing is not null)
             {
                 existing.ThinkingLevel = level;
+                await _db.Connection.UpdateAsync(existing).ConfigureAwait(false);
             }
             else
             {
-                _db.ProjectPreferences.Add(new ProjectPreference
+                await _db.Connection.InsertAsync(new ProjectPreference
                 {
                     ProjectId = projectId,
                     ThinkingLevel = level,
-                });
+                }).ConfigureAwait(false);
             }
 
-            await _db.SaveChangesAsync(ct).ConfigureAwait(false);
             return true;
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -222,25 +233,27 @@ public sealed class ProjectPreferenceService : IProjectPreferenceService
 
         try
         {
-            var existing = await _db.ProjectPreferences
-                .FindAsync([projectId], ct)
+            var existing = await _db.Connection
+                .Table<ProjectPreference>()
+                .Where(p => p.ProjectId == projectId)
+                .FirstOrDefaultAsync()
                 .ConfigureAwait(false);
 
             if (existing is not null)
             {
                 existing.AutoAccept = autoAccept;
+                await _db.Connection.UpdateAsync(existing).ConfigureAwait(false);
             }
             else
             {
-                _db.ProjectPreferences.Add(new ProjectPreference
+                await _db.Connection.InsertAsync(new ProjectPreference
                 {
                     ProjectId = projectId,
                     AutoAccept = autoAccept,
                     ThinkingLevel = ThinkingLevel.Medium,
-                });
+                }).ConfigureAwait(false);
             }
 
-            await _db.SaveChangesAsync(ct).ConfigureAwait(false);
             return true;
         }
         catch (Exception ex) when (ex is not OperationCanceledException)

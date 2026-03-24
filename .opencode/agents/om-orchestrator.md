@@ -112,7 +112,7 @@ Append this section verbatim to the spec document:
 |-------|-------|-------|
 | Business logic / Services | om-mobile-core | src/Services/ |
 | ViewModels | om-mobile-core | src/ViewModels/ |
-| Data / EF Core | om-mobile-core | src/Data/, src/Models/ |
+| Data / Entities | om-mobile-core | src/openMob.Core/Data/ |
 | XAML Views | om-mobile-ui | src/Views/Pages/ |
 | UI Components | om-mobile-ui | src/Views/Controls/ |
 | Styles / Theme | om-mobile-ui | Resources/Styles/ |
@@ -135,7 +135,7 @@ Append this section verbatim to the spec document:
 
 ### Technical Risks
 
-- Known breaking changes (EF Core migrations, interface changes, navigation changes)
+- Known breaking changes (schema column additions, interface changes, navigation changes)
 - Platform-specific concerns (iOS Keychain vs Android Keystore, platform conditionals)
 - Secrets handling requirements
 
@@ -221,14 +221,13 @@ Do not instruct an agent to do work outside its domain.
 **Requirements:** REQ-001, REQ-002, ... (list only those requiring backend/logic work)
 
 **Files to create:**
-- `src/Services/I<Name>Service.cs` — interface definition
-- `src/Services/<Name>Service.cs` — implementation
-- `src/ViewModels/<Name>ViewModel.cs`
-- (add migrations if EF Core entities change)
+- `src/openMob.Core/Services/I<Name>Service.cs` — interface definition
+- `src/openMob.Core/Services/<Name>Service.cs` — implementation
+- `src/openMob.Core/ViewModels/<Name>ViewModel.cs`
+- (add entity class in `src/openMob.Core/Data/Entities/` if schema changes are needed)
 
 **Files to modify:**
-- `src/MauiProgram.cs` — register new services in DI
-- `src/Data/AppDbContext.cs` — add DbSet if needed
+- `src/openMob/MauiProgram.cs` — register new services in DI
 
 **Interfaces required for testability:**
 - List every new interface that must exist for NSubstitute mocking
@@ -619,7 +618,7 @@ Review the completed feature for significant architectural decisions. An ADR mus
 |---------|---------|
 | New public interface introduced that changes the contract between layers | `INavigationService` introduced to abstract `Shell.Current` |
 | New architectural pattern adopted for the first time in the project | First use of SSE streaming, first use of `SecureStorage` wrapper pattern |
-| New structural NuGet package added | Adding Polly, SkiaSharp, a new EF Core provider |
+| New structural NuGet package added | Adding Polly, SkiaSharp, a new sqlite provider |
 | Decision deviates from standards defined in agent prompts | Choosing not to use `[ObservableProperty]` for a documented reason |
 | Explicit choice made between two significant alternatives | Typed `HttpClient` vs custom `RestClient` wrapper |
 | Cross-cutting constraint established | "All API calls must include a 30-second timeout" |

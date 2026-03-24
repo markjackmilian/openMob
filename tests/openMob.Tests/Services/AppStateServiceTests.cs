@@ -1,47 +1,43 @@
-using Microsoft.Data.Sqlite;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
+using SQLite;
+using SQLitePCL;
 using openMob.Core.Services;
-using openMob.Tests.Helpers;
 
 namespace openMob.Tests.Services;
 
 /// <summary>
 /// Unit tests for <see cref="AppStateService"/>.
-/// Uses in-memory SQLite via <see cref="TestDbContextFactory"/> to test real EF Core
-/// queries without touching the filesystem.
+/// Uses sqlite-net-pcl with an in-memory SQLite connection for fast, isolated tests.
 /// </summary>
-public sealed class AppStateServiceTests : IDisposable
+public sealed class AppStateServiceTests : IAsyncLifetime
 {
-    private readonly SqliteConnection _connection;
-    private readonly IServiceScopeFactory _scopeFactory;
-    private readonly AppStateService _sut;
+    private string _dbPath = null!;
+    private SQLiteAsyncConnection _connection = null!;
+    private IAppDatabase _appDatabase = null!;
+    private AppStateService _sut = null!;
 
-    public AppStateServiceTests()
+    /// <summary>Sets up a fresh SQLite database file before each test.</summary>
+    public async Task InitializeAsync()
     {
-        // Open a shared in-memory SQLite connection that persists for the test lifetime.
-        _connection = new SqliteConnection("DataSource=:memory:");
-        _connection.Open();
+        // Initialise the native SQLite bindings (idempotent — safe to call multiple times).
+        Batteries_V2.Init();
 
-        // Wire up the IServiceScopeFactory → IServiceScope → IServiceProvider → AppDbContext chain.
-        // Each call to CreateScope() returns a fresh AppDbContext sharing the same in-memory connection.
-        _scopeFactory = Substitute.For<IServiceScopeFactory>();
-        _scopeFactory.CreateScope().Returns(_ =>
-        {
-            var db = TestDbContextFactory.Create(_connection);
-            var scope = Substitute.For<IServiceScope>();
-            var provider = Substitute.For<IServiceProvider>();
-            provider.GetService(typeof(AppDbContext)).Returns(db);
-            scope.ServiceProvider.Returns(provider);
-            return scope;
-        });
+        // Use a unique temp file per test to avoid cross-test interference.
+        _dbPath = Path.Combine(Path.GetTempPath(), $"openMob_test_{Guid.NewGuid():N}.db");
+        _connection = new SQLiteAsyncConnection(_dbPath, storeDateTimeAsTicks: true);
+        await _connection.CreateTableAsync<AppState>();
 
-        _sut = new AppStateService(_scopeFactory);
+        _appDatabase = Substitute.For<IAppDatabase>();
+        _appDatabase.Connection.Returns(_connection);
+
+        _sut = new AppStateService(_appDatabase);
     }
 
-    public void Dispose()
+    /// <summary>Closes the connection and deletes the temp DB file after each test.</summary>
+    public async Task DisposeAsync()
     {
-        _connection.Dispose();
+        await _connection.CloseAsync();
+        if (File.Exists(_dbPath))
+            File.Delete(_dbPath);
     }
 
     // ─── GetLastActiveProjectIdAsync ──────────────────────────────────────────
@@ -60,13 +56,11 @@ public sealed class AppStateServiceTests : IDisposable
     public async Task GetLastActiveProjectIdAsync_WhenStateExists_ReturnsStoredProjectId()
     {
         // Arrange — seed the database with a known state entry
-        using var seedDb = TestDbContextFactory.Create(_connection);
-        seedDb.AppStates.Add(new AppState
+        await _connection.InsertAsync(new AppState
         {
             Key = "LastActiveProjectId",
             Value = "proj-42",
         });
-        await seedDb.SaveChangesAsync();
 
         // Act
         var result = await _sut.GetLastActiveProjectIdAsync();
@@ -79,13 +73,11 @@ public sealed class AppStateServiceTests : IDisposable
     public async Task GetLastActiveProjectIdAsync_WhenOtherKeysExist_ReturnsNullForMissingKey()
     {
         // Arrange — seed with a different key
-        using var seedDb = TestDbContextFactory.Create(_connection);
-        seedDb.AppStates.Add(new AppState
+        await _connection.InsertAsync(new AppState
         {
             Key = "SomeOtherKey",
             Value = "some-value",
         });
-        await seedDb.SaveChangesAsync();
 
         // Act
         var result = await _sut.GetLastActiveProjectIdAsync();
@@ -102,9 +94,11 @@ public sealed class AppStateServiceTests : IDisposable
         // Act
         await _sut.SetLastActiveProjectIdAsync("proj-new");
 
-        // Assert — verify via a fresh context that the row was persisted
-        using var verifyDb = TestDbContextFactory.Create(_connection);
-        var entry = await verifyDb.AppStates.FirstOrDefaultAsync(x => x.Key == "LastActiveProjectId");
+        // Assert — verify the row was persisted
+        var entry = await _connection
+            .Table<AppState>()
+            .Where(x => x.Key == "LastActiveProjectId")
+            .FirstOrDefaultAsync();
         entry.Should().NotBeNull();
         entry!.Value.Should().Be("proj-new");
     }
@@ -115,20 +109,18 @@ public sealed class AppStateServiceTests : IDisposable
     public async Task SetLastActiveProjectIdAsync_WhenKeyAlreadyExists_UpdatesExistingRow()
     {
         // Arrange — seed with an existing entry
-        using var seedDb = TestDbContextFactory.Create(_connection);
-        seedDb.AppStates.Add(new AppState
+        await _connection.InsertAsync(new AppState
         {
             Key = "LastActiveProjectId",
             Value = "proj-old",
         });
-        await seedDb.SaveChangesAsync();
 
         // Act
         await _sut.SetLastActiveProjectIdAsync("proj-updated");
 
         // Assert — verify the value was updated, not duplicated
-        using var verifyDb = TestDbContextFactory.Create(_connection);
-        var entries = await verifyDb.AppStates
+        var entries = await _connection
+            .Table<AppState>()
             .Where(x => x.Key == "LastActiveProjectId")
             .ToListAsync();
         entries.Should().ContainSingle();
@@ -197,13 +189,13 @@ public sealed class AppStateServiceTests : IDisposable
     // ─── Constructor — null guard ─────────────────────────────────────────────
 
     [Fact]
-    public void Constructor_WhenScopeFactoryIsNull_ThrowsArgumentNullException()
+    public void Constructor_WhenDbIsNull_ThrowsArgumentNullException()
     {
         // Act
         var act = () => new AppStateService(null!);
 
         // Assert
         act.Should().Throw<ArgumentNullException>()
-            .And.ParamName.Should().Be("scopeFactory");
+            .And.ParamName.Should().Be("db");
     }
 }

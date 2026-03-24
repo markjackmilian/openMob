@@ -64,33 +64,30 @@ dotnet test tests/openMob.Tests/openMob.Tests.csproj \
 
 ---
 
-## EF Core Migrations
+## Schema Evolution (sqlite-net-pcl)
 
-> ⚠️ **Load the `ef-migrations` skill before any migration operation.** It contains the full workflow, all commands, and the compiled model regeneration step that is mandatory for iOS Release builds.
+The app uses **sqlite-net-pcl** for data access — no EF Core, no migrations, no tooling.
 
-```bash
-# Add a new migration
-dotnet ef migrations add <MigrationName> \
-  --project src/openMob.Core/openMob.Core.csproj \
-  --startup-project src/openMob/openMob.csproj \
-  --framework net10.0-android
+### How to evolve the schema
 
-# Apply migrations locally
-dotnet ef database update \
-  --project src/openMob.Core/openMob.Core.csproj \
-  --startup-project src/openMob/openMob.csproj \
-  --framework net10.0-android
+1. **Add a new column** → add a property to the C# entity class (e.g., `ServerConnection`, `ProjectPreference`, `AppState`).
+2. **That's it.** `CreateTableAsync<T>()` is called at every startup and automatically runs `ALTER TABLE ADD COLUMN` for any missing columns.
+3. No migration files, no compiled models, no `dotnet ef` commands required.
 
-# ✅ MANDATORY after every migration — regenerate the compiled model for iOS Release
-dotnet ef dbcontext optimize \
-  --project src/openMob.Core/openMob.Core.csproj \
-  --output-dir Data/CompiledModels \
-  --namespace openMob.Core.Data.CompiledModels
-```
+### Constraints
 
-**Never use `EnsureCreated()` in production code.** Migrations are applied at startup via `db.Database.Migrate()`.
+- `sqlite-net-pcl` can **add** columns automatically but **cannot rename or drop** columns.
+- To rename a column: add the new column, migrate data in code, then remove the old property (the old column remains in the DB but is ignored).
+- To drop a column: remove the property from the entity class (the column remains in the DB but is ignored by sqlite-net-pcl).
+- Enum properties **must** be stored as `int`. Use a computed `[Ignore]` property for typed enum access (see `ProjectPreference.ThinkingLevel`).
+- `DateTime` values are stored as ticks (`storeDateTimeAsTicks: true` in `AppDatabase`).
 
-**Always regenerate the compiled model after every migration.** The iOS Release linker strips EF Core's runtime reflection — without a compiled model the app crashes with `InvalidOperationException: Model building is not supported when publishing with NativeAOT`. See `docs/howto-ef-migrations-and-compiled-model.md` for full details.
+### Entity classes
+
+All entity classes live in `src/openMob.Core/Data/Entities/` and must have:
+- `[Table("TableName")]` attribute
+- `[Preserve(AllMembers = true)]` attribute (prevents iOS linker from stripping property metadata)
+- `[PrimaryKey]` on the primary key property
 
 ---
 
@@ -137,7 +134,7 @@ dotnet ef dbcontext optimize \
 ### Naming Conventions
 | Element | Convention | Example |
 |---|---|---|
-| Classes | PascalCase | `ClaudeApiClient`, `AppDbContext` |
+| Classes | PascalCase | `ClaudeApiClient`, `AppDatabase` |
 | Interfaces | `I` prefix + PascalCase | `IClaudeApiClient`, `IAppDataPathProvider` |
 | Private fields | `_camelCase` | `_httpClientFactory`, `_pathProvider` |
 | Methods | PascalCase | `GetSessionsAsync`, `AddOpenMobCore` |

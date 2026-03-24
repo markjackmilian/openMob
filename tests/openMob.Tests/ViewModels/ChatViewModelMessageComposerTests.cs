@@ -166,7 +166,7 @@ public sealed class ChatViewModelMessageComposerTests : IDisposable
 
         // Stub SendPromptAsync to prevent actual send logic from failing
         _chatService.SendPromptAsync(
-            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(ChatServiceResult<bool>.Ok(true));
 
         // Act
@@ -181,6 +181,7 @@ public sealed class ChatViewModelMessageComposerTests : IDisposable
         await _chatService.Received(1).SendPromptAsync(
             "sess-1",
             "Hello from composer",
+            Arg.Any<string?>(),
             Arg.Any<string?>(),
             Arg.Any<string?>(),
             Arg.Any<CancellationToken>());
@@ -202,7 +203,7 @@ public sealed class ChatViewModelMessageComposerTests : IDisposable
 
         // Assert
         await _chatService.DidNotReceive().SendPromptAsync(
-            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -214,7 +215,7 @@ public sealed class ChatViewModelMessageComposerTests : IDisposable
         _sut.SelectedAgentName = "default-agent";
 
         _chatService.SendPromptAsync(
-            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(ChatServiceResult<bool>.Ok(true));
 
         // Act
@@ -231,6 +232,7 @@ public sealed class ChatViewModelMessageComposerTests : IDisposable
             "Hello",
             Arg.Any<string?>(),
             Arg.Any<string?>(),
+            "custom-agent",
             Arg.Any<CancellationToken>());
         await _preferenceService.Received(1).SetAgentAsync("proj-1", "custom-agent", Arg.Any<CancellationToken>());
     }
@@ -244,7 +246,7 @@ public sealed class ChatViewModelMessageComposerTests : IDisposable
         _sut.SelectedAgentName = "same-agent";
 
         _chatService.SendPromptAsync(
-            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(ChatServiceResult<bool>.Ok(true));
 
         // Act
@@ -260,6 +262,7 @@ public sealed class ChatViewModelMessageComposerTests : IDisposable
             "Hello",
             Arg.Any<string?>(),
             Arg.Any<string?>(),
+            Arg.Any<string?>(),
             Arg.Any<CancellationToken>());
     }
 
@@ -272,7 +275,7 @@ public sealed class ChatViewModelMessageComposerTests : IDisposable
         _sut.SelectedAgentName = "some-agent";
 
         _chatService.SendPromptAsync(
-            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(ChatServiceResult<bool>.Ok(true));
 
         // Act
@@ -286,6 +289,7 @@ public sealed class ChatViewModelMessageComposerTests : IDisposable
         await _chatService.Received(1).SendPromptAsync(
             "sess-1",
             "Hello",
+            Arg.Any<string?>(),
             Arg.Any<string?>(),
             Arg.Any<string?>(),
             Arg.Any<CancellationToken>());

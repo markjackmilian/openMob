@@ -50,6 +50,9 @@ public interface IChatService
     /// <param name="text">The plain text content of the prompt.</param>
     /// <param name="modelId">The model ID to use, or <c>null</c> for the session default.</param>
     /// <param name="providerId">The provider ID to use, or <c>null</c> for the session default.</param>
+    /// <param name="agentName">The agent name to use, or <c>null</c> for the project default.
+    /// When <c>null</c>, the <c>"agent"</c> field is omitted from the request body so the
+    /// server-side default is preserved.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>
     /// A <see cref="ChatServiceResult{T}"/> wrapping <c>true</c> on success,
@@ -60,6 +63,7 @@ public interface IChatService
         string text,
         string? modelId,
         string? providerId,
+        string? agentName = null,
         CancellationToken ct = default);
 
     /// <summary>

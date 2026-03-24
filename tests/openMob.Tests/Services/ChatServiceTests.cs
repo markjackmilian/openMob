@@ -200,7 +200,7 @@ public sealed class ChatServiceTests
             .ThrowsAsync(new OperationCanceledException(ct));
 
         // Act
-        var result = await _sut.SendPromptAsync("sess-1", "Hello", null, null, ct);
+        var result = await _sut.SendPromptAsync("sess-1", "Hello", null, null, ct: ct);
 
         // Assert
         result.IsSuccess.Should().BeFalse();

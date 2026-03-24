@@ -109,11 +109,12 @@ internal sealed class ChatService : IChatService
         string text,
         string? modelId,
         string? providerId,
+        string? agentName = null,
         CancellationToken ct = default)
     {
         try
         {
-            var request = SendPromptRequestBuilder.FromText(text, modelId, providerId);
+            var request = SendPromptRequestBuilder.FromText(text, modelId, providerId, agentName);
             var result = await _apiClient.SendPromptAsyncNoWait(sessionId, request, ct)
                 .ConfigureAwait(false);
 

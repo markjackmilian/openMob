@@ -18,11 +18,16 @@ public sealed class SendPromptRequestBuilder
     /// <param name="providerId">
     /// The provider ID to use for this prompt, or <c>null</c> to use the session default.
     /// </param>
+    /// <param name="agentName">
+    /// The agent name to use for this prompt, or <c>null</c> to use the project default.
+    /// When <c>null</c>, the <c>"agent"</c> field is omitted from the serialized JSON.
+    /// </param>
     /// <returns>A <see cref="SendPromptRequest"/> ready to send to the opencode server.</returns>
     public static SendPromptRequest FromText(
         string text,
         string? modelId = null,
-        string? providerId = null)
+        string? providerId = null,
+        string? agentName = null)
     {
         // Serialize { "type": "text", "text": "<text>" } as a JsonElement
         var json = JsonSerializer.SerializeToElement(new { type = "text", text });
@@ -30,6 +35,7 @@ public sealed class SendPromptRequestBuilder
         return new SendPromptRequest(
             Parts: [json],
             ModelId: modelId,
-            ProviderId: providerId);
+            ProviderId: providerId,
+            Agent: agentName);
     }
 }

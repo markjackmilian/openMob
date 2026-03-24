@@ -22,6 +22,7 @@ public sealed class SendPromptRequestBuilderTests
         result.Parts.Should().HaveCount(1);
         result.ModelId.Should().BeNull();
         result.ProviderId.Should().BeNull();
+        result.Agent.Should().BeNull();
     }
 
     // ─── Wire format of the part ──────────────────────────────────────────────
@@ -109,5 +110,58 @@ public sealed class SendPromptRequestBuilderTests
         // Assert
         result.ModelId.Should().Be("claude-3");
         result.ProviderId.Should().Be("anthropic");
+    }
+
+    // ─── Optional agentName (AC-004) ──────────────────────────────────────────
+
+    [Fact]
+    public void FromText_WhenAgentNameProvided_SetsAgentProperty()
+    {
+        // Act
+        var result = SendPromptRequestBuilder.FromText("text", agentName: "om-mobile-core");
+
+        // Assert
+        result.Agent.Should().Be("om-mobile-core");
+    }
+
+    // ─── JSON serialization of Agent field (AC-005) ───────────────────────────
+
+    [Fact]
+    public void FromText_WhenAgentNameIsNull_SerializedJsonOmitsAgentKey()
+    {
+        // Arrange
+        var result = SendPromptRequestBuilder.FromText("text");
+
+        // Act
+        var json = JsonSerializer.Serialize(result);
+
+        // Assert
+        json.Should().NotContain("\"agent\"");
+    }
+
+    [Fact]
+    public void FromText_WhenAgentNameProvided_SerializedJsonContainsAgentKey()
+    {
+        // Arrange
+        var result = SendPromptRequestBuilder.FromText("text", agentName: "test-agent");
+
+        // Act
+        var json = JsonSerializer.Serialize(result);
+
+        // Assert
+        json.Should().Contain("\"agent\":\"test-agent\"");
+    }
+
+    [Fact]
+    public void FromText_WhenModelIdIsNull_SerializedJsonOmitsModelIdKey()
+    {
+        // Arrange
+        var result = SendPromptRequestBuilder.FromText("text");
+
+        // Act
+        var json = JsonSerializer.Serialize(result);
+
+        // Assert
+        json.Should().NotContain("\"modelID\"");
     }
 }

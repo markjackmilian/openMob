@@ -597,7 +597,7 @@ public sealed class ChatViewModelTests : IDisposable
         _sut.InputText = "Hello AI";
         _chatService.SendPromptAsync(
                 Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string?>(),
-                Arg.Any<string?>(), Arg.Any<CancellationToken>())
+                Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(ChatServiceResult<bool>.Ok(true));
 
         // Act
@@ -618,7 +618,7 @@ public sealed class ChatViewModelTests : IDisposable
         _sut.InputText = "Hello AI";
         _chatService.SendPromptAsync(
                 Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string?>(),
-                Arg.Any<string?>(), Arg.Any<CancellationToken>())
+                Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(ChatServiceResult<bool>.Ok(true));
 
         // Act
@@ -637,7 +637,7 @@ public sealed class ChatViewModelTests : IDisposable
         var error = new ChatServiceError(ChatServiceErrorKind.ServerError, "Internal server error");
         _chatService.SendPromptAsync(
                 Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string?>(),
-                Arg.Any<string?>(), Arg.Any<CancellationToken>())
+                Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(ChatServiceResult<bool>.Fail(error));
 
         // Act
@@ -683,7 +683,7 @@ public sealed class ChatViewModelTests : IDisposable
         var isAiRespondingDuringCall = false;
         _chatService.SendPromptAsync(
                 Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string?>(),
-                Arg.Any<string?>(), Arg.Any<CancellationToken>())
+                Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(callInfo =>
             {
                 isAiRespondingDuringCall = _sut.IsAiResponding;
@@ -1006,7 +1006,7 @@ public sealed class ChatViewModelTests : IDisposable
         var chip = new SuggestionChip("Test", "Subtitle", "Explain this code");
         _chatService.SendPromptAsync(
                 Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string?>(),
-                Arg.Any<string?>(), Arg.Any<CancellationToken>())
+                Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(ChatServiceResult<bool>.Ok(true));
 
         // Act
@@ -1102,6 +1102,50 @@ public sealed class ChatViewModelTests : IDisposable
             "proj-abc",
             string.Empty,
             Arg.Any<CancellationToken>());
+    }
+
+    // ─── SendMessageCommand — agentName forwarding (AC-006) ──────────────────
+
+    [Fact]
+    public async Task SendMessageCommand_WhenSelectedAgentNameIsSet_PassesAgentNameToService()
+    {
+        // Arrange
+        _sut.CurrentSessionId = "sess-1";
+        _sut.InputText = "Hello";
+        _sut.SelectedAgentName = "om-mobile-core";
+        _chatService.SendPromptAsync(
+                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string?>(),
+                Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(ChatServiceResult<bool>.Ok(true));
+
+        // Act
+        await _sut.SendMessageCommand.ExecuteAsync(null);
+
+        // Assert
+        await _chatService.Received(1).SendPromptAsync(
+            "sess-1", "Hello", Arg.Any<string?>(), Arg.Any<string?>(),
+            "om-mobile-core", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task SendMessageCommand_WhenSelectedAgentNameIsNull_PassesNullAgentNameToService()
+    {
+        // Arrange
+        _sut.CurrentSessionId = "sess-1";
+        _sut.InputText = "Hello";
+        _sut.SelectedAgentName = null;
+        _chatService.SendPromptAsync(
+                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string?>(),
+                Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(ChatServiceResult<bool>.Ok(true));
+
+        // Act
+        await _sut.SendMessageCommand.ExecuteAsync(null);
+
+        // Assert
+        await _chatService.Received(1).SendPromptAsync(
+            "sess-1", "Hello", Arg.Any<string?>(), Arg.Any<string?>(),
+            null, Arg.Any<CancellationToken>());
     }
 
     public void Dispose()

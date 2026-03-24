@@ -718,6 +718,7 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
                 text,
                 modelId,
                 providerId,
+                SelectedAgentName,
                 ct);
 
             if (result.IsSuccess)

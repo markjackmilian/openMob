@@ -46,21 +46,10 @@
     <MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 
-  <!-- App configuration files embedded into the assembly for IConfiguration -->
-  <ItemGroup>
-    <EmbeddedResource Include="appsettings.json" LogicalName="appsettings.json" />
-    <!-- appsettings.Release.json is gitignored — create it locally with your Sentry DSN.
-         It is only embedded when the file exists on disk (Condition prevents build errors). -->
-    <EmbeddedResource Include="appsettings.Release.json"
-                      LogicalName="appsettings.Release.json"
-                      Condition="Exists('appsettings.Release.json')" />
-  </ItemGroup>
-
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Maui" Version="*" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="*" />
     <PackageReference Include="Microsoft.Maui.Controls" Version="*" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="*" />
     <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="*" />
     <PackageReference Include="Sentry.Maui" Version="*" />
     <PackageReference Include="UXDivers.Popups.Maui" Version="0.9.4" />

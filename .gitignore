@@ -11,9 +11,9 @@
 *.sln.docstates
 *.env
 
-# App settings overrides containing secrets (Sentry DSN, API keys, etc.)
-# Add your real values to appsettings.Release.json locally — never commit it.
-appsettings.Release.json
+# Local secrets partial class — contains real Sentry DSN and other compile-time secrets.
+# Create AppSecrets.Local.cs locally from the template in AppSecrets.cs — never commit it.
+AppSecrets.Local.cs
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs

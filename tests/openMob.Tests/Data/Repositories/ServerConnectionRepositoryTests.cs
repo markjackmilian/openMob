@@ -1,35 +1,43 @@
-using Microsoft.Data.Sqlite;
-using Microsoft.EntityFrameworkCore;
-using openMob.Tests.Helpers;
+using SQLite;
+using SQLitePCL;
 
 namespace openMob.Tests.Data.Repositories;
 
 /// <summary>
 /// Unit tests for <see cref="ServerConnectionRepository"/>.
-/// Uses in-memory SQLite to support raw SQL operations (ExecuteSqlRawAsync).
+/// Uses sqlite-net-pcl with a per-test temporary SQLite file for full isolation.
 /// </summary>
-public sealed class ServerConnectionRepositoryTests : IDisposable
+public sealed class ServerConnectionRepositoryTests : IAsyncLifetime
 {
-    private readonly SqliteConnection _connection;
-    private readonly AppDbContext _context;
-    private readonly InMemoryServerCredentialStore _credentialStore;
+    private string _dbPath = null!;
+    private SQLiteAsyncConnection _connection = null!;
+    private IAppDatabase _appDatabase = null!;
+    private readonly InMemoryServerCredentialStore _credentialStore = new();
 
-    public ServerConnectionRepositoryTests()
+    /// <summary>Sets up a fresh SQLite database file before each test.</summary>
+    public async Task InitializeAsync()
     {
-        _connection = new SqliteConnection("DataSource=:memory:");
-        _connection.Open();
-        _context = TestDbContextFactory.Create(_connection);
-        _credentialStore = new InMemoryServerCredentialStore();
+        // Initialise the native SQLite bindings (idempotent — safe to call multiple times).
+        Batteries_V2.Init();
+
+        // Use a unique temp file per test to avoid cross-test interference.
+        _dbPath = Path.Combine(Path.GetTempPath(), $"openMob_test_{Guid.NewGuid():N}.db");
+        _connection = new SQLiteAsyncConnection(_dbPath, storeDateTimeAsTicks: true);
+        await _connection.CreateTableAsync<ServerConnection>();
+
+        _appDatabase = Substitute.For<IAppDatabase>();
+        _appDatabase.Connection.Returns(_connection);
     }
 
-    public void Dispose()
+    /// <summary>Closes the connection and deletes the temp DB file after each test.</summary>
+    public async Task DisposeAsync()
     {
-        _context.Dispose();
-        _connection.Close();
-        _connection.Dispose();
+        await _connection.CloseAsync();
+        if (File.Exists(_dbPath))
+            File.Delete(_dbPath);
     }
 
-    private ServerConnectionRepository CreateSut() => new(_context, _credentialStore);
+    private ServerConnectionRepository CreateSut() => new(_appDatabase, _credentialStore);
 
     private async Task<ServerConnection> SeedConnectionAsync(
         string? id = null,
@@ -56,8 +64,7 @@ public sealed class ServerConnectionRepositoryTests : IDisposable
             UpdatedAt = updatedAt ?? now,
         };
 
-        _context.ServerConnections.Add(entity);
-        await _context.SaveChangesAsync();
+        await _connection.InsertAsync(entity);
         return entity;
     }
 
@@ -255,9 +262,10 @@ public sealed class ServerConnectionRepositoryTests : IDisposable
         var result = await sut.AddAsync(dto);
 
         // Assert
-        var entityInDb = await _context.ServerConnections
-            .AsNoTracking()
-            .FirstOrDefaultAsync(sc => sc.Id == result.Id);
+        var entityInDb = await _connection
+            .Table<ServerConnection>()
+            .Where(sc => sc.Id == result.Id)
+            .FirstOrDefaultAsync();
         entityInDb.Should().NotBeNull();
         entityInDb!.Name.Should().Be("Persisted Server");
     }
@@ -344,9 +352,10 @@ public sealed class ServerConnectionRepositoryTests : IDisposable
 
         // Assert
         result.Should().BeTrue();
-        var entityInDb = await _context.ServerConnections
-            .AsNoTracking()
-            .FirstOrDefaultAsync(sc => sc.Id == entity.Id);
+        var entityInDb = await _connection
+            .Table<ServerConnection>()
+            .Where(sc => sc.Id == entity.Id)
+            .FirstOrDefaultAsync();
         entityInDb.Should().BeNull();
     }
 
@@ -395,10 +404,11 @@ public sealed class ServerConnectionRepositoryTests : IDisposable
 
         // Assert
         result.Should().BeTrue();
-        var updated = await _context.ServerConnections
-            .AsNoTracking()
-            .FirstAsync(sc => sc.Id == entity.Id);
-        updated.IsActive.Should().BeTrue();
+        var updated = await _connection
+            .Table<ServerConnection>()
+            .Where(sc => sc.Id == entity.Id)
+            .FirstOrDefaultAsync();
+        updated!.IsActive.Should().BeTrue();
     }
 
     [Fact]
@@ -415,18 +425,17 @@ public sealed class ServerConnectionRepositoryTests : IDisposable
         // Assert
         result.Should().BeTrue();
 
-        // Reload from DB to verify — detach tracked entities first
-        _context.ChangeTracker.Clear();
+        var firstReloaded = await _connection
+            .Table<ServerConnection>()
+            .Where(sc => sc.Id == first.Id)
+            .FirstOrDefaultAsync();
+        firstReloaded!.IsActive.Should().BeFalse();
 
-        var firstReloaded = await _context.ServerConnections
-            .AsNoTracking()
-            .FirstAsync(sc => sc.Id == first.Id);
-        firstReloaded.IsActive.Should().BeFalse();
-
-        var secondReloaded = await _context.ServerConnections
-            .AsNoTracking()
-            .FirstAsync(sc => sc.Id == second.Id);
-        secondReloaded.IsActive.Should().BeTrue();
+        var secondReloaded = await _connection
+            .Table<ServerConnection>()
+            .Where(sc => sc.Id == second.Id)
+            .FirstOrDefaultAsync();
+        secondReloaded!.IsActive.Should().BeTrue();
     }
 
     [Fact]
@@ -456,11 +465,11 @@ public sealed class ServerConnectionRepositoryTests : IDisposable
         result.Should().BeFalse();
 
         // The previously active connection should remain active after rollback
-        _context.ChangeTracker.Clear();
-        var reloaded = await _context.ServerConnections
-            .AsNoTracking()
-            .FirstAsync(sc => sc.Id == active.Id);
-        reloaded.IsActive.Should().BeTrue();
+        var reloaded = await _connection
+            .Table<ServerConnection>()
+            .Where(sc => sc.Id == active.Id)
+            .FirstOrDefaultAsync();
+        reloaded!.IsActive.Should().BeTrue();
     }
 
     // ──────────────────────────────────────────────────────────────
@@ -487,8 +496,7 @@ public sealed class ServerConnectionRepositoryTests : IDisposable
         // Arrange
         var entity = await SeedConnectionAsync(id: "conn-with-model");
         entity.DefaultModelId = "anthropic/claude-3-opus";
-        _context.ServerConnections.Update(entity);
-        await _context.SaveChangesAsync();
+        await _connection.UpdateAsync(entity);
 
         var sut = CreateSut();
 
@@ -529,11 +537,11 @@ public sealed class ServerConnectionRepositoryTests : IDisposable
         // Assert
         result.Should().BeTrue();
 
-        _context.ChangeTracker.Clear();
-        var reloaded = await _context.ServerConnections
-            .AsNoTracking()
-            .FirstAsync(sc => sc.Id == entity.Id);
-        reloaded.DefaultModelId.Should().Be("openai/gpt-4");
+        var reloaded = await _connection
+            .Table<ServerConnection>()
+            .Where(sc => sc.Id == entity.Id)
+            .FirstOrDefaultAsync();
+        reloaded!.DefaultModelId.Should().Be("openai/gpt-4");
     }
 
     [Fact]
@@ -548,11 +556,11 @@ public sealed class ServerConnectionRepositoryTests : IDisposable
         await sut.SetDefaultModelAsync(entity.Id, "anthropic/claude-3-opus");
 
         // Assert
-        _context.ChangeTracker.Clear();
-        var reloaded = await _context.ServerConnections
-            .AsNoTracking()
-            .FirstAsync(sc => sc.Id == entity.Id);
-        reloaded.UpdatedAt.Should().BeAfter(pastTime);
+        var reloaded = await _connection
+            .Table<ServerConnection>()
+            .Where(sc => sc.Id == entity.Id)
+            .FirstOrDefaultAsync();
+        reloaded!.UpdatedAt.Should().BeAfter(pastTime);
     }
 
     [Fact]
@@ -580,10 +588,10 @@ public sealed class ServerConnectionRepositoryTests : IDisposable
         await sut.SetDefaultModelAsync(entity.Id, "openai/gpt-4");
 
         // Assert
-        _context.ChangeTracker.Clear();
-        var reloaded = await _context.ServerConnections
-            .AsNoTracking()
-            .FirstAsync(sc => sc.Id == entity.Id);
-        reloaded.DefaultModelId.Should().Be("openai/gpt-4");
+        var reloaded = await _connection
+            .Table<ServerConnection>()
+            .Where(sc => sc.Id == entity.Id)
+            .FirstOrDefaultAsync();
+        reloaded!.DefaultModelId.Should().Be("openai/gpt-4");
     }
 }

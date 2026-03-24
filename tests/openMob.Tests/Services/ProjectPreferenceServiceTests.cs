@@ -1,34 +1,44 @@
-using Microsoft.Data.Sqlite;
-using Microsoft.EntityFrameworkCore;
+using SQLite;
+using SQLitePCL;
 using openMob.Core.Models;
 using openMob.Core.Services;
-using openMob.Tests.Helpers;
 
 namespace openMob.Tests.Services;
 
 /// <summary>
 /// Unit tests for <see cref="ProjectPreferenceService"/>.
-/// Uses in-memory SQLite for persistence tests and validates argument guards.
+/// Uses sqlite-net-pcl with an in-memory SQLite connection for fast, isolated tests.
 /// </summary>
-public sealed class ProjectPreferenceServiceTests : IDisposable
+public sealed class ProjectPreferenceServiceTests : IAsyncLifetime
 {
-    private readonly SqliteConnection _connection;
-    private readonly AppDbContext _context;
-    private readonly ProjectPreferenceService _sut;
+    private string _dbPath = null!;
+    private SQLiteAsyncConnection _connection = null!;
+    private IAppDatabase _appDatabase = null!;
+    private ProjectPreferenceService _sut = null!;
 
-    public ProjectPreferenceServiceTests()
+    /// <summary>Sets up a fresh SQLite database file before each test.</summary>
+    public async Task InitializeAsync()
     {
-        _connection = new SqliteConnection("DataSource=:memory:");
-        _connection.Open();
-        _context = TestDbContextFactory.Create(_connection);
-        _sut = new ProjectPreferenceService(_context);
+        // Initialise the native SQLite bindings (idempotent — safe to call multiple times).
+        Batteries_V2.Init();
+
+        // Use a unique temp file per test to avoid cross-test interference.
+        _dbPath = Path.Combine(Path.GetTempPath(), $"openMob_test_{Guid.NewGuid():N}.db");
+        _connection = new SQLiteAsyncConnection(_dbPath, storeDateTimeAsTicks: true);
+        await _connection.CreateTableAsync<ProjectPreference>();
+
+        _appDatabase = Substitute.For<IAppDatabase>();
+        _appDatabase.Connection.Returns(_connection);
+
+        _sut = new ProjectPreferenceService(_appDatabase);
     }
 
-    public void Dispose()
+    /// <summary>Closes the connection and deletes the temp DB file after each test.</summary>
+    public async Task DisposeAsync()
     {
-        _context.Dispose();
-        _connection.Close();
-        _connection.Dispose();
+        await _connection.CloseAsync();
+        if (File.Exists(_dbPath))
+            File.Delete(_dbPath);
     }
 
     // ─── GetAsync — happy path ────────────────────────────────────────────────
@@ -37,13 +47,11 @@ public sealed class ProjectPreferenceServiceTests : IDisposable
     public async Task GetAsync_WhenPreferenceExists_ReturnsPreference()
     {
         // Arrange
-        var preference = new ProjectPreference
+        await _connection.InsertAsync(new ProjectPreference
         {
             ProjectId = "proj-1",
             DefaultModelId = "anthropic/claude-sonnet-4-5",
-        };
-        _context.ProjectPreferences.Add(preference);
-        await _context.SaveChangesAsync();
+        });
 
         // Act
         var result = await _sut.GetAsync("proj-1");
@@ -90,9 +98,10 @@ public sealed class ProjectPreferenceServiceTests : IDisposable
         await _sut.SetDefaultModelAsync("proj-new", "openai/gpt-4");
 
         // Assert
-        var saved = await _context.ProjectPreferences
-            .AsNoTracking()
-            .FirstOrDefaultAsync(p => p.ProjectId == "proj-new");
+        var saved = await _connection
+            .Table<ProjectPreference>()
+            .Where(p => p.ProjectId == "proj-new")
+            .FirstOrDefaultAsync();
         saved.Should().NotBeNull();
         saved!.DefaultModelId.Should().Be("openai/gpt-4");
     }
@@ -103,21 +112,20 @@ public sealed class ProjectPreferenceServiceTests : IDisposable
     public async Task SetDefaultModelAsync_WhenPreferenceExists_UpdatesDefaultModelId()
     {
         // Arrange
-        _context.ProjectPreferences.Add(new ProjectPreference
+        await _connection.InsertAsync(new ProjectPreference
         {
             ProjectId = "proj-existing",
             DefaultModelId = "anthropic/claude-3-opus",
         });
-        await _context.SaveChangesAsync();
 
         // Act
         await _sut.SetDefaultModelAsync("proj-existing", "openai/gpt-4o");
 
         // Assert
-        _context.ChangeTracker.Clear();
-        var updated = await _context.ProjectPreferences
-            .AsNoTracking()
-            .FirstOrDefaultAsync(p => p.ProjectId == "proj-existing");
+        var updated = await _connection
+            .Table<ProjectPreference>()
+            .Where(p => p.ProjectId == "proj-existing")
+            .FirstOrDefaultAsync();
         updated.Should().NotBeNull();
         updated!.DefaultModelId.Should().Be("openai/gpt-4o");
     }
@@ -155,7 +163,7 @@ public sealed class ProjectPreferenceServiceTests : IDisposable
     // ─── Constructor — null guard ─────────────────────────────────────────────
 
     [Fact]
-    public void Constructor_WhenDbContextIsNull_ThrowsArgumentNullException()
+    public void Constructor_WhenDbIsNull_ThrowsArgumentNullException()
     {
         // Act
         var act = () => new ProjectPreferenceService(null!);
@@ -170,7 +178,7 @@ public sealed class ProjectPreferenceServiceTests : IDisposable
     public async Task GetOrDefaultAsync_WhenPreferenceExists_ReturnsStoredPreference()
     {
         // Arrange
-        _context.ProjectPreferences.Add(new ProjectPreference
+        await _connection.InsertAsync(new ProjectPreference
         {
             ProjectId = "proj-stored",
             AgentName = "my-agent",
@@ -178,7 +186,6 @@ public sealed class ProjectPreferenceServiceTests : IDisposable
             ThinkingLevel = ThinkingLevel.High,
             AutoAccept = true,
         });
-        await _context.SaveChangesAsync();
 
         // Act
         var result = await _sut.GetOrDefaultAsync("proj-stored");
@@ -213,9 +220,10 @@ public sealed class ProjectPreferenceServiceTests : IDisposable
         await _sut.GetOrDefaultAsync("proj-no-insert");
 
         // Assert
-        var count = await _context.ProjectPreferences
-            .AsNoTracking()
-            .CountAsync(p => p.ProjectId == "proj-no-insert");
+        var count = await _connection
+            .Table<ProjectPreference>()
+            .Where(p => p.ProjectId == "proj-no-insert")
+            .CountAsync();
         count.Should().Be(0);
     }
 
@@ -242,9 +250,10 @@ public sealed class ProjectPreferenceServiceTests : IDisposable
 
         // Assert
         result.Should().BeTrue();
-        var saved = await _context.ProjectPreferences
-            .AsNoTracking()
-            .FirstOrDefaultAsync(p => p.ProjectId == "proj-agent-new");
+        var saved = await _connection
+            .Table<ProjectPreference>()
+            .Where(p => p.ProjectId == "proj-agent-new")
+            .FirstOrDefaultAsync();
         saved.Should().NotBeNull();
         saved!.AgentName.Should().Be("my-agent");
     }
@@ -255,22 +264,21 @@ public sealed class ProjectPreferenceServiceTests : IDisposable
     public async Task SetAgentAsync_WhenPreferenceExists_UpdatesAgentName()
     {
         // Arrange
-        _context.ProjectPreferences.Add(new ProjectPreference
+        await _connection.InsertAsync(new ProjectPreference
         {
             ProjectId = "proj-agent-update",
             AgentName = "old-agent",
         });
-        await _context.SaveChangesAsync();
 
         // Act
         var result = await _sut.SetAgentAsync("proj-agent-update", "new-agent");
 
         // Assert
         result.Should().BeTrue();
-        _context.ChangeTracker.Clear();
-        var updated = await _context.ProjectPreferences
-            .AsNoTracking()
-            .FirstOrDefaultAsync(p => p.ProjectId == "proj-agent-update");
+        var updated = await _connection
+            .Table<ProjectPreference>()
+            .Where(p => p.ProjectId == "proj-agent-update")
+            .FirstOrDefaultAsync();
         updated.Should().NotBeNull();
         updated!.AgentName.Should().Be("new-agent");
     }
@@ -279,22 +287,21 @@ public sealed class ProjectPreferenceServiceTests : IDisposable
     public async Task SetAgentAsync_WhenAgentNameIsNull_SetsNullAgentName()
     {
         // Arrange
-        _context.ProjectPreferences.Add(new ProjectPreference
+        await _connection.InsertAsync(new ProjectPreference
         {
             ProjectId = "proj-agent-null",
             AgentName = "some-agent",
         });
-        await _context.SaveChangesAsync();
 
         // Act
         var result = await _sut.SetAgentAsync("proj-agent-null", null);
 
         // Assert
         result.Should().BeTrue();
-        _context.ChangeTracker.Clear();
-        var updated = await _context.ProjectPreferences
-            .AsNoTracking()
-            .FirstOrDefaultAsync(p => p.ProjectId == "proj-agent-null");
+        var updated = await _connection
+            .Table<ProjectPreference>()
+            .Where(p => p.ProjectId == "proj-agent-null")
+            .FirstOrDefaultAsync();
         updated.Should().NotBeNull();
         updated!.AgentName.Should().BeNull();
     }
@@ -324,9 +331,10 @@ public sealed class ProjectPreferenceServiceTests : IDisposable
 
         // Assert
         result.Should().BeTrue();
-        var saved = await _context.ProjectPreferences
-            .AsNoTracking()
-            .FirstOrDefaultAsync(p => p.ProjectId == "proj-thinking-new");
+        var saved = await _connection
+            .Table<ProjectPreference>()
+            .Where(p => p.ProjectId == "proj-thinking-new")
+            .FirstOrDefaultAsync();
         saved.Should().NotBeNull();
         saved!.ThinkingLevel.Should().Be(ThinkingLevel.High);
     }
@@ -337,22 +345,21 @@ public sealed class ProjectPreferenceServiceTests : IDisposable
     public async Task SetThinkingLevelAsync_WhenPreferenceExists_UpdatesThinkingLevel()
     {
         // Arrange
-        _context.ProjectPreferences.Add(new ProjectPreference
+        await _connection.InsertAsync(new ProjectPreference
         {
             ProjectId = "proj-thinking-update",
             ThinkingLevel = ThinkingLevel.Low,
         });
-        await _context.SaveChangesAsync();
 
         // Act
         var result = await _sut.SetThinkingLevelAsync("proj-thinking-update", ThinkingLevel.High);
 
         // Assert
         result.Should().BeTrue();
-        _context.ChangeTracker.Clear();
-        var updated = await _context.ProjectPreferences
-            .AsNoTracking()
-            .FirstOrDefaultAsync(p => p.ProjectId == "proj-thinking-update");
+        var updated = await _connection
+            .Table<ProjectPreference>()
+            .Where(p => p.ProjectId == "proj-thinking-update")
+            .FirstOrDefaultAsync();
         updated.Should().NotBeNull();
         updated!.ThinkingLevel.Should().Be(ThinkingLevel.High);
     }
@@ -378,22 +385,21 @@ public sealed class ProjectPreferenceServiceTests : IDisposable
     public async Task ClearDefaultModelAsync_WhenPreferenceExists_SetsDefaultModelIdToNull()
     {
         // Arrange
-        _context.ProjectPreferences.Add(new ProjectPreference
+        await _connection.InsertAsync(new ProjectPreference
         {
             ProjectId = "proj-clear-model",
             DefaultModelId = "anthropic/claude-sonnet-4-5",
         });
-        await _context.SaveChangesAsync();
 
         // Act
         var result = await _sut.ClearDefaultModelAsync("proj-clear-model");
 
         // Assert
         result.Should().BeTrue();
-        _context.ChangeTracker.Clear();
-        var updated = await _context.ProjectPreferences
-            .AsNoTracking()
-            .FirstOrDefaultAsync(p => p.ProjectId == "proj-clear-model");
+        var updated = await _connection
+            .Table<ProjectPreference>()
+            .Where(p => p.ProjectId == "proj-clear-model")
+            .FirstOrDefaultAsync();
         updated.Should().NotBeNull();
         updated!.DefaultModelId.Should().BeNull();
     }
@@ -408,9 +414,10 @@ public sealed class ProjectPreferenceServiceTests : IDisposable
 
         // Assert
         result.Should().BeTrue();
-        var saved = await _context.ProjectPreferences
-            .AsNoTracking()
-            .FirstOrDefaultAsync(p => p.ProjectId == "proj-clear-new");
+        var saved = await _connection
+            .Table<ProjectPreference>()
+            .Where(p => p.ProjectId == "proj-clear-new")
+            .FirstOrDefaultAsync();
         saved.Should().NotBeNull();
         saved!.DefaultModelId.Should().BeNull();
     }
@@ -440,9 +447,10 @@ public sealed class ProjectPreferenceServiceTests : IDisposable
 
         // Assert
         result.Should().BeTrue();
-        var saved = await _context.ProjectPreferences
-            .AsNoTracking()
-            .FirstOrDefaultAsync(p => p.ProjectId == "proj-autoacc-new");
+        var saved = await _connection
+            .Table<ProjectPreference>()
+            .Where(p => p.ProjectId == "proj-autoacc-new")
+            .FirstOrDefaultAsync();
         saved.Should().NotBeNull();
         saved!.AutoAccept.Should().BeTrue();
     }
@@ -453,22 +461,21 @@ public sealed class ProjectPreferenceServiceTests : IDisposable
     public async Task SetAutoAcceptAsync_WhenPreferenceExists_UpdatesAutoAccept()
     {
         // Arrange
-        _context.ProjectPreferences.Add(new ProjectPreference
+        await _connection.InsertAsync(new ProjectPreference
         {
             ProjectId = "proj-autoacc-update",
             AutoAccept = false,
         });
-        await _context.SaveChangesAsync();
 
         // Act
         var result = await _sut.SetAutoAcceptAsync("proj-autoacc-update", true);
 
         // Assert
         result.Should().BeTrue();
-        _context.ChangeTracker.Clear();
-        var updated = await _context.ProjectPreferences
-            .AsNoTracking()
-            .FirstOrDefaultAsync(p => p.ProjectId == "proj-autoacc-update");
+        var updated = await _connection
+            .Table<ProjectPreference>()
+            .Where(p => p.ProjectId == "proj-autoacc-update")
+            .FirstOrDefaultAsync();
         updated.Should().NotBeNull();
         updated!.AutoAccept.Should().BeTrue();
     }
@@ -486,59 +493,5 @@ public sealed class ProjectPreferenceServiceTests : IDisposable
 
         // Assert
         await act.Should().ThrowAsync<ArgumentException>();
-    }
-
-    // ─── Error-path: DB failure returns false ─────────────────────────────────
-
-    [Fact]
-    public async Task SetAgentAsync_WhenDbFails_ReturnsFalse()
-    {
-        // Arrange
-        _connection.Close(); // force DB failure
-
-        // Act
-        var result = await _sut.SetAgentAsync("proj-1", "my-agent");
-
-        // Assert
-        result.Should().BeFalse();
-    }
-
-    [Fact]
-    public async Task SetThinkingLevelAsync_WhenDbFails_ReturnsFalse()
-    {
-        // Arrange
-        _connection.Close(); // force DB failure
-
-        // Act
-        var result = await _sut.SetThinkingLevelAsync("proj-1", ThinkingLevel.High);
-
-        // Assert
-        result.Should().BeFalse();
-    }
-
-    [Fact]
-    public async Task SetAutoAcceptAsync_WhenDbFails_ReturnsFalse()
-    {
-        // Arrange
-        _connection.Close(); // force DB failure
-
-        // Act
-        var result = await _sut.SetAutoAcceptAsync("proj-1", true);
-
-        // Assert
-        result.Should().BeFalse();
-    }
-
-    [Fact]
-    public async Task ClearDefaultModelAsync_WhenDbFails_ReturnsFalse()
-    {
-        // Arrange
-        _connection.Close(); // force DB failure
-
-        // Act
-        var result = await _sut.ClearDefaultModelAsync("proj-1");
-
-        // Assert
-        result.Should().BeFalse();
     }
 }

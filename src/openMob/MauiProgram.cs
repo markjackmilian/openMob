@@ -1,5 +1,4 @@
 using CommunityToolkit.Maui;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using openMob.Core.Data;
 using openMob.Core.Infrastructure.Monitoring;
@@ -46,6 +45,7 @@ public static class MauiProgram
                 options.TracesSampleRate = 0.2;
                 options.IsGlobalModeEnabled = true;
                 options.AttachStacktrace = true;
+                options.MinimumBreadcrumbLevel = LogLevel.Trace;
             })
             .ConfigureFonts(fonts =>
             {
@@ -108,23 +108,23 @@ public static class MauiProgram
         // Done here (after Build) so the DI container is ready before any view is created.
         MarkdownView.SharedParser = app.Services.GetRequiredService<IMarkdownParser>();
 
-        // Apply EF Core migrations on startup.
-        // Wrapped in try-catch to prevent startup crash if migrations fail.
+        // Initialise the sqlite-net-pcl database on startup.
+        // Creates the DB file and all tables (or adds missing columns via ALTER TABLE ADD COLUMN).
+        // Wrapped in try-catch to prevent startup crash if initialisation fails.
         // Any failure is captured to Sentry so it is visible in production builds.
         try
         {
-            SentryHelper.AddBreadcrumb("EF Core migration starting", "startup");
-            using var scope = app.Services.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            db.Database.Migrate();
-            SentryHelper.AddBreadcrumb("EF Core migration completed", "startup");
+            SentryHelper.AddBreadcrumb("Database initialisation starting", "startup");
+            var appDatabase = app.Services.GetRequiredService<IAppDatabase>();
+            appDatabase.InitializeAsync().GetAwaiter().GetResult();
+            SentryHelper.AddBreadcrumb("Database initialisation completed", "startup");
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[openMob] EF Core migration failed: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"[openMob] Database initialisation failed: {ex.Message}");
             SentryHelper.CaptureException(ex, new Dictionary<string, object>
             {
-                ["context"] = "MauiProgram.EFCoreMigration",
+                ["context"] = "MauiProgram.DatabaseInitialisation",
                 ["exceptionType"] = ex.GetType().FullName ?? "Unknown",
                 ["message"] = ex.Message,
             });

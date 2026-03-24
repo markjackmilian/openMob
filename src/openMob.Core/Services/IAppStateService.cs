@@ -5,8 +5,7 @@ namespace openMob.Core.Services;
 /// Provides typed accessors for well-known keys such as the last active project ID.
 /// </summary>
 /// <remarks>
-/// Registered as Singleton in DI. Implementations must handle scoped <see cref="Data.AppDbContext"/>
-/// access internally via <see cref="IServiceScopeFactory"/>.
+/// Registered as Singleton in DI. Injects <see cref="Data.IAppDatabase"/> (also Singleton) directly.
 /// </remarks>
 public interface IAppStateService
 {

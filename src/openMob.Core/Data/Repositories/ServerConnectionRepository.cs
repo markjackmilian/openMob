@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using Microsoft.EntityFrameworkCore;
 using openMob.Core.Data.Entities;
 using openMob.Core.Infrastructure.Dtos;
 using openMob.Core.Infrastructure.Logging;
@@ -8,13 +7,14 @@ using openMob.Core.Infrastructure.Security;
 namespace openMob.Core.Data.Repositories;
 
 /// <summary>
-/// EF Core implementation of <see cref="IServerConnectionRepository"/>.
+/// sqlite-net-pcl implementation of <see cref="IServerConnectionRepository"/>.
 /// Manages CRUD operations for server connections with credential coordination.
 /// </summary>
 /// <remarks>
 /// <para>
-/// The single-active constraint (<see cref="SetActiveAsync"/>) is enforced via an explicit
-/// database transaction with a raw SQL UPDATE to deactivate all other connections.
+/// The single-active constraint (<see cref="SetActiveAsync"/>) is enforced via
+/// <see cref="SQLite.SQLiteAsyncConnection.RunInTransactionAsync"/> to atomically
+/// deactivate all other connections and activate the target one.
 /// </para>
 /// <para>
 /// The <see cref="ServerConnectionDto.HasPassword"/> field is computed by querying
@@ -23,18 +23,18 @@ namespace openMob.Core.Data.Repositories;
 /// </remarks>
 internal sealed class ServerConnectionRepository : IServerConnectionRepository
 {
-    private readonly AppDbContext _context;
+    private readonly IAppDatabase _db;
     private readonly IServerCredentialStore _credentialStore;
 
-    /// <summary>Initialises the repository with the given database context and credential store.</summary>
-    /// <param name="context">The EF Core database context.</param>
+    /// <summary>Initialises the repository with the given database and credential store.</summary>
+    /// <param name="db">The application database (Singleton).</param>
     /// <param name="credentialStore">The secure credential store for server passwords.</param>
-    public ServerConnectionRepository(AppDbContext context, IServerCredentialStore credentialStore)
+    public ServerConnectionRepository(IAppDatabase db, IServerCredentialStore credentialStore)
     {
-        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(db);
         ArgumentNullException.ThrowIfNull(credentialStore);
 
-        _context = context;
+        _db = db;
         _credentialStore = credentialStore;
     }
 
@@ -44,10 +44,10 @@ internal sealed class ServerConnectionRepository : IServerConnectionRepository
 #if DEBUG
         var sw = Stopwatch.StartNew();
 #endif
-        var entities = await _context.ServerConnections
-            .AsNoTracking()
+        var entities = await _db.Connection
+            .Table<ServerConnection>()
             .OrderBy(sc => sc.CreatedAt)
-            .ToListAsync(cancellationToken)
+            .ToListAsync()
             .ConfigureAwait(false);
 
         var passwordTasks = entities.Select(e => _credentialStore.GetPasswordAsync(e.Id, cancellationToken)).ToArray();
@@ -73,9 +73,10 @@ internal sealed class ServerConnectionRepository : IServerConnectionRepository
 #if DEBUG
         var sw = Stopwatch.StartNew();
 #endif
-        var entity = await _context.ServerConnections
-            .AsNoTracking()
-            .FirstOrDefaultAsync(sc => sc.IsActive, cancellationToken)
+        var entity = await _db.Connection
+            .Table<ServerConnection>()
+            .Where(sc => sc.IsActive)
+            .FirstOrDefaultAsync()
             .ConfigureAwait(false);
 
         if (entity is null)
@@ -102,9 +103,10 @@ internal sealed class ServerConnectionRepository : IServerConnectionRepository
 #if DEBUG
         var sw = Stopwatch.StartNew();
 #endif
-        var entity = await _context.ServerConnections
-            .AsNoTracking()
-            .FirstOrDefaultAsync(sc => sc.Id == id, cancellationToken)
+        var entity = await _db.Connection
+            .Table<ServerConnection>()
+            .Where(sc => sc.Id == id)
+            .FirstOrDefaultAsync()
             .ConfigureAwait(false);
 
         if (entity is null)
@@ -147,8 +149,7 @@ internal sealed class ServerConnectionRepository : IServerConnectionRepository
             UpdatedAt = now,
         };
 
-        _context.ServerConnections.Add(entity);
-        await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        await _db.Connection.InsertAsync(entity).ConfigureAwait(false);
 
         var password = await _credentialStore.GetPasswordAsync(entity.Id, cancellationToken).ConfigureAwait(false);
         var result = MapToDto(entity, hasPassword: password is not null);
@@ -165,8 +166,10 @@ internal sealed class ServerConnectionRepository : IServerConnectionRepository
 #if DEBUG
         var sw = Stopwatch.StartNew();
 #endif
-        var entity = await _context.ServerConnections
-            .FirstOrDefaultAsync(sc => sc.Id == dto.Id, cancellationToken)
+        var entity = await _db.Connection
+            .Table<ServerConnection>()
+            .Where(sc => sc.Id == dto.Id)
+            .FirstOrDefaultAsync()
             .ConfigureAwait(false);
 
         if (entity is null)
@@ -182,7 +185,7 @@ internal sealed class ServerConnectionRepository : IServerConnectionRepository
         entity.UseHttps = dto.UseHttps;
         entity.UpdatedAt = DateTime.UtcNow;
 
-        await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        await _db.Connection.UpdateAsync(entity).ConfigureAwait(false);
 
         var password = await _credentialStore.GetPasswordAsync(entity.Id, cancellationToken).ConfigureAwait(false);
         var result = MapToDto(entity, hasPassword: password is not null);
@@ -199,8 +202,10 @@ internal sealed class ServerConnectionRepository : IServerConnectionRepository
 #if DEBUG
         var sw = Stopwatch.StartNew();
 #endif
-        var entity = await _context.ServerConnections
-            .FirstOrDefaultAsync(sc => sc.Id == id, cancellationToken)
+        var entity = await _db.Connection
+            .Table<ServerConnection>()
+            .Where(sc => sc.Id == id)
+            .FirstOrDefaultAsync()
             .ConfigureAwait(false);
 
         if (entity is null)
@@ -214,11 +219,10 @@ internal sealed class ServerConnectionRepository : IServerConnectionRepository
 
         // Delete credential FIRST — idempotent (no-op if missing), so if the subsequent
         // DB delete fails, the worst case is a missing password (acceptable).
-        // The reverse ordering would leave an orphaned secret if the app crashes after SaveChanges.
+        // The reverse ordering would leave an orphaned secret if the app crashes after the DB delete.
         await _credentialStore.DeletePasswordAsync(id, cancellationToken).ConfigureAwait(false);
 
-        _context.ServerConnections.Remove(entity);
-        await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        await _db.Connection.DeleteAsync(entity).ConfigureAwait(false);
 
 #if DEBUG
         sw.Stop();
@@ -233,42 +237,54 @@ internal sealed class ServerConnectionRepository : IServerConnectionRepository
 #if DEBUG
         var sw = Stopwatch.StartNew();
 #endif
-        await using var transaction = await _context.Database
-            .BeginTransactionAsync(cancellationToken)
-            .ConfigureAwait(false);
+        // Use RunInTransactionAsync to atomically deactivate all other connections
+        // and activate the target one. If the target is not found, the transaction is
+        // rolled back and previously active connections remain active.
+        var found = false;
+        string? activatedName = null;
 
-        // Deactivate all other connections via raw SQL for atomicity.
-        // Uses WHERE Id != {id} to avoid the unnecessary write to the target row.
-        await _context.Database
-            .ExecuteSqlAsync($"UPDATE ServerConnections SET IsActive = 0 WHERE Id != {id}", cancellationToken)
-            .ConfigureAwait(false);
-
-        var entity = await _context.ServerConnections
-            .FirstOrDefaultAsync(sc => sc.Id == id, cancellationToken)
-            .ConfigureAwait(false);
-
-        if (entity is null)
+        try
         {
-            await transaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
-#if DEBUG
-            sw.Stop();
-            DebugLogger.LogDatabase("SetActive", "ServerConnection", id, sw.ElapsedMilliseconds);
-#endif
-            return false;
+            await _db.Connection.RunInTransactionAsync(conn =>
+            {
+                // Deactivate all connections except the target.
+                conn.Execute(
+                    "UPDATE ServerConnections SET IsActive = 0 WHERE Id != ?",
+                    id);
+
+                // Find and activate the target connection.
+                var entity = conn.Table<ServerConnection>()
+                    .Where(sc => sc.Id == id)
+                    .FirstOrDefault();
+
+                if (entity is null)
+                {
+                    // Target not found — throw to abort the transaction and roll back.
+                    throw new InvalidOperationException($"__rollback__:{id}");
+                }
+
+                entity.IsActive = true;
+                entity.UpdatedAt = DateTime.UtcNow;
+                conn.Update(entity);
+
+                found = true;
+                activatedName = entity.Name;
+            }).ConfigureAwait(false);
         }
-
-        entity.IsActive = true;
-        entity.UpdatedAt = DateTime.UtcNow;
-
-        await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+        catch (InvalidOperationException ex) when (ex.Message.StartsWith("__rollback__:", StringComparison.Ordinal))
+        {
+            // Sentinel exception used to abort the transaction — not a real error.
+            // The transaction was rolled back; previously active connections remain active.
+            found = false;
+        }
 
 #if DEBUG
         sw.Stop();
         DebugLogger.LogDatabase("SetActive", "ServerConnection", id, sw.ElapsedMilliseconds);
-        DebugLogger.LogConnection("server_changed", $"id={id} name={entity.Name}");
+        if (found)
+            DebugLogger.LogConnection("server_changed", $"id={id} name={activatedName}");
 #endif
-        return true;
+        return found;
     }
 
     /// <inheritdoc />
@@ -277,9 +293,10 @@ internal sealed class ServerConnectionRepository : IServerConnectionRepository
 #if DEBUG
         var sw = Stopwatch.StartNew();
 #endif
-        var entity = await _context.ServerConnections
-            .AsNoTracking()
-            .FirstOrDefaultAsync(sc => sc.Id == serverId, cancellationToken)
+        var entity = await _db.Connection
+            .Table<ServerConnection>()
+            .Where(sc => sc.Id == serverId)
+            .FirstOrDefaultAsync()
             .ConfigureAwait(false);
 
         var result = entity?.DefaultModelId;
@@ -296,8 +313,10 @@ internal sealed class ServerConnectionRepository : IServerConnectionRepository
 #if DEBUG
         var sw = Stopwatch.StartNew();
 #endif
-        var entity = await _context.ServerConnections
-            .FirstOrDefaultAsync(sc => sc.Id == serverId, cancellationToken)
+        var entity = await _db.Connection
+            .Table<ServerConnection>()
+            .Where(sc => sc.Id == serverId)
+            .FirstOrDefaultAsync()
             .ConfigureAwait(false);
 
         if (entity is null)
@@ -312,7 +331,7 @@ internal sealed class ServerConnectionRepository : IServerConnectionRepository
         entity.DefaultModelId = modelId;
         entity.UpdatedAt = DateTime.UtcNow;
 
-        await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        await _db.Connection.UpdateAsync(entity).ConfigureAwait(false);
 
 #if DEBUG
         sw.Stop();

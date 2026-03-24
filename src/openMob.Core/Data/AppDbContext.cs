@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using openMob.Core.Data.CompiledModels;
 using openMob.Core.Data.Entities;
 using openMob.Core.Models;
 
@@ -36,6 +37,10 @@ public sealed class AppDbContext : DbContext
             var dbPath = Path.Combine(_pathProvider.AppDataPath, "openmob.db");
             optionsBuilder.UseSqlite($"Data Source={dbPath}");
         }
+
+        // Explicitly register the pre-compiled model to avoid runtime reflection-based
+        // model building, which fails on iOS Release builds with the aggressive linker.
+        optionsBuilder.UseModel(AppDbContextModel.Instance);
     }
 
     /// <inheritdoc />

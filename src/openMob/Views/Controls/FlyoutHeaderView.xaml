@@ -7,7 +7,7 @@
              x:DataType="viewmodels:FlyoutViewModel">
 
     <Grid
-      ColumnDefinitions="*,Auto,Auto"
+      ColumnDefinitions="*,Auto"
       Padding="{StaticResource SpacingLg}"
       BackgroundColor="{AppThemeBinding Light={StaticResource ColorBackgroundLight}, Dark={StaticResource ColorBackgroundDark}}">
 
@@ -22,7 +22,7 @@
         LineBreakMode="TailTruncation"
         MaxLines="1" />
 
-    <!-- New chat button — bound to FlyoutViewModel.NewChatCommand -->
+    <!-- Project detail button — opens ProjectDetailSheet -->
     <ImageButton
         Grid.Column="1"
         BackgroundColor="Transparent"
@@ -36,24 +36,6 @@
         <FontImageSource
             FontFamily="TablerIcons"
             Glyph="{x:Static helpers:IconKeys.InfoCircle}"
-            Size="{StaticResource FontSizeIconXl}"
-            Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}" />
-      </ImageButton.Source>
-    </ImageButton>
-
-    <!-- New chat button — bound to FlyoutViewModel.NewChatCommand -->
-    <ImageButton
-        Grid.Column="2"
-        BackgroundColor="Transparent"
-        MinimumHeightRequest="{StaticResource MinTouchTarget}"
-        MinimumWidthRequest="{StaticResource MinTouchTarget}"
-        Command="{Binding NewChatCommand}"
-        AutomationId="NewChatButton"
-        SemanticProperties.Description="Start a new chat session">
-      <ImageButton.Source>
-        <FontImageSource
-            FontFamily="TablerIcons"
-            Glyph="{x:Static helpers:IconKeys.Edit}"
             Size="{StaticResource FontSizeIconXl}"
             Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}" />
       </ImageButton.Source>

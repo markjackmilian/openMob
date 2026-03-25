@@ -26,10 +26,12 @@
 
     <Grid RowDefinitions="Auto,Auto,*,Auto">
 
+      <!-- Drag handle -->
       <BoxView Grid.Row="0"
                Style="{StaticResource SheetHandleBar}"
                Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}" />
 
+      <!-- Title bar -->
       <Grid Grid.Row="1"
             ColumnDefinitions="*,Auto"
             Padding="16,0"
@@ -54,6 +56,7 @@
         </ImageButton>
       </Grid>
 
+      <!-- Loading state -->
       <ActivityIndicator Grid.Row="2"
                          IsRunning="{Binding IsLoading}"
                          IsVisible="{Binding IsLoading}"
@@ -61,65 +64,152 @@
                          VerticalOptions="Center"
                          SemanticProperties.Description="Loading project details" />
 
+      <!-- Content scroll area -->
       <ScrollView Grid.Row="2"
                   IsVisible="{Binding IsLoading, Converter={StaticResource InvertedBoolConverter}}">
-        <VerticalStackLayout Spacing="0">
+        <VerticalStackLayout Spacing="0"
+                             Padding="0,0,0,32">
 
-          <VerticalStackLayout Padding="16,8,16,0" Spacing="12">
-            <Label Text="Project"
-                   Style="{StaticResource SubtitleLabel}" />
-            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="16">
-              <Label Text="Name" Style="{StaticResource CaptionLabel}" />
-              <Label Grid.Column="1" Text="{Binding ProjectName, FallbackValue='—', TargetNullValue='—'}" Style="{StaticResource BodyLabel}" HorizontalOptions="End" HorizontalTextAlignment="End" />
-            </Grid>
-            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="16">
-              <Label Text="Worktree" Style="{StaticResource CaptionLabel}" />
-              <Label Grid.Column="1" Text="{Binding WorktreePath, FallbackValue='—', TargetNullValue='—'}" Style="{StaticResource BodyLabel}" HorizontalOptions="End" HorizontalTextAlignment="End" LineBreakMode="TailTruncation" />
-            </Grid>
-            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="16">
-              <Label Text="VCS Type" Style="{StaticResource CaptionLabel}" />
-              <Label Grid.Column="1" Text="{Binding VcsType, FallbackValue='—', TargetNullValue='—'}" Style="{StaticResource BodyLabel}" HorizontalOptions="End" HorizontalTextAlignment="End" />
-            </Grid>
-            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="16">
-              <Label Text="Branch" Style="{StaticResource CaptionLabel}" />
-              <Label Grid.Column="1" Text="{Binding GitBranch, FallbackValue='—', TargetNullValue='—'}" Style="{StaticResource BodyLabel}" HorizontalOptions="End" HorizontalTextAlignment="End" LineBreakMode="TailTruncation" />
-            </Grid>
-            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="16">
-              <Label Text="Working Dir" Style="{StaticResource CaptionLabel}" />
-              <Label Grid.Column="1" Text="{Binding WorkingDirectory, FallbackValue='—', TargetNullValue='—'}" Style="{StaticResource BodyLabel}" HorizontalOptions="End" HorizontalTextAlignment="End" LineBreakMode="TailTruncation" />
-            </Grid>
-            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="16">
-              <Label Text="Config Path" Style="{StaticResource CaptionLabel}" />
-              <Label Grid.Column="1" Text="{Binding ConfigPath, FallbackValue='—', TargetNullValue='—'}" Style="{StaticResource BodyLabel}" HorizontalOptions="End" HorizontalTextAlignment="End" LineBreakMode="TailTruncation" />
-            </Grid>
-            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="16">
-              <Label Text="Created" Style="{StaticResource CaptionLabel}" />
-              <Label Grid.Column="1" Text="{Binding CreatedAt, FallbackValue='—', TargetNullValue='—'}" Style="{StaticResource BodyLabel}" HorizontalOptions="End" HorizontalTextAlignment="End" />
-            </Grid>
-            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="16">
-              <Label Text="Initialized" Style="{StaticResource CaptionLabel}" />
-              <Label Grid.Column="1" Text="{Binding InitializedAt, FallbackValue='—', TargetNullValue='—'}" Style="{StaticResource BodyLabel}" HorizontalOptions="End" HorizontalTextAlignment="End" />
-            </Grid>
-          </VerticalStackLayout>
+          <!-- ── Project section ── -->
+          <Border Style="{StaticResource CardBorder}"
+                  Margin="16,16,16,0">
+            <VerticalStackLayout Spacing="{StaticResource SpacingLg}">
 
-          <BoxView HeightRequest="0.5"
-                   Margin="16,16"
-                   Color="{AppThemeBinding Light={StaticResource ColorSeparatorLight}, Dark={StaticResource ColorSeparatorDark}}" />
+              <!-- Name -->
+              <VerticalStackLayout Spacing="{StaticResource SpacingXxs}">
+                <Label Text="Name"
+                       Style="{StaticResource CaptionLabel}" />
+                <Label Text="{Binding ProjectName, FallbackValue='—', TargetNullValue='—'}"
+                       Style="{StaticResource CalloutLabel}"
+                       LineBreakMode="WordWrap" />
+              </VerticalStackLayout>
 
-          <VerticalStackLayout Padding="16,0,16,24" Spacing="12">
-            <Label Text="Model"
-                   Style="{StaticResource SubtitleLabel}" />
-            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="16">
-              <Label Text="Effective" Style="{StaticResource CaptionLabel}" />
-              <Label Grid.Column="1" Text="{Binding EffectiveModelId, FallbackValue='—', TargetNullValue='—'}" Style="{StaticResource BodyLabel}" HorizontalOptions="End" HorizontalTextAlignment="End" LineBreakMode="TailTruncation" />
-            </Grid>
-            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="16">
-              <Label Text="Source" Style="{StaticResource CaptionLabel}" />
-              <Label Grid.Column="1" Text="{Binding ModelSourceLabel, FallbackValue='Server default', TargetNullValue='Server default'}" Style="{StaticResource BodyLabel}" HorizontalOptions="End" HorizontalTextAlignment="End" />
-            </Grid>
+              <BoxView HeightRequest="0.5"
+                       Color="{AppThemeBinding Light={StaticResource ColorSeparatorLight}, Dark={StaticResource ColorSeparatorDark}}" />
+
+              <!-- Worktree -->
+              <VerticalStackLayout Spacing="{StaticResource SpacingXxs}">
+                <Label Text="Worktree"
+                       Style="{StaticResource CaptionLabel}" />
+                <Label Text="{Binding WorktreePath, FallbackValue='—', TargetNullValue='—'}"
+                       Style="{StaticResource CalloutLabel}"
+                       LineBreakMode="WordWrap" />
+              </VerticalStackLayout>
+
+              <BoxView HeightRequest="0.5"
+                       Color="{AppThemeBinding Light={StaticResource ColorSeparatorLight}, Dark={StaticResource ColorSeparatorDark}}" />
+
+              <!-- VCS Type -->
+              <VerticalStackLayout Spacing="{StaticResource SpacingXxs}">
+                <Label Text="VCS Type"
+                       Style="{StaticResource CaptionLabel}" />
+                <Label Text="{Binding VcsType, FallbackValue='—', TargetNullValue='—'}"
+                       Style="{StaticResource CalloutLabel}"
+                       LineBreakMode="WordWrap" />
+              </VerticalStackLayout>
+
+              <BoxView HeightRequest="0.5"
+                       Color="{AppThemeBinding Light={StaticResource ColorSeparatorLight}, Dark={StaticResource ColorSeparatorDark}}" />
+
+              <!-- Branch -->
+              <VerticalStackLayout Spacing="{StaticResource SpacingXxs}">
+                <Label Text="Branch"
+                       Style="{StaticResource CaptionLabel}" />
+                <Label Text="{Binding GitBranch, FallbackValue='—', TargetNullValue='—'}"
+                       Style="{StaticResource CalloutLabel}"
+                       LineBreakMode="WordWrap" />
+              </VerticalStackLayout>
+
+              <BoxView HeightRequest="0.5"
+                       Color="{AppThemeBinding Light={StaticResource ColorSeparatorLight}, Dark={StaticResource ColorSeparatorDark}}" />
+
+              <!-- Working Dir -->
+              <VerticalStackLayout Spacing="{StaticResource SpacingXxs}">
+                <Label Text="Working Dir"
+                       Style="{StaticResource CaptionLabel}" />
+                <Label Text="{Binding WorkingDirectory, FallbackValue='—', TargetNullValue='—'}"
+                       Style="{StaticResource CalloutLabel}"
+                       LineBreakMode="WordWrap" />
+              </VerticalStackLayout>
+
+              <BoxView HeightRequest="0.5"
+                       Color="{AppThemeBinding Light={StaticResource ColorSeparatorLight}, Dark={StaticResource ColorSeparatorDark}}" />
+
+              <!-- Config Path -->
+              <VerticalStackLayout Spacing="{StaticResource SpacingXxs}">
+                <Label Text="Config Path"
+                       Style="{StaticResource CaptionLabel}" />
+                <Label Text="{Binding ConfigPath, FallbackValue='—', TargetNullValue='—'}"
+                       Style="{StaticResource CalloutLabel}"
+                       LineBreakMode="WordWrap" />
+              </VerticalStackLayout>
+
+              <BoxView HeightRequest="0.5"
+                       Color="{AppThemeBinding Light={StaticResource ColorSeparatorLight}, Dark={StaticResource ColorSeparatorDark}}" />
+
+              <!-- Created -->
+              <VerticalStackLayout Spacing="{StaticResource SpacingXxs}">
+                <Label Text="Created"
+                       Style="{StaticResource CaptionLabel}" />
+                <Label Text="{Binding CreatedAt, FallbackValue='—', TargetNullValue='—'}"
+                       Style="{StaticResource CalloutLabel}"
+                       LineBreakMode="WordWrap" />
+              </VerticalStackLayout>
+
+              <BoxView HeightRequest="0.5"
+                       Color="{AppThemeBinding Light={StaticResource ColorSeparatorLight}, Dark={StaticResource ColorSeparatorDark}}" />
+
+              <!-- Initialized -->
+              <VerticalStackLayout Spacing="{StaticResource SpacingXxs}">
+                <Label Text="Initialized"
+                       Style="{StaticResource CaptionLabel}" />
+                <Label Text="{Binding InitializedAt, FallbackValue='—', TargetNullValue='—'}"
+                       Style="{StaticResource CalloutLabel}"
+                       LineBreakMode="WordWrap" />
+              </VerticalStackLayout>
+
+            </VerticalStackLayout>
+          </Border>
+
+          <!-- ── Model section ── -->
+          <Label Text="Model"
+                 Style="{StaticResource HeadlineLabel}"
+                 Margin="16,24,16,8" />
+
+          <Border Style="{StaticResource CardBorder}"
+                  Margin="16,0">
+            <VerticalStackLayout Spacing="{StaticResource SpacingLg}">
+
+              <!-- Effective model -->
+              <VerticalStackLayout Spacing="{StaticResource SpacingXxs}">
+                <Label Text="Effective"
+                       Style="{StaticResource CaptionLabel}" />
+                <Label Text="{Binding EffectiveModelId, FallbackValue='—', TargetNullValue='—'}"
+                       Style="{StaticResource CalloutLabel}"
+                       LineBreakMode="WordWrap" />
+              </VerticalStackLayout>
+
+              <BoxView HeightRequest="0.5"
+                       Color="{AppThemeBinding Light={StaticResource ColorSeparatorLight}, Dark={StaticResource ColorSeparatorDark}}" />
+
+              <!-- Model source -->
+              <VerticalStackLayout Spacing="{StaticResource SpacingXxs}">
+                <Label Text="Source"
+                       Style="{StaticResource CaptionLabel}" />
+                <Label Text="{Binding ModelSourceLabel, FallbackValue='Server default', TargetNullValue='Server default'}"
+                       Style="{StaticResource CalloutLabel}"
+                       LineBreakMode="WordWrap" />
+              </VerticalStackLayout>
+
+            </VerticalStackLayout>
+          </Border>
+
+          <!-- ── Action buttons ── -->
+          <VerticalStackLayout Spacing="{StaticResource SpacingSm}"
+                               Margin="16,16,16,0">
 
             <Button Text="Change Model"
-                    Style="{StaticResource SecondaryButton}"
+                    Style="{StaticResource PrimaryButton}"
                     Command="{Binding ChangeModelCommand}"
                     AutomationId="ProjectDetailChangeModelButton"
                     SemanticProperties.Description="Change the project default model" />
@@ -130,11 +220,13 @@
                     IsVisible="{Binding IsModelOverridden}"
                     AutomationId="ProjectDetailResetModelButton"
                     SemanticProperties.Description="Reset the project model override to the server default" />
+
           </VerticalStackLayout>
 
         </VerticalStackLayout>
       </ScrollView>
 
+      <!-- Bottom safe-area spacer -->
       <BoxView Grid.Row="3" HeightRequest="32" Color="Transparent" />
 
     </Grid>

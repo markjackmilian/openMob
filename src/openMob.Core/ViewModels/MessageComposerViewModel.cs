@@ -20,6 +20,9 @@ public partial class MessageComposerViewModel : ObservableObject, IDisposable
     private readonly IDraftService _draftService;
     private readonly IDispatcherService _dispatcher;
 
+    /// <summary>Set to <c>true</c> after a successful send to prevent Dispose from re-saving the draft.</summary>
+    private bool _wasSent;
+
     /// <summary>Initialises the message composer ViewModel with required dependencies.</summary>
     /// <param name="preferenceService">Service for loading project preferences.</param>
     /// <param name="popupService">Service for popup/dialog operations.</param>
@@ -251,6 +254,7 @@ public partial class MessageComposerViewModel : ObservableObject, IDisposable
 
         _draftService.ClearDraft(SessionId);
         _draftService.ClearComposerDraft(SessionId);
+        _wasSent = true;
 
         await _popupService.PopPopupAsync(ct);
     }
@@ -307,7 +311,10 @@ public partial class MessageComposerViewModel : ObservableObject, IDisposable
     {
         WeakReferenceMessenger.Default.UnregisterAll(this);
 
-        // Save full draft on dispose (e.g. popup dismissed without explicit close)
-        SaveFullDraft();
+        // Save full draft on dispose (e.g. popup dismissed without explicit close).
+        // Skip if the message was already sent — draft was cleared in SendAsync and
+        // must not be re-saved here (would overwrite the ClearComposerDraft call).
+        if (!_wasSent)
+            SaveFullDraft();
     }
 }

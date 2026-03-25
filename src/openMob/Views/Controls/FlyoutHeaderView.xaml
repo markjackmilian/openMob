@@ -6,8 +6,8 @@
              x:Class="openMob.Views.Controls.FlyoutHeaderView"
              x:DataType="viewmodels:FlyoutViewModel">
 
-  <Grid
-      ColumnDefinitions="*,Auto"
+    <Grid
+      ColumnDefinitions="*,Auto,Auto"
       Padding="{StaticResource SpacingLg}"
       BackgroundColor="{AppThemeBinding Light={StaticResource ColorBackgroundLight}, Dark={StaticResource ColorBackgroundDark}}">
 
@@ -25,6 +25,25 @@
     <!-- New chat button — bound to FlyoutViewModel.NewChatCommand -->
     <ImageButton
         Grid.Column="1"
+        BackgroundColor="Transparent"
+        MinimumHeightRequest="{StaticResource MinTouchTarget}"
+        MinimumWidthRequest="{StaticResource MinTouchTarget}"
+        Command="{Binding OpenProjectDetailCommand}"
+        IsVisible="{Binding HasProject}"
+        AutomationId="ProjectDetailButton"
+        SemanticProperties.Description="Open project details">
+      <ImageButton.Source>
+        <FontImageSource
+            FontFamily="TablerIcons"
+            Glyph="{x:Static helpers:IconKeys.InfoCircle}"
+            Size="{StaticResource FontSizeIconXl}"
+            Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}" />
+      </ImageButton.Source>
+    </ImageButton>
+
+    <!-- New chat button — bound to FlyoutViewModel.NewChatCommand -->
+    <ImageButton
+        Grid.Column="2"
         BackgroundColor="Transparent"
         MinimumHeightRequest="{StaticResource MinTouchTarget}"
         MinimumWidthRequest="{StaticResource MinTouchTarget}"

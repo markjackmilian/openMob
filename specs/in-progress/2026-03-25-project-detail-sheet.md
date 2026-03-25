@@ -4,8 +4,9 @@
 | Field   | Value                        |
 |---------|------------------------------|
 | Date    | 2026-03-25                   |
-| Status  | Draft                        |
+| Status  | In Progress                  |
 | Version | 1.0                          |
+| Branch  | feature/project-detail-sheet |
 
 ---
 
@@ -124,28 +125,8 @@ A new bottom sheet modal (full-screen) accessible from the flyout drawer header 
 
 | # | Question | Status | Answer / Decision |
 |---|----------|--------|-------------------|
-| 1 | Which TablerIcons glyph to use for the "project detail" button in the flyout header? Candidates: `IconKeys.InfoCircle`, `IconKeys.FolderOpen`, `IconKeys.Settings`. | Open | — |
-| 2 | `GET /vcs` returns the branch for the **currently active project on the server**, not for an arbitrary project ID. If the project shown in the sheet is not the server-active project, the branch displayed may be incorrect. Should the branch field be shown only when the viewed project matches the server-active project, or always shown with a disclaimer? | Open | — |
-
----
-
-## Acceptance Criteria
-
-> Each criterion maps to one or more functional requirements.
-
-- [ ] **[AC-001]** Given a project is active in the flyout drawer, when the user opens the drawer, then a second icon button is visible next to the "New Chat" button. *(REQ-001)*
-- [ ] **[AC-002]** Given no project is active, when the user opens the drawer, then the project detail button is hidden or disabled. *(REQ-001, REQ-002)*
-- [ ] **[AC-003]** Given the project detail button is tapped, when the command executes, then a full-screen bottom sheet modal opens. *(REQ-002, REQ-003)*
-- [ ] **[AC-004]** Given the sheet is opening, when data is being fetched, then a loading indicator is visible and no data fields are shown yet. *(REQ-009)*
-- [ ] **[AC-005]** Given the sheet has loaded successfully, when the user views it, then all of the following are displayed: project name, worktree path, VCS type, git branch, working directory, config path, creation date. *(REQ-005)*
-- [ ] **[AC-006]** Given `ProjectDto.Time.Initialized` is null, when the sheet loads, then the "Initialized" field shows "—". *(REQ-005)*
-- [ ] **[AC-007]** Given `ProjectPreference.DefaultModelId` is set for the project, when the sheet loads, then `EffectiveModelId` shows the local override and `ModelSourceLabel` reads "Project override". *(REQ-006)*
-- [ ] **[AC-008]** Given no local model override exists, when the sheet loads, then `EffectiveModelId` shows `ConfigDto.Model` and `ModelSourceLabel` reads "Server default". *(REQ-006)*
-- [ ] **[AC-009]** Given the "Change Model" button is tapped, when the user selects a model in the picker, then `SetDefaultModelAsync` is called, `IsModelOverridden` becomes `true`, and the UI updates without closing the sheet. *(REQ-007)*
-- [ ] **[AC-010]** Given `IsModelOverridden == true`, when the user taps "Reset to server default", then `ClearDefaultModelAsync` is called, `IsModelOverridden` becomes `false`, and `EffectiveModelId` reverts to the server global model. *(REQ-008)*
-- [ ] **[AC-011]** Given `IsModelOverridden == false`, when the sheet is displayed, then the "Reset to server default" button is not visible. *(REQ-008)*
-- [ ] **[AC-012]** Given `GET /vcs` returns an error, when the sheet loads, then the "Branch" field shows "—" and all other fields load normally. *(REQ-010)*
-- [ ] **[AC-013]** Given the sheet is open, when the user taps the "Close" button or swipes down, then the sheet is dismissed. *(REQ-011)*
+| 1 | Which TablerIcons glyph to use for the "project detail" button in the flyout header? Candidates: `IconKeys.InfoCircle`, `IconKeys.FolderOpen`, `IconKeys.Settings`. | Open | Use `IconKeys.InfoCircle` as the default. |
+| 2 | `GET /vcs` returns the branch for the **currently active project on the server**, not for an arbitrary project ID. If the project shown in the sheet is not the server-active project, the branch displayed may be incorrect. Should the branch field be shown only when the viewed project matches the server-active project, or always shown with a disclaimer? | Open | Always show the returned branch value. |
 
 ---
 
@@ -193,3 +174,23 @@ A new bottom sheet modal (full-screen) accessible from the flyout drawer header 
 - `src/openMob.Core/Services/IProjectPreferenceService.cs` — `GetOrDefaultAsync`, `SetDefaultModelAsync`, `ClearDefaultModelAsync`
 - `src/openMob.Core/Helpers/ProjectNameHelper.cs` — `ExtractFromWorktree`
 - `src/openMob.Core/Infrastructure/DI/CoreServiceExtensions.cs` — DI registration
+
+---
+
+## Acceptance Criteria
+
+> Each criterion maps to one or more functional requirements.
+
+- [ ] **[AC-001]** Given a project is active in the flyout drawer, when the user opens the drawer, then a second icon button is visible next to the "New Chat" button. *(REQ-001)*
+- [ ] **[AC-002]** Given no project is active, when the user opens the drawer, then the project detail button is hidden or disabled. *(REQ-001, REQ-002)*
+- [ ] **[AC-003]** Given the project detail button is tapped, when the command executes, then a full-screen bottom sheet modal opens. *(REQ-002, REQ-003)*
+- [ ] **[AC-004]** Given the sheet is opening, when data is being fetched, then a loading indicator is visible and no data fields are shown yet. *(REQ-009)*
+- [ ] **[AC-005]** Given the sheet has loaded successfully, when the user views it, then all of the following are displayed: project name, worktree path, VCS type, git branch, working directory, config path, creation date. *(REQ-005)*
+- [ ] **[AC-006]** Given `ProjectDto.Time.Initialized` is null, when the sheet loads, then the "Initialized" field shows "—". *(REQ-005)*
+- [ ] **[AC-007]** Given `ProjectPreference.DefaultModelId` is set for the project, when the sheet loads, then `EffectiveModelId` shows the local override and `ModelSourceLabel` reads "Project override". *(REQ-006)*
+- [ ] **[AC-008]** Given no local model override exists, when the sheet loads, then `EffectiveModelId` shows `ConfigDto.Model` and `ModelSourceLabel` reads "Server default". *(REQ-006)*
+- [ ] **[AC-009]** Given the "Change Model" button is tapped, when the user selects a model in the picker, then `SetDefaultModelAsync` is called, `IsModelOverridden` becomes `true`, and the UI updates without closing the sheet. *(REQ-007)*
+- [ ] **[AC-010]** Given `IsModelOverridden == true`, when the user taps "Reset to server default", then `ClearDefaultModelAsync` is called, `IsModelOverridden` becomes `false`, and `EffectiveModelId` reverts to the server global model. *(REQ-008)*
+- [ ] **[AC-011]** Given `IsModelOverridden == false`, when the sheet is displayed, then the "Reset to server default" button is not visible. *(REQ-008)*
+- [ ] **[AC-012]** Given `GET /vcs` returns an error, when the sheet loads, then the "Branch" field shows "—" and all other fields load normally. *(REQ-010)*
+- [ ] **[AC-013]** Given the sheet is open, when the user taps the "Close" button or swipes down, then the sheet is dismissed. *(REQ-011)*

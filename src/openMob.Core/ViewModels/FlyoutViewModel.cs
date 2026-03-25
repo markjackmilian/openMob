@@ -13,8 +13,9 @@ using openMob.Core.Services;
 namespace openMob.Core.ViewModels;
 
 /// <summary>
-/// ViewModel for the dynamic flyout body. Displays the current project's sessions
-/// and provides actions for session selection and new chat creation.
+/// ViewModel for the dynamic flyout body. Displays the current project's sessions,
+/// exposes the active project identity, and provides actions for session selection,
+/// new chat creation, and opening the project detail sheet.
 /// Subscribes to <see cref="SessionDeletedMessage"/> to auto-refresh the session list,
 /// to <see cref="CurrentSessionChangedMessage"/> to highlight the active session,
 /// and to <see cref="SessionTitleUpdatedMessage"/> to update session titles in-place.
@@ -147,7 +148,13 @@ public sealed partial class FlyoutViewModel : ObservableObject, IDisposable
 
     /// <summary>Gets or sets whether a project is currently selected.</summary>
     [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(OpenProjectDetailCommand))]
     private bool _hasProject;
+
+    /// <summary>Gets or sets the identifier of the currently active project.</summary>
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(OpenProjectDetailCommand))]
+    private string? _activeProjectId;
 
     /// <summary>Gets or sets whether the session list is currently loading.</summary>
     [ObservableProperty]
@@ -164,6 +171,12 @@ public sealed partial class FlyoutViewModel : ObservableObject, IDisposable
     /// <summary>Gets or sets the inline error message from the last failed session creation attempt, or <c>null</c> if no error.</summary>
     [ObservableProperty]
     private string? _creationError;
+
+    // ─── Command guards ───────────────────────────────────────────────────────
+
+    /// <summary>Determines whether the project detail sheet can be opened.</summary>
+    /// <returns><c>true</c> when a project is active and its identifier is available.</returns>
+    private bool CanOpenProjectDetail() => HasProject && !string.IsNullOrWhiteSpace(ActiveProjectId);
 
     // ─── Commands ─────────────────────────────────────────────────────────────
 
@@ -195,12 +208,14 @@ public sealed partial class FlyoutViewModel : ObservableObject, IDisposable
             if (currentProject is null)
             {
                 HasProject = false;
+                ActiveProjectId = null;
                 ProjectSectionTitle = string.Empty;
                 _dispatcher.Dispatch(() => Sessions = []);
                 return;
             }
 
             HasProject = true;
+            ActiveProjectId = currentProject.Id;
             ProjectSectionTitle = ProjectNameHelper.ExtractFromWorktree(currentProject.Worktree).ToUpperInvariant();
 
             var sessions = await _sessionService.GetSessionsByProjectAsync(currentProject.Id, ct);
@@ -235,6 +250,36 @@ public sealed partial class FlyoutViewModel : ObservableObject, IDisposable
         {
             sw.Stop();
             DebugLogger.LogCommand(nameof(LoadSessionsAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
+    }
+
+    /// <summary>
+    /// Opens the project detail sheet for the currently active project.
+    /// </summary>
+    /// <param name="ct">Cancellation token.</param>
+    [RelayCommand(CanExecute = nameof(CanOpenProjectDetail))]
+    private async Task OpenProjectDetailAsync(CancellationToken ct)
+    {
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(OpenProjectDetailAsync), "start");
+        try
+        {
+#endif
+        if (string.IsNullOrWhiteSpace(ActiveProjectId))
+            return;
+
+        await _popupService.ShowProjectDetailAsync(ActiveProjectId, ct);
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(OpenProjectDetailAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(OpenProjectDetailAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
             throw;
         }
 #endif

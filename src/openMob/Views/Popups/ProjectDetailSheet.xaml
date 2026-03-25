@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<uxd:PopupPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+               xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+               xmlns:uxd="clr-namespace:UXDivers.Popups.Maui;assembly=UXDivers.Popups.Maui"
+               xmlns:vm="clr-namespace:openMob.Core.ViewModels;assembly=openMob.Core"
+               xmlns:helpers="clr-namespace:openMob.Helpers"
+               x:Class="openMob.Views.Popups.ProjectDetailSheet"
+               x:DataType="vm:ProjectDetailViewModel"
+               BackgroundColor="{DynamicResource PopupBackdropColor}"
+               CloseWhenBackgroundIsClicked="True"
+               AppearingAnimation="{uxd:MoveInPopupAnimation MoveDirection=Bottom, Duration=300, Easing=CubicOut}"
+               DisappearingAnimation="{uxd:MoveOutPopupAnimation MoveDirection=Bottom, Duration=250, Easing=CubicIn}">
+
+  <Border VerticalOptions="Fill"
+          HorizontalOptions="Fill"
+          StrokeThickness="0"
+          Padding="0"
+          Margin="0,48,0,0"
+          BackgroundColor="{AppThemeBinding Light={StaticResource ColorBackgroundLight}, Dark={StaticResource ColorBackgroundDark}}">
+    <Border.StrokeShape>
+      <RoundRectangle CornerRadius="20,20,0,0" />
+    </Border.StrokeShape>
+    <Border.Shadow>
+      <Shadow Brush="Black" Opacity="0.15" Offset="0,-2" Radius="16" />
+    </Border.Shadow>
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto">
+
+      <BoxView Grid.Row="0"
+               Style="{StaticResource SheetHandleBar}"
+               Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}" />
+
+      <Grid Grid.Row="1"
+            ColumnDefinitions="*,Auto"
+            Padding="16,0"
+            HeightRequest="{StaticResource MinTouchTarget}">
+        <Label Grid.Column="0"
+               Text="Project Details"
+               Style="{StaticResource Title3Label}"
+               VerticalOptions="Center" />
+        <ImageButton Grid.Column="1"
+                     Clicked="OnCloseButtonTapped"
+                     MinimumHeightRequest="{StaticResource MinTouchTarget}"
+                     MinimumWidthRequest="{StaticResource MinTouchTarget}"
+                     BackgroundColor="Transparent"
+                     AutomationId="ProjectDetailCloseButton"
+                     SemanticProperties.Description="Close project detail sheet">
+          <ImageButton.Source>
+            <FontImageSource FontFamily="TablerIcons"
+                             Glyph="{x:Static helpers:IconKeys.X}"
+                             Size="{StaticResource FontSizeIconXl}"
+                             Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}" />
+          </ImageButton.Source>
+        </ImageButton>
+      </Grid>
+
+      <ActivityIndicator Grid.Row="2"
+                         IsRunning="{Binding IsLoading}"
+                         IsVisible="{Binding IsLoading}"
+                         HorizontalOptions="Center"
+                         VerticalOptions="Center"
+                         SemanticProperties.Description="Loading project details" />
+
+      <ScrollView Grid.Row="2"
+                  IsVisible="{Binding IsLoading, Converter={StaticResource InvertedBoolConverter}}">
+        <VerticalStackLayout Spacing="0">
+
+          <VerticalStackLayout Padding="16,8,16,0" Spacing="12">
+            <Label Text="Project"
+                   Style="{StaticResource SubtitleLabel}" />
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="16">
+              <Label Text="Name" Style="{StaticResource CaptionLabel}" />
+              <Label Grid.Column="1" Text="{Binding ProjectName, FallbackValue='—', TargetNullValue='—'}" Style="{StaticResource BodyLabel}" HorizontalOptions="End" HorizontalTextAlignment="End" />
+            </Grid>
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="16">
+              <Label Text="Worktree" Style="{StaticResource CaptionLabel}" />
+              <Label Grid.Column="1" Text="{Binding WorktreePath, FallbackValue='—', TargetNullValue='—'}" Style="{StaticResource BodyLabel}" HorizontalOptions="End" HorizontalTextAlignment="End" LineBreakMode="TailTruncation" />
+            </Grid>
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="16">
+              <Label Text="VCS Type" Style="{StaticResource CaptionLabel}" />
+              <Label Grid.Column="1" Text="{Binding VcsType, FallbackValue='—', TargetNullValue='—'}" Style="{StaticResource BodyLabel}" HorizontalOptions="End" HorizontalTextAlignment="End" />
+            </Grid>
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="16">
+              <Label Text="Branch" Style="{StaticResource CaptionLabel}" />
+              <Label Grid.Column="1" Text="{Binding GitBranch, FallbackValue='—', TargetNullValue='—'}" Style="{StaticResource BodyLabel}" HorizontalOptions="End" HorizontalTextAlignment="End" LineBreakMode="TailTruncation" />
+            </Grid>
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="16">
+              <Label Text="Working Dir" Style="{StaticResource CaptionLabel}" />
+              <Label Grid.Column="1" Text="{Binding WorkingDirectory, FallbackValue='—', TargetNullValue='—'}" Style="{StaticResource BodyLabel}" HorizontalOptions="End" HorizontalTextAlignment="End" LineBreakMode="TailTruncation" />
+            </Grid>
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="16">
+              <Label Text="Config Path" Style="{StaticResource CaptionLabel}" />
+              <Label Grid.Column="1" Text="{Binding ConfigPath, FallbackValue='—', TargetNullValue='—'}" Style="{StaticResource BodyLabel}" HorizontalOptions="End" HorizontalTextAlignment="End" LineBreakMode="TailTruncation" />
+            </Grid>
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="16">
+              <Label Text="Created" Style="{StaticResource CaptionLabel}" />
+              <Label Grid.Column="1" Text="{Binding CreatedAt, FallbackValue='—', TargetNullValue='—'}" Style="{StaticResource BodyLabel}" HorizontalOptions="End" HorizontalTextAlignment="End" />
+            </Grid>
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="16">
+              <Label Text="Initialized" Style="{StaticResource CaptionLabel}" />
+              <Label Grid.Column="1" Text="{Binding InitializedAt, FallbackValue='—', TargetNullValue='—'}" Style="{StaticResource BodyLabel}" HorizontalOptions="End" HorizontalTextAlignment="End" />
+            </Grid>
+          </VerticalStackLayout>
+
+          <BoxView HeightRequest="0.5"
+                   Margin="16,16"
+                   Color="{AppThemeBinding Light={StaticResource ColorSeparatorLight}, Dark={StaticResource ColorSeparatorDark}}" />
+
+          <VerticalStackLayout Padding="16,0,16,24" Spacing="12">
+            <Label Text="Model"
+                   Style="{StaticResource SubtitleLabel}" />
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="16">
+              <Label Text="Effective" Style="{StaticResource CaptionLabel}" />
+              <Label Grid.Column="1" Text="{Binding EffectiveModelId, FallbackValue='—', TargetNullValue='—'}" Style="{StaticResource BodyLabel}" HorizontalOptions="End" HorizontalTextAlignment="End" LineBreakMode="TailTruncation" />
+            </Grid>
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="16">
+              <Label Text="Source" Style="{StaticResource CaptionLabel}" />
+              <Label Grid.Column="1" Text="{Binding ModelSourceLabel, FallbackValue='Server default', TargetNullValue='Server default'}" Style="{StaticResource BodyLabel}" HorizontalOptions="End" HorizontalTextAlignment="End" />
+            </Grid>
+
+            <Button Text="Change Model"
+                    Style="{StaticResource SecondaryButton}"
+                    Command="{Binding ChangeModelCommand}"
+                    AutomationId="ProjectDetailChangeModelButton"
+                    SemanticProperties.Description="Change the project default model" />
+
+            <Button Text="Reset to server default"
+                    Style="{StaticResource SecondaryButton}"
+                    Command="{Binding ResetModelCommand}"
+                    IsVisible="{Binding IsModelOverridden}"
+                    AutomationId="ProjectDetailResetModelButton"
+                    SemanticProperties.Description="Reset the project model override to the server default" />
+          </VerticalStackLayout>
+
+        </VerticalStackLayout>
+      </ScrollView>
+
+      <BoxView Grid.Row="3" HeightRequest="32" Color="Transparent" />
+
+    </Grid>
+  </Border>
+
+</uxd:PopupPage>

@@ -247,7 +247,7 @@
                HeightRequest="24">
           <Image.Source>
             <FontImageSource FontFamily="TablerIcons"
-                             Glyph="{x:Static helpers:IconKeys.Edit}"
+                             Glyph="{x:Static helpers:IconKeys.Robot}"
                              Size="{StaticResource FontSizeIconXl}"
                              Color="{AppThemeBinding Light={StaticResource ColorOnPrimaryLight},
                                                       Dark={StaticResource ColorOnPrimaryDark}}" />
@@ -319,26 +319,7 @@
         </Grid>
       </Border>
 
-      <!-- Suggestion Chips — visible when IsEmpty = true -->
-      <CollectionView ItemsSource="{Binding SuggestionChips}"
-                      SelectionMode="None"
-                      IsVisible="{Binding IsEmpty}"
-                      HeightRequest="80"
-                      Margin="{StaticResource SpacingSm}">
-        <CollectionView.ItemsLayout>
-          <LinearItemsLayout Orientation="Horizontal"
-                             ItemSpacing="{StaticResource SpacingSm}" />
-        </CollectionView.ItemsLayout>
-        <CollectionView.ItemTemplate>
-          <DataTemplate x:DataType="models:SuggestionChip">
-            <controls:SuggestionChipView
-                Title="{Binding Title}"
-                Subtitle="{Binding Subtitle}"
-                TapCommand="{Binding Source={RelativeSource AncestorType={x:Type viewmodels:ChatViewModel}}, Path=SelectSuggestionChipCommand}"
-                CommandParameter="{Binding .}" />
-          </DataTemplate>
-        </CollectionView.ItemTemplate>
-      </CollectionView>
+
 
     </VerticalStackLayout>
 

@@ -15,15 +15,15 @@
   <Grid RowDefinitions="Auto,Auto,Auto,*,Auto,Auto">
 
     <!-- ═══════════════════════════════════════════════════════════════
-         ROW 0 — Redesigned Header (REQ-017, REQ-018)
-         3-column: hamburger | session name (center) | context icon
+         ROW 0 — Header
+         Accent-tinted background, compact height, primary-colored icons
          ═══════════════════════════════════════════════════════════════ -->
     <Grid Grid.Row="0"
           ColumnDefinitions="Auto,*,Auto"
-          HeightRequest="56"
-          Padding="8,0"
-          BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceLight},
-                                            Dark={StaticResource ColorSurfaceDark}}">
+          HeightRequest="52"
+          Padding="4,0"
+          BackgroundColor="{AppThemeBinding Light={StaticResource ColorPrimaryContainerLight},
+                                            Dark={StaticResource ColorPrimaryContainerDark}}">
 
       <!-- Hamburger button (left) -->
       <ImageButton Grid.Column="0"
@@ -38,15 +38,18 @@
           <FontImageSource FontFamily="TablerIcons"
                            Glyph="{x:Static helpers:IconKeys.Menu}"
                            Size="{StaticResource FontSizeIconXl}"
-                           Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
-                                                    Dark={StaticResource ColorOnBackgroundSecondaryDark}}" />
+                           Color="{AppThemeBinding Light={StaticResource ColorOnPrimaryContainerLight},
+                                                    Dark={StaticResource ColorOnPrimaryContainerDark}}" />
         </ImageButton.Source>
       </ImageButton>
 
       <!-- Center: Session name (tappable to rename) -->
       <Label Grid.Column="1"
              Text="{Binding SessionName, FallbackValue='New chat'}"
-             Style="{StaticResource Title2Label}"
+             FontFamily="InterSemiBold"
+             FontSize="{StaticResource FontSizeCallout}"
+             TextColor="{AppThemeBinding Light={StaticResource ColorOnPrimaryContainerLight},
+                                          Dark={StaticResource ColorOnPrimaryContainerDark}}"
              HorizontalTextAlignment="Center"
              VerticalTextAlignment="Center"
              HorizontalOptions="Center"
@@ -71,19 +74,12 @@
           <FontImageSource FontFamily="TablerIcons"
                            Glyph="{x:Static helpers:IconKeys.Adjustments}"
                            Size="{StaticResource FontSizeIconXl}"
-                           Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
-                                                    Dark={StaticResource ColorOnBackgroundSecondaryDark}}" />
+                           Color="{AppThemeBinding Light={StaticResource ColorOnPrimaryContainerLight},
+                                                    Dark={StaticResource ColorOnPrimaryContainerDark}}" />
         </ImageButton.Source>
       </ImageButton>
 
     </Grid>
-
-    <!-- Topbar bottom separator -->
-    <BoxView Grid.Row="0"
-             HeightRequest="0.5"
-             VerticalOptions="End"
-             Color="{AppThemeBinding Light={StaticResource ColorSeparatorLight},
-                                      Dark={StaticResource ColorSeparatorDark}}" />
 
     <!-- ═══════════════════════════════════════════════════════════════
          ROW 1 — Context Status Bar (REQ-019 through REQ-022)

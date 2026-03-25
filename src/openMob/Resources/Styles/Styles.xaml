@@ -229,7 +229,7 @@
          iOS uses the registered alias. Reference this resource instead of hardcoding "TablerIcons"
          in Label FontFamily attributes throughout the app. -->
     <OnPlatform x:Key="TablerIconsFont" x:TypeArguments="x:String">
-        <On Platform="Android" Value="TablerIcons.ttf#" />
+        <On Platform="Android" Value="tabler-icons.ttf#tabler-icons" />
         <On Platform="iOS" Value="TablerIcons" />
     </OnPlatform>
 

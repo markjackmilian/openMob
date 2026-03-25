@@ -55,11 +55,11 @@ public static class MauiProgram
                 fonts.AddFont("Inter-Medium.ttf", "InterMedium");
                 fonts.AddFont("Inter-SemiBold.ttf", "InterSemiBold");
                 fonts.AddFont("Inter-Bold.ttf", "InterBold");
-                 fonts.AddFont("TablerIcons.ttf", "TablerIcons");
-                 // Android resolves Label FontFamily by PostScript name (nameId=6 = "tabler-icons").
-                 // Registering the same file under the PostScript name alias ensures glyphs render
-                 // correctly on Android where the PascalCase alias alone is insufficient.
-                 fonts.AddFont("TablerIcons.ttf", "tabler-icons");
+                 // Font filename matches the internal PostScript name "tabler-icons" for
+                 // maximum Android compatibility. Registered under both the original alias
+                 // (used in FontImageSource) and the PostScript name (used in Label FontFamily).
+                 fonts.AddFont("tabler-icons.ttf", "TablerIcons");
+                 fonts.AddFont("tabler-icons.ttf", "tabler-icons");
             });
 
 #if DEBUG

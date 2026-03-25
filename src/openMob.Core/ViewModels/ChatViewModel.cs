@@ -57,6 +57,12 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     /// <summary>Tracks the number of pending permission cards in the current message list.</summary>
     private int _pendingPermissionCount;
 
+    /// <summary>
+    /// Tracks permission request IDs for which an API reply call is currently in-flight.
+    /// Prevents duplicate concurrent API calls on rapid double-tap.
+    /// </summary>
+    private readonly HashSet<string> _inFlightPermissionReplies = new(StringComparer.Ordinal);
+
     /// <summary>Initialises the ChatViewModel with required dependencies.</summary>
     /// <param name="projectService">Service for project operations.</param>
     /// <param name="sessionService">Service for session operations.</param>
@@ -1382,31 +1388,31 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
 
     /// <summary>
     /// Replies to a permission request and resolves the matching message on success.
+    /// Concurrent calls for the same <paramref name="requestId"/> are silently dropped
+    /// to prevent duplicate API calls on rapid double-tap.
     /// </summary>
     /// <param name="requestId">The permission request identifier.</param>
-    /// <param name="reply">The reply value to send.</param>
-    /// <param name="replyLabel">The display label to show after success.</param>
+    /// <param name="reply">The reply value: <c>always</c>, <c>once</c>, or <c>reject</c>.</param>
     /// <param name="ct">Cancellation token.</param>
-    public async Task ReplyToPermissionAsync(string requestId, string reply, CancellationToken ct = default)
-    {
-        var replyLabel = reply switch
-        {
-            "always" => "Always",
-            "once" => "Once",
-            "reject" => "Deny",
-            _ => reply,
-        };
-
-        await ReplyToPermissionCoreAsync(requestId, reply, replyLabel, ct);
-    }
-
-    private async Task ReplyToPermissionCoreAsync(string requestId, string reply, string replyLabel, CancellationToken ct)
+    internal async Task ReplyToPermissionAsync(string requestId, string reply, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(requestId))
             return;
 
+        // Guard: drop duplicate concurrent calls for the same requestId (double-tap protection).
+        if (!_inFlightPermissionReplies.Add(requestId))
+            return;
+
         try
         {
+            var replyLabel = reply switch
+            {
+                "always" => "Always",
+                "once" => "Once",
+                "reject" => "Deny",
+                _ => reply,
+            };
+
             var result = await _apiClient.ReplyToPermissionAsync(requestId, reply, ct);
 
             if (!result.IsSuccess)
@@ -1431,6 +1437,10 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
                 ["requestId"] = requestId,
                 ["reply"] = reply,
             });
+        }
+        finally
+        {
+            _inFlightPermissionReplies.Remove(requestId);
         }
     }
 

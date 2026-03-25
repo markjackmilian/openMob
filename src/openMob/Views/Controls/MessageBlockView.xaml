@@ -214,7 +214,7 @@
           <HorizontalStackLayout Spacing="8"
                                  BindableLayout.ItemsSource="{Binding PermissionPatterns, Source={x:Reference this}}">
             <BindableLayout.ItemTemplate>
-              <DataTemplate>
+              <DataTemplate x:DataType="x:String">
                 <Border StrokeThickness="0"
                         BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceLight}, Dark={StaticResource ColorSurfaceDark}}"
                         Padding="8,4"

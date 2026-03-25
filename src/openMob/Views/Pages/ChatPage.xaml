@@ -37,7 +37,7 @@
         <ImageButton.Source>
           <FontImageSource FontFamily="TablerIcons"
                            Glyph="{x:Static helpers:IconKeys.Menu}"
-                           Size="{StaticResource FontSizeHeadline}"
+                           Size="{StaticResource FontSizeIconXl}"
                            Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
                                                     Dark={StaticResource ColorOnBackgroundSecondaryDark}}" />
         </ImageButton.Source>
@@ -70,7 +70,7 @@
         <ImageButton.Source>
           <FontImageSource FontFamily="TablerIcons"
                            Glyph="{x:Static helpers:IconKeys.Adjustments}"
-                           Size="{StaticResource FontSizeHeadline}"
+                           Size="{StaticResource FontSizeIconXl}"
                            Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
                                                     Dark={StaticResource ColorOnBackgroundSecondaryDark}}" />
         </ImageButton.Source>
@@ -311,7 +311,7 @@
             <ImageButton.Source>
               <FontImageSource FontFamily="TablerIcons"
                                Glyph="{x:Static helpers:IconKeys.X}"
-                               Size="{StaticResource FontSizeHeadline}"
+                               Size="{StaticResource FontSizeIconXl}"
                                Color="{AppThemeBinding Light={StaticResource ColorOnErrorContainerLight},
                                                         Dark={StaticResource ColorOnErrorContainerDark}}" />
             </ImageButton.Source>

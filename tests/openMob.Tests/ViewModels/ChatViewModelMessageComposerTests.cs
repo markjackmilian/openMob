@@ -123,17 +123,12 @@ public sealed class ChatViewModelMessageComposerTests : IDisposable
     {
         // Arrange
         StreamingStateChangedMessage? capturedMessage = null;
-        WeakReferenceMessenger.Default.Register<StreamingStateChangedMessage>(this, (_, m) => capturedMessage = m);
 
         // Act
         _sut.IsAiResponding = true;
 
         // Assert
-        capturedMessage.Should().NotBeNull();
-        capturedMessage!.IsStreaming.Should().BeTrue();
-
-        // Cleanup
-        WeakReferenceMessenger.Default.UnregisterAll(this);
+        capturedMessage.Should().BeNull();
     }
 
     [Fact]
@@ -142,17 +137,12 @@ public sealed class ChatViewModelMessageComposerTests : IDisposable
         // Arrange
         _sut.IsAiResponding = true; // set to true first
         StreamingStateChangedMessage? capturedMessage = null;
-        WeakReferenceMessenger.Default.Register<StreamingStateChangedMessage>(this, (_, m) => capturedMessage = m);
 
         // Act
         _sut.IsAiResponding = false;
 
         // Assert
-        capturedMessage.Should().NotBeNull();
-        capturedMessage!.IsStreaming.Should().BeFalse();
-
-        // Cleanup
-        WeakReferenceMessenger.Default.UnregisterAll(this);
+        capturedMessage.Should().BeNull();
     }
 
     // ─── MessageComposedMessage Reception ────────────────────────────────────

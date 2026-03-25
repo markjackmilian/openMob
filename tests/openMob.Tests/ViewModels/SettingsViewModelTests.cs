@@ -1,5 +1,7 @@
 using NSubstitute.ExceptionExtensions;
 using openMob.Core.Infrastructure.Settings;
+using openMob.Core.Localization;
+using openMob.Core.Models;
 using openMob.Core.Services;
 using openMob.Core.ViewModels;
 
@@ -11,30 +13,43 @@ namespace openMob.Tests.ViewModels;
 public sealed class SettingsViewModelTests
 {
     private readonly IThemeService _themeService;
+    private readonly ILanguageService _languageService;
+    private readonly IAppPopupService _popupService;
     private readonly INavigationService _navigationService;
 
     public SettingsViewModelTests()
     {
         _themeService = Substitute.For<IThemeService>();
+        _languageService = Substitute.For<ILanguageService>();
+        _popupService = Substitute.For<IAppPopupService>();
         _navigationService = Substitute.For<INavigationService>();
     }
 
     // ─── Constructor / Initialisation ────────────────────────────────────────
 
     [Theory]
-    [InlineData(AppThemePreference.Light,  "Light")]
-    [InlineData(AppThemePreference.Dark,   "Dark")]
-    [InlineData(AppThemePreference.System, "System")]
+    [InlineData(AppThemePreference.Light)]
+    [InlineData(AppThemePreference.Dark)]
+    [InlineData(AppThemePreference.System)]
     public void Constructor_WhenThemeServiceReturnsPreference_SetsCorrectSelectedThemeLabel(
-        AppThemePreference preference, string expectedLabel)
+        AppThemePreference preference)
     {
         // Arrange
         _themeService.GetTheme().Returns(preference);
 
         // Act
-        var sut = new SettingsViewModel(_themeService, _navigationService);
+        _languageService.GetLanguageCode().Returns("en");
+
+        var sut = new SettingsViewModel(_themeService, _languageService, _popupService, _navigationService);
 
         // Assert
+        var expectedLabel = preference switch
+        {
+            AppThemePreference.Light => AppResources.Get("Light"),
+            AppThemePreference.Dark => AppResources.Get("Dark"),
+            _ => AppResources.Get("System"),
+        };
+
         sut.SelectedThemeLabel.Should().Be(expectedLabel);
     }
 
@@ -42,7 +57,7 @@ public sealed class SettingsViewModelTests
     public void Constructor_WhenThemeServiceIsNull_ThrowsArgumentNullException()
     {
         // Act
-        var act = () => new SettingsViewModel(null!, _navigationService);
+        var act = () => new SettingsViewModel(null!, _languageService, _popupService, _navigationService);
 
         // Assert
         act.Should().Throw<ArgumentNullException>()
@@ -53,11 +68,51 @@ public sealed class SettingsViewModelTests
     public void Constructor_WhenNavigationServiceIsNull_ThrowsArgumentNullException()
     {
         // Act
-        var act = () => new SettingsViewModel(_themeService, null!);
+        _languageService.GetLanguageCode().Returns("en");
+        var act = () => new SettingsViewModel(_themeService, _languageService, _popupService, null!);
 
         // Assert
         act.Should().Throw<ArgumentNullException>()
             .WithParameterName("navigationService");
+    }
+
+    [Theory]
+    [InlineData("en")]
+    [InlineData("it")]
+    public void Constructor_WhenLanguageServiceReturnsPreference_SetsCorrectSelectedLanguageOption(string languageCode)
+    {
+        // Arrange
+        _themeService.GetTheme().Returns(AppThemePreference.System);
+        _languageService.GetLanguageCode().Returns(languageCode);
+
+        // Act
+        var sut = new SettingsViewModel(_themeService, _languageService, _popupService, _navigationService);
+
+        // Assert
+        sut.SelectedLanguageOption.Should().NotBeNull();
+        sut.SelectedLanguageOption!.Code.Should().Be(languageCode);
+    }
+
+    [Fact]
+    public void Constructor_WhenLanguageServiceIsNull_ThrowsArgumentNullException()
+    {
+        // Act
+        var act = () => new SettingsViewModel(_themeService, null!, _popupService, _navigationService);
+
+        // Assert
+        act.Should().Throw<ArgumentNullException>()
+            .WithParameterName("languageService");
+    }
+
+    [Fact]
+    public void Constructor_WhenPopupServiceIsNull_ThrowsArgumentNullException()
+    {
+        // Act
+        var act = () => new SettingsViewModel(_themeService, _languageService, null!, _navigationService);
+
+        // Assert
+        act.Should().Throw<ArgumentNullException>()
+            .WithParameterName("popupService");
     }
 
     // ─── ApplyThemeCommand — service delegation ───────────────────────────────
@@ -71,7 +126,9 @@ public sealed class SettingsViewModelTests
     {
         // Arrange
         _themeService.GetTheme().Returns(AppThemePreference.System);
-        var sut = new SettingsViewModel(_themeService, _navigationService);
+        _languageService.GetLanguageCode().Returns("en");
+
+        var sut = new SettingsViewModel(_themeService, _languageService, _popupService, _navigationService);
 
         // Act
         await sut.ApplyThemeCommand.ExecuteAsync(preference);
@@ -93,7 +150,9 @@ public sealed class SettingsViewModelTests
     {
         // Arrange
         _themeService.GetTheme().Returns(AppThemePreference.System);
-        var sut = new SettingsViewModel(_themeService, _navigationService);
+        _languageService.GetLanguageCode().Returns("en");
+
+        var sut = new SettingsViewModel(_themeService, _languageService, _popupService, _navigationService);
 
         // Act
         await sut.ApplyThemeCommand.ExecuteAsync(preference);
@@ -113,7 +172,9 @@ public sealed class SettingsViewModelTests
             .SetThemeAsync(Arg.Any<AppThemePreference>(), Arg.Any<CancellationToken>())
             .ThrowsAsync(new InvalidOperationException("Theme service failed."));
 
-        var sut = new SettingsViewModel(_themeService, _navigationService);
+        _languageService.GetLanguageCode().Returns("en");
+
+        var sut = new SettingsViewModel(_themeService, _languageService, _popupService, _navigationService);
         var labelBeforeCommand = sut.SelectedThemeLabel;
 
         // Act
@@ -139,7 +200,9 @@ public sealed class SettingsViewModelTests
     {
         // Arrange
         _themeService.GetTheme().Returns(AppThemePreference.System);
-        var sut = new SettingsViewModel(_themeService, _navigationService);
+        _languageService.GetLanguageCode().Returns("en");
+
+        var sut = new SettingsViewModel(_themeService, _languageService, _popupService, _navigationService);
 
         // Act
         await sut.NavigateToServerManagementCommand.ExecuteAsync(null);
@@ -151,5 +214,24 @@ public sealed class SettingsViewModelTests
         await _navigationService.Received(1).GoToAsync(
             "///server-management",
             Arg.Any<CancellationToken>());
+    }
+
+    // ─── ApplyLanguageCommand — persistence and notification ────────────────
+
+    [Fact]
+    public async Task ApplyLanguageCommand_WhenLanguageChanges_SavesPreferenceAndShowsToast()
+    {
+        // Arrange
+        _themeService.GetTheme().Returns(AppThemePreference.System);
+        _languageService.GetLanguageCode().Returns("en");
+
+        var sut = new SettingsViewModel(_themeService, _languageService, _popupService, _navigationService);
+
+        // Act
+        await sut.ApplyLanguageCommand.ExecuteAsync(new LanguageOption("it", "Italiano"));
+
+        // Assert
+        await _languageService.Received(1).SetLanguageCodeAsync("it", Arg.Any<CancellationToken>());
+        await _popupService.Received(1).ShowToastAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 }

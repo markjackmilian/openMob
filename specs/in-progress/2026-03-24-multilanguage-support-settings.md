@@ -4,8 +4,9 @@
 | Field   | Value                        |
 |---------|------------------------------|
 | Date    | 2026-03-24                   |
-| Status  | Draft                        |
+| Status  | Ready for Review             |
 | Version | 1.0                          |
+| Branch  | feature/multilanguage-support-settings |
 
 ---
 
@@ -101,3 +102,27 @@ The app must support multiple languages, with English as the default. Users can 
 - **`SettingsViewModel`**: Must expose an `ObservableProperty` for the selected language and a command to save it. The restart-required notification should be triggered from the command, not from the view code-behind.
 - **Testing**: `ILanguageService` must be fully mockable. Unit tests should cover: default language on first run, save/load round-trip, and ViewModel command behaviour (save called, notification raised).
 - **Constraints**: `openMob.Core` must remain free of MAUI dependencies. If `Preferences` (a MAUI API) is used as the storage backend, it must be wrapped behind `ILanguageService` and injected — never called directly from Core.
+
+---
+
+## Technical Analysis
+
+### Change Type
+- Feature
+
+### Branch
+- `feature/multilanguage-support-settings`
+
+### Layers Involved
+- `openMob.Core`: language service interface, localization helper, resources, settings ViewModel, language option model
+- `openMob`: MAUI language service implementation, bootstrap culture application, localized Settings page UI
+- `openMob.Tests`: ViewModel and localization helper coverage
+
+### Execution Order
+1. Add localization infrastructure and language persistence abstraction
+2. Update startup and settings UI to consume the new language preference
+3. Add/adjust unit tests for settings and localization behavior
+
+### Risks / Notes
+- Existing UI still contains some hardcoded strings outside Settings; the new localization infrastructure is in place, but additional view updates may be needed in follow-up work.
+- App language changes apply on next restart, so the settings UX shows a restart reminder after saving.

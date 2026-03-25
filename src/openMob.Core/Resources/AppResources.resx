@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="SettingsTitle" xml:space="preserve"><value>Settings</value></data>
+  <data name="GeneralSection" xml:space="preserve"><value>GENERAL</value></data>
+  <data name="Appearance" xml:space="preserve"><value>Appearance</value></data>
+  <data name="ServerConnection" xml:space="preserve"><value>Server Connection</value></data>
+  <data name="Notifications" xml:space="preserve"><value>Notifications</value></data>
+  <data name="AIProviders" xml:space="preserve"><value>AI PROVIDERS</value></data>
+  <data name="ManageProviders" xml:space="preserve"><value>Manage Providers</value></data>
+  <data name="APIKeys" xml:space="preserve"><value>API Keys</value></data>
+  <data name="About" xml:space="preserve"><value>ABOUT</value></data>
+  <data name="Version" xml:space="preserve"><value>Version</value></data>
+  <data name="Language" xml:space="preserve"><value>Language</value></data>
+  <data name="RestartRequiredMessage" xml:space="preserve"><value>Restart the app to apply the new language.</value></data>
+  <data name="Light" xml:space="preserve"><value>Light</value></data>
+  <data name="Dark" xml:space="preserve"><value>Dark</value></data>
+  <data name="FollowSystem" xml:space="preserve"><value>Follow System</value></data>
+  <data name="Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="GoBack" xml:space="preserve"><value>Go back</value></data>
+  <data name="LanguageEnglish" xml:space="preserve"><value>English</value></data>
+  <data name="LanguageItaliano" xml:space="preserve"><value>Italiano</value></data>
+  <data name="System" xml:space="preserve"><value>System</value></data>
+</root>

@@ -1,4 +1,5 @@
 using openMob.Core.Infrastructure.Monitoring;
+using openMob.Core.Localization;
 using openMob.Core.Infrastructure.Settings;
 using openMob.Core.ViewModels;
 
@@ -33,17 +34,17 @@ public partial class SettingsPage : ContentPage
     {
         try
         {
-            var result = await DisplayActionSheet(
-                "Appearance",
-                "Cancel",
+            var result = await DisplayActionSheetAsync(
+                AppResources.Get("Appearance"),
+                AppResources.Get("Cancel"),
                 null,
-                "Light", "Dark", "Follow System");
+                AppResources.Get("Light"), AppResources.Get("Dark"), AppResources.Get("FollowSystem"));
 
             var preference = result switch
             {
-                "Light"         => (AppThemePreference?)AppThemePreference.Light,
-                "Dark"          => (AppThemePreference?)AppThemePreference.Dark,
-                "Follow System" => (AppThemePreference?)AppThemePreference.System,
+                var light when light == AppResources.Get("Light") => (AppThemePreference?)AppThemePreference.Light,
+                var dark when dark == AppResources.Get("Dark") => (AppThemePreference?)AppThemePreference.Dark,
+                var system when system == AppResources.Get("FollowSystem") => (AppThemePreference?)AppThemePreference.System,
                 _               => null   // Cancel or dismissed
             };
 

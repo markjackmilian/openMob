@@ -20,8 +20,11 @@ public partial class App : Application
         _serviceProvider = serviceProvider;
         _themeService = themeService;
         _languageService = languageService;
-        LocalizationHelper.ApplyCulture(_languageService.GetLanguageCode());
+        // InitializeComponent() must run BEFORE any MAUI Essentials API (Preferences, etc.)
+        // is accessed. ApplyCulture reads Preferences.Default — calling it before
+        // InitializeComponent() risks a crash on iOS if Essentials is not yet bootstrapped.
         InitializeComponent();
+        LocalizationHelper.ApplyCulture(_languageService.GetLanguageCode());
     }
 
     /// <inheritdoc />

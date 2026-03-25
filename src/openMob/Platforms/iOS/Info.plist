@@ -28,5 +28,22 @@
   </array>
   <key>XSAppIconAssets</key>
   <string>Assets.xcassets/appicon.appiconset</string>
+
+  <!-- Allow plain HTTP connections to local opencode servers (no TLS on LAN).
+       Without this, iOS App Transport Security blocks all http:// requests. -->
+  <key>NSAppTransportSecurity</key>
+  <dict>
+    <key>NSAllowsLocalNetworking</key>
+    <true/>
+  </dict>
+
+  <!-- Required for mDNS/Bonjour discovery via Zeroconf on iOS 14+.
+       Without these keys the OS blocks local network access and may crash. -->
+  <key>NSLocalNetworkUsageDescription</key>
+  <string>openMob needs access to the local network to discover opencode servers via mDNS.</string>
+  <key>NSBonjourServices</key>
+  <array>
+    <string>_http._tcp</string>
+  </array>
 </dict>
 </plist>

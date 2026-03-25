@@ -225,17 +225,19 @@
          ICON LABEL STYLES — for Tabler Icons font glyphs
          ═══════════════════════════════════════════════════════════════ -->
 
-    <!-- TablerIcons font family token — Android requires "filename.ttf#" format for Label rendering.
-         iOS uses the registered alias. Reference this resource instead of hardcoding "TablerIcons"
-         in Label FontFamily attributes throughout the app. -->
-    <OnPlatform x:Key="TablerIconsFont" x:TypeArguments="x:String">
-        <On Platform="Android" Value="tabler-icons.ttf#tabler-icons" />
-        <On Platform="iOS" Value="TablerIcons" />
-    </OnPlatform>
-
     <!-- Standard icon label (17pt, matches Headline size) -->
+    <!-- NOTE: OnPlatform as a standalone ResourceDictionary entry crashes on iOS with MAUI 10
+         (same issue as AppThemeBinding standalone — MauiXamlInflator workaround already applied).
+         FontFamily is set inline per-platform inside each Style using OnPlatform. -->
     <Style x:Key="IconLabel" TargetType="Label">
-        <Setter Property="FontFamily" Value="{StaticResource TablerIconsFont}" />
+        <Setter Property="FontFamily">
+            <Setter.Value>
+                <OnPlatform x:TypeArguments="x:String">
+                    <On Platform="Android" Value="tabler-icons.ttf#tabler-icons" />
+                    <On Platform="iOS" Value="TablerIcons" />
+                </OnPlatform>
+            </Setter.Value>
+        </Setter>
         <Setter Property="FontSize" Value="{StaticResource FontSizeHeadline}" />
         <Setter Property="LineBreakMode" Value="NoWrap" />
         <Setter Property="HorizontalTextAlignment" Value="Center" />
@@ -244,7 +246,14 @@
 
     <!-- Large icon label (20pt, matches Title3 size) — for larger touch-target icons -->
     <Style x:Key="IconLabelLg" TargetType="Label">
-        <Setter Property="FontFamily" Value="{StaticResource TablerIconsFont}" />
+        <Setter Property="FontFamily">
+            <Setter.Value>
+                <OnPlatform x:TypeArguments="x:String">
+                    <On Platform="Android" Value="tabler-icons.ttf#tabler-icons" />
+                    <On Platform="iOS" Value="TablerIcons" />
+                </OnPlatform>
+            </Setter.Value>
+        </Setter>
         <Setter Property="FontSize" Value="{StaticResource FontSizeTitle3}" />
         <Setter Property="LineBreakMode" Value="NoWrap" />
         <Setter Property="HorizontalTextAlignment" Value="Center" />

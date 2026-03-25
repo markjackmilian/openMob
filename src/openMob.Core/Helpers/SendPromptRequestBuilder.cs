@@ -13,10 +13,12 @@ public sealed class SendPromptRequestBuilder
     /// </summary>
     /// <param name="text">The plain text content of the prompt.</param>
     /// <param name="modelId">
-    /// The model ID to use for this prompt, or <c>null</c> to use the session default.
+    /// The model ID without provider prefix (e.g. <c>"claude-3-5-haiku-20241022"</c>), or <c>null</c>
+    /// to use the session/agent default. Must be paired with <paramref name="providerId"/>.
     /// </param>
     /// <param name="providerId">
-    /// The provider ID to use for this prompt, or <c>null</c> to use the session default.
+    /// The provider ID (e.g. <c>"anthropic"</c>), or <c>null</c> to use the session/agent default.
+    /// Must be paired with <paramref name="modelId"/>.
     /// </param>
     /// <param name="agentName">
     /// The agent name to use for this prompt, or <c>null</c> to use the project default.
@@ -32,10 +34,16 @@ public sealed class SendPromptRequestBuilder
         // Serialize { "type": "text", "text": "<text>" } as a JsonElement
         var json = JsonSerializer.SerializeToElement(new { type = "text", text });
 
+        // Build nested model object only when both parts are present.
+        // The opencode server expects { "model": { "providerID": "...", "modelID": "..." } }
+        // not flat top-level modelID/providerID fields.
+        SendPromptModelRef? model = (modelId is not null && providerId is not null)
+            ? new SendPromptModelRef(ProviderId: providerId, ModelId: modelId)
+            : null;
+
         return new SendPromptRequest(
             Parts: [json],
-            ModelId: modelId,
-            ProviderId: providerId,
+            Model: model,
             Agent: agentName);
     }
 }

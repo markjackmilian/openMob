@@ -1,12 +1,13 @@
 using System.Text.Json;
 using openMob.Core.Helpers;
+using openMob.Core.Infrastructure.Http.Dtos.Opencode.Requests;
 
 namespace openMob.Tests.Helpers;
 
 /// <summary>
 /// Unit tests for <see cref="SendPromptRequestBuilder"/>.
 /// Verifies that <see cref="SendPromptRequestBuilder.FromText"/> produces correctly
-/// structured <see cref="openMob.Core.Infrastructure.Http.Dtos.Opencode.Requests.SendPromptRequest"/> instances.
+/// structured <see cref="SendPromptRequest"/> instances with the correct wire format.
 /// </summary>
 public sealed class SendPromptRequestBuilderTests
 {
@@ -20,8 +21,7 @@ public sealed class SendPromptRequestBuilderTests
 
         // Assert
         result.Parts.Should().HaveCount(1);
-        result.ModelId.Should().BeNull();
-        result.ProviderId.Should().BeNull();
+        result.Model.Should().BeNull();
         result.Agent.Should().BeNull();
     }
 
@@ -51,28 +51,38 @@ public sealed class SendPromptRequestBuilderTests
         textProp.GetString().Should().Be("hello");
     }
 
-    // ─── Optional modelId ─────────────────────────────────────────────────────
+    // ─── Model nested object (wire format confirmed from opencode server source) ─
 
     [Fact]
-    public void FromText_WithModelId_SetsModelId()
+    public void FromText_WithBothModelIdAndProviderId_SetsNestedModelObject()
     {
         // Act
+        var result = SendPromptRequestBuilder.FromText("hello", modelId: "claude-3-5-haiku-20241022", providerId: "anthropic");
+
+        // Assert — model is a nested object, not flat fields
+        result.Model.Should().NotBeNull();
+        result.Model!.ModelId.Should().Be("claude-3-5-haiku-20241022");
+        result.Model!.ProviderId.Should().Be("anthropic");
+    }
+
+    [Fact]
+    public void FromText_WithModelIdOnly_ModelIsNull()
+    {
+        // Act — only modelId without providerId → no model object (both required)
         var result = SendPromptRequestBuilder.FromText("hello", modelId: "claude-3");
 
         // Assert
-        result.ModelId.Should().Be("claude-3");
+        result.Model.Should().BeNull();
     }
 
-    // ─── Optional providerId ──────────────────────────────────────────────────
-
     [Fact]
-    public void FromText_WithProviderId_SetsProviderId()
+    public void FromText_WithProviderIdOnly_ModelIsNull()
     {
-        // Act
+        // Act — only providerId without modelId → no model object (both required)
         var result = SendPromptRequestBuilder.FromText("hello", providerId: "anthropic");
 
         // Assert
-        result.ProviderId.Should().Be("anthropic");
+        result.Model.Should().BeNull();
     }
 
     // ─── Empty text ───────────────────────────────────────────────────────────
@@ -99,19 +109,6 @@ public sealed class SendPromptRequestBuilderTests
         textProp.GetString().Should().Be("");
     }
 
-    // ─── Both optional parameters ─────────────────────────────────────────────
-
-    [Fact]
-    public void FromText_WithBothModelIdAndProviderId_SetsBothProperties()
-    {
-        // Act
-        var result = SendPromptRequestBuilder.FromText("test", modelId: "claude-3", providerId: "anthropic");
-
-        // Assert
-        result.ModelId.Should().Be("claude-3");
-        result.ProviderId.Should().Be("anthropic");
-    }
-
     // ─── Optional agentName (AC-004) ──────────────────────────────────────────
 
     [Fact]
@@ -122,6 +119,40 @@ public sealed class SendPromptRequestBuilderTests
 
         // Assert
         result.Agent.Should().Be("om-mobile-core");
+    }
+
+    // ─── JSON serialization — model nested object (AC-001) ───────────────────
+
+    [Fact]
+    public void FromText_WhenModelProvided_SerializedJsonContainsNestedModelObject()
+    {
+        // Arrange
+        var result = SendPromptRequestBuilder.FromText("text",
+            modelId: "claude-3-5-haiku-20241022",
+            providerId: "anthropic");
+
+        // Act
+        var json = JsonSerializer.Serialize(result);
+
+        // Assert — wire format: { "model": { "providerID": "anthropic", "modelID": "claude-3-5-haiku-20241022" } }
+        json.Should().Contain("\"model\":{");
+        json.Should().Contain("\"providerID\":\"anthropic\"");
+        json.Should().Contain("\"modelID\":\"claude-3-5-haiku-20241022\"");
+        // Must NOT have flat top-level modelID/providerID (i.e. not at root level outside "model":{...})
+        json.Should().NotMatchRegex("^\\{[^{]*\"modelID\"");
+    }
+
+    [Fact]
+    public void FromText_WhenModelIsNull_SerializedJsonOmitsModelKey()
+    {
+        // Arrange
+        var result = SendPromptRequestBuilder.FromText("text");
+
+        // Act
+        var json = JsonSerializer.Serialize(result);
+
+        // Assert
+        json.Should().NotContain("\"model\"");
     }
 
     // ─── JSON serialization of Agent field (AC-005) ───────────────────────────
@@ -150,18 +181,5 @@ public sealed class SendPromptRequestBuilderTests
 
         // Assert
         json.Should().Contain("\"agent\":\"test-agent\"");
-    }
-
-    [Fact]
-    public void FromText_WhenModelIdIsNull_SerializedJsonOmitsModelIdKey()
-    {
-        // Arrange
-        var result = SendPromptRequestBuilder.FromText("text");
-
-        // Act
-        var json = JsonSerializer.Serialize(result);
-
-        // Assert
-        json.Should().NotContain("\"modelID\"");
     }
 }

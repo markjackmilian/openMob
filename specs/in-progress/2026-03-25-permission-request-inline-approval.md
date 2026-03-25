@@ -4,8 +4,9 @@
 | Field   | Value                        |
 |---------|------------------------------|
 | Date    | 2026-03-25                   |
-| Status  | Draft                        |
+| Status  | In Progress                  |
 | Version | 1.0                          |
+| Branch  | feature/permission-request-inline-approval |
 
 ---
 
@@ -165,3 +166,35 @@ When the opencode server requires user approval for a tool call (e.g. running a 
 - As established in the **Global Directory Header ADR**, `x-opencode-directory` is injected globally via `GetCachedWorktree()` — `ReplyToPermissionAsync` inherits this automatically
 - As established in the **New Session Button** tech analysis, `POST` calls with no meaningful body use `PostAsync(url, null)` — here we DO have a body so use `StringContent` with `application/json`
 - SSE `yield return` cannot be inside `try/catch` — the existing `SubscribeToEventsAsync` structure must not be altered; new event handling belongs in `ChatViewModel`, not in the parser
+
+---
+
+## Technical Analysis
+
+### Change type
+Feature
+
+### Branch
+`feature/permission-request-inline-approval`
+
+### Impacted layers
+- `openMob.Core`: event model, parser, chat message model, viewmodel, API client
+- `openMob`: chat page XAML and permission card UI
+- `openMob.Tests`: parser and SSE ViewModel coverage
+
+### Execution order
+1. Expand `PermissionRequestedEvent` into a typed model and parse `permission.asked`
+2. Add permission state to `ChatMessage` and handle SSE injection/reply flow in `ChatViewModel`
+3. Implement `ReplyToPermissionAsync` in `IOpencodeApiClient` and `OpencodeApiClient`
+4. Add the inline permission card UI plus pending indicator in `ChatPage.xaml`
+5. Add/adjust unit tests for parsing, message injection, reply handling, and failure paths
+
+### Risks
+- Multiple pending cards require stable lookup by request ID and independent state updates
+- Reply failures must not clear pending state prematurely
+- XAML binding surface must remain simple enough for compiled bindings
+
+### Assumptions
+- `permission.asked` is the primary live event, but legacy `permission.requested` can remain supported for compatibility
+- Deny uses the `reject` reply value and does not include an optional feedback message
+- The chat input remains enabled while permission cards are pending

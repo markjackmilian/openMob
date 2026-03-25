@@ -49,6 +49,34 @@ public partial class MessageBlockView : ContentView
     public static readonly BindableProperty SenderNameProperty =
         BindableProperty.Create(nameof(SenderName), typeof(string), typeof(MessageBlockView), string.Empty);
 
+    /// <summary>Bindable property indicating the message kind.</summary>
+    public static readonly BindableProperty MessageKindProperty =
+        BindableProperty.Create(nameof(MessageKind), typeof(MessageKind), typeof(MessageBlockView), MessageKind.Standard);
+
+    /// <summary>Bindable property for inline permission request type labels.</summary>
+    public static readonly BindableProperty PermissionTypeProperty =
+        BindableProperty.Create(nameof(PermissionType), typeof(string), typeof(MessageBlockView), string.Empty);
+
+    /// <summary>Bindable property for inline permission request patterns.</summary>
+    public static readonly BindableProperty PermissionPatternsProperty =
+        BindableProperty.Create(nameof(PermissionPatterns), typeof(IReadOnlyList<string>), typeof(MessageBlockView), Array.Empty<string>());
+
+    /// <summary>Bindable property for inline permission request identifiers.</summary>
+    public static readonly BindableProperty RequestIdProperty =
+        BindableProperty.Create(nameof(RequestId), typeof(string), typeof(MessageBlockView), string.Empty);
+
+    /// <summary>Bindable property for inline permission status.</summary>
+    public static readonly BindableProperty PermissionStatusProperty =
+        BindableProperty.Create(nameof(PermissionStatus), typeof(openMob.Core.Models.PermissionStatus), typeof(MessageBlockView), openMob.Core.Models.PermissionStatus.Pending);
+
+    /// <summary>Bindable property for the chosen reply value.</summary>
+    public static readonly BindableProperty ResolvedReplyProperty =
+        BindableProperty.Create(nameof(ResolvedReply), typeof(string), typeof(MessageBlockView), string.Empty);
+
+    /// <summary>Bindable property for the chosen reply label.</summary>
+    public static readonly BindableProperty ResolvedReplyLabelProperty =
+        BindableProperty.Create(nameof(ResolvedReplyLabel), typeof(string), typeof(MessageBlockView), string.Empty);
+
     /// <summary>Initialises the message block view.</summary>
     public MessageBlockView()
     {
@@ -116,6 +144,55 @@ public partial class MessageBlockView : ContentView
     {
         get => (string)GetValue(SenderNameProperty);
         set => SetValue(SenderNameProperty, value);
+    }
+
+    /// <summary>Gets or sets the message kind.</summary>
+    public MessageKind MessageKind
+    {
+        get => (MessageKind)GetValue(MessageKindProperty);
+        set => SetValue(MessageKindProperty, value);
+    }
+
+    /// <summary>Gets or sets the inline permission request type label.</summary>
+    public string PermissionType
+    {
+        get => (string)GetValue(PermissionTypeProperty);
+        set => SetValue(PermissionTypeProperty, value);
+    }
+
+    /// <summary>Gets or sets the inline permission request patterns.</summary>
+    public IReadOnlyList<string> PermissionPatterns
+    {
+        get => (IReadOnlyList<string>)GetValue(PermissionPatternsProperty);
+        set => SetValue(PermissionPatternsProperty, value);
+    }
+
+    /// <summary>Gets or sets the permission request identifier.</summary>
+    public string RequestId
+    {
+        get => (string)GetValue(RequestIdProperty);
+        set => SetValue(RequestIdProperty, value);
+    }
+
+    /// <summary>Gets or sets the permission status.</summary>
+    public openMob.Core.Models.PermissionStatus PermissionStatus
+    {
+        get => (openMob.Core.Models.PermissionStatus)GetValue(PermissionStatusProperty);
+        set => SetValue(PermissionStatusProperty, value);
+    }
+
+    /// <summary>Gets or sets the chosen reply value.</summary>
+    public string ResolvedReply
+    {
+        get => (string)GetValue(ResolvedReplyProperty);
+        set => SetValue(ResolvedReplyProperty, value);
+    }
+
+    /// <summary>Gets or sets the chosen reply label.</summary>
+    public string ResolvedReplyLabel
+    {
+        get => (string)GetValue(ResolvedReplyLabelProperty);
+        set => SetValue(ResolvedReplyLabelProperty, value);
     }
 
     private static void OnIsStreamingChanged(BindableObject bindable, object oldValue, object newValue)

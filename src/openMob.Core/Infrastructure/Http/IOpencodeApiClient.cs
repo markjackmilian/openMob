@@ -214,6 +214,14 @@ public interface IOpencodeApiClient
     /// <param name="ct">Cancellation token.</param>
     Task<OpencodeResult<bool>> RespondToPermissionAsync(string id, string permissionId, PermissionResponseRequest request, CancellationToken ct = default);
 
+    /// <summary>
+    /// Replies to a pending permission request.
+    /// Maps to <c>POST /permission/{requestId}/reply</c>.</summary>
+    /// <param name="requestId">The permission request identifier.</param>
+    /// <param name="reply">The reply value to send.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task<OpencodeResult<bool>> ReplyToPermissionAsync(string requestId, string reply, CancellationToken ct = default);
+
     // ─── Messages ─────────────────────────────────────────────────────────────
 
     /// <summary>

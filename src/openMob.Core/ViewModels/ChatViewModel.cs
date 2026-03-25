@@ -54,6 +54,9 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     /// </summary>
     private string? _currentProjectDirectory;
 
+    /// <summary>Tracks the number of pending permission cards in the current message list.</summary>
+    private int _pendingPermissionCount;
+
     /// <summary>Initialises the ChatViewModel with required dependencies.</summary>
     /// <param name="projectService">Service for project operations.</param>
     /// <param name="sessionService">Service for session operations.</param>
@@ -263,6 +266,10 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     /// <summary>Gets whether an error message is currently displayed.</summary>
     public bool HasError => ErrorMessage is not null;
 
+    /// <summary>Gets or sets whether at least one permission card is pending.</summary>
+    [ObservableProperty]
+    private bool _hasPendingPermissions;
+
     // ─── Chat Page Redesign Properties [REQ-019, REQ-022, REQ-028, REQ-032] ──
 
     /// <summary>Gets or sets the current thinking/reasoning level, synced from Context Sheet.</summary>
@@ -323,6 +330,7 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
         // Clear messages immediately to avoid flash of old content (Q3 resolution)
         Messages.Clear();
         UpdateIsEmpty();
+        ResetPermissionState();
 
         LoadMessagesCommand.Execute(null);
     }
@@ -766,10 +774,12 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     /// <returns><c>true</c> if input text is non-empty and the AI is not currently responding.</returns>
     private bool CanSendMessage() => !string.IsNullOrWhiteSpace(InputText) && !IsAiResponding;
 
-    // NOTE: OnIsAiRespondingChanged removed — it was causing SSE streaming regression.
-    // The StreamingStateChangedMessage for the composer's streaming guard will be sent
-    // explicitly when opening the composer (via the isStreaming parameter) instead of
-    // reactively on every IsAiResponding change.
+    /// <summary>Notifies the message composer when the AI streaming state changes.</summary>
+    /// <param name="value">The new streaming state.</param>
+    partial void OnIsAiRespondingChanged(bool value)
+    {
+        WeakReferenceMessenger.Default.Send(new StreamingStateChangedMessage(value));
+    }
 
     // ─── Message Composer [REQ-004, REQ-023, REQ-024] ─────────────────────────
 
@@ -1078,6 +1088,10 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
                     case SessionErrorEvent e:
                         HandleSessionError(e);
                         break;
+
+                    case PermissionRequestedEvent e:
+                        HandlePermissionRequested(e);
+                        break;
                 }
             }
         }
@@ -1340,6 +1354,107 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
         });
     }
 
+    /// <summary>
+    /// Handles a <see cref="PermissionRequestedEvent"/> from the SSE stream.
+    /// Injects an inline permission card into the message list.
+    /// </summary>
+    /// <param name="e">The permission request event.</param>
+    private void HandlePermissionRequested(PermissionRequestedEvent e)
+    {
+        if (e.ProjectDirectory is not null &&
+            e.ProjectDirectory != _currentProjectDirectory)
+            return;
+
+        _dispatcher.Dispatch(() =>
+        {
+            var message = ChatMessage.CreatePermissionRequest(
+                e.Id,
+                e.SessionId,
+                e.Permission,
+                e.Patterns);
+
+            Messages.Add(message);
+            RecalculateGrouping();
+            UpdateIsEmpty();
+            IncrementPendingPermissions();
+        });
+    }
+
+    /// <summary>
+    /// Replies to a permission request and resolves the matching message on success.
+    /// </summary>
+    /// <param name="requestId">The permission request identifier.</param>
+    /// <param name="reply">The reply value to send.</param>
+    /// <param name="replyLabel">The display label to show after success.</param>
+    /// <param name="ct">Cancellation token.</param>
+    public async Task ReplyToPermissionAsync(string requestId, string reply, CancellationToken ct = default)
+    {
+        var replyLabel = reply switch
+        {
+            "always" => "Always",
+            "once" => "Once",
+            "reject" => "Deny",
+            _ => reply,
+        };
+
+        await ReplyToPermissionCoreAsync(requestId, reply, replyLabel, ct);
+    }
+
+    private async Task ReplyToPermissionCoreAsync(string requestId, string reply, string replyLabel, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(requestId))
+            return;
+
+        try
+        {
+            var result = await _apiClient.ReplyToPermissionAsync(requestId, reply, ct);
+
+            if (!result.IsSuccess)
+            {
+                SentryHelper.CaptureException(new InvalidOperationException(result.Error?.Message ?? "Permission reply failed"), new Dictionary<string, object>
+                {
+                    ["context"] = "ChatViewModel.ReplyToPermissionAsync",
+                    ["requestId"] = requestId,
+                    ["reply"] = reply,
+                });
+
+                return;
+            }
+
+            _dispatcher.Dispatch(() => ResolvePermissionRequest(requestId, reply, replyLabel));
+        }
+        catch (Exception ex)
+        {
+            SentryHelper.CaptureException(ex, new Dictionary<string, object>
+            {
+                ["context"] = "ChatViewModel.ReplyToPermissionAsync",
+                ["requestId"] = requestId,
+                ["reply"] = reply,
+            });
+        }
+    }
+
+    /// <summary>Replies to a permission request with <c>always</c>.</summary>
+    /// <param name="requestId">The permission request identifier.</param>
+    /// <param name="ct">Cancellation token.</param>
+    [RelayCommand]
+    private async Task ReplyToPermissionAlwaysAsync(string requestId, CancellationToken ct)
+        => await ReplyToPermissionAsync(requestId, "always", ct);
+
+    /// <summary>Replies to a permission request with <c>once</c>.</summary>
+    /// <param name="requestId">The permission request identifier.</param>
+    /// <param name="ct">Cancellation token.</param>
+    [RelayCommand]
+    private async Task ReplyToPermissionOnceAsync(string requestId, CancellationToken ct)
+        => await ReplyToPermissionAsync(requestId, "once", ct);
+
+    /// <summary>Replies to a permission request with <c>reject</c>.</summary>
+    /// <param name="requestId">The permission request identifier.</param>
+    /// <param name="ct">Cancellation token.</param>
+    [RelayCommand]
+    private async Task ReplyToPermissionDenyAsync(string requestId, CancellationToken ct)
+        => await ReplyToPermissionAsync(requestId, "reject", ct);
+
     // ─── Grouping [REQ-016] ───────────────────────────────────────────────────
 
     /// <summary>
@@ -1363,6 +1478,45 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
 
     /// <summary>Updates <see cref="IsEmpty"/> based on the current message count.</summary>
     private void UpdateIsEmpty() => IsEmpty = Messages.Count == 0;
+
+    /// <summary>Resets the pending permission state.</summary>
+    private void ResetPermissionState()
+    {
+        _pendingPermissionCount = 0;
+        HasPendingPermissions = false;
+    }
+
+    /// <summary>Increments the pending permission counter and refreshes <see cref="HasPendingPermissions"/>.</summary>
+    private void IncrementPendingPermissions()
+    {
+        _pendingPermissionCount++;
+        HasPendingPermissions = _pendingPermissionCount > 0;
+    }
+
+    /// <summary>Decrements the pending permission counter and refreshes <see cref="HasPendingPermissions"/>.</summary>
+    private void DecrementPendingPermissions()
+    {
+        if (_pendingPermissionCount > 0)
+            _pendingPermissionCount--;
+
+        HasPendingPermissions = _pendingPermissionCount > 0;
+    }
+
+    /// <summary>Marks a permission request as resolved when the API reply succeeds.</summary>
+    /// <param name="requestId">The permission request identifier.</param>
+    /// <param name="reply">The raw reply value.</param>
+    /// <param name="replyLabel">The UI label for the reply.</param>
+    private void ResolvePermissionRequest(string requestId, string reply, string replyLabel)
+    {
+        var message = FindPermissionMessageByRequestId(requestId);
+        if (message is null || message.PermissionStatus == PermissionStatus.Resolved)
+            return;
+
+        message.PermissionStatus = PermissionStatus.Resolved;
+        message.ResolvedReply = reply;
+        message.ResolvedReplyLabel = replyLabel;
+        DecrementPendingPermissions();
+    }
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
 
@@ -1392,6 +1546,23 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
         {
             if (Messages[i].Id == messageId)
                 return Messages[i];
+        }
+
+        return null;
+    }
+
+    /// <summary>Finds an inline permission message by request identifier.</summary>
+    /// <param name="requestId">The permission request identifier.</param>
+    /// <returns>The matching permission message, or <c>null</c>.</returns>
+    private ChatMessage? FindPermissionMessageByRequestId(string requestId)
+    {
+        for (var i = 0; i < Messages.Count; i++)
+        {
+            if (Messages[i].MessageKind == MessageKind.PermissionRequest &&
+                Messages[i].RequestId == requestId)
+            {
+                return Messages[i];
+            }
         }
 
         return null;

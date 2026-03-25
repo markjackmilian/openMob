@@ -93,6 +93,7 @@ internal sealed class ChatEventParser
             "message.part.delta" => ParseMessagePartDelta(unwrapped, projectDirectory),
             "session.updated" => ParseSessionUpdated(unwrapped, projectDirectory),
             "session.error" => ParseSessionError(unwrapped, projectDirectory),
+            "permission.asked" => ParsePermissionRequested(unwrapped, projectDirectory),
             "permission.requested" => ParsePermissionRequested(unwrapped, projectDirectory),
             "permission.updated" => ParsePermissionUpdated(unwrapped, projectDirectory),
 
@@ -306,23 +307,45 @@ internal sealed class ChatEventParser
 
         try
         {
-            // Wire format: { "sessionID": string, "permissionID": string, ...rest }
-            var sessionId = data.TryGetProperty("sessionID", out var sidProp)
-                ? sidProp.GetString()
-                : null;
-            var permissionId = data.TryGetProperty("permissionID", out var pidProp)
-                ? pidProp.GetString()
-                : null;
+            var id = ReadString(data, "id") ?? ReadString(data, "permissionID");
+            var sessionId = ReadString(data, "sessionID");
+            var permission = ReadString(data, "permission");
+            var patterns = ReadStringArray(data, "patterns") ?? Array.Empty<string>();
+            var always = ReadStringArray(data, "always") ?? Array.Empty<string>();
 
-            if (sessionId is null || permissionId is null)
+            if (id is null || sessionId is null)
                 return MakeUnknown(dto);
+
+            permission ??= id;
+
+            var metadata = ReadDictionary(data, "metadata") ?? new Dictionary<string, object>();
+
+            PermissionRequestedTool? tool = null;
+            if (data.TryGetProperty("tool", out var toolEl) && toolEl.ValueKind == JsonValueKind.Object)
+            {
+                var messageId = ReadString(toolEl, "messageId");
+                var callId = ReadString(toolEl, "callId");
+
+                if (messageId is not null && callId is not null)
+                {
+                    tool = new PermissionRequestedTool
+                    {
+                        MessageId = messageId,
+                        CallId = callId,
+                    };
+                }
+            }
 
             return new PermissionRequestedEvent
             {
                 RawEventId = dto.EventId,
+                Id = id,
                 SessionId = sessionId,
-                PermissionId = permissionId,
-                RawPayload = data,
+                Permission = permission,
+                Patterns = patterns,
+                Metadata = metadata,
+                Always = always,
+                Tool = tool,
                 ProjectDirectory = projectDirectory,
             };
         }
@@ -372,4 +395,47 @@ internal sealed class ChatEventParser
             RawType = dto.EventType,
             RawData = dto.Data,
         };
+
+    private static string? ReadString(JsonElement element, string propertyName)
+    {
+        return element.TryGetProperty(propertyName, out var prop) && prop.ValueKind == JsonValueKind.String
+            ? prop.GetString()
+            : null;
+    }
+
+    private static IReadOnlyList<string>? ReadStringArray(JsonElement element, string propertyName)
+    {
+        if (!element.TryGetProperty(propertyName, out var prop) || prop.ValueKind != JsonValueKind.Array)
+            return null;
+
+        var values = new List<string>();
+        foreach (var item in prop.EnumerateArray())
+        {
+            if (item.ValueKind != JsonValueKind.String)
+                return null;
+
+            var value = item.GetString();
+            if (value is null)
+                return null;
+
+            values.Add(value);
+        }
+
+        return values;
+    }
+
+    private static Dictionary<string, object>? ReadDictionary(JsonElement element, string propertyName)
+    {
+        if (!element.TryGetProperty(propertyName, out var prop) || prop.ValueKind != JsonValueKind.Object)
+            return null;
+
+        try
+        {
+            return JsonSerializer.Deserialize<Dictionary<string, object>>(prop);
+        }
+        catch
+        {
+            return null;
+        }
+    }
 }

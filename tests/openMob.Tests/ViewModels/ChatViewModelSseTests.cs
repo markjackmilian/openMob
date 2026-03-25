@@ -104,6 +104,26 @@ public sealed class ChatViewModelSseTests : IDisposable
     }
 
     /// <summary>
+    /// Builds a typed permission request event for the SSE stream.
+    /// </summary>
+    private static PermissionRequestedEvent BuildPermissionRequestedEvent(
+        string id = "per-1",
+        string sessionId = "sess-1",
+        string permission = "bash",
+        string[]? patterns = null)
+    {
+        return new PermissionRequestedEvent
+        {
+            Id = id,
+            SessionId = sessionId,
+            Permission = permission,
+            Patterns = patterns ?? ["src/**"],
+            Metadata = new Dictionary<string, object>(),
+            Always = ["src/**"],
+        };
+    }
+
+    /// <summary>
     /// Sets up the ViewModel with session "sess-1", mocks GetMessagesAsync to return
     /// <paramref name="existingMessages"/> (or empty), mocks SubscribeToEventsAsync to
     /// yield <paramref name="events"/>, calls SetSession, and waits for SSE processing.
@@ -510,6 +530,114 @@ public sealed class ChatViewModelSseTests : IDisposable
         // Assert — message added normally; exactly one entry
         _sut.Messages.Should().HaveCount(1);
         _sut.Messages.First().Id.Should().Be("server-msg-1");
+    }
+
+    // ─── Permission request handling ─────────────────────────────────────────
+
+    [Fact]
+    public async Task HandlePermissionRequested_WhenEventArrives_AddsPermissionCardAndSetsPendingFlag()
+    {
+        // Arrange
+        var permissionEvent = BuildPermissionRequestedEvent();
+
+        // Act
+        await TriggerSseEvents(new ChatEvent[] { permissionEvent });
+
+        // Assert
+        _sut.Messages.Should().ContainSingle(m => m.MessageKind == MessageKind.PermissionRequest);
+        _sut.HasPendingPermissions.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task HandlePermissionRequested_WhenMultipleEventsArrive_AddsIndependentPermissionCards()
+    {
+        // Arrange
+        var first = BuildPermissionRequestedEvent(id: "per-1");
+        var second = BuildPermissionRequestedEvent(id: "per-2", permission: "filesystem");
+
+        // Act
+        await TriggerSseEvents(new ChatEvent[] { first, second });
+
+        // Assert
+        _sut.Messages.Should().HaveCount(2);
+        _sut.Messages.Count(m => m.MessageKind == MessageKind.PermissionRequest).Should().Be(2);
+        _sut.HasPendingPermissions.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ReplyToPermissionAsync_WhenApiCallSucceeds_ResolvesMatchingCard()
+    {
+        // Arrange
+        var permissionEvent = BuildPermissionRequestedEvent();
+        await TriggerSseEvents(new ChatEvent[] { permissionEvent });
+
+        _apiClient.ReplyToPermissionAsync("per-1", "always", Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(OpencodeResult<bool>.Success(true)));
+
+        // Act
+        await _sut.ReplyToPermissionAsync("per-1", "always");
+
+        // Assert
+        var card = _sut.Messages.Single(m => m.RequestId == "per-1");
+        card.PermissionStatus.Should().Be(PermissionStatus.Resolved);
+        card.ResolvedReply.Should().Be("always");
+        card.ResolvedReplyLabel.Should().Be("Always");
+        _sut.HasPendingPermissions.Should().BeFalse();
+        _ = _apiClient.Received(1).ReplyToPermissionAsync("per-1", "always", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ReplyToPermissionAsync_WhenApiCallFails_KeepsCardPending()
+    {
+        // Arrange
+        var permissionEvent = BuildPermissionRequestedEvent();
+        await TriggerSseEvents(new ChatEvent[] { permissionEvent });
+
+        _apiClient.ReplyToPermissionAsync("per-1", "reject", Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(OpencodeResult<bool>.Failure(new OpencodeApiError(ErrorKind.NetworkUnreachable, "offline", null, new HttpRequestException("offline")))));
+
+        // Act
+        await _sut.ReplyToPermissionAsync("per-1", "reject");
+
+        // Assert
+        var card = _sut.Messages.Single(m => m.RequestId == "per-1");
+        card.PermissionStatus.Should().Be(PermissionStatus.Pending);
+        card.ResolvedReply.Should().BeNullOrEmpty();
+        _sut.HasPendingPermissions.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ReplyToPermissionAsync_WhenApiThrowsException_KeepsCardPendingAndCapturesException()
+    {
+        // Arrange
+        var permissionEvent = BuildPermissionRequestedEvent();
+        await TriggerSseEvents(new ChatEvent[] { permissionEvent });
+
+        _apiClient.ReplyToPermissionAsync("per-1", "always", Arg.Any<CancellationToken>())
+            .Returns<Task<OpencodeResult<bool>>>(_ => throw new HttpRequestException("network error"));
+
+        // Act — must not throw
+        await _sut.ReplyToPermissionAsync("per-1", "always");
+
+        // Assert — card stays pending; no crash
+        var card = _sut.Messages.Single(m => m.RequestId == "per-1");
+        card.PermissionStatus.Should().Be(PermissionStatus.Pending);
+        card.ResolvedReply.Should().BeNullOrEmpty();
+        _sut.HasPendingPermissions.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task HandlePermissionRequested_WhenSessionIdDiffers_StillAddsPermissionCard()
+    {
+        // Arrange — permission event carries a different sessionID than the active session
+        var permissionEvent = BuildPermissionRequestedEvent(id: "per-x", sessionId: "sess-OTHER");
+
+        // Act
+        await TriggerSseEvents(new ChatEvent[] { permissionEvent });
+
+        // Assert — no session filtering on permission events (AC-010)
+        _sut.Messages.Should().ContainSingle(m => m.MessageKind == MessageKind.PermissionRequest);
+        _sut.HasPendingPermissions.Should().BeTrue();
     }
 
     /// <summary>

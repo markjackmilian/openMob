@@ -5,6 +5,7 @@
              xmlns:markdown="clr-namespace:openMob.Views.Controls.Markdown"
              xmlns:helpers="clr-namespace:openMob.Helpers"
              xmlns:models="clr-namespace:openMob.Core.Models;assembly=openMob.Core"
+             xmlns:viewmodels="clr-namespace:openMob.Core.ViewModels;assembly=openMob.Core"
              x:Class="openMob.Views.Controls.MessageBlockView"
              x:Name="this"
              x:DataType="controls:MessageBlockView">
@@ -51,9 +52,17 @@
     <!-- ═══════════════════════════════════════════════════════════════
          Column 1: Message content area
          ═══════════════════════════════════════════════════════════════ -->
-    <VerticalStackLayout Grid.Column="1"
-                         Spacing="{StaticResource SpacingXs}"
-                         Padding="8,4,12,4">
+      <VerticalStackLayout x:Name="StandardMessageLayout"
+                           Grid.Column="1"
+                           Spacing="{StaticResource SpacingXs}"
+                           Padding="8,4,12,4">
+        <VerticalStackLayout.Triggers>
+          <DataTrigger TargetType="VerticalStackLayout"
+                       Binding="{Binding MessageKind, Source={x:Reference this}}"
+                       Value="{x:Static models:MessageKind.PermissionRequest}">
+            <Setter Property="IsVisible" Value="False" />
+          </DataTrigger>
+        </VerticalStackLayout.Triggers>
 
       <!-- Sender label — visible only when IsFirstInGroup=true (REQ-006) -->
       <Label x:Name="SenderLabel"
@@ -139,8 +148,131 @@
              IsVisible="{Binding IsStreaming, Source={x:Reference this}, Converter={StaticResource InvertedBoolConverter}}"
              HorizontalOptions="End" />
 
-    </VerticalStackLayout>
+      </VerticalStackLayout>
 
-  </Grid>
+      <Border x:Name="PermissionCard"
+              Grid.Column="1"
+              IsVisible="False"
+              StrokeThickness="1"
+              Stroke="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}"
+              BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceSecondaryLight}, Dark={StaticResource ColorSurfaceSecondaryDark}}"
+              StrokeShape="RoundRectangle 16"
+              Padding="12,10">
+        <Border.Triggers>
+          <DataTrigger TargetType="Border"
+                       Binding="{Binding MessageKind, Source={x:Reference this}}"
+                       Value="{x:Static models:MessageKind.PermissionRequest}">
+            <Setter Property="IsVisible" Value="True" />
+          </DataTrigger>
+        </Border.Triggers>
+
+        <VerticalStackLayout Spacing="10">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+            <VerticalStackLayout Spacing="2">
+              <Label Text="{Binding PermissionType, Source={x:Reference this}, FallbackValue='Permission request'}"
+                     Style="{StaticResource Title3Label}" />
+              <Label Text="Pending approval"
+                     FontFamily="InterRegular"
+                     FontSize="{StaticResource FontSizeCaption1}"
+                     TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}">
+                <Label.Triggers>
+                  <DataTrigger TargetType="Label"
+                               Binding="{Binding PermissionStatus, Source={x:Reference this}}"
+                               Value="{x:Static models:PermissionStatus.Resolved}">
+                    <Setter Property="IsVisible" Value="False" />
+                  </DataTrigger>
+                </Label.Triggers>
+              </Label>
+              <Label Text="{Binding ResolvedReplyLabel, Source={x:Reference this}, StringFormat='Resolved: {0}'}"
+                     FontFamily="InterRegular"
+                     FontSize="{StaticResource FontSizeCaption1}"
+                     TextColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}"
+                     IsVisible="False">
+                <Label.Triggers>
+                  <DataTrigger TargetType="Label"
+                               Binding="{Binding PermissionStatus, Source={x:Reference this}}"
+                               Value="{x:Static models:PermissionStatus.Resolved}">
+                    <Setter Property="IsVisible" Value="True" />
+                  </DataTrigger>
+                </Label.Triggers>
+              </Label>
+            </VerticalStackLayout>
+
+            <Border Grid.Column="1"
+                    StrokeThickness="0"
+                    BackgroundColor="{AppThemeBinding Light={StaticResource ColorPrimaryContainerLight}, Dark={StaticResource ColorPrimaryContainerDark}}"
+                    Padding="10,4"
+                    StrokeShape="RoundRectangle 999"
+                    VerticalOptions="Start">
+              <Label Text="Permission"
+                     FontFamily="InterSemiBold"
+                     FontSize="{StaticResource FontSizeCaption2}"
+                     TextColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}" />
+            </Border>
+          </Grid>
+
+          <HorizontalStackLayout Spacing="8"
+                                 BindableLayout.ItemsSource="{Binding PermissionPatterns, Source={x:Reference this}}">
+            <BindableLayout.ItemTemplate>
+              <DataTemplate x:DataType="x:String">
+                <Border StrokeThickness="0"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceLight}, Dark={StaticResource ColorSurfaceDark}}"
+                        Padding="8,4"
+                        StrokeShape="RoundRectangle 999">
+                  <Label Text="{Binding .}"
+                         FontFamily="InterRegular"
+                         FontSize="{StaticResource FontSizeCaption1}"
+                         LineBreakMode="TailTruncation"
+                         TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}" />
+                </Border>
+              </DataTemplate>
+            </BindableLayout.ItemTemplate>
+          </HorizontalStackLayout>
+
+          <HorizontalStackLayout Spacing="8" HorizontalOptions="Fill">
+            <Button Text="Always"
+                    Style="{StaticResource PrimaryButton}"
+                    Command="{Binding Source={RelativeSource AncestorType={x:Type viewmodels:ChatViewModel}}, Path=ReplyToPermissionAlwaysCommand}"
+                    CommandParameter="{Binding RequestId, Source={x:Reference this}}">
+              <Button.Triggers>
+                <DataTrigger TargetType="Button"
+                             Binding="{Binding PermissionStatus, Source={x:Reference this}}"
+                             Value="{x:Static models:PermissionStatus.Resolved}">
+                  <Setter Property="IsEnabled" Value="False" />
+                  <Setter Property="Opacity" Value="0.5" />
+                </DataTrigger>
+              </Button.Triggers>
+            </Button>
+            <Button Text="Once"
+                    Style="{StaticResource SecondaryButton}"
+                    Command="{Binding Source={RelativeSource AncestorType={x:Type viewmodels:ChatViewModel}}, Path=ReplyToPermissionOnceCommand}"
+                    CommandParameter="{Binding RequestId, Source={x:Reference this}}">
+              <Button.Triggers>
+                <DataTrigger TargetType="Button"
+                             Binding="{Binding PermissionStatus, Source={x:Reference this}}"
+                             Value="{x:Static models:PermissionStatus.Resolved}">
+                  <Setter Property="IsEnabled" Value="False" />
+                  <Setter Property="Opacity" Value="0.5" />
+                </DataTrigger>
+              </Button.Triggers>
+            </Button>
+            <Button Text="Deny"
+                    Style="{StaticResource DestructiveOutlinedButton}"
+                    Command="{Binding Source={RelativeSource AncestorType={x:Type viewmodels:ChatViewModel}}, Path=ReplyToPermissionDenyCommand}"
+                    CommandParameter="{Binding RequestId, Source={x:Reference this}}">
+              <Button.Triggers>
+                <DataTrigger TargetType="Button"
+                             Binding="{Binding PermissionStatus, Source={x:Reference this}}"
+                             Value="{x:Static models:PermissionStatus.Resolved}">
+                  <Setter Property="IsEnabled" Value="False" />
+                  <Setter Property="Opacity" Value="0.5" />
+                </DataTrigger>
+              </Button.Triggers>
+            </Button>
+          </HorizontalStackLayout>
+        </VerticalStackLayout>
+      </Border>
+
+    </Grid>
 
 </ContentView>

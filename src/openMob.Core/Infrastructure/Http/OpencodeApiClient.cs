@@ -541,6 +541,15 @@ internal sealed class OpencodeApiClient : IOpencodeApiClient
                 token),
             ct);
 
+    /// <inheritdoc />
+    public Task<OpencodeResult<bool>> ReplyToPermissionAsync(string requestId, string reply, CancellationToken ct = default)
+        => ExecuteAsync<bool>(
+            (client, baseUrl, token) => client.PostAsJsonAsync(
+                $"{baseUrl}/permission/{Uri.EscapeDataString(requestId)}/reply",
+                new PermissionReplyRequest(reply),
+                token),
+            ct);
+
     // ─── Messages ─────────────────────────────────────────────────────────────
 
     /// <inheritdoc />

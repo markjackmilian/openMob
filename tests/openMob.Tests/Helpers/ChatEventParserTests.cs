@@ -266,6 +266,43 @@ public sealed class ChatEventParserTests
         permEvent.PermissionId.Should().Be("perm-99");
     }
 
+    [Fact]
+    public void Parse_WhenEventTypeIsPermissionAsked_WithValidData_ReturnsTypedPermissionRequestedEvent()
+    {
+        // Arrange
+        var data = BuildEnvelope("permission.asked", new
+        {
+            id = "per-123",
+            sessionID = "sess-1",
+            permission = "bash",
+            patterns = new[] { "src/**", "docs/**" },
+            metadata = new { cwd = "/worktree", risky = true },
+            always = new[] { "src/**" },
+            tool = new
+            {
+                messageId = "msg-1",
+                callId = "call-9",
+            }
+        });
+        var dto = new OpencodeEventDto("unknown", "evt-asked", data);
+
+        // Act
+        var result = ChatEventParser.Parse(dto);
+
+        // Assert
+        result.Should().BeOfType<PermissionRequestedEvent>();
+        var permEvent = result.As<PermissionRequestedEvent>();
+        permEvent.Id.Should().Be("per-123");
+        permEvent.SessionId.Should().Be("sess-1");
+        permEvent.Permission.Should().Be("bash");
+        permEvent.Patterns.Should().ContainInOrder("src/**", "docs/**");
+        permEvent.Always.Should().ContainSingle().Which.Should().Be("src/**");
+        permEvent.Tool.Should().NotBeNull();
+        permEvent.Tool!.MessageId.Should().Be("msg-1");
+        permEvent.Tool.CallId.Should().Be("call-9");
+        permEvent.Metadata.Should().ContainKey("cwd");
+    }
+
     // ─── permission.updated ───────────────────────────────────────────────────
 
     [Fact]

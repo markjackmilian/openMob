@@ -127,18 +127,25 @@
                       Scrolled="OnMessagesScrolled"
                       IsVisible="{Binding IsEmpty, Converter={StaticResource InvertedBoolConverter}}">
         <CollectionView.ItemTemplate>
-          <DataTemplate x:DataType="models:ChatMessage">
-            <controls:MessageBlockView
-                TextContent="{Binding TextContent}"
-                IsFromUser="{Binding IsFromUser}"
-                Timestamp="{Binding Timestamp}"
-                DeliveryStatus="{Binding DeliveryStatus}"
-                IsFirstInGroup="{Binding IsFirstInGroup}"
-                IsLastInGroup="{Binding IsLastInGroup}"
-                IsStreaming="{Binding IsStreaming}"
-                SenderType="{Binding SenderType}"
-                SenderName="{Binding SenderName}" />
-          </DataTemplate>
+           <DataTemplate x:DataType="models:ChatMessage">
+              <controls:MessageBlockView
+                  TextContent="{Binding TextContent}"
+                  IsFromUser="{Binding IsFromUser}"
+                  Timestamp="{Binding Timestamp}"
+                  DeliveryStatus="{Binding DeliveryStatus}"
+                  IsFirstInGroup="{Binding IsFirstInGroup}"
+                  IsLastInGroup="{Binding IsLastInGroup}"
+                  IsStreaming="{Binding IsStreaming}"
+                  SenderType="{Binding SenderType}"
+                  SenderName="{Binding SenderName}"
+                  MessageKind="{Binding MessageKind}"
+                  PermissionType="{Binding PermissionType}"
+                  PermissionPatterns="{Binding PermissionPatterns}"
+                  RequestId="{Binding RequestId}"
+                  PermissionStatus="{Binding PermissionStatus}"
+                  ResolvedReply="{Binding ResolvedReply}"
+                  ResolvedReplyLabel="{Binding ResolvedReplyLabel}" />
+           </DataTemplate>
         </CollectionView.ItemTemplate>
       </CollectionView>
 
@@ -263,6 +270,20 @@
          ROW 5 — Error banner + Suggestion chips (existing, unchanged)
          ═══════════════════════════════════════════════════════════════ -->
     <VerticalStackLayout Grid.Row="5" Spacing="0">
+
+      <!-- Pending Permissions Indicator — visible when HasPendingPermissions = true -->
+      <Border IsVisible="{Binding HasPendingPermissions}"
+              BackgroundColor="{AppThemeBinding Light={StaticResource ColorPrimaryContainerLight},
+                                               Dark={StaticResource ColorPrimaryContainerDark}}"
+              StrokeThickness="0"
+              StrokeShape="RoundRectangle 0"
+              Padding="{StaticResource SpacingMd}">
+        <Label Text="Permission request pending — chat remains available"
+               FontFamily="InterRegular"
+               FontSize="{StaticResource FontSizeFootnote}"
+               TextColor="{AppThemeBinding Light={StaticResource ColorOnPrimaryContainerLight},
+                                           Dark={StaticResource ColorOnPrimaryContainerDark}}" />
+      </Border>
 
       <!-- Error Banner — visible when HasError = true -->
       <Border IsVisible="{Binding HasError}"

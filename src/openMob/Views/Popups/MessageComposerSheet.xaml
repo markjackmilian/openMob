@@ -13,7 +13,8 @@
                DisappearingAnimation="{uxd:MoveOutPopupAnimation MoveDirection=Bottom, Duration=250, Easing=CubicIn}">
 
   <!-- Bottom-anchored composer panel: hugs the bottom of the screen, height driven by content -->
-  <Border VerticalOptions="End"
+  <Border x:Name="ComposerSheetRoot"
+          VerticalOptions="End"
           HorizontalOptions="Fill"
           StrokeThickness="0"
           Padding="0"

@@ -22,8 +22,8 @@
           ColumnDefinitions="Auto,*,Auto"
           HeightRequest="48"
           Padding="4,0"
-          BackgroundColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight},
-                                            Dark={StaticResource ColorPrimaryDark}}">
+          BackgroundColor="{AppThemeBinding Light={StaticResource ColorPrimaryContainerLight},
+                                            Dark={StaticResource ColorPrimaryContainerDark}}">
 
       <!-- Hamburger button (left) -->
       <ImageButton Grid.Column="0"
@@ -37,9 +37,9 @@
         <ImageButton.Source>
           <FontImageSource FontFamily="TablerIcons"
                            Glyph="{x:Static helpers:IconKeys.Menu}"
-                           Size="20"
-                           Color="{AppThemeBinding Light={StaticResource ColorOnPrimaryLight},
-                                                    Dark={StaticResource ColorOnPrimaryDark}}" />
+                           Size="18"
+                           Color="{AppThemeBinding Light={StaticResource ColorPrimaryLight},
+                                                    Dark={StaticResource ColorPrimaryDark}}" />
         </ImageButton.Source>
       </ImageButton>
 
@@ -48,8 +48,8 @@
              Text="{Binding SessionName, FallbackValue='New chat'}"
              FontFamily="InterSemiBold"
              FontSize="{StaticResource FontSizeSubheadline}"
-             TextColor="{AppThemeBinding Light={StaticResource ColorOnPrimaryLight},
-                                          Dark={StaticResource ColorOnPrimaryDark}}"
+             TextColor="{AppThemeBinding Light={StaticResource ColorOnPrimaryContainerLight},
+                                          Dark={StaticResource ColorOnPrimaryContainerDark}}"
              HorizontalTextAlignment="Center"
              VerticalTextAlignment="Center"
              HorizontalOptions="Center"
@@ -73,9 +73,9 @@
         <ImageButton.Source>
           <FontImageSource FontFamily="TablerIcons"
                            Glyph="{x:Static helpers:IconKeys.Adjustments}"
-                           Size="20"
-                           Color="{AppThemeBinding Light={StaticResource ColorOnPrimaryLight},
-                                                    Dark={StaticResource ColorOnPrimaryDark}}" />
+                           Size="18"
+                           Color="{AppThemeBinding Light={StaticResource ColorPrimaryLight},
+                                                    Dark={StaticResource ColorPrimaryDark}}" />
         </ImageButton.Source>
       </ImageButton>
 

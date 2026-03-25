@@ -246,19 +246,34 @@
         <!-- Spacer -->
         <BoxView Grid.Column="3" Color="Transparent" />
 
-        <!-- Send button — right-aligned -->
-        <Button Grid.Column="4"
-                Text="{Binding SendButtonText, FallbackValue='Invia'}"
-                Command="{Binding SendCommand}"
-                Style="{StaticResource PrimaryButton}"
-                FontFamily="InterSemiBold"
-                FontSize="15"
-                MinimumWidthRequest="72"
+        <!-- Send button — round icon button, right-aligned -->
+        <Border Grid.Column="4"
+                WidthRequest="38"
                 HeightRequest="38"
-                Padding="16,0"
+                StrokeThickness="0"
+                BackgroundColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight},
+                                                  Dark={StaticResource ColorPrimaryDark}}"
+                HorizontalOptions="End"
                 VerticalOptions="Center"
                 AutomationId="ComposerSendButton"
-                SemanticProperties.Description="Send message" />
+                SemanticProperties.Description="Send message">
+          <Border.StrokeShape>
+            <RoundRectangle CornerRadius="19" />
+          </Border.StrokeShape>
+          <Border.Shadow>
+            <Shadow Brush="Black" Opacity="0.2" Offset="0,2" Radius="4" />
+          </Border.Shadow>
+          <Border.GestureRecognizers>
+            <TapGestureRecognizer Command="{Binding SendCommand}" />
+          </Border.GestureRecognizers>
+          <Label Text="{x:Static helpers:IconKeys.ArrowUp}"
+                 FontFamily="TablerIcons"
+                 FontSize="{StaticResource FontSizeIconXl}"
+                 TextColor="{AppThemeBinding Light={StaticResource ColorOnPrimaryLight},
+                                             Dark={StaticResource ColorOnPrimaryDark}}"
+                 HorizontalOptions="Center"
+                 VerticalOptions="Center" />
+        </Border>
       </Grid>
 
       <!-- Bottom safe area for Android gesture nav -->

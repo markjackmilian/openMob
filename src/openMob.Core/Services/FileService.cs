@@ -173,5 +173,5 @@ internal sealed class FileService : IFileService
     /// <param name="node">The file node returned by the API.</param>
     /// <returns>A <see cref="FileDto"/> with <c>RelativePath</c>, <c>Name</c>, and <c>Type</c> populated.</returns>
     private static FileDto MapNodeToFileDto(FileNodeDto node)
-        => new(RelativePath: node.Path, Name: node.Name, Type: node.Type);
+        => new(RelativePath: node.Path, Name: node.Name, Type: node.Type, IsIgnored: node.Ignored);
 }

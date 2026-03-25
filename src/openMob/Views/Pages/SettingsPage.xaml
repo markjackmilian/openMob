@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:helpers="clr-namespace:openMob.Helpers"
-             xmlns:vm="clr-namespace:openMob.Core.ViewModels;assembly=openMob.Core"
+              xmlns:helpers="clr-namespace:openMob.Helpers"
+              xmlns:loc="clr-namespace:openMob.Localization"
+              xmlns:vm="clr-namespace:openMob.Core.ViewModels;assembly=openMob.Core"
              x:Class="openMob.Views.Pages.SettingsPage"
              x:DataType="vm:SettingsViewModel"
-              Title="Settings">
+               Title="{loc:Translate SettingsTitle}">
 
   <Shell.BackButtonBehavior>
     <BackButtonBehavior IsVisible="False" IsEnabled="False" />
@@ -20,7 +21,7 @@
           MinimumWidthRequest="{StaticResource MinTouchTarget}"
           BackgroundColor="Transparent"
           AutomationId="SettingsBackButton"
-          SemanticProperties.Description="Go back">
+          SemanticProperties.Description="{loc:Translate GoBack}">
         <ImageButton.Source>
           <FontImageSource
               FontFamily="TablerIcons"
@@ -31,7 +32,7 @@
       </ImageButton>
       <Label
           Grid.Column="1"
-          Text="Settings"
+          Text="{loc:Translate SettingsTitle}"
           Style="{StaticResource Title2Label}"
           VerticalOptions="Center" />
     </Grid>
@@ -44,7 +45,7 @@
 
       <!-- Section: General -->
       <Label
-          Text="GENERAL"
+          Text="{loc:Translate GeneralSection}"
           Style="{StaticResource CaptionLabel}"
           FontFamily="InterMedium"
           Margin="0,8,0,8" />
@@ -68,7 +69,7 @@
             </Image>
             <Label
                 Grid.Column="1"
-                Text="Appearance"
+                Text="{loc:Translate Appearance}"
                 FontFamily="InterRegular"
                 VerticalOptions="Center" />
             <Label
@@ -77,6 +78,36 @@
                 FontFamily="InterRegular"
                 TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
                 VerticalOptions="Center" />
+          </Grid>
+
+          <BoxView
+              HeightRequest="0.5"
+              Margin="44,0,0,0"
+              Color="{AppThemeBinding Light={StaticResource ColorSeparatorLight}, Dark={StaticResource ColorSeparatorDark}}" />
+
+          <!-- Language -->
+          <Grid
+              ColumnDefinitions="Auto,*,Auto"
+              Padding="12,10"
+              ColumnSpacing="{StaticResource SpacingMd}">
+            <Image Grid.Column="0" VerticalOptions="Center" WidthRequest="20" HeightRequest="20">
+              <Image.Source>
+                <FontImageSource FontFamily="TablerIcons" Glyph="{x:Static helpers:IconKeys.Globe}" Size="20"
+                    Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}" />
+              </Image.Source>
+            </Image>
+            <Label
+                Grid.Column="1"
+                Text="{loc:Translate Language}"
+                FontFamily="InterRegular"
+                VerticalOptions="Center" />
+            <Picker
+                Grid.Column="2"
+                ItemsSource="{Binding LanguageOptions}"
+                ItemDisplayBinding="{Binding DisplayName}"
+                SelectedItem="{Binding SelectedLanguageOption, Mode=TwoWay}"
+                HorizontalOptions="End"
+                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}" />
           </Grid>
 
           <BoxView
@@ -100,7 +131,7 @@
             </Image>
             <Label
                 Grid.Column="1"
-                Text="Server Connection"
+                Text="{loc:Translate ServerConnection}"
                 FontFamily="InterRegular"
                 VerticalOptions="Center" />
             <Image Grid.Column="2" VerticalOptions="Center" WidthRequest="16" HeightRequest="16">
@@ -129,7 +160,7 @@
             </Image>
             <Label
                 Grid.Column="1"
-                Text="Notifications"
+                Text="{loc:Translate Notifications}"
                 FontFamily="InterRegular"
                 VerticalOptions="Center" />
             <Image Grid.Column="2" VerticalOptions="Center" WidthRequest="16" HeightRequest="16">
@@ -145,7 +176,7 @@
 
       <!-- Section: AI Providers -->
       <Label
-          Text="AI PROVIDERS"
+          Text="{loc:Translate AIProviders}"
           Style="{StaticResource CaptionLabel}"
           FontFamily="InterMedium"
           Margin="0,20,0,8" />
@@ -166,7 +197,7 @@
             </Image>
             <Label
                 Grid.Column="1"
-                Text="Manage Providers"
+                Text="{loc:Translate ManageProviders}"
                 FontFamily="InterRegular"
                 VerticalOptions="Center" />
             <Image Grid.Column="2" VerticalOptions="Center" WidthRequest="16" HeightRequest="16">
@@ -195,7 +226,7 @@
             </Image>
             <Label
                 Grid.Column="1"
-                Text="API Keys"
+                Text="{loc:Translate APIKeys}"
                 FontFamily="InterRegular"
                 VerticalOptions="Center" />
             <Image Grid.Column="2" VerticalOptions="Center" WidthRequest="16" HeightRequest="16">
@@ -211,7 +242,7 @@
 
       <!-- Section: About -->
       <Label
-          Text="ABOUT"
+          Text="{loc:Translate About}"
           Style="{StaticResource CaptionLabel}"
           FontFamily="InterMedium"
           Margin="0,20,0,8" />
@@ -232,7 +263,7 @@
             </Image>
             <Label
                 Grid.Column="1"
-                Text="Version"
+                Text="{loc:Translate Version}"
                 FontFamily="InterRegular"
                 VerticalOptions="Center" />
             <Label

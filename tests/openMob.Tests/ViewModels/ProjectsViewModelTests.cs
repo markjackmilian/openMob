@@ -256,17 +256,41 @@ public sealed class ProjectsViewModelTests
     // ─── ShowAddProjectCommand ────────────────────────────────────────────────
 
     [Fact]
-    public async Task ShowAddProjectCommand_WhenExecuted_CallsShowAddProjectAsync()
+    public async Task ShowAddProjectCommand_WhenExecuted_CallsShowFolderPickerAsync()
     {
         // Arrange
-        _popupService.ShowAddProjectAsync(Arg.Any<CancellationToken>())
+        _popupService.ShowFolderPickerAsync(Arg.Any<Func<string, CancellationToken, Task>>(), Arg.Any<CancellationToken>())
             .Returns(Task.CompletedTask);
 
         // Act
         await _sut.ShowAddProjectCommand.ExecuteAsync(null);
 
         // Assert
-        await _popupService.Received(1).ShowAddProjectAsync(Arg.Any<CancellationToken>());
+        await _popupService.Received(1).ShowFolderPickerAsync(Arg.Any<Func<string, CancellationToken, Task>>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ShowAddProjectCommand_WhenFolderSelected_ActivatesProjectAndNavigatesToChat()
+    {
+        // Arrange
+        Func<string, CancellationToken, Task>? callback = null;
+        var project = BuildProject("p9", "/selected/project");
+
+        _popupService.ShowFolderPickerAsync(Arg.Do<Func<string, CancellationToken, Task>>(cb => callback = cb), Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+        _projectService.EnsureProjectForWorktreeAsync("/selected/project", Arg.Any<CancellationToken>())
+            .Returns(project);
+        _activeProjectService.SetActiveProjectAsync("p9", Arg.Any<CancellationToken>())
+            .Returns(true);
+
+        // Act
+        await _sut.ShowAddProjectCommand.ExecuteAsync(null);
+        await callback!("/selected/project", CancellationToken.None);
+
+        // Assert
+        await _projectService.Received(1).EnsureProjectForWorktreeAsync("/selected/project", Arg.Any<CancellationToken>());
+        await _activeProjectService.Received(1).SetActiveProjectAsync("p9", Arg.Any<CancellationToken>());
+        await _navigationService.Received(1).GoToAsync("//chat", Arg.Any<CancellationToken>());
     }
 
     // ─── DeleteProjectCommand ─────────────────────────────────────────────────

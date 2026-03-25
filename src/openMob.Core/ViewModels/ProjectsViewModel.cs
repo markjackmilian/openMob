@@ -211,7 +211,7 @@ public sealed partial class ProjectsViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Shows the AddProjectSheet popup for creating a new project.
+    /// Shows the server-side folder picker popup for creating a new project.
     /// </summary>
     /// <param name="ct">Cancellation token.</param>
     [RelayCommand]
@@ -223,9 +223,38 @@ public sealed partial class ProjectsViewModel : ObservableObject
         try
         {
 #endif
-        // Delegate to IAppPopupService which resolves and presents the AddProjectSheet
-        // via UXDivers popup stack.
-        await _popupService.ShowAddProjectAsync(ct);
+        // Delegate to IAppPopupService which resolves and presents the folder picker.
+        await _popupService.ShowFolderPickerAsync(async (folderPath, callbackCt) =>
+        {
+            try
+            {
+                var project = await _projectService.EnsureProjectForWorktreeAsync(folderPath, callbackCt);
+                if (project is null)
+                {
+                    await _popupService.ShowErrorAsync("Error", "Failed to create or load the selected project.", callbackCt);
+                    return;
+                }
+
+                var activated = await _activeProjectService.SetActiveProjectAsync(project.Id, callbackCt);
+                if (!activated)
+                {
+                    await _popupService.ShowErrorAsync("Error", "Failed to activate the selected project.", callbackCt);
+                    return;
+                }
+
+                await _navigationService.GoToAsync("//chat", callbackCt);
+            }
+            catch (Exception ex)
+            {
+                SentryHelper.CaptureException(ex, new Dictionary<string, object>
+                {
+                    ["context"] = "ProjectsViewModel.ShowAddProjectAsync",
+                    ["folderPath"] = folderPath,
+                });
+
+                await _popupService.ShowErrorAsync("Error", "Failed to create or load the selected project.", callbackCt);
+            }
+        }, ct);
 #if DEBUG
         sw.Stop();
         DebugLogger.LogCommand(nameof(ShowAddProjectAsync), "complete", sw.ElapsedMilliseconds);

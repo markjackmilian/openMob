@@ -1,4 +1,5 @@
 using CommunityToolkit.Maui.Core;
+using openMob.Core.Infrastructure.Http;
 using openMob.Core.Models;
 using openMob.Core.Services;
 using openMob.Core.ViewModels;
@@ -260,12 +261,40 @@ internal sealed class MauiPopupService : IAppPopupService
     /// <inheritdoc />
     public async Task ShowAddProjectAsync(CancellationToken ct = default)
     {
+        await ShowFolderPickerAsync((_, _) => Task.CompletedTask, ct);
+    }
+
+    /// <inheritdoc />
+    public async Task ShowFolderPickerAsync(Func<string, CancellationToken, Task> onFolderSelected, CancellationToken ct = default)
+    {
         ct.ThrowIfCancellationRequested();
 
-        var sheet = _serviceProvider.GetRequiredService<AddProjectSheet>();
+        var sheet = _serviceProvider.GetRequiredService<FolderPickerSheet>();
+        var apiClient = _serviceProvider.GetRequiredService<IOpencodeApiClient>();
 
-        // Present via UXDivers popup stack
-        await IPopupService.Current.PushAsync(sheet);
+        if (sheet.BindingContext is FolderPickerViewModel vm)
+        {
+            vm.OnFolderSelected = onFolderSelected;
+
+            string? startPath = null;
+            try
+            {
+                var pathResult = await apiClient.GetPathAsync(ct);
+                if (pathResult.IsSuccess)
+                    startPath = pathResult.Value?.Directory;
+            }
+            catch
+            {
+            }
+
+            await vm.InitializeAsync(startPath, ct);
+        }
+
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            ct.ThrowIfCancellationRequested();
+            return IPopupService.Current.PushAsync(sheet);
+        });
     }
 
     /// <inheritdoc />

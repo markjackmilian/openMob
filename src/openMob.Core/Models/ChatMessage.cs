@@ -4,6 +4,26 @@ using openMob.Core.Infrastructure.Http.Dtos.Opencode;
 
 namespace openMob.Core.Models;
 
+/// <summary>Discriminates the kind of chat message.</summary>
+public enum MessageKind
+{
+    /// <summary>Standard chat content.</summary>
+    Standard,
+
+    /// <summary>An inline permission request card.</summary>
+    PermissionRequest,
+}
+
+/// <summary>Tracks the approval state of a permission request card.</summary>
+public enum PermissionStatus
+{
+    /// <summary>The request is waiting for user action.</summary>
+    Pending,
+
+    /// <summary>The request has been resolved by the user.</summary>
+    Resolved,
+}
+
 /// <summary>
 /// Domain model for a chat message displayed in the UI.
 /// Inherits from <see cref="ObservableObject"/> because several properties
@@ -58,6 +78,34 @@ public sealed partial class ChatMessage : ObservableObject
     [ObservableProperty]
     private bool _isOptimistic;
 
+    /// <summary>Gets or sets the kind of message.</summary>
+    [ObservableProperty]
+    private MessageKind _messageKind = MessageKind.Standard;
+
+    /// <summary>Gets or sets the permission type for inline permission cards.</summary>
+    [ObservableProperty]
+    private string _permissionType = string.Empty;
+
+    /// <summary>Gets or sets the requested patterns for inline permission cards.</summary>
+    [ObservableProperty]
+    private IReadOnlyList<string> _permissionPatterns = Array.Empty<string>();
+
+    /// <summary>Gets or sets the permission request identifier.</summary>
+    [ObservableProperty]
+    private string _requestId = string.Empty;
+
+    /// <summary>Gets or sets the permission status.</summary>
+    [ObservableProperty]
+    private PermissionStatus _permissionStatus = PermissionStatus.Pending;
+
+    /// <summary>Gets or sets the raw reply value chosen by the user.</summary>
+    [ObservableProperty]
+    private string? _resolvedReply;
+
+    /// <summary>Gets or sets the label shown for the chosen reply.</summary>
+    [ObservableProperty]
+    private string? _resolvedReplyLabel;
+
     /// <summary>
     /// Initialises a new <see cref="ChatMessage"/> with the specified immutable properties.
     /// </summary>
@@ -81,7 +129,14 @@ public sealed partial class ChatMessage : ObservableObject
         bool isStreaming,
         SenderType senderType = SenderType.Agent,
         string senderName = "",
-        bool isOptimistic = false)
+        bool isOptimistic = false,
+        MessageKind messageKind = MessageKind.Standard,
+        string permissionType = "",
+        IReadOnlyList<string>? permissionPatterns = null,
+        string requestId = "",
+        PermissionStatus permissionStatus = PermissionStatus.Pending,
+        string? resolvedReply = null,
+        string? resolvedReplyLabel = null)
     {
         Id = id;
         SessionId = sessionId;
@@ -93,6 +148,13 @@ public sealed partial class ChatMessage : ObservableObject
         _senderType = senderType;
         _senderName = senderName;
         _isOptimistic = isOptimistic;
+        _messageKind = messageKind;
+        _permissionType = permissionType;
+        _permissionPatterns = permissionPatterns ?? Array.Empty<string>();
+        _requestId = requestId;
+        _permissionStatus = permissionStatus;
+        _resolvedReply = resolvedReply;
+        _resolvedReplyLabel = resolvedReplyLabel;
     }
 
     /// <summary>
@@ -132,6 +194,38 @@ public sealed partial class ChatMessage : ObservableObject
             isStreaming: isStreaming,
             senderType: senderType,
             senderName: senderName);
+    }
+
+    /// <summary>
+    /// Creates an inline permission request card.
+    /// </summary>
+    /// <param name="id">The permission request identifier.</param>
+    /// <param name="sessionId">The session identifier.</param>
+    /// <param name="permissionType">The requested permission label.</param>
+    /// <param name="patterns">The requested pattern list.</param>
+    /// <returns>A new permission request message.</returns>
+    public static ChatMessage CreatePermissionRequest(string id, string sessionId, string permissionType, IReadOnlyList<string> patterns)
+    {
+        ArgumentNullException.ThrowIfNull(id);
+        ArgumentNullException.ThrowIfNull(sessionId);
+        ArgumentNullException.ThrowIfNull(permissionType);
+        ArgumentNullException.ThrowIfNull(patterns);
+
+        return new ChatMessage(
+            id: id,
+            sessionId: sessionId,
+            isFromUser: false,
+            textContent: string.Empty,
+            timestamp: DateTimeOffset.UtcNow,
+            deliveryStatus: MessageDeliveryStatus.Sent,
+            isStreaming: false,
+            senderType: SenderType.Agent,
+            senderName: "Permission",
+            messageKind: MessageKind.PermissionRequest,
+            permissionType: permissionType,
+            permissionPatterns: patterns,
+            requestId: id,
+            permissionStatus: PermissionStatus.Pending);
     }
 
     /// <summary>

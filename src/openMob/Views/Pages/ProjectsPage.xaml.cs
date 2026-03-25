@@ -35,8 +35,7 @@ public partial class ProjectsPage : ContentPage
 
     private async void OnAddProjectClicked(object? sender, EventArgs e)
     {
-        // AddProjectSheet will be pushed via IAppPopupService when fully integrated.
-        // For now, show a placeholder toast.
+        // FolderPickerSheet will be pushed via IAppPopupService when fully integrated.
         if (_viewModel.ShowAddProjectCommand.CanExecute(null))
         {
             await _viewModel.ShowAddProjectCommand.ExecuteAsync(null);

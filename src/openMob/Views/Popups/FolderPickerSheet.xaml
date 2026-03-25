@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<uxd:PopupPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+               xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+               xmlns:uxd="clr-namespace:UXDivers.Popups.Maui;assembly=UXDivers.Popups.Maui"
+               xmlns:vm="clr-namespace:openMob.Core.ViewModels;assembly=openMob.Core"
+               xmlns:svc="clr-namespace:openMob.Core.Services;assembly=openMob.Core"
+               xmlns:helpers="clr-namespace:openMob.Helpers"
+               x:Class="openMob.Views.Popups.FolderPickerSheet"
+               x:DataType="vm:FolderPickerViewModel"
+               BackgroundColor="{DynamicResource PopupBackdropColor}"
+               CloseWhenBackgroundIsClicked="True"
+               AppearingAnimation="{uxd:MoveInPopupAnimation MoveDirection=Bottom, Duration=300, Easing=CubicOut}"
+               DisappearingAnimation="{uxd:MoveOutPopupAnimation MoveDirection=Bottom, Duration=250, Easing=CubicIn}">
+
+  <Border VerticalOptions="Fill"
+          HorizontalOptions="Fill"
+          StrokeThickness="0"
+          Padding="0"
+          Margin="0,48,0,0"
+          BackgroundColor="{AppThemeBinding Light={StaticResource ColorBackgroundLight}, Dark={StaticResource ColorBackgroundDark}}">
+    <Border.StrokeShape>
+      <RoundRectangle CornerRadius="20,20,0,0" />
+    </Border.StrokeShape>
+    <Border.Shadow>
+      <Shadow Brush="Black" Opacity="0.15" Offset="0,-2" Radius="16" />
+    </Border.Shadow>
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto">
+
+      <BoxView Grid.Row="0"
+               Style="{StaticResource SheetHandleBar}"
+               Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}" />
+
+      <Grid Grid.Row="1"
+            ColumnDefinitions="Auto,*,Auto"
+            Padding="16,0"
+            HeightRequest="{StaticResource MinTouchTarget}">
+        <ImageButton Grid.Column="0"
+                     Command="{Binding BackCommand}"
+                     IsVisible="{Binding CanGoBack}"
+                     MinimumHeightRequest="{StaticResource MinTouchTarget}"
+                     MinimumWidthRequest="{StaticResource MinTouchTarget}"
+                     BackgroundColor="Transparent"
+                     AutomationId="FolderPickerBackButton"
+                     SemanticProperties.Description="Go back to parent folder">
+          <ImageButton.Source>
+            <FontImageSource FontFamily="TablerIcons"
+                             Glyph="{x:Static helpers:IconKeys.ArrowLeft}"
+                             Size="20"
+                             Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}" />
+          </ImageButton.Source>
+        </ImageButton>
+
+        <Label Grid.Column="1"
+               Text="{Binding CurrentPath, FallbackValue='Select Folder', TargetNullValue='Select Folder'}"
+               Style="{StaticResource Title3Label}"
+               LineBreakMode="MiddleTruncation"
+               VerticalOptions="Center" />
+
+        <ImageButton Grid.Column="2"
+                     Clicked="OnCloseButtonTapped"
+                     MinimumHeightRequest="{StaticResource MinTouchTarget}"
+                     MinimumWidthRequest="{StaticResource MinTouchTarget}"
+                     BackgroundColor="Transparent"
+                     AutomationId="FolderPickerCloseButton"
+                     SemanticProperties.Description="Close folder picker">
+          <ImageButton.Source>
+            <FontImageSource FontFamily="TablerIcons"
+                             Glyph="{x:Static helpers:IconKeys.X}"
+                             Size="20"
+                             Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}" />
+          </ImageButton.Source>
+        </ImageButton>
+      </Grid>
+
+      <Grid Grid.Row="2">
+        <ActivityIndicator IsRunning="{Binding IsLoading}"
+                           IsVisible="{Binding IsLoading}"
+                           HorizontalOptions="Center"
+                           VerticalOptions="Center" />
+
+        <VerticalStackLayout IsVisible="{Binding HasError}"
+                             HorizontalOptions="Center"
+                             VerticalOptions="Center"
+                             Spacing="{StaticResource SpacingSm}"
+                             Padding="{StaticResource SpacingLg}">
+          <Label Text="{x:Static helpers:IconKeys.AlertCircle}"
+                 FontFamily="TablerIcons"
+                 FontSize="{StaticResource FontSizeIconXxl}"
+                 TextColor="{AppThemeBinding Light={StaticResource ColorErrorLight}, Dark={StaticResource ColorErrorDark}}"
+                 HorizontalTextAlignment="Center" />
+          <Label Text="{Binding ErrorMessage, FallbackValue='Failed to load folders.', TargetNullValue='Failed to load folders.'}"
+                 Style="{StaticResource CalloutLabel}"
+                 HorizontalTextAlignment="Center" />
+        </VerticalStackLayout>
+
+        <CollectionView ItemsSource="{Binding Items}"
+                        SelectionMode="None"
+                        IsVisible="{Binding IsLoading, Converter={StaticResource InvertedBoolConverter}}">
+          <CollectionView.ItemTemplate>
+            <DataTemplate x:DataType="svc:FileDto">
+              <VerticalStackLayout Spacing="0" Padding="16,0">
+                <Grid ColumnDefinitions="Auto,*"
+                      Padding="0,12"
+                      ColumnSpacing="{StaticResource SpacingMd}"
+                      MinimumHeightRequest="{StaticResource MinTouchTarget}">
+                  <Grid.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding SelectFolderCommand, Source={RelativeSource AncestorType={x:Type vm:FolderPickerViewModel}}}"
+                                          CommandParameter="{Binding .}" />
+                  </Grid.GestureRecognizers>
+
+                  <Label Grid.Column="0"
+                         Text="{x:Static helpers:IconKeys.Folder}"
+                         FontFamily="TablerIcons"
+                         FontSize="{StaticResource FontSizeIconXl}"
+                         TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
+                         VerticalOptions="Center"
+                         SemanticProperties.Description="Folder icon" />
+
+                  <VerticalStackLayout Grid.Column="1"
+                                       Spacing="{StaticResource SpacingXxs}"
+                                       VerticalOptions="Center">
+                    <Label Text="{Binding Name, FallbackValue='Folder'}"
+                           FontFamily="InterMedium"
+                           FontSize="{StaticResource FontSizeSubheadline}"
+                           TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}"
+                           LineBreakMode="TailTruncation" />
+                    <Label Text="{Binding RelativePath, FallbackValue='', TargetNullValue=''}"
+                           Style="{StaticResource Caption2Label}"
+                           LineBreakMode="MiddleTruncation" />
+                  </VerticalStackLayout>
+                </Grid>
+
+                <BoxView HeightRequest="0.5"
+                         Color="{AppThemeBinding Light={StaticResource ColorSeparatorLight}, Dark={StaticResource ColorSeparatorDark}}" />
+              </VerticalStackLayout>
+            </DataTemplate>
+          </CollectionView.ItemTemplate>
+
+          <CollectionView.EmptyView>
+            <VerticalStackLayout HorizontalOptions="Center"
+                                 VerticalOptions="Center"
+                                 Spacing="{StaticResource SpacingSm}"
+                                 Padding="{StaticResource SpacingXl}">
+              <Label Text="{x:Static helpers:IconKeys.Folder}"
+                     FontFamily="TablerIcons"
+                     FontSize="{StaticResource FontSizeIconXxl}"
+                     TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
+                     HorizontalTextAlignment="Center" />
+              <Label Text="No folders found"
+                     FontFamily="InterRegular"
+                     FontSize="{StaticResource FontSizeCallout}"
+                     TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
+                     HorizontalTextAlignment="Center" />
+            </VerticalStackLayout>
+          </CollectionView.EmptyView>
+        </CollectionView>
+      </Grid>
+
+      <Grid Grid.Row="3"
+            ColumnDefinitions="*,*"
+            ColumnSpacing="{StaticResource SpacingMd}"
+            Padding="16,12,16,16">
+        <Button Grid.Column="0"
+                Text="Cancel"
+                Command="{Binding CancelCommand}"
+                Style="{StaticResource SecondaryButton}"
+                AutomationId="FolderPickerCancelButton" />
+        <Button Grid.Column="1"
+                Text="Select Folder"
+                Command="{Binding ConfirmCommand}"
+                IsEnabled="{Binding CanConfirm}"
+                Style="{StaticResource PrimaryButton}"
+                AutomationId="FolderPickerConfirmButton" />
+      </Grid>
+    </Grid>
+  </Border>
+</uxd:PopupPage>

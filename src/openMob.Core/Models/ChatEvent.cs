@@ -95,14 +95,41 @@ public sealed record PermissionRequestedEvent : ChatEvent
     /// <inheritdoc />
     public override ChatEventType Type => ChatEventType.PermissionRequested;
 
+    /// <summary>Gets the unique identifier for this permission request.</summary>
+    public required string Id { get; init; }
+
     /// <summary>Gets the ID of the session requesting the permission.</summary>
     public required string SessionId { get; init; }
 
-    /// <summary>Gets the unique identifier for this permission request.</summary>
-    public required string PermissionId { get; init; }
+    /// <summary>Gets the permission type requested by the server.</summary>
+    public required string Permission { get; init; }
 
-    /// <summary>Gets the full raw JSON payload for this permission request.</summary>
-    public required JsonElement RawPayload { get; init; }
+    /// <summary>Gets the requested pattern values.</summary>
+    public required IReadOnlyList<string> Patterns { get; init; }
+
+    /// <summary>Gets the metadata bag attached to the permission request.</summary>
+    public required Dictionary<string, object> Metadata { get; init; }
+
+    /// <summary>Gets the list of always-allow rules supplied by the server.</summary>
+    public required IReadOnlyList<string> Always { get; init; }
+
+    /// <summary>Gets the optional tool context for the permission request.</summary>
+    public PermissionRequestedTool? Tool { get; init; }
+
+    /// <summary>Gets the legacy alias for <see cref="Id"/>.</summary>
+    public string PermissionId => Id;
+}
+
+/// <summary>
+/// Describes the tool context for a permission request.
+/// </summary>
+public sealed record PermissionRequestedTool
+{
+    /// <summary>Gets the message ID associated with the tool call.</summary>
+    public required string MessageId { get; init; }
+
+    /// <summary>Gets the call ID associated with the tool call.</summary>
+    public required string CallId { get; init; }
 }
 
 /// <summary>

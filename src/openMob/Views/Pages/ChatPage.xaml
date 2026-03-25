@@ -16,30 +16,30 @@
 
     <!-- ═══════════════════════════════════════════════════════════════
          ROW 0 — Header
-         Accent-tinted background, compact height, primary-colored icons
+         Primary-colored bar with white icons and compact title
          ═══════════════════════════════════════════════════════════════ -->
     <Grid Grid.Row="0"
           ColumnDefinitions="Auto,*,Auto"
-          HeightRequest="52"
+          HeightRequest="48"
           Padding="4,0"
-          BackgroundColor="{AppThemeBinding Light={StaticResource ColorPrimaryContainerLight},
-                                            Dark={StaticResource ColorPrimaryContainerDark}}">
+          BackgroundColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight},
+                                            Dark={StaticResource ColorPrimaryDark}}">
 
       <!-- Hamburger button (left) -->
       <ImageButton Grid.Column="0"
                    x:Name="HamburgerButton"
                    Clicked="OnHamburgerClicked"
-                   WidthRequest="{StaticResource MinTouchTarget}"
-                   HeightRequest="{StaticResource MinTouchTarget}"
+                   WidthRequest="40"
+                   HeightRequest="40"
                    BackgroundColor="Transparent"
                    AutomationId="ChatHamburgerButton"
                    SemanticProperties.Description="Open navigation menu">
         <ImageButton.Source>
           <FontImageSource FontFamily="TablerIcons"
                            Glyph="{x:Static helpers:IconKeys.Menu}"
-                           Size="{StaticResource FontSizeIconXl}"
-                           Color="{AppThemeBinding Light={StaticResource ColorOnPrimaryContainerLight},
-                                                    Dark={StaticResource ColorOnPrimaryContainerDark}}" />
+                           Size="20"
+                           Color="{AppThemeBinding Light={StaticResource ColorOnPrimaryLight},
+                                                    Dark={StaticResource ColorOnPrimaryDark}}" />
         </ImageButton.Source>
       </ImageButton>
 
@@ -47,9 +47,9 @@
       <Label Grid.Column="1"
              Text="{Binding SessionName, FallbackValue='New chat'}"
              FontFamily="InterSemiBold"
-             FontSize="{StaticResource FontSizeCallout}"
-             TextColor="{AppThemeBinding Light={StaticResource ColorOnPrimaryContainerLight},
-                                          Dark={StaticResource ColorOnPrimaryContainerDark}}"
+             FontSize="{StaticResource FontSizeSubheadline}"
+             TextColor="{AppThemeBinding Light={StaticResource ColorOnPrimaryLight},
+                                          Dark={StaticResource ColorOnPrimaryDark}}"
              HorizontalTextAlignment="Center"
              VerticalTextAlignment="Center"
              HorizontalOptions="Center"
@@ -65,17 +65,17 @@
       <!-- Context icon (right) — opens Context Sheet -->
       <ImageButton Grid.Column="2"
                    Command="{Binding OpenContextSheetCommand}"
-                   WidthRequest="{StaticResource MinTouchTarget}"
-                   HeightRequest="{StaticResource MinTouchTarget}"
+                   WidthRequest="40"
+                   HeightRequest="40"
                    BackgroundColor="Transparent"
                    AutomationId="ChatContextButton"
                    SemanticProperties.Description="Open context settings">
         <ImageButton.Source>
           <FontImageSource FontFamily="TablerIcons"
                            Glyph="{x:Static helpers:IconKeys.Adjustments}"
-                           Size="{StaticResource FontSizeIconXl}"
-                           Color="{AppThemeBinding Light={StaticResource ColorOnPrimaryContainerLight},
-                                                    Dark={StaticResource ColorOnPrimaryContainerDark}}" />
+                           Size="20"
+                           Color="{AppThemeBinding Light={StaticResource ColorOnPrimaryLight},
+                                                    Dark={StaticResource ColorOnPrimaryDark}}" />
         </ImageButton.Source>
       </ImageButton>
 

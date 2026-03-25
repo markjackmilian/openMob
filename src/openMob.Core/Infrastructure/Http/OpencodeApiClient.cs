@@ -99,7 +99,8 @@ internal sealed class OpencodeApiClient : IOpencodeApiClient
     /// </remarks>
     private async Task<OpencodeResult<T>> ExecuteAsync<T>(
         Func<HttpClient, string, CancellationToken, Task<HttpResponseMessage>> requestFactory,
-        CancellationToken ct)
+        CancellationToken ct,
+        string? worktreeOverride = null)
     {
         var baseUrl = await _connectionManager.GetBaseUrlAsync(ct).ConfigureAwait(false);
         if (baseUrl is null)
@@ -149,7 +150,7 @@ internal sealed class OpencodeApiClient : IOpencodeApiClient
                     // The server reads this from the x-opencode-directory header on every request.
                     // IMPORTANT: Use the synchronous cached read to avoid a recursive call chain
                     // (ExecuteAsync → GetActiveProjectAsync → ProjectService → ExecuteAsync → deadlock on SemaphoreSlim).
-                    var worktree = _activeProjectService.Value.GetCachedWorktree();
+                    var worktree = worktreeOverride ?? _activeProjectService.Value.GetCachedWorktree();
                     if (!string.IsNullOrEmpty(worktree))
                         client.DefaultRequestHeaders.TryAddWithoutValidation("x-opencode-directory", worktree);
 
@@ -355,6 +356,18 @@ internal sealed class OpencodeApiClient : IOpencodeApiClient
         => ExecuteAsync<ProjectDto>(
             (client, baseUrl, token) => client.GetAsync($"{baseUrl}/project/current", token),
             ct);
+
+    /// <inheritdoc />
+    public Task<OpencodeResult<SessionDto>> CreateSessionForDirectoryAsync(string directory, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(directory);
+
+        var request = new CreateSessionRequest(Title: string.Empty, ParentId: string.Empty);
+        return ExecuteAsync<SessionDto>(
+            (client, baseUrl, token) => client.PostAsJsonAsync($"{baseUrl}/session", request, token),
+            ct,
+            directory);
+    }
 
     // ─── Path & VCS ───────────────────────────────────────────────────────────
 

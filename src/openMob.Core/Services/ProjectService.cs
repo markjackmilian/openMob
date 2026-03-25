@@ -64,4 +64,46 @@ internal sealed class ProjectService : IProjectService
         var projects = await GetAllProjectsAsync(ct).ConfigureAwait(false);
         return projects.FirstOrDefault(p => p.Id == id);
     }
+
+    /// <inheritdoc />
+    public async Task<ProjectDto?> GetProjectByWorktreeAsync(string worktree, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(worktree);
+
+        var projects = await GetAllProjectsAsync(ct).ConfigureAwait(false);
+        return projects.FirstOrDefault(p => string.Equals(p.Worktree, worktree, StringComparison.Ordinal));
+    }
+
+    /// <inheritdoc />
+    public async Task<ProjectDto?> EnsureProjectForWorktreeAsync(string worktree, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(worktree);
+
+        var existing = await GetProjectByWorktreeAsync(worktree, ct).ConfigureAwait(false);
+        if (existing is not null)
+            return existing;
+
+        var sessionResult = await _apiClient.CreateSessionForDirectoryAsync(worktree, ct).ConfigureAwait(false);
+        if (!sessionResult.IsSuccess || sessionResult.Value is null)
+        {
+            if (sessionResult.Error is not null)
+            {
+                SentryHelper.CaptureException(
+                    new InvalidOperationException($"Failed to register project for '{worktree}': {sessionResult.Error.Message}"),
+                    new Dictionary<string, object>
+                    {
+                        ["worktree"] = worktree,
+                        ["errorKind"] = sessionResult.Error.Kind.ToString(),
+                    });
+            }
+
+            return null;
+        }
+
+        var project = await GetProjectByIdAsync(sessionResult.Value.ProjectId, ct).ConfigureAwait(false);
+        if (project is not null)
+            return project;
+
+        return await GetProjectByWorktreeAsync(worktree, ct).ConfigureAwait(false);
+    }
 }

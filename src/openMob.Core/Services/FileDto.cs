@@ -6,4 +6,5 @@ namespace openMob.Core.Services;
 /// <param name="RelativePath">The file path relative to the project root.</param>
 /// <param name="Name">The file display name.</param>
 /// <param name="Type">The file type hint, or <c>null</c>.</param>
-public sealed record FileDto(string RelativePath, string Name, string? Type = null);
+/// <param name="IsIgnored">Whether the entry is ignored by the server.</param>
+public sealed record FileDto(string RelativePath, string Name, string? Type = null, bool IsIgnored = false);

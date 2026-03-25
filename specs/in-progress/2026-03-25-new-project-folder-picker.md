@@ -4,8 +4,9 @@
 | Field   | Value                        |
 |---------|------------------------------|
 | Date    | 2026-03-25                   |
-| Status  | Draft                        |
+| Status  | In Progress                  |
 | Version | 1.0                          |
+| Branch  | feature/new-project-folder-picker |
 
 ---
 
@@ -123,5 +124,32 @@ This feature replaces the current project creation flow with a server-side folde
   - `src/openMob.Core/Services/ProjectService.cs`
   - `src/openMob.Core/Services/ActiveProjectService.cs`
   - `src/openMob.Core/Infrastructure/Http/IOpencodeApiClient.cs`
-  - `src/openMob/Views/Pages/ProjectsPage.xaml`
+- `src/openMob/Views/Pages/ProjectsPage.xaml`
   - `src/openMob/Views/Popups/AddProjectSheet.xaml`
+
+---
+
+## Technical Analysis
+
+### Change Type
+Feature
+
+### Branch
+`feature/new-project-folder-picker`
+
+### Layers Involved
+- `openMob.Core`: folder picker ViewModel, project registration flow, popup abstraction, API client contract
+- `openMob`: new folder picker popup UI and popup registration
+- `openMob.Tests`: ViewModel and service coverage for the new flow
+
+### Implementation Order
+1. Add/extend Core contracts for folder selection and project registration.
+2. Implement the new folder picker ViewModel and popup UI.
+3. Wire the MAUI popup service and DI registrations.
+4. Update the Projects page flow to activate the selected project and navigate to chat.
+5. Add/update tests for the project service, projects ViewModel, and folder picker ViewModel.
+
+### Key Risks
+- The server-side current directory lookup may fail or return an unexpected shape, so the picker must handle fallback/error states gracefully.
+- Project registration is currently modeled through the existing session/project APIs, so the implementation must avoid duplicate project creation.
+- The popup must stay responsive while loading folder listings and must not close on recoverable errors.

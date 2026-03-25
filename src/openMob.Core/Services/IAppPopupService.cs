@@ -113,6 +113,11 @@ public interface IAppPopupService
     /// <param name="ct">Cancellation token.</param>
     Task ShowAddProjectAsync(CancellationToken ct = default);
 
+    /// <summary>Opens the server-side folder picker popup for project creation.</summary>
+    /// <param name="onFolderSelected">Callback invoked when the user confirms a folder.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task ShowFolderPickerAsync(Func<string, CancellationToken, Task> onFolderSelected, CancellationToken ct = default);
+
     /// <summary>Opens the message composer popup for the specified project and session.</summary>
     /// <param name="projectId">The project identifier.</param>
     /// <param name="sessionId">The session identifier.</param>

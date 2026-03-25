@@ -106,6 +106,7 @@ public static class MauiProgram
         builder.Services.AddTransientPopup<CommandPaletteSheet, CommandPaletteViewModel>();
         builder.Services.AddTransientPopup<MessageComposerSheet, MessageComposerViewModel>();
         builder.Services.AddTransientPopup<FilePickerSheet, FilePickerViewModel>();
+        builder.Services.AddTransientPopup<FolderPickerSheet, FolderPickerViewModel>();
 
         var app = builder.Build();
 

@@ -1,8 +1,11 @@
 using System.Diagnostics;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using openMob.Core.Infrastructure.Localization;
 using openMob.Core.Infrastructure.Logging;
 using openMob.Core.Infrastructure.Settings;
+using openMob.Core.Localization;
+using openMob.Core.Models;
 using openMob.Core.Services;
 
 namespace openMob.Core.ViewModels;
@@ -11,53 +14,70 @@ namespace openMob.Core.ViewModels;
 /// ViewModel for the Settings page.
 /// </summary>
 /// <remarks>
-/// <para>
-/// Exposes the current theme preference as a human-readable label (<see cref="SelectedThemeLabel"/>)
-/// and provides a command (<see cref="ApplyThemeCommand"/>) to change and persist the preference.
-/// </para>
-/// <para>
-/// This ViewModel has zero MAUI dependencies — all platform concerns are delegated to
-/// <see cref="IThemeService"/>, which is injected at construction time.
-/// </para>
+/// Exposes theme and language preferences, and coordinates persistence with the injected services.
 /// </remarks>
 public sealed partial class SettingsViewModel : ObservableObject
 {
     private readonly IThemeService _themeService;
+    private readonly ILanguageService _languageService;
+    private readonly IAppPopupService _popupService;
     private readonly INavigationService _navigationService;
+    private string _currentLanguageCode;
+
+    /// <summary>
+    /// Gets the available language choices.
+    /// </summary>
+    public IReadOnlyList<LanguageOption> LanguageOptions { get; } =
+    [
+        new LanguageOption("en", "English"),
+        new LanguageOption("it", "Italiano"),
+    ];
 
     /// <summary>
     /// Initialises the <see cref="SettingsViewModel"/> with the required services.
     /// </summary>
     /// <param name="themeService">Service used to read and persist the theme preference.</param>
+    /// <param name="languageService">Service used to read and persist the language preference.</param>
+    /// <param name="popupService">Service used to show informational messages.</param>
     /// <param name="navigationService">Service for Shell navigation.</param>
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="themeService"/> or <paramref name="navigationService"/> is <see langword="null"/>.</exception>
-    public SettingsViewModel(IThemeService themeService, INavigationService navigationService)
+    public SettingsViewModel(
+        IThemeService themeService,
+        ILanguageService languageService,
+        IAppPopupService popupService,
+        INavigationService navigationService)
     {
         ArgumentNullException.ThrowIfNull(themeService);
+        ArgumentNullException.ThrowIfNull(languageService);
+        ArgumentNullException.ThrowIfNull(popupService);
         ArgumentNullException.ThrowIfNull(navigationService);
+
         _themeService = themeService;
+        _languageService = languageService;
+        _popupService = popupService;
         _navigationService = navigationService;
 
-        // Initialise the label from the currently persisted preference.
         _selectedThemeLabel = MapToLabel(_themeService.GetTheme());
+
+        _currentLanguageCode = NormalizeLanguageCode(_languageService.GetLanguageCode());
+        _selectedLanguageOption = GetLanguageOption(_currentLanguageCode);
     }
 
     /// <summary>
     /// Gets or sets the human-readable label for the currently active theme preference.
     /// </summary>
-    /// <remarks>
-    /// Possible values: <c>"Light"</c>, <c>"Dark"</c>, <c>"System"</c>.
-    /// Bound to the right-hand label on the Appearance row in <c>SettingsPage</c>.
-    /// </remarks>
     [ObservableProperty]
     private string _selectedThemeLabel;
+
+    /// <summary>
+    /// Gets or sets the selected language option.
+    /// </summary>
+    [ObservableProperty]
+    private LanguageOption? _selectedLanguageOption;
 
     /// <summary>
     /// Persists and immediately applies the given theme preference, then updates
     /// <see cref="SelectedThemeLabel"/> to reflect the new selection.
     /// </summary>
-    /// <param name="preference">The theme preference to apply.</param>
-    /// <param name="ct">Cancellation token.</param>
     [RelayCommand]
     private async Task ApplyThemeAsync(AppThemePreference preference, CancellationToken ct)
     {
@@ -83,12 +103,41 @@ public sealed partial class SettingsViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Navigates to the Server Management page.
-    /// Uses <c>"///server-management"</c> because <c>server-management</c> is a
-    /// <c>ShellContent</c> element — MAUI requires the triple-slash prefix for push
-    /// navigation to Shell elements while preserving back navigation.
+    /// Persists the selected language and shows a restart-required message.
     /// </summary>
-    /// <param name="ct">Cancellation token.</param>
+    [RelayCommand]
+    private async Task ApplyLanguageAsync(LanguageOption option, CancellationToken ct)
+    {
+        if (string.Equals(option.Code, _currentLanguageCode, StringComparison.OrdinalIgnoreCase))
+            return;
+
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        DebugLogger.LogCommand(nameof(ApplyLanguageAsync), "start");
+        try
+        {
+#endif
+        var normalizedCode = NormalizeLanguageCode(option.Code);
+        await _languageService.SetLanguageCodeAsync(normalizedCode, ct);
+        _currentLanguageCode = normalizedCode;
+        LocalizationHelper.ApplyCulture(normalizedCode);
+        await _popupService.ShowToastAsync(AppResources.Get("RestartRequiredMessage"), ct);
+#if DEBUG
+        sw.Stop();
+        DebugLogger.LogCommand(nameof(ApplyLanguageAsync), "complete", sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            DebugLogger.LogCommand(nameof(ApplyLanguageAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            throw;
+        }
+#endif
+    }
+
+    /// <summary>
+    /// Navigates to the Server Management page.
+    /// </summary>
     [RelayCommand]
     private async Task NavigateToServerManagementAsync(CancellationToken ct)
     {
@@ -113,14 +162,36 @@ public sealed partial class SettingsViewModel : ObservableObject
     }
 
     /// <summary>
+    /// Updates the selected language when the picker changes.
+    /// </summary>
+    /// <param name="value">The selected language option.</param>
+    partial void OnSelectedLanguageOptionChanged(LanguageOption? value)
+    {
+        if (value is null)
+            return;
+
+        _ = ApplyLanguageCommand.ExecuteAsync(value);
+    }
+
+    /// <summary>
     /// Maps an <see cref="AppThemePreference"/> value to its display label string.
     /// </summary>
-    /// <param name="preference">The preference to map.</param>
-    /// <returns>A human-readable label: <c>"Light"</c>, <c>"Dark"</c>, or <c>"System"</c>.</returns>
     private static string MapToLabel(AppThemePreference preference) => preference switch
     {
-        AppThemePreference.Light  => "Light",
-        AppThemePreference.Dark   => "Dark",
-        _                         => "System",
+        AppThemePreference.Light  => AppResources.Get("Light"),
+        AppThemePreference.Dark   => AppResources.Get("Dark"),
+        _                         => AppResources.Get("System"),
     };
+
+    /// <summary>
+    /// Normalises a language code to the supported set.
+    /// </summary>
+    private static string NormalizeLanguageCode(string? languageCode)
+        => string.Equals(languageCode, "it", StringComparison.OrdinalIgnoreCase) ? "it" : "en";
+
+    /// <summary>
+    /// Gets the matching language option for the specified code.
+    /// </summary>
+    private LanguageOption GetLanguageOption(string languageCode)
+        => LanguageOptions.First(option => string.Equals(option.Code, languageCode, StringComparison.OrdinalIgnoreCase));
 }

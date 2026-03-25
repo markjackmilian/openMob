@@ -4,6 +4,7 @@ using UXDivers.Popups.Maui;
 using UXDivers.Popups.Services;
 
 #if IOS
+using CoreGraphics;
 using Foundation;
 using UIKit;
 #endif
@@ -18,9 +19,9 @@ namespace openMob.Views.Popups;
 public partial class MessageComposerSheet : PopupPage
 {
 #if IOS
-    private NSObjectProtocol? _keyboardWillShowObserver;
-    private NSObjectProtocol? _keyboardWillHideObserver;
-    private NSObjectProtocol? _keyboardWillChangeFrameObserver;
+    private NSObject? _keyboardWillShowObserver;
+    private NSObject? _keyboardWillHideObserver;
+    private NSObject? _keyboardWillChangeFrameObserver;
 #endif
 
     /// <summary>Initialises the message composer sheet with its ViewModel.</summary>
@@ -180,7 +181,7 @@ public partial class MessageComposerSheet : PopupPage
         UIView.Animate(duration, 0, options, () =>
         {
             ComposerSheetRoot.TranslationY = translationY;
-        }, null);
+        }, completion: null!);
     }
 #endif
 

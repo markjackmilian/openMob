@@ -152,6 +152,7 @@ public static class CoreServiceExtensions
         services.AddTransient<MessageComposerViewModel>();
         services.AddTransient<FilePickerViewModel>();
         services.AddTransient<FolderPickerViewModel>();
+        services.AddTransient<ProjectDetailViewModel>();
         // FlyoutViewModel is Singleton — both FlyoutHeaderView and FlyoutContentView resolve
         // it via Application.Current?.Handler?.MauiContext?.Services.GetService<FlyoutViewModel>()
         // and must share the same instance for consistent binding and messenger subscriptions.

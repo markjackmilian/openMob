@@ -129,6 +129,7 @@ public sealed class FlyoutViewModelTests : IDisposable
         _sut.ProjectSectionTitle.Should().BeEmpty();
         _sut.Sessions.Should().BeEmpty();
         _sut.HasProject.Should().BeFalse();
+        _sut.ActiveProjectId.Should().BeNull();
         _sut.IsLoading.Should().BeFalse();
     }
 
@@ -231,6 +232,19 @@ public sealed class FlyoutViewModelTests : IDisposable
     }
 
     [Fact]
+    public async Task LoadSessionsCommand_WhenServiceReturnsData_SetsActiveProjectId()
+    {
+        // Arrange
+        SetupLoadSessionsSuccess();
+
+        // Act
+        await _sut.LoadSessionsCommand.ExecuteAsync(null);
+
+        // Assert
+        _sut.ActiveProjectId.Should().Be("proj-1");
+    }
+
+    [Fact]
     public async Task LoadSessionsCommand_WhenServiceReturnsData_SetsProjectSectionTitleToUppercase()
     {
         // Arrange
@@ -255,6 +269,20 @@ public sealed class FlyoutViewModelTests : IDisposable
 
         // Assert
         _sut.IsLoading.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task OpenProjectDetailCommand_WhenProjectIsLoaded_CallsShowProjectDetailAsync()
+    {
+        // Arrange
+        SetupLoadSessionsSuccess();
+        await _sut.LoadSessionsCommand.ExecuteAsync(null);
+
+        // Act
+        await _sut.OpenProjectDetailCommand.ExecuteAsync(null);
+
+        // Assert
+        await _popupService.Received(1).ShowProjectDetailAsync("proj-1", Arg.Any<CancellationToken>());
     }
 
     [Fact]

@@ -88,6 +88,11 @@ public interface IAppPopupService
     /// <param name="ct">Cancellation token.</param>
     Task ShowContextSheetAsync(string projectId, string sessionId, CancellationToken ct = default);
 
+    /// <summary>Opens the Project Detail bottom sheet for the specified project.</summary>
+    /// <param name="projectId">The project identifier.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task ShowProjectDetailAsync(string projectId, CancellationToken ct = default);
+
     /// <summary>Shows the Command Palette bottom sheet (REQ-029).</summary>
     /// <param name="ct">Cancellation token.</param>
     Task ShowCommandPaletteAsync(CancellationToken ct = default);

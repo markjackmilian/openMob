@@ -183,6 +183,25 @@ internal sealed class MauiPopupService : IAppPopupService
     }
 
     /// <inheritdoc />
+    public async Task ShowProjectDetailAsync(string projectId, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        var sheet = _serviceProvider.GetRequiredService<ProjectDetailSheet>();
+
+        if (sheet.BindingContext is ProjectDetailViewModel vm)
+        {
+            await vm.InitializeAsync(projectId, ct);
+        }
+
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            ct.ThrowIfCancellationRequested();
+            return IPopupService.Current.PushAsync(sheet);
+        });
+    }
+
+    /// <inheritdoc />
     public async Task ShowCommandPaletteAsync(CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();

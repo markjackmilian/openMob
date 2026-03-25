@@ -1,9 +1,11 @@
 using CommunityToolkit.Maui;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using openMob.Core.Data;
 using openMob.Core.Infrastructure.Monitoring;
 using openMob.Core.Infrastructure.Security;
 using openMob.Core.Infrastructure.Settings;
+using openMob.Core.Infrastructure.Localization;
 using openMob.Core.Services;
 using openMob.Core.Services.Markdown;
 using openMob.Core.ViewModels;
@@ -68,6 +70,9 @@ public static class MauiProgram
 
         // Register MAUI-backed settings service for opencode API client timeout
         builder.Services.AddSingleton<IOpencodeSettingsService, MauiOpencodeSettingsService>();
+
+        // Register MAUI-backed language service for persisted UI culture selection.
+        builder.Services.AddSingleton<ILanguageService, MauiLanguageService>();
 
         // Register MAUI-backed theme service (REQ-003, REQ-004)
         builder.Services.AddSingleton<IThemeService, MauiThemeService>();

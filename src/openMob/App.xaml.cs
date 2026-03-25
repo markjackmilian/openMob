@@ -1,4 +1,5 @@
 using Microsoft.Maui.ApplicationModel;
+using openMob.Core.Infrastructure.Localization;
 using openMob.Core.Infrastructure.Settings;
 
 namespace openMob;
@@ -8,14 +9,18 @@ public partial class App : Application
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly IThemeService _themeService;
+    private readonly ILanguageService _languageService;
 
     /// <summary>Initialises the application.</summary>
     /// <param name="serviceProvider">The DI service provider.</param>
     /// <param name="themeService">Service used to read the persisted theme preference at startup.</param>
-    public App(IServiceProvider serviceProvider, IThemeService themeService)
+    /// <param name="languageService">Service used to read the persisted language preference at startup.</param>
+    public App(IServiceProvider serviceProvider, IThemeService themeService, ILanguageService languageService)
     {
         _serviceProvider = serviceProvider;
         _themeService = themeService;
+        _languageService = languageService;
+        LocalizationHelper.ApplyCulture(_languageService.GetLanguageCode());
         InitializeComponent();
     }
 

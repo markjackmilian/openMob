@@ -1,11 +1,14 @@
 # Fix: Model & Agent Override Not Applied on Message Send
 
 ## Metadata
-| Field   | Value                        |
-|---------|------------------------------|
-| Date    | 2026-03-24                   |
-| Status  | In Progress                  |
-| Version | 1.0                          |
+| Field       | Value                                        |
+|-------------|----------------------------------------------|
+| Date        | 2026-03-24                                   |
+| Status      | **Completed**                                |
+| Version     | 1.0                                          |
+| Completed   | 2026-03-25                                   |
+| Branch      | bugfix/fix-model-agent-override-send (merged)|
+| Merged into | develop                                      |
 
 ---
 

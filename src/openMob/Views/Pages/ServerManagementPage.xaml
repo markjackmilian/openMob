@@ -118,7 +118,7 @@
                     <!-- Active indicator (CheckCircle) -->
                     <Label
                         Grid.Column="0"
-                        FontFamily="TablerIcons"
+                        FontFamily="{StaticResource TablerIconsFont}"
                         Text="{x:Static helpers:IconKeys.CircleCheck}"
                         FontSize="{StaticResource FontSizeTitle3}"
                         TextColor="{AppThemeBinding Light={StaticResource ColorSuccessLight}, Dark={StaticResource ColorSuccessDark}}"
@@ -148,7 +148,7 @@
                     <!-- Chevron -->
                     <Label
                         Grid.Column="2"
-                        FontFamily="TablerIcons"
+                        FontFamily="{StaticResource TablerIconsFont}"
                         Text="{x:Static helpers:IconKeys.ChevronRight}"
                         FontSize="{StaticResource FontSizeHeadline}"
                         TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
@@ -231,7 +231,7 @@
                     <!-- Chevron -->
                     <Label
                         Grid.Column="1"
-                        FontFamily="TablerIcons"
+                        FontFamily="{StaticResource TablerIconsFont}"
                         Text="{x:Static helpers:IconKeys.ChevronRight}"
                         FontSize="{StaticResource FontSizeHeadline}"
                         TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"

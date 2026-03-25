@@ -191,7 +191,7 @@
 
             <Label
                 Grid.Column="1"
-                FontFamily="TablerIcons"
+                FontFamily="{StaticResource TablerIconsFont}"
                 Text="{x:Static helpers:IconKeys.ChevronRight}"
                 FontSize="{StaticResource FontSizeTitle2}"
                 TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"

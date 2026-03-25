@@ -21,7 +21,7 @@
       <!-- SmartToy icon (animated pulse when IsActive) -->
       <Label x:Name="SubagentIcon"
              Text="{x:Static helpers:IconKeys.Robot}"
-             FontFamily="TablerIcons"
+             FontFamily="{StaticResource TablerIconsFont}"
               FontSize="{StaticResource FontSizeTitle3}"
              TextColor="{AppThemeBinding Light={StaticResource ColorSubagentAccentLight},
                                          Dark={StaticResource ColorSubagentAccentDark}}"

@@ -93,7 +93,7 @@
 
       <Label
           Text="{x:Static helpers:IconKeys.Robot}"
-          FontFamily="TablerIcons"
+          FontFamily="{StaticResource TablerIconsFont}"
           FontSize="{StaticResource FontSizeIconXxl}"
           TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
           HorizontalOptions="Center"
@@ -183,7 +183,7 @@
               <!-- Selection indicator: checkmark when selected -->
               <Label
                   Grid.Column="1"
-                  FontFamily="TablerIcons"
+                  FontFamily="{StaticResource TablerIconsFont}"
                   Text="{x:Static helpers:IconKeys.Check}"
                   FontSize="{StaticResource FontSizeIconXl}"
                   TextColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}"

@@ -39,7 +39,7 @@
         IsVisible="{Binding ModelLoadError, Converter={StaticResource NullToVisibilityConverter}}">
       <HorizontalStackLayout Spacing="{StaticResource SpacingSm}">
         <Label
-            FontFamily="TablerIcons"
+            FontFamily="{StaticResource TablerIconsFont}"
             Text="{x:Static helpers:IconKeys.AlertCircle}"
             FontSize="{StaticResource FontSizeTitle3}"
             TextColor="{AppThemeBinding Light={StaticResource ColorOnErrorContainerLight}, Dark={StaticResource ColorOnErrorContainerDark}}"
@@ -87,7 +87,7 @@
               <!-- Model icon -->
               <Label
                   Grid.Column="0"
-                  FontFamily="TablerIcons"
+                  FontFamily="{StaticResource TablerIconsFont}"
                   Text="{x:Static helpers:IconKeys.Robot}"
                   FontSize="{StaticResource FontSizeTitle2}"
                   TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
@@ -129,7 +129,7 @@
               <!-- Selection indicator -->
               <Label
                   Grid.Column="2"
-                  FontFamily="TablerIcons"
+                  FontFamily="{StaticResource TablerIconsFont}"
                   Text="{x:Static helpers:IconKeys.Circle}"
                   FontSize="{StaticResource FontSizeTitle2}"
                   TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
@@ -162,7 +162,7 @@
             Spacing="{StaticResource SpacingSm}"
             Padding="{StaticResource SpacingXl}">
           <Label
-              FontFamily="TablerIcons"
+              FontFamily="{StaticResource TablerIconsFont}"
               Text="{x:Static helpers:IconKeys.Robot}"
               FontSize="{StaticResource FontSizeLargeTitle}"
               TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"

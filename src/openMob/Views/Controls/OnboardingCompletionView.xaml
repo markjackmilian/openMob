@@ -13,7 +13,7 @@
 
     <!-- Success icon -->
     <Label
-        FontFamily="TablerIcons"
+        FontFamily="{StaticResource TablerIconsFont}"
         Text="{x:Static helpers:IconKeys.CircleCheck}"
         FontSize="{StaticResource FontSizeIconHero}"
         TextColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}"

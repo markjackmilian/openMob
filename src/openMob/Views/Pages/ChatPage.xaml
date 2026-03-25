@@ -174,7 +174,7 @@
                 VerticalOptions="End"
                 Padding="0">
           <Label Text="{x:Static helpers:IconKeys.Robot}"
-                 FontFamily="TablerIcons"
+                 FontFamily="{StaticResource TablerIconsFont}"
                  FontSize="{StaticResource FontSizeCallout}"
                  TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
                                              Dark={StaticResource ColorOnBackgroundSecondaryDark}}"

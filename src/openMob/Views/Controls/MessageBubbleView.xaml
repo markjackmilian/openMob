@@ -44,7 +44,7 @@
                                                 Dark={StaticResource ColorOnBubbleSentSecondaryDark}}"
                    VerticalOptions="Center" />
             <Label Text="{Binding DeliveryStatus, Source={x:Reference this}, Converter={StaticResource MessageStatusToIconConverter}, FallbackValue=''}"
-                   FontFamily="TablerIcons"
+                   FontFamily="{StaticResource TablerIconsFont}"
                    FontSize="{StaticResource FontSizeFootnote}"
                    TextColor="{AppThemeBinding Light={StaticResource ColorOnBubbleSentSecondaryLight},
                                                 Dark={StaticResource ColorOnBubbleSentSecondaryDark}}"
@@ -77,7 +77,7 @@
               IsVisible="{Binding IsLastInGroup, Source={x:Reference this}}"
               Padding="0">
         <Label Text="{x:Static helpers:IconKeys.Robot}"
-               FontFamily="TablerIcons"
+               FontFamily="{StaticResource TablerIconsFont}"
                FontSize="{StaticResource FontSizeCallout}"
                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
                                            Dark={StaticResource ColorOnBackgroundSecondaryDark}}"

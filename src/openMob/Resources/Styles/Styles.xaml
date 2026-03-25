@@ -225,9 +225,17 @@
          ICON LABEL STYLES — for Tabler Icons font glyphs
          ═══════════════════════════════════════════════════════════════ -->
 
+    <!-- TablerIcons font family token — Android requires "filename.ttf#" format for Label rendering.
+         iOS uses the registered alias. Reference this resource instead of hardcoding "TablerIcons"
+         in Label FontFamily attributes throughout the app. -->
+    <OnPlatform x:Key="TablerIconsFont" x:TypeArguments="x:String">
+        <On Platform="Android" Value="TablerIcons.ttf#" />
+        <On Platform="iOS" Value="TablerIcons" />
+    </OnPlatform>
+
     <!-- Standard icon label (17pt, matches Headline size) -->
     <Style x:Key="IconLabel" TargetType="Label">
-        <Setter Property="FontFamily" Value="TablerIcons" />
+        <Setter Property="FontFamily" Value="{StaticResource TablerIconsFont}" />
         <Setter Property="FontSize" Value="{StaticResource FontSizeHeadline}" />
         <Setter Property="LineBreakMode" Value="NoWrap" />
         <Setter Property="HorizontalTextAlignment" Value="Center" />
@@ -236,7 +244,7 @@
 
     <!-- Large icon label (20pt, matches Title3 size) — for larger touch-target icons -->
     <Style x:Key="IconLabelLg" TargetType="Label">
-        <Setter Property="FontFamily" Value="TablerIcons" />
+        <Setter Property="FontFamily" Value="{StaticResource TablerIconsFont}" />
         <Setter Property="FontSize" Value="{StaticResource FontSizeTitle3}" />
         <Setter Property="LineBreakMode" Value="NoWrap" />
         <Setter Property="HorizontalTextAlignment" Value="Center" />

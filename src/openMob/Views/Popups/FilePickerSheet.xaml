@@ -106,7 +106,7 @@
               Padding="12,0">
           <Label Grid.Column="0"
                  Text="{x:Static helpers:IconKeys.Search}"
-                 FontFamily="TablerIcons"
+                 FontFamily="{StaticResource TablerIconsFont}"
                  FontSize="{StaticResource FontSizeCallout}"
                  TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
                                               Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
@@ -140,12 +140,12 @@
                              VerticalOptions="Center"
                              Spacing="{StaticResource SpacingSm}"
                              Padding="{StaticResource SpacingLg}">
-          <Label Text="{x:Static helpers:IconKeys.AlertCircle}"
-                 FontFamily="TablerIcons"
-                 FontSize="{StaticResource FontSizeIconXxl}"
-                 TextColor="{AppThemeBinding Light={StaticResource ColorErrorLight},
-                                              Dark={StaticResource ColorErrorDark}}"
-                 HorizontalTextAlignment="Center" />
+           <Label Text="{x:Static helpers:IconKeys.AlertCircle}"
+                  FontFamily="{StaticResource TablerIconsFont}"
+                  FontSize="{StaticResource FontSizeIconXxl}"
+                  TextColor="{AppThemeBinding Light={StaticResource ColorErrorLight},
+                                               Dark={StaticResource ColorErrorDark}}"
+                  HorizontalTextAlignment="Center" />
           <Label Text="{Binding ErrorMessage, FallbackValue='Failed to load files.', TargetNullValue='Failed to load files.'}"
                  Style="{StaticResource CalloutLabel}"
                  HorizontalTextAlignment="Center" />
@@ -168,10 +168,10 @@
                         CommandParameter="{Binding .}" />
                   </Grid.GestureRecognizers>
 
-                  <!-- File/Folder icon — defaults to file, switches to folder for directories -->
+                   <!-- File/Folder icon — defaults to file, switches to folder for directories -->
                   <Label Grid.Column="0"
                          Text="{x:Static helpers:IconKeys.File}"
-                         FontFamily="TablerIcons"
+                         FontFamily="{StaticResource TablerIconsFont}"
                          FontSize="{StaticResource FontSizeIconXl}"
                          TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
                                                       Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
@@ -216,7 +216,7 @@
                                  Spacing="{StaticResource SpacingSm}"
                                  Padding="{StaticResource SpacingXl}">
               <Label Text="{x:Static helpers:IconKeys.Folder}"
-                     FontFamily="TablerIcons"
+                     FontFamily="{StaticResource TablerIconsFont}"
                      FontSize="{StaticResource FontSizeIconXxl}"
                      TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
                                                   Dark={StaticResource ColorOnBackgroundTertiaryDark}}"

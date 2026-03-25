@@ -68,7 +68,7 @@
 
         <Label Grid.Column="0"
                Text="{x:Static helpers:IconKeys.Folder}"
-               FontFamily="TablerIcons"
+               FontFamily="{StaticResource TablerIconsFont}"
                FontSize="{StaticResource FontSizeIconXl}"
                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
                                              Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
@@ -106,7 +106,7 @@
 
         <Label Grid.Column="0"
                Text="{x:Static helpers:IconKeys.Robot}"
-               FontFamily="TablerIcons"
+               FontFamily="{StaticResource TablerIconsFont}"
                FontSize="{StaticResource FontSizeIconXl}"
                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
                                              Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
@@ -132,7 +132,7 @@
 
         <Label Grid.Column="3"
                Text="{x:Static helpers:IconKeys.ChevronRight}"
-               FontFamily="TablerIcons"
+               FontFamily="{StaticResource TablerIconsFont}"
                FontSize="{StaticResource FontSizeTitle3}"
                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
                                              Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
@@ -151,7 +151,7 @@
 
         <Label Grid.Column="0"
                Text="{x:Static helpers:IconKeys.Brain}"
-               FontFamily="TablerIcons"
+               FontFamily="{StaticResource TablerIconsFont}"
                FontSize="{StaticResource FontSizeIconXl}"
                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
                                              Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
@@ -177,7 +177,7 @@
 
         <Label Grid.Column="3"
                Text="{x:Static helpers:IconKeys.ChevronRight}"
-               FontFamily="TablerIcons"
+               FontFamily="{StaticResource TablerIconsFont}"
                FontSize="{StaticResource FontSizeTitle3}"
                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
                                              Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
@@ -199,7 +199,7 @@
 
         <Label Grid.Column="0"
                Text="{x:Static helpers:IconKeys.Brain}"
-               FontFamily="TablerIcons"
+               FontFamily="{StaticResource TablerIconsFont}"
                FontSize="{StaticResource FontSizeIconXl}"
                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
                                              Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
@@ -313,7 +313,7 @@
 
         <Label Grid.Column="0"
                Text="{x:Static helpers:IconKeys.AutoAwesome}"
-               FontFamily="TablerIcons"
+               FontFamily="{StaticResource TablerIconsFont}"
                FontSize="{StaticResource FontSizeIconXl}"
                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
                                              Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
@@ -358,7 +358,7 @@
 
         <Label Grid.Column="0"
                Text="{x:Static helpers:IconKeys.Robot}"
-               FontFamily="TablerIcons"
+               FontFamily="{StaticResource TablerIconsFont}"
                FontSize="{StaticResource FontSizeIconXl}"
                TextColor="{AppThemeBinding Light={StaticResource ColorSubagentAccentLight},
                                              Dark={StaticResource ColorSubagentAccentDark}}"
@@ -373,7 +373,7 @@
 
         <Label Grid.Column="2"
                Text="{x:Static helpers:IconKeys.ChevronRight}"
-               FontFamily="TablerIcons"
+               FontFamily="{StaticResource TablerIconsFont}"
                FontSize="{StaticResource FontSizeTitle3}"
                TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
                                              Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
@@ -398,7 +398,7 @@
 
         <Label Grid.Column="0"
                Text="{x:Static helpers:IconKeys.Trash}"
-               FontFamily="TablerIcons"
+               FontFamily="{StaticResource TablerIconsFont}"
                FontSize="{StaticResource FontSizeIconXl}"
                TextColor="{AppThemeBinding Light={StaticResource ColorErrorLight},
                                              Dark={StaticResource ColorErrorDark}}"

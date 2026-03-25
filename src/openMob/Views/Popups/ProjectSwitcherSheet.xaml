@@ -88,7 +88,7 @@
               <!-- Project folder icon -->
               <Label
                   Grid.Column="0"
-                  FontFamily="TablerIcons"
+                  FontFamily="{StaticResource TablerIconsFont}"
                   Text="{x:Static helpers:IconKeys.Folder}"
                   FontSize="{StaticResource FontSizeIconXl}"
                   TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
@@ -115,7 +115,7 @@
               <!-- Checkmark for active project -->
               <Label
                   Grid.Column="2"
-                  FontFamily="TablerIcons"
+                  FontFamily="{StaticResource TablerIconsFont}"
                   Text="{x:Static helpers:IconKeys.Check}"
                   FontSize="{StaticResource FontSizeIconXl}"
                   TextColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}"

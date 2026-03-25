@@ -76,7 +76,7 @@
           <Border.StrokeShape><RoundRectangle CornerRadius="16" /></Border.StrokeShape>
           <Border.GestureRecognizers><TapGestureRecognizer Command="{Binding SelectAgentCommand}" /></Border.GestureRecognizers>
           <HorizontalStackLayout Spacing="4" VerticalOptions="Center">
-            <Label Text="{x:Static helpers:IconKeys.Robot}" FontFamily="TablerIcons" FontSize="14"
+             <Label Text="{x:Static helpers:IconKeys.Robot}" FontFamily="{StaticResource TablerIconsFont}" FontSize="14"
                    TextColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}" VerticalOptions="Center" />
             <Label Text="Agent:" FontFamily="InterRegular" FontSize="12"
                    TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}" VerticalOptions="Center" />
@@ -94,7 +94,7 @@
           <Border.StrokeShape><RoundRectangle CornerRadius="16" /></Border.StrokeShape>
           <Border.GestureRecognizers><TapGestureRecognizer Command="{Binding SelectModelCommand}" /></Border.GestureRecognizers>
           <HorizontalStackLayout Spacing="4" VerticalOptions="Center">
-            <Label Text="{x:Static helpers:IconKeys.Cpu}" FontFamily="TablerIcons" FontSize="14"
+             <Label Text="{x:Static helpers:IconKeys.Cpu}" FontFamily="{StaticResource TablerIconsFont}" FontSize="14"
                    TextColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}" VerticalOptions="Center" />
             <Label Text="Model:" FontFamily="InterRegular" FontSize="12"
                    TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}" VerticalOptions="Center" />
@@ -112,16 +112,16 @@
           <Border.StrokeShape><RoundRectangle CornerRadius="16" /></Border.StrokeShape>
           <Border.GestureRecognizers><TapGestureRecognizer Command="{Binding ToggleThinkLevelExpandedCommand}" /></Border.GestureRecognizers>
           <HorizontalStackLayout Spacing="4" VerticalOptions="Center">
-            <Label Text="{x:Static helpers:IconKeys.Brain}" FontFamily="TablerIcons" FontSize="14"
+             <Label Text="{x:Static helpers:IconKeys.Brain}" FontFamily="{StaticResource TablerIconsFont}" FontSize="14"
                    TextColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}" VerticalOptions="Center" />
             <Label Text="Think:" FontFamily="InterRegular" FontSize="12"
                    TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}" VerticalOptions="Center" />
             <Label Text="{Binding SessionThinkingLevel, FallbackValue='Medium'}" FontFamily="InterSemiBold" FontSize="12"
                    TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}" VerticalOptions="Center" />
-            <Label Text="{x:Static helpers:IconKeys.ChevronDown}" FontFamily="TablerIcons" FontSize="11"
+             <Label Text="{x:Static helpers:IconKeys.ChevronDown}" FontFamily="{StaticResource TablerIconsFont}" FontSize="11"
                    TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}" VerticalOptions="Center"
                    IsVisible="{Binding IsThinkLevelExpanded, Converter={StaticResource InvertedBoolConverter}}" />
-            <Label Text="{x:Static helpers:IconKeys.ChevronUp}" FontFamily="TablerIcons" FontSize="11"
+             <Label Text="{x:Static helpers:IconKeys.ChevronUp}" FontFamily="{StaticResource TablerIconsFont}" FontSize="11"
                    TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}" VerticalOptions="Center"
                    IsVisible="{Binding IsThinkLevelExpanded}" />
           </HorizontalStackLayout>
@@ -219,7 +219,7 @@
         <!-- @ Subagent -->
         <HorizontalStackLayout Grid.Column="0" Spacing="3" Padding="8,0" VerticalOptions="Center">
           <HorizontalStackLayout.GestureRecognizers><TapGestureRecognizer Command="{Binding InsertSubagentCommand}" /></HorizontalStackLayout.GestureRecognizers>
-          <Label Text="{x:Static helpers:IconKeys.At}" FontFamily="TablerIcons" FontSize="18" VerticalOptions="Center"
+           <Label Text="{x:Static helpers:IconKeys.At}" FontFamily="{StaticResource TablerIconsFont}" FontSize="18" VerticalOptions="Center"
                  TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}" />
           <Label Text="@" FontFamily="InterMedium" FontSize="13" VerticalOptions="Center"
                  TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}" />
@@ -228,7 +228,7 @@
         <!-- / Command -->
         <HorizontalStackLayout Grid.Column="1" Spacing="3" Padding="8,0" VerticalOptions="Center">
           <HorizontalStackLayout.GestureRecognizers><TapGestureRecognizer Command="{Binding InsertCommandCommand}" /></HorizontalStackLayout.GestureRecognizers>
-          <Label Text="{x:Static helpers:IconKeys.Terminal}" FontFamily="TablerIcons" FontSize="18" VerticalOptions="Center"
+           <Label Text="{x:Static helpers:IconKeys.Terminal}" FontFamily="{StaticResource TablerIconsFont}" FontSize="18" VerticalOptions="Center"
                  TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}" />
           <Label Text="/" FontFamily="InterMedium" FontSize="13" VerticalOptions="Center"
                  TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}" />
@@ -237,7 +237,7 @@
         <!-- # File -->
         <HorizontalStackLayout Grid.Column="2" Spacing="3" Padding="8,0" VerticalOptions="Center">
           <HorizontalStackLayout.GestureRecognizers><TapGestureRecognizer Command="{Binding InsertFileCommand}" /></HorizontalStackLayout.GestureRecognizers>
-          <Label Text="{x:Static helpers:IconKeys.File}" FontFamily="TablerIcons" FontSize="18" VerticalOptions="Center"
+           <Label Text="{x:Static helpers:IconKeys.File}" FontFamily="{StaticResource TablerIconsFont}" FontSize="18" VerticalOptions="Center"
                  TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}" />
           <Label Text="#" FontFamily="InterMedium" FontSize="13" VerticalOptions="Center"
                  TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}" />
@@ -266,8 +266,8 @@
           <Border.GestureRecognizers>
             <TapGestureRecognizer Command="{Binding SendCommand}" />
           </Border.GestureRecognizers>
-          <Label Text="{x:Static helpers:IconKeys.ArrowUp}"
-                 FontFamily="TablerIcons"
+           <Label Text="{x:Static helpers:IconKeys.ArrowUp}"
+                  FontFamily="{StaticResource TablerIconsFont}"
                  FontSize="{StaticResource FontSizeIconXl}"
                  TextColor="{AppThemeBinding Light={StaticResource ColorOnPrimaryLight},
                                              Dark={StaticResource ColorOnPrimaryDark}}"

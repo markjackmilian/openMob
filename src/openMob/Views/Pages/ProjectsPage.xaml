@@ -127,7 +127,7 @@
                   SemanticProperties.Description="Active project">
                 <Label
                     Text="{x:Static helpers:IconKeys.Check}"
-                    FontFamily="TablerIcons"
+                    FontFamily="{StaticResource TablerIconsFont}"
                     FontSize="{StaticResource FontSizeFootnote}"
                     TextColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight}, Dark={StaticResource ColorPrimaryDark}}"
                     HorizontalTextAlignment="Center"
@@ -150,7 +150,7 @@
             Spacing="{StaticResource SpacingLg}"
             Padding="{StaticResource SpacingXxl}">
           <Label
-              FontFamily="TablerIcons"
+              FontFamily="{StaticResource TablerIconsFont}"
               Text="{x:Static helpers:IconKeys.Folder}"
               FontSize="{StaticResource FontSizeLargeTitle}"
               TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"

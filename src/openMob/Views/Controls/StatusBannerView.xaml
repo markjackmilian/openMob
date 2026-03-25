@@ -17,7 +17,7 @@
       <!-- Status icon -->
       <Label
           Grid.Column="0"
-          FontFamily="TablerIcons"
+          FontFamily="{StaticResource TablerIconsFont}"
           Text="{x:Static helpers:IconKeys.InfoCircle}"
           FontSize="{StaticResource FontSizeHeadline}"
           TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight}, Dark={StaticResource ColorOnBackgroundDark}}"

@@ -84,11 +84,11 @@
                              VerticalOptions="Center"
                              Spacing="{StaticResource SpacingSm}"
                              Padding="{StaticResource SpacingLg}">
-          <Label Text="{x:Static helpers:IconKeys.AlertCircle}"
-                 FontFamily="TablerIcons"
-                 FontSize="{StaticResource FontSizeIconXxl}"
-                 TextColor="{AppThemeBinding Light={StaticResource ColorErrorLight}, Dark={StaticResource ColorErrorDark}}"
-                 HorizontalTextAlignment="Center" />
+           <Label Text="{x:Static helpers:IconKeys.AlertCircle}"
+                  FontFamily="{StaticResource TablerIconsFont}"
+                  FontSize="{StaticResource FontSizeIconXxl}"
+                  TextColor="{AppThemeBinding Light={StaticResource ColorErrorLight}, Dark={StaticResource ColorErrorDark}}"
+                  HorizontalTextAlignment="Center" />
           <Label Text="{Binding ErrorMessage, FallbackValue='Failed to load folders.', TargetNullValue='Failed to load folders.'}"
                  Style="{StaticResource CalloutLabel}"
                  HorizontalTextAlignment="Center" />
@@ -109,9 +109,9 @@
                                           CommandParameter="{Binding .}" />
                   </Grid.GestureRecognizers>
 
-                  <Label Grid.Column="0"
-                         Text="{x:Static helpers:IconKeys.Folder}"
-                         FontFamily="TablerIcons"
+                   <Label Grid.Column="0"
+                          Text="{x:Static helpers:IconKeys.Folder}"
+                          FontFamily="{StaticResource TablerIconsFont}"
                          FontSize="{StaticResource FontSizeIconXl}"
                          TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight}, Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
                          VerticalOptions="Center"
@@ -143,7 +143,7 @@
                                  Spacing="{StaticResource SpacingSm}"
                                  Padding="{StaticResource SpacingXl}">
               <Label Text="{x:Static helpers:IconKeys.Folder}"
-                     FontFamily="TablerIcons"
+                     FontFamily="{StaticResource TablerIconsFont}"
                      FontSize="{StaticResource FontSizeIconXxl}"
                      TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
                      HorizontalTextAlignment="Center" />

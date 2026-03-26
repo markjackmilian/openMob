@@ -405,3 +405,91 @@ When given a task (from a spec document or direct request), follow this sequence
 - Test navigation and data binding logic on both platforms conceptually — flag any known platform divergences in code comments.
 - `SecureStorage` behavior differs between iOS (Keychain) and Android (Keystore) — document this in the relevant service.
 - For file paths, always use `FileSystem.AppDataDirectory` — never hardcode platform paths.
+
+---
+
+## iOS Release Build — Linker and AOT Rules
+
+> These rules were established after production crashes caused by the iOS linker stripping reflection-accessed types. Violating them causes **silent startup crashes** (SIGABRT in `load_aot_module`) that only manifest in Release/TestFlight builds, never in Debug.
+
+### Rule 1 — Never change `MtouchLink` to `Full`
+
+The project uses `<MtouchLink>SdkOnly</MtouchLink>` in the iOS PropertyGroup of `openMob.csproj`. This links only SDK assemblies and preserves all app code. **Do not change this to `Full`** without adding explicit `[Preserve]` attributes or linker XML entries for every type accessed via reflection.
+
+Types accessed via reflection in this project:
+- `System.Resources.ResourceManager` (loads `.resources` by name string in `AppResources.cs`)
+- All DTO classes deserialized by `System.Text.Json` (reflection-based, no source generation)
+- All entity classes mapped by `sqlite-net-pcl` (column mapping via reflection)
+
+### Rule 2 — Entity classes must have `[Preserve(AllMembers = true)]`
+
+Every entity class in `src/openMob.Core/Data/Entities/` **must** have:
+```csharp
+[Preserve(AllMembers = true)]
+[Table("TableName")]
+public sealed class MyEntity { ... }
+```
+Without `[Preserve]`, the iOS linker may strip property metadata needed by sqlite-net-pcl for column mapping.
+
+### Rule 3 — `[DynamicDependency]` for reflection-accessed resources
+
+When creating a `ResourceManager` or any field that loads types/resources by name string, add `[DynamicDependency]` to protect the target from the linker:
+```csharp
+[DynamicDependency(DynamicallyAccessedMemberTypes.All, "openMob.Core.Resources.AppResources", "openMob.Core")]
+private static readonly ResourceManager ResourceManager = new(
+    "openMob.Core.Resources.AppResources",
+    typeof(AppResources).Assembly);
+```
+
+### Rule 4 — `LinkerPreserve.xml` must be maintained
+
+The file `src/openMob/Platforms/iOS/LinkerPreserve.xml` preserves both `openMob.Core` and `openMob` assemblies from the linker. If you add a new assembly project to the solution that is accessed via reflection, add it to this file.
+
+**Important:** XML comments in `LinkerPreserve.xml` must never contain `--` (double hyphen) — this is illegal in XML and causes the IL Trimmer to crash with `System.Xml.XmlException`.
+
+### Rule 5 — Always test Release builds on device
+
+Debug builds bypass the linker and AOT entirely. A feature that works in Debug can crash in Release. Before any TestFlight upload:
+1. Build in Release configuration: `dotnet build -c Release -f net10.0-ios`
+2. Test on a physical device or simulator with Release config
+3. Preserve the `.xcarchive` and dSYM for crash symbolication
+
+---
+
+## MAUI 10 Known Bugs — Workarounds
+
+### OnPlatform standalone in ResourceDictionary crashes on iOS
+
+`<OnPlatform x:Key="...">` as a standalone entry in a `ResourceDictionary` XAML file crashes on iOS with MAUI 10 (`XamlParseException` during inflation). The same applies to `<AppThemeBinding>` standalone entries.
+
+**Workarounds:**
+- **Inside a `<Style>`**: use `OnPlatform` inline inside `<Setter.Value>` — this works fine
+- **As a global resource**: define it in **C# code-behind** (`App.xaml.cs`) after `InitializeComponent()` using `DeviceInfo.Platform`:
+  ```csharp
+  var value = DeviceInfo.Platform == DevicePlatform.Android
+      ? "android-value"
+      : "ios-value";
+  Resources["MyResourceKey"] = value;
+  ```
+
+**Never** add `<OnPlatform x:Key="...">` or `<AppThemeBinding x:Key="...">` as standalone entries in any `.xaml` ResourceDictionary file.
+
+### Font family resolution differs between iOS and Android
+
+| Platform | `Label.FontFamily` | `FontImageSource.FontFamily` |
+|----------|-------------------|------------------------------|
+| iOS | Registered alias from `ConfigureFonts` (e.g. `"TablerIcons"`) | Same alias |
+| Android | `"filename.ttf#postscript-name"` format (e.g. `"tabler-icons.ttf#tabler-icons"`) | Registered alias works |
+
+When adding new icon fonts:
+1. Register with both alias and postscript-name in `MauiProgram.cs`
+2. Create a platform-specific resource in `App.xaml.cs` code-behind
+3. Test Label rendering on **both** platforms — Android will show blank squares if the format is wrong
+
+### Removing a ResourceDictionary key — always grep consumers first
+
+Before removing any `x:Key` from `Styles.xaml`, `Colors.xaml`, or any ResourceDictionary:
+```bash
+grep -rn "KeyName" src/ --include="*.xaml" | wc -l
+```
+If the count is > 0, all consumers must be updated **in the same commit**. Leaving dangling `{StaticResource KeyName}` references causes `XamlParseException` at runtime.

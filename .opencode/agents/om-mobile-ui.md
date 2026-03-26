@@ -503,6 +503,45 @@ protected override async void OnAppearing()
 
 ---
 
+## MAUI 10 Known Bugs — Mandatory Workarounds
+
+> These workarounds were established after production crashes on iOS. Violating them causes runtime `XamlParseException` crashes.
+
+### OnPlatform / AppThemeBinding standalone in ResourceDictionary — CRASHES on iOS
+
+`<OnPlatform x:Key="...">` and `<AppThemeBinding x:Key="...">` as standalone entries in a ResourceDictionary XAML file crash on iOS with MAUI 10 during XAML inflation.
+
+```xml
+<!-- NEVER DO THIS — crashes on iOS -->
+<OnPlatform x:Key="MyFont" x:TypeArguments="x:String">
+    <On Platform="Android" Value="android-value" />
+    <On Platform="iOS" Value="ios-value" />
+</OnPlatform>
+```
+
+**Allowed patterns:**
+- **Inside a `<Style>`**: `OnPlatform` inline inside `<Setter.Value>` works fine
+- **As a global resource**: define in C# code-behind (`App.xaml.cs`) after `InitializeComponent()` — see `TablerIconsFont` as the reference implementation
+
+### Font family resolution differs between iOS and Android
+
+| Platform | `Label.FontFamily` | `FontImageSource.FontFamily` |
+|----------|-------------------|------------------------------|
+| iOS | Registered alias from `ConfigureFonts` (e.g. `"TablerIcons"`) | Same alias |
+| Android | `"filename.ttf#postscript-name"` format (e.g. `"tabler-icons.ttf#tabler-icons"`) | Registered alias works |
+
+For icon fonts in Label elements, always use `FontFamily="{StaticResource TablerIconsFont}"` — never hardcode the font family string. The resource is registered in `App.xaml.cs` with the correct platform-specific value.
+
+### Removing a ResourceDictionary key — always grep consumers first
+
+Before removing any `x:Key` from `Styles.xaml`, `Colors.xaml`, or any ResourceDictionary:
+```bash
+grep -rn "KeyName" src/ --include="*.xaml" | wc -l
+```
+If the count is > 0, **all consumers must be updated in the same commit**. Leaving dangling `{StaticResource KeyName}` references causes `XamlParseException` at runtime.
+
+---
+
 ## Workflow
 
 When given a task (from a spec document or direct request), follow this sequence:

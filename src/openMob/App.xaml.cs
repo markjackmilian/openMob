@@ -24,6 +24,18 @@ public partial class App : Application
         // is accessed. ApplyCulture reads Preferences.Default — calling it before
         // InitializeComponent() risks a crash on iOS if Essentials is not yet bootstrapped.
         InitializeComponent();
+
+        // Register TablerIconsFont as a global resource in code-behind.
+        // OnPlatform as a standalone ResourceDictionary entry in XAML crashes on iOS
+        // with MAUI 10 (XamlParseException during inflation). Defining it here in C#
+        // after InitializeComponent() avoids the XAML parser bug while making the
+        // resource available to all 52 Label elements that reference it via
+        // FontFamily="{StaticResource TablerIconsFont}".
+        var tablerFont = DeviceInfo.Platform == DevicePlatform.Android
+            ? "tabler-icons.ttf#tabler-icons"
+            : "TablerIcons";
+        Resources["TablerIconsFont"] = tablerFont;
+
         LocalizationHelper.ApplyCulture(_languageService.GetLanguageCode());
     }
 

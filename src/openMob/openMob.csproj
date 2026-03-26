@@ -17,7 +17,7 @@
     <!--<MauiXamlInflator>SourceGen</MauiXamlInflator>-->
     <ApplicationTitle>openMob</ApplicationTitle>
     <ApplicationId>com.openmob.mjm</ApplicationId>
-    <ApplicationVersion>9</ApplicationVersion>
+    <ApplicationVersion>12</ApplicationVersion>
     <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
     <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">15.0</SupportedOSPlatformVersion>
     <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">21.0</SupportedOSPlatformVersion>
@@ -27,7 +27,24 @@
     <CodesignKey>Apple Distribution: Marco Milani (93E884Z4Q5)</CodesignKey>
     <CodesignProvision>OpenMob Distro</CodesignProvision>
     <CodesignEntitlements>Platforms\iOS\Entitlements.plist</CodesignEntitlements>
+    <!--
+      Linker settings:
+      MtouchLink=SdkOnly: link only SDK assemblies, preserve all app and Core code.
+      Full linking (default in Release) strips types accessed only via reflection and
+      causes load_aot_module failures at startup.
+      MtouchExtraArgs: the xml flag points to our linker preservation descriptor so
+      that ResourceManager embedded resources, JSON DTOs, and sqlite-net entity types
+      are never stripped even under SdkOnly mode.
+    -->
+    <MtouchLink>SdkOnly</MtouchLink>
+    <MtouchExtraArgs>--xml=Platforms\iOS\LinkerPreserve.xml</MtouchExtraArgs>
   </PropertyGroup>
+
+  <!-- iOS linker preservation descriptor. Must be included as a None item so
+       mtouch can find it via the xml path specified in MtouchExtraArgs. -->
+  <ItemGroup Condition="'$(TargetFramework)'=='net10.0-ios'">
+    <None Include="Platforms\iOS\LinkerPreserve.xml" />
+  </ItemGroup>
 
   <ItemGroup>
     <!-- App Icon -->

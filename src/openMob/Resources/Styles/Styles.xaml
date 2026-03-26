@@ -226,9 +226,10 @@
          ═══════════════════════════════════════════════════════════════ -->
 
     <!-- Standard icon label (17pt, matches Headline size) -->
-    <!-- NOTE: OnPlatform as a standalone ResourceDictionary entry crashes on iOS with MAUI 10
-         (same issue as AppThemeBinding standalone — MauiXamlInflator workaround already applied).
-         FontFamily is set inline per-platform inside each Style using OnPlatform. -->
+    <!-- NOTE: OnPlatform as a standalone ResourceDictionary entry crashes on iOS with MAUI 10.
+         FontFamily is set inline per-platform inside each Style using OnPlatform.
+         The 52 Label elements across the app use FontFamily="{StaticResource TablerIconsFont}"
+         which is registered in App.xaml.cs code-behind after InitializeComponent(). -->
     <Style x:Key="IconLabel" TargetType="Label">
         <Setter Property="FontFamily">
             <Setter.Value>

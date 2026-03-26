@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Resources;
 
@@ -8,6 +9,12 @@ namespace openMob.Core.Localization;
 /// </summary>
 public static class AppResources
 {
+    // [DynamicDependency] tells the iOS linker that the embedded .resources
+    // manifest accessed by name string must never be stripped. Without this,
+    // the Release linker removes the resource infrastructure and ResourceManager
+    // throws during the static initializer (.cctor), causing load_aot_module to
+    // fail with an abort() before the app even starts.
+    [DynamicDependency(DynamicallyAccessedMemberTypes.All, "openMob.Core.Resources.AppResources", "openMob.Core")]
     private static readonly ResourceManager ResourceManager = new(
         "openMob.Core.Resources.AppResources",
         typeof(AppResources).Assembly);

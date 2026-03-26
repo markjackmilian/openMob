@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<linker>
+  <!--
+    iOS Linker Preservation Descriptor
+    Protects types accessed via reflection that would otherwise be stripped.
+
+    Categories:
+      1. Localization: ResourceManager reads embedded .resources by name string.
+      2. JSON DTOs: System.Text.Json reflection serializer needs all DTO properties.
+      3. SQLite: sqlite-net-pcl maps columns via reflection on entity classes.
+      4. openMob.Core: preserve the entire Core library as a safety net.
+      5. openMob: preserve the MAUI app assembly for XAML type resolution.
+  -->
+
+  <assembly fullname="openMob.Core" preserve="all" />
+  <assembly fullname="openMob" preserve="all" />
+
+</linker>

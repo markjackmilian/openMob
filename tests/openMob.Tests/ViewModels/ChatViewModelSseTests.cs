@@ -1734,19 +1734,19 @@ public sealed class ChatViewModelSseTests : IDisposable
     /// <summary>
     /// AC-006 — Duplicate requestId guard via <c>_inFlightPermissionReplies</c>.
     ///
-    /// NOTE: The guard prevents duplicate *concurrent* calls to <c>HandlePermissionRequested</c>.
-    /// In the sequential SSE consumer loop, the first <c>Task.Run</c> (fire-and-forget) completes
-    /// — including its <c>finally</c> that removes the requestId — before the loop processes the
-    /// second event. Therefore two sequential SSE events with the same requestId will each pass
-    /// the guard and each trigger an API call. This test verifies that observable behaviour and
-    /// confirms no permission card is added in either case.
+    /// The guard prevents duplicate calls for the same requestId. When two SSE events with the
+    /// same requestId arrive sequentially, the first event fires a <c>Task.Run</c> and adds the
+    /// requestId to the in-flight set. The second event arrives while the first <c>Task.Run</c>
+    /// is still in-flight (the <c>finally</c> that removes the requestId has not yet executed),
+    /// so the guard blocks it. The API is therefore called exactly once, and no permission card
+    /// is added in either case.
     ///
-    /// If the guard needs to cover sequential re-arrivals, the implementation would need to keep
-    /// the requestId in a persistent "already replied" set (not removed in finally). That is a
-    /// separate design decision outside this spec's scope.
+    /// If the guard needs to cover sequential re-arrivals after the first reply completes, the
+    /// implementation would need a persistent "already replied" set (not removed in finally).
+    /// That is a separate design decision outside this spec's scope.
     /// </summary>
     [Fact]
-    public async Task HandlePermissionRequested_WhenAutoAcceptIsTrueAndSameRequestIdArivesTwice_CallsApiOnlyOnce()
+    public async Task HandlePermissionRequested_WhenAutoAcceptIsTrueAndSameRequestIdArrivesSequentially_DoesNotAddCardEitherTime()
     {
         // Arrange
         _sut.AutoAccept = true;
@@ -1759,12 +1759,12 @@ public sealed class ChatViewModelSseTests : IDisposable
         // Act
         await TriggerSseEvents(new ChatEvent[] { event1, event2 });
 
-        // Assert — no permission card is added regardless of how many times the API is called
+        // Assert — no permission card is added for either event
         _sut.Messages.Should().BeEmpty();
         _sut.HasPendingPermissions.Should().BeFalse();
-        // The guard prevents concurrent duplicate calls; sequential re-arrivals each complete
-        // independently because the finally block removes the id before the next event arrives.
-        await _apiClient.Received().ReplyToPermissionAsync("per-1", "always", Arg.Any<CancellationToken>());
+        // The second event is blocked by the in-flight guard (the first Task.Run has not yet
+        // completed its finally block), so the API is called exactly once.
+        await _apiClient.Received(1).ReplyToPermissionAsync("per-1", "always", Arg.Any<CancellationToken>());
     }
 
     public void Dispose()

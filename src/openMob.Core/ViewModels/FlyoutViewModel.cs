@@ -111,6 +111,28 @@ public sealed partial class FlyoutViewModel : ObservableObject, IDisposable
                 _ = LoadSessionsCommand.ExecuteAsync(null);
             });
 
+        // Subscribe to session creation — prepend the new session to the list when created via SSE.
+        WeakReferenceMessenger.Default.Register<SessionCreatedMessage>(
+            this,
+            (_, message) =>
+            {
+                if (_disposeCts.IsCancellationRequested)
+                    return;
+
+                // Only prepend if the session belongs to the currently active project
+                if (message.ProjectId != ActiveProjectId)
+                    return;
+
+                var newItem = new SessionItem(
+                    Id: message.SessionId,
+                    Title: message.Title,
+                    ProjectId: message.ProjectId,
+                    UpdatedAt: message.UpdatedAt,
+                    IsSelected: false);
+
+                _dispatcher.Dispatch(() => Sessions.Insert(0, newItem));
+            });
+
         // Subscribe to session title updates — update the title in the session list without a full reload.
         WeakReferenceMessenger.Default.Register<SessionTitleUpdatedMessage>(
             this,

@@ -20,6 +20,11 @@
       <converters:StepToVisibilityConverter x:Key="StepToVisibilityConverter" />
       <converters:DateTimeToRelativeStringConverter x:Key="DateTimeToRelativeStringConverter" />
       <converters:MessageStatusToIconConverter x:Key="MessageStatusToIconConverter" />
+      <converters:IntToBoolConverter x:Key="IntToBoolConverter" />
+      <converters:BoolToReasoningLabelConverter x:Key="BoolToReasoningLabelConverter" />
+      <converters:ToolCallStatusToLoadingConverter x:Key="ToolCallStatusToLoadingConverter" />
+      <converters:ToolCallStatusToCompletedConverter x:Key="ToolCallStatusToCompletedConverter" />
+      <converters:ToolCallStatusToErrorConverter x:Key="ToolCallStatusToErrorConverter" />
     </ResourceDictionary>
   </Application.Resources>
 </Application>

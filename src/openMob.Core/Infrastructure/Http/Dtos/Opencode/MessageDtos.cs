@@ -27,6 +27,18 @@ public sealed record PartDto(
     /// <summary>Any additional JSON properties not mapped to named fields.</summary>
     [JsonExtensionData]
     public Dictionary<string, JsonElement>? Extras { get; init; }
+
+    /// <summary>The raw state JSON element for <c>type: "tool"</c> parts. Contains status, input, output, error, and timing fields.</summary>
+    [JsonPropertyName("state")]
+    public JsonElement? State { get; init; }
+
+    /// <summary>The call identifier for <c>type: "tool"</c> parts.</summary>
+    [JsonPropertyName("callID")]
+    public string? CallId { get; init; }
+
+    /// <summary>The tool name for <c>type: "tool"</c> parts.</summary>
+    [JsonPropertyName("tool")]
+    public string? ToolName { get; init; }
 }
 
 /// <summary>

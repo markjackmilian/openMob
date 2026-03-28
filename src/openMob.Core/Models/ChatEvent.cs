@@ -133,21 +133,84 @@ public sealed record PermissionRequestedTool
 }
 
 /// <summary>
-/// Raised when the state of a pending permission is updated.
+/// Raised when a permission request has been replied to (server-side auto-approval, rejection, or reply from another client).
 /// </summary>
-public sealed record PermissionUpdatedEvent : ChatEvent
+public sealed record PermissionRepliedEvent : ChatEvent
 {
     /// <inheritdoc />
-    public override ChatEventType Type => ChatEventType.PermissionUpdated;
+    public override ChatEventType Type => ChatEventType.PermissionReplied;
 
-    /// <summary>Gets the ID of the session whose permission was updated.</summary>
+    /// <summary>Gets the ID of the session whose permission was replied to.</summary>
     public required string SessionId { get; init; }
 
-    /// <summary>Gets the unique identifier for the permission that was updated.</summary>
-    public required string PermissionId { get; init; }
+    /// <summary>Gets the unique identifier for the permission request that was replied to.</summary>
+    public required string RequestId { get; init; }
 
-    /// <summary>Gets the full raw JSON payload for this permission update.</summary>
-    public required JsonElement RawPayload { get; init; }
+    /// <summary>Gets the reply value: <c>"once"</c>, <c>"always"</c>, or <c>"reject"</c>.</summary>
+    public required string Reply { get; init; }
+}
+
+/// <summary>
+/// Raised when a message is removed from a session.
+/// </summary>
+public sealed record MessageRemovedEvent : ChatEvent
+{
+    /// <inheritdoc />
+    public override ChatEventType Type => ChatEventType.MessageRemoved;
+
+    /// <summary>Gets the ID of the session the message was removed from.</summary>
+    public required string SessionId { get; init; }
+
+    /// <summary>Gets the ID of the removed message.</summary>
+    public required string MessageId { get; init; }
+}
+
+/// <summary>
+/// Raised when a specific part of a message is removed.
+/// </summary>
+public sealed record MessagePartRemovedEvent : ChatEvent
+{
+    /// <inheritdoc />
+    public override ChatEventType Type => ChatEventType.MessagePartRemoved;
+
+    /// <summary>Gets the ID of the session.</summary>
+    public required string SessionId { get; init; }
+
+    /// <summary>Gets the ID of the message whose part was removed.</summary>
+    public required string MessageId { get; init; }
+
+    /// <summary>Gets the ID of the removed part.</summary>
+    public required string PartId { get; init; }
+}
+
+/// <summary>
+/// Raised when a new session is created on the server.
+/// </summary>
+public sealed record SessionCreatedEvent : ChatEvent
+{
+    /// <inheritdoc />
+    public override ChatEventType Type => ChatEventType.SessionCreated;
+
+    /// <summary>Gets the ID of the created session.</summary>
+    public required string SessionId { get; init; }
+
+    /// <summary>Gets the full session data.</summary>
+    public required SessionDto Session { get; init; }
+}
+
+/// <summary>
+/// Raised when a session is deleted on the server.
+/// </summary>
+public sealed record SessionDeletedEvent : ChatEvent
+{
+    /// <inheritdoc />
+    public override ChatEventType Type => ChatEventType.SessionDeleted;
+
+    /// <summary>Gets the ID of the deleted session.</summary>
+    public required string SessionId { get; init; }
+
+    /// <summary>Gets the ID of the project the session belonged to.</summary>
+    public required string ProjectId { get; init; }
 }
 
 /// <summary>

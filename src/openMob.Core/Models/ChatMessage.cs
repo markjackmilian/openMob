@@ -1,5 +1,7 @@
+using System.Collections.ObjectModel;
 using System.Text.Json;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using openMob.Core.Infrastructure.Http.Dtos.Opencode;
 
 namespace openMob.Core.Models;
@@ -106,6 +108,38 @@ public sealed partial class ChatMessage : ObservableObject
     [ObservableProperty]
     private string? _resolvedReplyLabel;
 
+    /// <summary>Gets or sets the AI reasoning/thinking text for this message.</summary>
+    [ObservableProperty]
+    private string _reasoningText = string.Empty;
+
+    /// <summary>Gets or sets the number of agentic steps taken to produce this message.</summary>
+    [ObservableProperty]
+    private int _stepCount;
+
+    /// <summary>Gets or sets the cost of the last step in USD.</summary>
+    [ObservableProperty]
+    private decimal? _lastStepCost;
+
+    /// <summary>Gets or sets the compaction notice text. When non-null, this message is a context compaction marker.</summary>
+    [ObservableProperty]
+    private string? _compactionNotice;
+
+    /// <summary>Gets or sets whether the reasoning block is expanded in the UI.</summary>
+    [ObservableProperty]
+    private bool _isReasoningExpanded;
+
+    /// <summary>Gets the list of tool call invocations within this message.</summary>
+    public ObservableCollection<ToolCallInfo> ToolCalls { get; }
+
+    /// <summary>Gets a value indicating whether this message contains any tool calls.</summary>
+    public bool HasToolCalls => ToolCalls.Count > 0;
+
+    /// <summary>Gets a value indicating whether this message contains AI reasoning text.</summary>
+    public bool HasReasoning => !string.IsNullOrEmpty(ReasoningText);
+
+    /// <summary>Gets the list of subtask and agent labels for this message.</summary>
+    public ObservableCollection<string> SubtaskLabels { get; }
+
     /// <summary>
     /// Initialises a new <see cref="ChatMessage"/> with the specified immutable properties.
     /// </summary>
@@ -155,7 +189,26 @@ public sealed partial class ChatMessage : ObservableObject
         _permissionStatus = permissionStatus;
         _resolvedReply = resolvedReply;
         _resolvedReplyLabel = resolvedReplyLabel;
+
+        ToolCalls = new ObservableCollection<ToolCallInfo>();
+        SubtaskLabels = new ObservableCollection<string>();
+
+        // Wire HasToolCalls notification
+        ToolCalls.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasToolCalls));
     }
+
+    /// <summary>Raises <see cref="HasReasoning"/> change notification when <see cref="ReasoningText"/> changes.</summary>
+    partial void OnReasoningTextChanged(string value)
+    {
+        OnPropertyChanged(nameof(HasReasoning));
+    }
+
+    /// <summary>
+    /// Toggles the <see cref="IsReasoningExpanded"/> state.
+    /// Bound to the "Show thinking" / "Hide thinking" tap gesture in the chat DataTemplate.
+    /// </summary>
+    [RelayCommand]
+    private void ToggleReasoning() => IsReasoningExpanded = !IsReasoningExpanded;
 
     /// <summary>
     /// Creates a <see cref="ChatMessage"/> from a server DTO.

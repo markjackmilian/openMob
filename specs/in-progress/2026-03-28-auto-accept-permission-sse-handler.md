@@ -4,7 +4,7 @@
 | Field   | Value                        |
 |---------|------------------------------|
 | Date    | 2026-03-28                   |
-| Status  | Draft                        |
+| Status  | In Progress                  |
 | Version | 1.0                          |
 
 ---
@@ -167,3 +167,82 @@ if (AutoAccept)
 - `specs/in-progress/2026-03-25-permission-request-inline-approval.md` — defines `ReplyToPermissionAsync`, `PermissionRequestedEvent`, `_inFlightPermissionReplies`
 - `specs/in-progress/2026-03-19-session-context-sheet-3of3-thinking-autoaccept-subagent.md` — defines `ChatViewModel.AutoAccept`
 - `specs/done/2026-03-21-sse-project-directory-propagation.md` — defines the project-directory filter pattern
+
+---
+
+## Technical Analysis
+
+> Added by: om-orchestrator | Date: 2026-03-28
+
+### Change Classification
+
+| Field | Value |
+|-------|-------|
+| Change type | Feature (behaviour extension) |
+| Git Flow branch | `feature/auto-accept-permission-sse-handler` |
+| Branches from | `develop` |
+| Estimated complexity | Low |
+| Estimated agents involved | om-mobile-core, om-tester, om-reviewer |
+
+### Layers Involved
+
+| Layer | Agent | Scope |
+|-------|-------|-------|
+| ViewModels | om-mobile-core | `src/openMob.Core/ViewModels/ChatViewModel.cs` |
+| Unit Tests | om-tester | `tests/openMob.Tests/ViewModels/ChatViewModelSseTests.cs` |
+| Code Review | om-reviewer | all of the above |
+
+### Files to Create
+
+_None_ — this spec only modifies existing files.
+
+### Files to Modify
+
+- `src/openMob.Core/ViewModels/ChatViewModel.cs` — add auto-accept branch inside `HandlePermissionRequested`
+- `tests/openMob.Tests/ViewModels/ChatViewModelSseTests.cs` — add unit tests for the auto-accept branch (AC-001 through AC-006)
+
+### Code Inspection Findings
+
+> Critical findings from reading the actual source before writing the brief.
+
+1. **`PermissionRequestedEvent.Id` — not `RequestId`**: The spec's suggested code snippet uses `e.RequestId`, but the actual model (`src/openMob.Core/Models/ChatEvent.cs` line 99) declares the field as `Id`. The correct reference is `e.Id`. The `PermissionId` property is a legacy alias for `Id` and should not be used. **The implementation must use `e.Id`.**
+
+2. **No session-ID filter in current `HandlePermissionRequested`**: The current implementation (lines 1557–1576) only applies the `ProjectDirectory` filter — there is no `SessionId` check. The spec says to apply "the same project-directory and session-ID filters already present", but the session-ID filter is absent from this handler (unlike `HandleMessageUpdated`, `HandleSessionUpdated`, etc.). The auto-accept branch must therefore only apply the project-directory filter that is already present, consistent with the existing handler behaviour. No new session-ID filter should be added (that would be a behaviour change outside this spec's scope).
+
+3. **`_inFlightPermissionReplies` is a `HashSet<string>`**: The `Add` method returns `bool` — use `if (!_inFlightPermissionReplies.Add(requestId)) return;` as the duplicate guard (same pattern as `ReplyToPermissionAsync` at line 1755).
+
+4. **All dependencies are already present**: `AutoAccept` (line 287), `_inFlightPermissionReplies` (line 64), `_apiClient.ReplyToPermissionAsync` (line 1768), `HasPendingPermissions` (line 277), `_pendingPermissionCount` (line 58) — all exist in the current codebase. No new interfaces, services, or NuGet packages are needed.
+
+5. **`HandlePermissionRequested` insertion point**: The auto-accept block must be inserted at line 1562, after the `ProjectDirectory` filter (lines 1559–1561) and before the `_dispatcher.Dispatch` call (line 1563).
+
+### Technical Dependencies
+
+- No new NuGet packages required
+- No schema changes required
+- No new interfaces required
+- All referenced APIs (`ReplyToPermissionAsync`, `AutoAccept`, `_inFlightPermissionReplies`) are already present
+
+### Technical Risks
+
+- **`Task.Run` fire-and-forget**: The auto-accept path uses `_ = Task.Run(...)`. If the SSE loop is cancelled while the fire-and-forget task is in-flight, `CancellationToken.None` ensures the API call completes. This is intentional per the spec.
+- **`_inFlightPermissionReplies` thread safety**: The set is accessed from the SSE background thread (sequential consumer loop) and from `ReplyToPermissionAsync` (which can be called from the UI thread). The fire-and-forget `Task.Run` lambda accesses the set from a thread-pool thread. This is a pre-existing concern in the codebase; the spec explicitly notes it is acceptable for the current sequential SSE consumer pattern.
+
+### Execution Order
+
+> Steps that can run in parallel are marked with ⟳. Steps that must be sequential are numbered.
+
+1. [Git Flow] Create branch `feature/auto-accept-permission-sse-handler`
+2. [om-mobile-core] Modify `HandlePermissionRequested` in `ChatViewModel.cs`
+3. [om-tester] Write unit tests in `ChatViewModelSseTests.cs` (can start once step 2 is complete)
+4. [om-reviewer] Full review against spec
+5. [Fix loop if needed] Address Critical and Major findings
+6. [Git Flow] Finish branch and merge
+
+### Definition of Done
+
+- [ ] All `[REQ-001]` through `[REQ-008]` requirements implemented
+- [ ] All `[AC-001]` through `[AC-007]` acceptance criteria satisfied
+- [ ] Unit tests written for all new code paths in `HandlePermissionRequested`
+- [ ] `om-reviewer` verdict: ✅ Approved or ⚠️ Approved with remarks
+- [ ] Git Flow branch finished and deleted
+- [ ] Spec moved to `specs/done/` with Completed status

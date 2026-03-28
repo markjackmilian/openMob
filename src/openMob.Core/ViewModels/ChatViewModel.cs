@@ -631,7 +631,71 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
 
                     foreach (var dto in result.Value)
                     {
-                        Messages.Add(ChatMessage.FromDto(dto));
+                        var msg = ChatMessage.FromDto(dto);
+
+                        // Populate non-text parts from the initial HTTP load [REQ-017, REQ-018].
+                        // LoadMessagesAsync uses ChatMessage.FromDto which only extracts text parts.
+                        // Tool calls, reasoning, step counts, subtask labels, and compaction notices
+                        // must be hydrated here from the full DTO parts list.
+                        if (dto.Parts is not null)
+                        {
+                            foreach (var part in dto.Parts)
+                            {
+                                if (string.Equals(part.Type, "tool", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    UpsertToolCall(msg, part);
+                                }
+                                else if (string.Equals(part.Type, "reasoning", StringComparison.OrdinalIgnoreCase) &&
+                                         !string.IsNullOrEmpty(part.Text))
+                                {
+                                    msg.ReasoningText = part.Text;
+                                }
+                                else if (string.Equals(part.Type, "step-start", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    msg.StepCount++;
+                                }
+                                else if (string.Equals(part.Type, "step-finish", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    if (part.Extras is not null &&
+                                        part.Extras.TryGetValue("cost", out var costEl) &&
+                                        costEl.ValueKind == System.Text.Json.JsonValueKind.Number)
+                                    {
+                                        msg.LastStepCost = costEl.GetDecimal();
+                                    }
+                                }
+                                else if (string.Equals(part.Type, "subtask", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    var agent = part.Extras is not null && part.Extras.TryGetValue("agent", out var agentEl)
+                                        ? agentEl.GetString() : null;
+                                    var description = part.Extras is not null && part.Extras.TryGetValue("description", out var descEl)
+                                        ? descEl.GetString() : null;
+                                    var label = (agent, description) switch
+                                    {
+                                        ({ } a, { } d) => $"{a}: {d}",
+                                        ({ } a, null) => a,
+                                        (null, { } d) => d,
+                                        _ => part.Id,
+                                    };
+                                    msg.SubtaskLabels.Add(label);
+                                }
+                                else if (string.Equals(part.Type, "agent", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    var name = part.Extras is not null && part.Extras.TryGetValue("name", out var nameEl)
+                                        ? nameEl.GetString() : null;
+                                    if (!string.IsNullOrEmpty(name))
+                                        msg.SubtaskLabels.Add(name);
+                                }
+                                else if (string.Equals(part.Type, "compaction", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    var isAuto = part.Extras is not null &&
+                                                 part.Extras.TryGetValue("auto", out var autoEl) &&
+                                                 autoEl.ValueKind == System.Text.Json.JsonValueKind.True;
+                                    msg.CompactionNotice = isAuto ? "Context auto-compacted" : "Context compacted";
+                                }
+                            }
+                        }
+
+                        Messages.Add(msg);
                     }
 
                     RecalculateGrouping();

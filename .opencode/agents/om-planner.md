@@ -19,6 +19,12 @@ Before asking any questions, you consult the openMob knowledge base to understan
 
 ---
 
+## External References
+
+- **opencode repository:** https://github.com/anomalyco/opencode — source of truth for the opencode server API, endpoints, data models, and changelog. Consult it when specifying features that interact with the opencode server.
+
+---
+
 ## Knowledge Base
 
 The openMob project maintains a knowledge base in **local-docs** that contains completed specifications, technical analyses, architecture decisions, and release notes from all past features.

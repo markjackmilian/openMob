@@ -1554,7 +1554,11 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     /// Injects an inline permission card into the message list, or auto-replies
     /// with "always" when <see cref="AutoAccept"/> is enabled [REQ-001 through REQ-008].
     /// </summary>
-    /// <param name="e">The permission request event.</param>
+    /// <param name="e">
+    /// The permission request event. <see cref="PermissionRequestedEvent.Id"/> is used
+    /// as the permission request identifier for the <c>_inFlightPermissionReplies</c>
+    /// duplicate guard and the <see cref="IOpencodeApiClient.ReplyToPermissionAsync"/> call.
+    /// </param>
     private void HandlePermissionRequested(PermissionRequestedEvent e)
     {
         if (e.ProjectDirectory is not null &&

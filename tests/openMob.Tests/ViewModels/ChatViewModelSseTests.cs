@@ -1550,6 +1550,8 @@ public sealed class ChatViewModelSseTests : IDisposable
 
         // Assert
         _sut.Messages.Should().ContainSingle(m => m.SenderType == SenderType.Fallback);
+        var fallback = _sut.Messages.Single(m => m.SenderType == SenderType.Fallback);
+        fallback.MessageKind.Should().Be(MessageKind.Standard);
     }
 
     [Fact]

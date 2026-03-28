@@ -68,7 +68,7 @@ public sealed partial class ChatMessage : ObservableObject
     [ObservableProperty]
     private bool _isStreaming;
 
-    /// <summary>Gets or sets the sender type of this message (User, Agent, or Subagent).</summary>
+    /// <summary>Gets or sets the sender type of this message (User, Agent, Subagent, or Fallback).</summary>
     [ObservableProperty]
     private SenderType _senderType;
 
@@ -158,7 +158,7 @@ public sealed partial class ChatMessage : ObservableObject
     /// <param name="timestamp">The creation timestamp.</param>
     /// <param name="deliveryStatus">The initial delivery status.</param>
     /// <param name="isStreaming">Whether the message is currently being streamed.</param>
-    /// <param name="senderType">The sender type (User, Agent, or Subagent).</param>
+    /// <param name="senderType">The sender type (User, Agent, Subagent, or Fallback).</param>
     /// <param name="senderName">The display name of the sender.</param>
     /// <param name="isOptimistic">Whether this is an optimistic placeholder awaiting server confirmation.</param>
     internal ChatMessage(
@@ -327,6 +327,14 @@ public sealed partial class ChatMessage : ObservableObject
     /// <param name="rawType">The raw SSE event-type string from <see cref="UnknownEvent.RawType"/>.</param>
     /// <param name="rawJson">The pretty-printed JSON payload, or <c>null</c> if no payload was present.</param>
     /// <returns>A new fallback <see cref="ChatMessage"/> with <see cref="SenderType.Fallback"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// <see cref="SessionId"/> is intentionally set to <see cref="string.Empty"/> because fallback messages
+    /// are ephemeral in-memory entries that are never persisted to the database. They are not filtered
+    /// by session ID within the ViewModel's <c>Messages</c> collection. If future code needs to associate
+    /// a fallback message with a specific session, thread the session ID through this factory.
+    /// </para>
+    /// </remarks>
     public static ChatMessage CreateFallback(string rawType, string? rawJson)
     {
         ArgumentNullException.ThrowIfNull(rawType);
@@ -334,7 +342,7 @@ public sealed partial class ChatMessage : ObservableObject
 #if DEBUG
         return new ChatMessage(
             id: Guid.NewGuid().ToString(),
-            sessionId: string.Empty,
+            sessionId: string.Empty, // Intentionally empty — see remarks
             isFromUser: false,
             textContent: string.Empty,
             timestamp: DateTimeOffset.UtcNow,
@@ -347,7 +355,7 @@ public sealed partial class ChatMessage : ObservableObject
 #else
         return new ChatMessage(
             id: Guid.NewGuid().ToString(),
-            sessionId: string.Empty,
+            sessionId: string.Empty, // Intentionally empty — see remarks
             isFromUser: false,
             textContent: string.Empty,
             timestamp: DateTimeOffset.UtcNow,

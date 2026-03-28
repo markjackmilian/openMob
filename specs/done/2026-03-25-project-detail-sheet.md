@@ -1,12 +1,14 @@
 # Project Detail Sheet
 
 ## Metadata
-| Field   | Value                        |
-|---------|------------------------------|
-| Date    | 2026-03-25                   |
-| Status  | In Progress                  |
-| Version | 1.0                          |
-| Branch  | feature/project-detail-sheet |
+| Field       | Value                                          |
+|-------------|-----------------------------------------------|
+| Date        | 2026-03-25                                    |
+| Status      | **Completed**                                 |
+| Version     | 1.0                                           |
+| Completed   | 2026-03-28                                    |
+| Branch      | feature/project-detail-sheet (merged)         |
+| Merged into | develop                                       |
 
 ---
 

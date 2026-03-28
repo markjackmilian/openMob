@@ -1,12 +1,14 @@
 # Permission Request Handling — Inline Chat Approval
 
 ## Metadata
-| Field   | Value                        |
-|---------|------------------------------|
-| Date    | 2026-03-25                   |
-| Status  | In Progress                  |
-| Version | 1.0                          |
-| Branch  | feature/permission-request-inline-approval |
+| Field       | Value                                                  |
+|-------------|-------------------------------------------------------|
+| Date        | 2026-03-25                                            |
+| Status      | **Completed**                                         |
+| Version     | 1.0                                                   |
+| Completed   | 2026-03-28                                            |
+| Branch      | feature/permission-request-inline-approval (merged)   |
+| Merged into | develop                                               |
 
 ---
 

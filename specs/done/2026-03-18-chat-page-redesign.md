@@ -1,11 +1,14 @@
 # Chat Page Redesign — Context-Aware Cockpit with Markdown Rendering
 
 ## Metadata
-| Field   | Value                        |
-|---------|------------------------------|
-| Date    | 2026-03-18                   |
-| Status  | In Progress                  |
-| Version | 1.0                          |
+| Field       | Value                                    |
+|-------------|------------------------------------------|
+| Date        | 2026-03-18                               |
+| Status      | **Completed**                            |
+| Version     | 1.0                                      |
+| Completed   | 2026-03-28                               |
+| Branch      | feature/chat-page-redesign (merged)      |
+| Merged into | develop                                  |
 
 ---
 

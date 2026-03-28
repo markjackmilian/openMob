@@ -1,11 +1,13 @@
 # SSE Fallback Card — Unhandled Message Rendering
 
 ## Metadata
-| Field   | Value                        |
-|---------|------------------------------|
-| Date    | 2026-03-28                   |
-| Status  | In Progress                  |
-| Version | 1.0                          |
+| Field       | Value                                    |
+|-------------|------------------------------------------|
+| Date        | 2026-03-28                               |
+| Status      | **Ready for Review**                     |
+| Version     | 1.0                                      |
+| Branch      | feature/sse-fallback-card (pushed)       |
+| Review      | ⚠️ Approved with remarks (om-reviewer)   |
 
 ---
 

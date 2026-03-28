@@ -4,7 +4,7 @@
 | Field   | Value                        |
 |---------|------------------------------|
 | Date    | 2026-03-28                   |
-| Status  | Draft                        |
+| Status  | In Progress                  |
 | Version | 1.0                          |
 
 ---
@@ -100,8 +100,8 @@ When the app receives an SSE event that cannot be handled — either because the
 | # | Question | Status | Answer / Decision |
 |---|----------|--------|-------------------|
 | 1 | Should `Fallback` be added to the existing `SenderType` enum, or should a separate discriminator property be used on `ChatMessage`? | Resolved | Add `Fallback` to `SenderType` — consistent with the existing pattern; no new discriminator needed |
-| 2 | Should this feature branch off `feature/chat-page-redesign` (which introduces `MessageBlockView` and the new `SenderType` usage) or off `develop`? | Open | Depends on merge order of `chat-page-redesign`; to be decided by `om-orchestrator` at implementation time |
-| 3 | Is there a `ColorWarning` semantic token already defined in the MAUI `ResourceDictionary`? | Open | `om-orchestrator` must verify in `src/openMob/Resources/Styles/` before implementation |
+| 2 | Should this feature branch off `feature/chat-page-redesign` (which introduces `MessageBlockView` and the new `SenderType` usage) or off `develop`? | Resolved | `feature/chat-page-redesign` is NOT present in the remote branches list; `MessageBlockView` and the new `SenderType` are already merged into `develop`. Branch directly from `develop`. |
+| 3 | Is there a `ColorWarning` semantic token already defined in the MAUI `ResourceDictionary`? | Resolved | Yes — `ColorWarningLight` (#FF9F0A) and `ColorWarningDark` (#FFD60A) are defined in `Colors.xaml`. Also `ColorWarningContainerLight`/`Dark` for tinted backgrounds. |
 
 ---
 
@@ -162,3 +162,98 @@ When the app receives an SSE event that cannot be handled — either because the
 - `src/openMob/Views/Pages/ChatPage.xaml` — add visibility branch in DataTemplate
 - `src/openMob/Resources/Styles/Colors.xaml` — verify/add `ColorWarning`
 - `tests/openMob.Tests/` — new tests for `CreateFallback()` and `ChatViewModel` fallback behaviour
+
+---
+
+## Technical Analysis
+
+> Added by: om-orchestrator | Date: 2026-03-28
+
+### Change Classification
+
+| Field | Value |
+|-------|-------|
+| Change type | Feature |
+| Git Flow branch | feature/sse-fallback-card |
+| Branches from | develop |
+| Estimated complexity | Medium |
+| Estimated agents involved | om-mobile-core, om-mobile-ui, om-tester, om-reviewer |
+
+### Pre-Analysis Findings
+
+**Q2 — Branch base:** `feature/chat-page-redesign` is NOT present in the remote branch list. `MessageBlockView`, `SenderType` (with `User`/`Agent`/`Subagent`), and the redesigned `ChatPage.xaml` are already merged into `develop`. Branch directly from `develop`.
+
+**Q3 — ColorWarning token:** `ColorWarningLight` (#FF9F0A) and `ColorWarningDark` (#FFD60A) already exist in `Colors.xaml`. `ColorWarningContainerLight`/`Dark` are also available for the tinted background. No new color tokens needed.
+
+**Converter strategy:** A new `SenderTypeToFallbackVisibilityConverter` (Core pure logic + MAUI wrapper) is required. The existing `SenderTypeToColorKeyConverter` and `SenderTypeToLabelConverter` do not handle the `Fallback` case for visibility. A dedicated converter is cleaner than extending the existing ones with a boolean output.
+
+**ChatMessage constructor:** The constructor is `internal`, so `CreateFallback()` can call it directly. Two new nullable string properties (`FallbackRawType`, `FallbackRawJson`) will be added as `[ObservableProperty]` fields (though they won't change after creation, the pattern is consistent). The constructor will gain two optional parameters.
+
+**ChatViewModel `case UnknownEvent e:`:** Currently at line 1186. The `_dispatcher` field and `Messages` collection are already available. The `CurrentSessionId` is available for the fallback message's `sessionId`.
+
+### Layers Involved
+
+| Layer | Agent | Scope |
+|-------|-------|-------|
+| Models / Enum | om-mobile-core | `src/openMob.Core/Models/SenderType.cs`, `ChatMessage.cs` |
+| ViewModels | om-mobile-core | `src/openMob.Core/ViewModels/ChatViewModel.cs` |
+| Core Converter | om-mobile-core | `src/openMob.Core/Converters/SenderTypeToFallbackVisibilityConverter.cs` |
+| XAML Views | om-mobile-ui | `src/openMob/Views/Controls/FallbackMessageView.xaml/.cs` |
+| MAUI Converter | om-mobile-ui | `src/openMob/Converters/SenderTypeToFallbackVisibilityConverter.cs` |
+| ChatPage wiring | om-mobile-ui | `src/openMob/Views/Pages/ChatPage.xaml` |
+| DI registration | om-mobile-ui | `src/openMob/MauiProgram.cs` (converter registration if needed) |
+| Unit Tests | om-tester | `tests/openMob.Tests/Models/ChatMessageTests.cs`, `tests/openMob.Tests/ViewModels/ChatViewModelSseTests.cs`, `tests/openMob.Tests/Converters/SenderTypeToFallbackVisibilityConverterTests.cs` |
+| Code Review | om-reviewer | all of the above |
+
+### Files to Create
+
+- `src/openMob.Core/Converters/SenderTypeToFallbackVisibilityConverter.cs` — pure logic converter: returns `true` when `SenderType == Fallback`, `false` otherwise
+- `src/openMob/Converters/SenderTypeToFallbackVisibilityConverter.cs` — thin MAUI `IValueConverter` wrapper delegating to Core converter
+- `src/openMob/Views/Controls/FallbackMessageView.xaml` — ContentView XAML for fallback card
+- `src/openMob/Views/Controls/FallbackMessageView.xaml.cs` — code-behind with BindableProperties
+- `tests/openMob.Tests/Converters/SenderTypeToFallbackVisibilityConverterTests.cs` — converter unit tests
+
+### Files to Modify
+
+- `src/openMob.Core/Models/SenderType.cs` — add `Fallback` member with XML doc
+- `src/openMob.Core/Models/ChatMessage.cs` — add `FallbackRawType`/`FallbackRawJson` `[ObservableProperty]` fields + `CreateFallback()` factory + constructor parameters
+- `src/openMob.Core/ViewModels/ChatViewModel.cs` — modify `case UnknownEvent e:` to call `CreateFallback` and dispatch-append to `Messages`
+- `src/openMob/Views/Pages/ChatPage.xaml` — add `FallbackMessageView` visibility branch in DataTemplate; hide `MessageBlockView` and surrounding sections when `SenderType == Fallback`
+- `src/openMob/MauiProgram.cs` — register `SenderTypeToFallbackVisibilityConverter` in XAML resources (if not auto-discovered)
+- `tests/openMob.Tests/Models/ChatMessageTests.cs` — add `CreateFallback` tests
+- `tests/openMob.Tests/ViewModels/ChatViewModelSseTests.cs` — add `UnknownEvent` → fallback card test
+
+### Technical Dependencies
+
+- `UnknownEvent.RawType` (string, required) and `UnknownEvent.RawData` (JsonElement?, optional) — already on the record
+- `IDispatcherService.Dispatch(Action)` — already injected in `ChatViewModel`
+- `ColorWarningLight`/`Dark` and `ColorWarningContainerLight`/`Dark` — already in `Colors.xaml`
+- `MessageBlockView` left-bar pattern — `FallbackMessageView` mirrors this with warning colors
+- No new NuGet packages required
+
+### Technical Risks
+
+- **`#if DEBUG` in tests:** Unit tests always run in DEBUG configuration, so `CreateFallback` will always populate `FallbackRawType`/`FallbackRawJson` in the test runner. The Release-build behavior (null fields) must be documented and tested via a separate test that verifies the compile-time guard logic comment, or accepted as a known limitation.
+- **ChatPage.xaml DataTemplate complexity:** The existing DataTemplate already has compaction banner, subtask chips, reasoning block, MessageBlockView, and tool call cards. The fallback branch must hide ALL of these sections (not just MessageBlockView) when `SenderType == Fallback`. Use a wrapping `VerticalStackLayout` with `IsVisible` bound to the inverse of the fallback converter.
+- **Converter registration:** MAUI converters used in XAML must be registered in `App.xaml` or `MauiProgram.cs` resource dictionaries, or declared as `StaticResource` in the page. Check existing pattern in `ChatPage.xaml`.
+
+### Execution Order
+
+> Steps that can run in parallel are marked with ⟳. Steps that must be sequential are numbered.
+
+1. [Git Flow] Create branch `feature/sse-fallback-card`
+2. [om-mobile-core] Add `Fallback` to `SenderType`, add properties + `CreateFallback()` to `ChatMessage`, add `SenderTypeToFallbackVisibilityConverter` (Core), modify `ChatViewModel` `case UnknownEvent e:`
+3. ⟳ [om-mobile-ui] Create `FallbackMessageView`, add MAUI converter wrapper, wire `ChatPage.xaml` (can start once ViewModel binding surface is confirmed — no new ViewModel properties needed, only `SenderType` and `FallbackRawType`/`FallbackRawJson` on `ChatMessage`)
+4. [om-tester] Write unit tests for `CreateFallback()`, `SenderTypeToFallbackVisibilityConverter`, and `ChatViewModel` fallback behavior
+5. [om-reviewer] Full review against spec
+6. [Fix loop if needed] Address Critical and Major findings
+7. [Git Flow] Finish branch and merge
+
+### Definition of Done
+
+- [ ] All `[REQ-001]` through `[REQ-013]` requirements implemented
+- [ ] All `[AC-001]` through `[AC-009]` acceptance criteria satisfied
+- [ ] Unit tests written for `CreateFallback()`, converter, and `ChatViewModel` fallback path
+- [ ] `om-reviewer` verdict: ✅ Approved or ⚠️ Approved with remarks
+- [ ] Git Flow branch finished and deleted
+- [ ] Spec moved to `specs/done/` with Completed status

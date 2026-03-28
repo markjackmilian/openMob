@@ -12,5 +12,8 @@ public enum SenderType
     Agent,
 
     /// <summary>A subagent invoked by the primary agent.</summary>
-    Subagent
+    Subagent,
+
+    /// <summary>An unhandled SSE event rendered as a fallback diagnostic card.</summary>
+    Fallback
 }

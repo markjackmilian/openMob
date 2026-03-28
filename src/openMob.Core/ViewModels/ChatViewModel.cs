@@ -1551,7 +1551,8 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
 
     /// <summary>
     /// Handles a <see cref="PermissionRequestedEvent"/> from the SSE stream.
-    /// Injects an inline permission card into the message list.
+    /// Injects an inline permission card into the message list, or auto-replies
+    /// with "always" when <see cref="AutoAccept"/> is enabled [REQ-001 through REQ-008].
     /// </summary>
     /// <param name="e">The permission request event.</param>
     private void HandlePermissionRequested(PermissionRequestedEvent e)
@@ -1559,6 +1560,39 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
         if (e.ProjectDirectory is not null &&
             e.ProjectDirectory != _currentProjectDirectory)
             return;
+
+        // Auto-accept path [REQ-001 through REQ-008]
+        if (AutoAccept)
+        {
+            var requestId = e.Id;
+
+            // [REQ-008] Duplicate guard — same pattern as ReplyToPermissionAsync
+            if (!_inFlightPermissionReplies.Add(requestId))
+                return;
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await _apiClient.ReplyToPermissionAsync(requestId, "always", CancellationToken.None)
+                        .ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    SentryHelper.CaptureException(ex, new Dictionary<string, object>
+                    {
+                        ["context"] = "ChatViewModel.HandlePermissionRequested.AutoAccept",
+                        ["requestId"] = requestId,
+                        ["sessionId"] = CurrentSessionId ?? "null",
+                    });
+                }
+                finally
+                {
+                    _inFlightPermissionReplies.Remove(requestId);
+                }
+            });
+            return; // [REQ-003] do not fall through to card rendering
+        }
 
         _dispatcher.Dispatch(() =>
         {

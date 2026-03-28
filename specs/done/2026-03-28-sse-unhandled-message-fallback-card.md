@@ -4,10 +4,11 @@
 | Field       | Value                                    |
 |-------------|------------------------------------------|
 | Date        | 2026-03-28                               |
-| Status      | **Ready for Review**                     |
+| Status      | **Completed**                            |
 | Version     | 1.0                                      |
-| Branch      | feature/sse-fallback-card (pushed)       |
-| Review      | ⚠️ Approved with remarks (om-reviewer)   |
+| Completed   | 2026-03-28                               |
+| Branch      | feature/sse-fallback-card (merged)       |
+| Merged into | develop                                  |
 
 ---
 

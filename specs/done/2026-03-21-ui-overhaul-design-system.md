@@ -1,11 +1,14 @@
 # UI Overhaul — Design System Uniformity, Tabler Icons & Accent Consistency
 
 ## Metadata
-| Field   | Value                        |
-|---------|------------------------------|
-| Date    | 2026-03-21                   |
-| Status  | In Progress                  |
-| Version | 1.1                          |
+| Field       | Value                                              |
+|-------------|---------------------------------------------------|
+| Date        | 2026-03-21                                        |
+| Status      | **Completed**                                     |
+| Version     | 1.1                                               |
+| Completed   | 2026-03-28                                        |
+| Branch      | feature/ui-overhaul-design-system (merged)        |
+| Merged into | develop                                           |
 
 ---
 

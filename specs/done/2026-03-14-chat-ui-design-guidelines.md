@@ -1,11 +1,14 @@
 # UI Design Guidelines — Chat-Oriented Layout & Navigation
 
 ## Metadata
-| Field   | Value                        |
-|---------|------------------------------|
-| Date    | 2026-03-14                   |
-| Status  | In Progress                  |
-| Version | 1.0                          |
+| Field       | Value                                    |
+|-------------|------------------------------------------|
+| Date        | 2026-03-14                               |
+| Status      | **Completed**                            |
+| Version     | 1.0                                      |
+| Completed   | 2026-03-28                               |
+| Branch      | feature/ui-overhaul-design-system (merged) |
+| Merged into | develop                                  |
 
 ---
 

@@ -1533,6 +1533,109 @@ public sealed class ChatViewModelSseTests : IDisposable
         card.PermissionStatus.Should().Be(PermissionStatus.Pending);
     }
 
+    // ─── HandleUnknownEvent ───────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task HandleUnknownEvent_WhenUnknownEventReceived_AddsFallbackMessageToMessages()
+    {
+        // Arrange
+        var unknownEvent = new UnknownEvent
+        {
+            RawType = "some.unknown.event",
+            RawData = null,
+        };
+
+        // Act
+        await TriggerSseEvents(new ChatEvent[] { unknownEvent });
+
+        // Assert
+        _sut.Messages.Should().ContainSingle(m => m.SenderType == SenderType.Fallback);
+    }
+
+    [Fact]
+    public async Task HandleUnknownEvent_WhenUnknownEventReceived_FallbackMessageHasCorrectRawType()
+    {
+        // Arrange
+        var unknownEvent = new UnknownEvent
+        {
+            RawType = "some.unknown.event",
+            RawData = null,
+        };
+
+        // Act
+        await TriggerSseEvents(new ChatEvent[] { unknownEvent });
+
+        // Assert — tests run in DEBUG, so FallbackRawType is populated
+        var fallback = _sut.Messages.Single(m => m.SenderType == SenderType.Fallback);
+        fallback.FallbackRawType.Should().Be("some.unknown.event");
+    }
+
+    [Fact]
+    public async Task HandleUnknownEvent_WhenRawDataIsNull_FallbackRawJsonIsNull()
+    {
+        // Arrange
+        var unknownEvent = new UnknownEvent
+        {
+            RawType = "some.unknown.event",
+            RawData = null,
+        };
+
+        // Act
+        await TriggerSseEvents(new ChatEvent[] { unknownEvent });
+
+        // Assert
+        var fallback = _sut.Messages.Single(m => m.SenderType == SenderType.Fallback);
+        fallback.FallbackRawJson.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task HandleUnknownEvent_WhenRawDataPresent_FallbackRawJsonIsPopulated()
+    {
+        // Arrange
+        var rawData = System.Text.Json.JsonSerializer.SerializeToElement(new { foo = 1 });
+        var unknownEvent = new UnknownEvent
+        {
+            RawType = "some.unknown.event",
+            RawData = rawData,
+        };
+
+        // Act
+        await TriggerSseEvents(new ChatEvent[] { unknownEvent });
+
+        // Assert — tests run in DEBUG, so FallbackRawJson is populated
+        var fallback = _sut.Messages.Single(m => m.SenderType == SenderType.Fallback);
+        fallback.FallbackRawJson.Should().NotBeNullOrEmpty();
+        fallback.FallbackRawJson.Should().Contain("foo");
+    }
+
+    [Fact]
+    public async Task HandleUnknownEvent_WhenMultipleUnknownEvents_AddsMultipleFallbackMessages()
+    {
+        // Arrange
+        var event1 = new UnknownEvent { RawType = "event.one", RawData = null };
+        var event2 = new UnknownEvent { RawType = "event.two", RawData = null };
+
+        // Act
+        await TriggerSseEvents(new ChatEvent[] { event1, event2 });
+
+        // Assert
+        _sut.Messages.Count(m => m.SenderType == SenderType.Fallback).Should().Be(2);
+    }
+
+    [Fact]
+    public async Task HandleUnknownEvent_FallbackMessage_IsNotFromUser()
+    {
+        // Arrange
+        var unknownEvent = new UnknownEvent { RawType = "some.event", RawData = null };
+
+        // Act
+        await TriggerSseEvents(new ChatEvent[] { unknownEvent });
+
+        // Assert
+        var fallback = _sut.Messages.Single(m => m.SenderType == SenderType.Fallback);
+        fallback.IsFromUser.Should().BeFalse();
+    }
+
     public void Dispose()
     {
         _sut.Dispose();

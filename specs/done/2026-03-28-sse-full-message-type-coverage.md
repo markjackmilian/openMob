@@ -1,11 +1,14 @@
 # SSE Full Message Type Coverage
 
 ## Metadata
-| Field   | Value                                      |
-|---------|--------------------------------------------|
-| Date    | 2026-03-28                                 |
-| Status  | In Progress                                |
-| Version | 1.0                                        |
+| Field       | Value                                              |
+|-------------|----------------------------------------------------|
+| Date        | 2026-03-28                                         |
+| Status      | **Completed**                                      |
+| Version     | 1.0                                                |
+| Completed   | 2026-03-28                                         |
+| Branch      | feature/sse-full-message-type-coverage (merged)    |
+| Merged into | develop                                            |
 
 ---
 

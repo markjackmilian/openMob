@@ -95,7 +95,12 @@ internal sealed class ChatEventParser
             "session.error" => ParseSessionError(unwrapped, projectDirectory),
             "permission.asked" => ParsePermissionRequested(unwrapped, projectDirectory),
             "permission.requested" => ParsePermissionRequested(unwrapped, projectDirectory),
-            "permission.updated" => ParsePermissionUpdated(unwrapped, projectDirectory),
+            "permission.updated" => ParsePermissionReplied(unwrapped, projectDirectory, isLegacy: true),
+            "permission.replied" => ParsePermissionReplied(unwrapped, projectDirectory, isLegacy: false),
+            "message.removed" => ParseMessageRemoved(unwrapped, projectDirectory),
+            "message.part.removed" => ParseMessagePartRemoved(unwrapped, projectDirectory),
+            "session.created" => ParseSessionCreated(unwrapped, projectDirectory),
+            "session.deleted" => ParseSessionDeleted(unwrapped, projectDirectory),
 
             _ => new UnknownEvent
             {
@@ -355,30 +360,155 @@ internal sealed class ChatEventParser
         }
     }
 
-    private static ChatEvent ParsePermissionUpdated(OpencodeEventDto dto, string? projectDirectory)
+    private static ChatEvent ParsePermissionReplied(OpencodeEventDto dto, string? projectDirectory, bool isLegacy)
     {
         if (dto.Data is not { } data)
             return MakeUnknown(dto);
 
         try
         {
-            // Wire format: { "sessionID": string, "permissionID": string, ...rest }
-            var sessionId = data.TryGetProperty("sessionID", out var sidProp)
-                ? sidProp.GetString()
-                : null;
-            var permissionId = data.TryGetProperty("permissionID", out var pidProp)
-                ? pidProp.GetString()
-                : null;
+            var sessionId = ReadString(data, "sessionID");
+            // permission.replied uses "requestID"; legacy permission.updated uses "permissionID"
+            var requestId = isLegacy
+                ? ReadString(data, "permissionID")
+                : ReadString(data, "requestID");
+            // legacy permission.updated has no "reply" field — default to "once"
+            var reply = ReadString(data, "reply") ?? "once";
 
-            if (sessionId is null || permissionId is null)
+            if (sessionId is null || requestId is null)
                 return MakeUnknown(dto);
 
-            return new PermissionUpdatedEvent
+            return new PermissionRepliedEvent
             {
                 RawEventId = dto.EventId,
                 SessionId = sessionId,
-                PermissionId = permissionId,
-                RawPayload = data,
+                RequestId = requestId,
+                Reply = reply,
+                ProjectDirectory = projectDirectory,
+            };
+        }
+        catch
+        {
+            return MakeUnknown(dto);
+        }
+    }
+
+    private static ChatEvent ParseMessageRemoved(OpencodeEventDto dto, string? projectDirectory)
+    {
+        if (dto.Data is not { } data)
+            return MakeUnknown(dto);
+
+        try
+        {
+            var sessionId = ReadString(data, "sessionID");
+            var messageId = ReadString(data, "messageID");
+
+            if (sessionId is null || messageId is null)
+                return MakeUnknown(dto);
+
+            return new MessageRemovedEvent
+            {
+                RawEventId = dto.EventId,
+                SessionId = sessionId,
+                MessageId = messageId,
+                ProjectDirectory = projectDirectory,
+            };
+        }
+        catch
+        {
+            return MakeUnknown(dto);
+        }
+    }
+
+    private static ChatEvent ParseMessagePartRemoved(OpencodeEventDto dto, string? projectDirectory)
+    {
+        if (dto.Data is not { } data)
+            return MakeUnknown(dto);
+
+        try
+        {
+            var sessionId = ReadString(data, "sessionID");
+            var messageId = ReadString(data, "messageID");
+            var partId = ReadString(data, "partID");
+
+            if (sessionId is null || messageId is null || partId is null)
+                return MakeUnknown(dto);
+
+            return new MessagePartRemovedEvent
+            {
+                RawEventId = dto.EventId,
+                SessionId = sessionId,
+                MessageId = messageId,
+                PartId = partId,
+                ProjectDirectory = projectDirectory,
+            };
+        }
+        catch
+        {
+            return MakeUnknown(dto);
+        }
+    }
+
+    private static ChatEvent ParseSessionCreated(OpencodeEventDto dto, string? projectDirectory)
+    {
+        if (dto.Data is not { } data)
+            return MakeUnknown(dto);
+
+        try
+        {
+            var sessionId = ReadString(data, "sessionID");
+
+            if (sessionId is null)
+                return MakeUnknown(dto);
+
+            if (!data.TryGetProperty("info", out var infoEl))
+                return MakeUnknown(dto);
+
+            var session = JsonSerializer.Deserialize<SessionDto>(infoEl);
+            if (session is null)
+                return MakeUnknown(dto);
+
+            return new SessionCreatedEvent
+            {
+                RawEventId = dto.EventId,
+                SessionId = sessionId,
+                Session = session,
+                ProjectDirectory = projectDirectory,
+            };
+        }
+        catch
+        {
+            return MakeUnknown(dto);
+        }
+    }
+
+    private static ChatEvent ParseSessionDeleted(OpencodeEventDto dto, string? projectDirectory)
+    {
+        if (dto.Data is not { } data)
+            return MakeUnknown(dto);
+
+        try
+        {
+            var sessionId = ReadString(data, "sessionID");
+
+            if (sessionId is null)
+                return MakeUnknown(dto);
+
+            // projectID is inside the "info" object
+            string? projectId = null;
+            if (data.TryGetProperty("info", out var infoEl) && infoEl.ValueKind == JsonValueKind.Object)
+            {
+                projectId = ReadString(infoEl, "projectID");
+            }
+
+            if (projectId is null)
+                return MakeUnknown(dto);
+
+            return new SessionDeletedEvent
+            {
+                RawEventId = dto.EventId,
+                SessionId = sessionId,
+                ProjectId = projectId,
                 ProjectDirectory = projectDirectory,
             };
         }

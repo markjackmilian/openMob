@@ -1,6 +1,8 @@
 using System.Text.Json;
+using CommunityToolkit.Mvvm.Messaging;
 using openMob.Core.Infrastructure.Http;
 using openMob.Core.Infrastructure.Http.Dtos.Opencode;
+using openMob.Core.Messages;
 using openMob.Core.Models;
 using openMob.Core.Services;
 using openMob.Core.ViewModels;
@@ -227,7 +229,7 @@ public sealed class ChatViewModelSseTests : IDisposable
     }
 
     [Fact]
-    public async Task HandleMessagePartDelta_WhenFieldIsNotText_DoesNotUpdateMessages()
+    public async Task HandleMessagePartDelta_WhenFieldIsReasoning_DoesNotUpdateTextContent()
     {
         // Arrange
         var existingMessages = new List<MessageWithPartsDto>
@@ -249,6 +251,33 @@ public sealed class ChatViewModelSseTests : IDisposable
         // Assert
         var msg = _sut.Messages.First(m => m.Id == "msg-1");
         msg.TextContent.Should().Be("Hello");
+    }
+
+    [Fact]
+    public async Task HandleMessagePartDelta_WhenFieldIsUnknown_DoesNotUpdateAnyContent()
+    {
+        // Arrange
+        var existingMessages = new List<MessageWithPartsDto>
+        {
+            BuildMessageDto(id: "msg-1", sessionId: "sess-1", role: "assistant", text: "Original text"),
+        };
+        var deltaEvent = new MessagePartDeltaEvent
+        {
+            SessionId = "sess-1",
+            MessageId = "msg-1",
+            PartId = "part-1",
+            Field = "some_unknown_field",
+            Delta = "should be ignored",
+            ProjectDirectory = null,
+        };
+
+        // Act
+        await TriggerSseEvents(new ChatEvent[] { deltaEvent }, existingMessages);
+
+        // Assert
+        var msg = _sut.Messages.First(m => m.Id == "msg-1");
+        msg.TextContent.Should().Be("Original text");
+        msg.ReasoningText.Should().BeEmpty();
     }
 
     // ─── HandleMessagePartUpdated ─────────────────────────────────────────────
@@ -789,6 +818,719 @@ public sealed class ChatViewModelSseTests : IDisposable
         // Assert — event processed because null ProjectDirectory skips the filter
         _sut.Messages.Should().ContainSingle(m => m.Id == "msg-new");
         _sut.Messages.First().TextContent.Should().Be("Hello from null directory");
+    }
+
+    // ─── HandlePermissionReplied ──────────────────────────────────────────────
+
+    private static PermissionRepliedEvent MakePermissionRepliedEvent(
+        string sessionId, string requestId, string reply, string? projectDirectory = null)
+        => new()
+        {
+            SessionId = sessionId,
+            RequestId = requestId,
+            Reply = reply,
+            ProjectDirectory = projectDirectory,
+        };
+
+    private static MessageRemovedEvent MakeMessageRemovedEvent(
+        string sessionId, string messageId, string? projectDirectory = null)
+        => new()
+        {
+            SessionId = sessionId,
+            MessageId = messageId,
+            ProjectDirectory = projectDirectory,
+        };
+
+    private static MessagePartRemovedEvent MakeMessagePartRemovedEvent(
+        string sessionId, string messageId, string partId, string? projectDirectory = null)
+        => new()
+        {
+            SessionId = sessionId,
+            MessageId = messageId,
+            PartId = partId,
+            ProjectDirectory = projectDirectory,
+        };
+
+    private static SessionCreatedEvent MakeSessionCreatedEvent(string sessionId, string projectId, string title = "Test")
+    {
+        var session = new openMob.Core.Infrastructure.Http.Dtos.Opencode.SessionDto(
+            Id: sessionId,
+            ProjectId: projectId,
+            Directory: "/dir",
+            ParentId: null,
+            Summary: null,
+            Share: null,
+            Title: title,
+            Version: "1.0",
+            Time: new SessionTimeDto(Created: 0L, Updated: 1000L, Compacting: null),
+            Revert: null);
+        return new SessionCreatedEvent
+        {
+            SessionId = sessionId,
+            Session = session,
+        };
+    }
+
+    private static SessionDeletedEvent MakeSessionDeletedEvent(string sessionId, string projectId)
+        => new()
+        {
+            SessionId = sessionId,
+            ProjectId = projectId,
+        };
+
+    [Fact]
+    public async Task HandlePermissionReplied_WhenReplyIsOnce_ResolvesMatchingCard()
+    {
+        // Arrange — inject both the permission request and the replied event in a single SSE stream.
+        // SetSession is a no-op if the session ID is already set, so both events must arrive
+        // in the same subscription to be processed together.
+        var permissionEvent = BuildPermissionRequestedEvent(id: "req-1");
+        var repliedEvent = MakePermissionRepliedEvent("sess-1", "req-1", "once");
+
+        // Act
+        await TriggerSseEvents(new ChatEvent[] { permissionEvent, repliedEvent });
+
+        // Assert
+        var card = _sut.Messages.Single(m => m.MessageKind == MessageKind.PermissionRequest);
+        card.PermissionStatus.Should().Be(PermissionStatus.Resolved);
+        card.ResolvedReplyLabel.Should().Be("Once");
+    }
+
+    [Fact]
+    public async Task HandlePermissionReplied_WhenReplyIsReject_ResolvesAllPendingCards()
+    {
+        // Arrange — inject two permission requests and a reject reply in a single SSE stream.
+        // A reject reply cascades to ALL pending permission cards in the session.
+        var first = BuildPermissionRequestedEvent(id: "req-1");
+        var second = BuildPermissionRequestedEvent(id: "req-2", permission: "filesystem");
+        var repliedEvent = MakePermissionRepliedEvent("sess-1", "req-1", "reject");
+
+        // Act
+        await TriggerSseEvents(new ChatEvent[] { first, second, repliedEvent });
+
+        // Assert — both cards resolved with "Deny"
+        var cards = _sut.Messages.Where(m => m.MessageKind == MessageKind.PermissionRequest).ToList();
+        cards.Should().HaveCount(2);
+        cards.Should().AllSatisfy(c =>
+        {
+            c.PermissionStatus.Should().Be(PermissionStatus.Resolved);
+            c.ResolvedReplyLabel.Should().Be("Deny");
+        });
+    }
+
+    [Fact]
+    public async Task HandlePermissionReplied_WhenProjectDirectoryMismatches_DoesNotResolveCard()
+    {
+        // Arrange — inject a permission request and a replied event with a mismatching project directory
+        // in a single SSE stream. The project directory filter must block the replied event.
+        var permissionEvent = BuildPermissionRequestedEvent(id: "req-1");
+        var repliedEvent = MakePermissionRepliedEvent("sess-1", "req-1", "once", projectDirectory: "/project/b");
+
+        // Act — set project directory to "/project/a" so the replied event is filtered out
+        await TriggerSseEventsWithProjectDirectory(
+            "/project/a",
+            new ChatEvent[] { permissionEvent, repliedEvent });
+
+        // Assert — card is still pending because project directory did not match
+        var card = _sut.Messages.Single(m => m.MessageKind == MessageKind.PermissionRequest);
+        card.PermissionStatus.Should().Be(PermissionStatus.Pending);
+    }
+
+    // ─── HandleMessageRemoved ─────────────────────────────────────────────────
+
+    [Fact]
+    public async Task HandleMessageRemoved_WhenMessageExists_RemovesMessageFromCollection()
+    {
+        // Arrange — load two messages
+        var existingMessages = new List<MessageWithPartsDto>
+        {
+            BuildMessageDto(id: "msg-1", sessionId: "sess-1", role: "assistant", text: "First"),
+            BuildMessageDto(id: "msg-2", sessionId: "sess-1", role: "assistant", text: "Second"),
+        };
+        var removedEvent = MakeMessageRemovedEvent("sess-1", "msg-1");
+
+        // Act
+        await TriggerSseEvents(new ChatEvent[] { removedEvent }, existingMessages);
+
+        // Assert
+        _sut.Messages.Should().HaveCount(1);
+        _sut.Messages.Single().Id.Should().Be("msg-2");
+    }
+
+    [Fact]
+    public async Task HandleMessageRemoved_WhenProjectDirectoryMismatches_DoesNotRemoveMessage()
+    {
+        // Arrange — load one message, then inject a remove event from a different project
+        var existingMessages = new List<MessageWithPartsDto>
+        {
+            BuildMessageDto(id: "msg-1", sessionId: "sess-1", role: "assistant", text: "Hello"),
+        };
+        var removedEvent = MakeMessageRemovedEvent("sess-1", "msg-1", projectDirectory: "/other/project");
+
+        // Act
+        await TriggerSseEventsWithProjectDirectory(
+            "/my/project",
+            new ChatEvent[] { removedEvent },
+            existingMessages);
+
+        // Assert — message not removed because project directory did not match
+        _sut.Messages.Should().HaveCount(1);
+    }
+
+    // ─── HandleMessagePartRemoved ─────────────────────────────────────────────
+
+    [Fact]
+    public async Task HandleMessagePartRemoved_WhenToolCallExists_RemovesToolCallFromMessage()
+    {
+        // Arrange — load an assistant message and inject a tool part to create a ToolCallInfo
+        var existingMessages = new List<MessageWithPartsDto>
+        {
+            BuildMessageDto(id: "msg-1", sessionId: "sess-1", role: "assistant", text: ""),
+        };
+
+        var stateJson = JsonSerializer.SerializeToElement(new { status = "pending" });
+        var toolPart = new PartDto(
+            Id: "part-tool-1",
+            SessionId: "sess-1",
+            MessageId: "msg-1",
+            Type: "tool",
+            Text: null)
+        {
+            ToolName = "bash",
+            State = stateJson,
+        };
+        var toolPartEvent = new MessagePartUpdatedEvent { Part = toolPart };
+        var removedEvent = MakeMessagePartRemovedEvent("sess-1", "msg-1", "part-tool-1");
+
+        // Act — first inject the tool part to create the ToolCallInfo, then remove it
+        await TriggerSseEvents(new ChatEvent[] { toolPartEvent, removedEvent }, existingMessages);
+
+        // Assert
+        _sut.Messages.Should().HaveCount(1);
+        _sut.Messages[0].ToolCalls.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task HandleMessagePartRemoved_WhenPartIdDoesNotExist_DoesNotThrowAndPreservesMessage()
+    {
+        // Arrange — load an assistant message with no tool calls
+        var existingMessages = new List<MessageWithPartsDto>
+        {
+            BuildMessageDto(id: "msg-1", sessionId: "sess-1", role: "assistant", text: "Hello"),
+        };
+        var removedEvent = MakeMessagePartRemovedEvent("sess-1", "msg-1", "non-existent-part");
+
+        // Act — must not throw
+        await TriggerSseEvents(new ChatEvent[] { removedEvent }, existingMessages);
+
+        // Assert — message still present, no crash
+        _sut.Messages.Should().HaveCount(1);
+    }
+
+    // ─── HandleSessionCreated ─────────────────────────────────────────────────
+
+    [Fact]
+    public async Task HandleSessionCreated_WhenEventReceived_PublishesSessionCreatedMessage()
+    {
+        // Arrange
+        SessionCreatedMessage? received = null;
+        WeakReferenceMessenger.Default.Register<SessionCreatedMessage>(
+            this, (_, msg) => received = msg);
+
+        var sessionEvent = MakeSessionCreatedEvent("sess-new", "proj-1", "New Session");
+
+        // Act
+        await TriggerSseEvents(new ChatEvent[] { sessionEvent });
+
+        // Assert
+        received.Should().NotBeNull();
+        received!.SessionId.Should().Be("sess-new");
+        received.ProjectId.Should().Be("proj-1");
+        received.Title.Should().Be("New Session");
+
+        // Cleanup
+        WeakReferenceMessenger.Default.Unregister<SessionCreatedMessage>(this);
+    }
+
+    // ─── HandleSessionDeleted ─────────────────────────────────────────────────
+
+    [Fact]
+    public async Task HandleSessionDeleted_WhenEventReceived_PublishesSessionDeletedMessage()
+    {
+        // Arrange
+        SessionDeletedMessage? received = null;
+        WeakReferenceMessenger.Default.Register<SessionDeletedMessage>(
+            this, (_, msg) => received = msg);
+
+        var sessionEvent = MakeSessionDeletedEvent("sess-old", "proj-1");
+
+        // Act
+        await TriggerSseEvents(new ChatEvent[] { sessionEvent });
+
+        // Assert
+        received.Should().NotBeNull();
+        received!.SessionId.Should().Be("sess-old");
+        received.ProjectId.Should().Be("proj-1");
+
+        // Cleanup
+        WeakReferenceMessenger.Default.Unregister<SessionDeletedMessage>(this);
+    }
+
+    // ─── HandleMessagePartUpdated — tool part upsert ──────────────────────────
+
+    [Fact]
+    public async Task HandleMessagePartUpdated_WhenToolPartArrives_CreatesNewToolCallInfo()
+    {
+        // Arrange
+        var existingMessages = new List<MessageWithPartsDto>
+        {
+            BuildMessageDto(id: "msg-1", sessionId: "sess-1", role: "assistant", text: ""),
+        };
+
+        var stateJson = JsonSerializer.SerializeToElement(new { status = "pending" });
+        var part = new PartDto(
+            Id: "part-tool-1",
+            SessionId: "sess-1",
+            MessageId: "msg-1",
+            Type: "tool",
+            Text: null)
+        {
+            ToolName = "bash",
+            State = stateJson,
+        };
+        var toolEvent = new MessagePartUpdatedEvent { Part = part };
+
+        // Act
+        await TriggerSseEvents(new ChatEvent[] { toolEvent }, existingMessages);
+
+        // Assert
+        _sut.Messages.Should().HaveCount(1);
+        _sut.Messages[0].ToolCalls.Should().HaveCount(1);
+        _sut.Messages[0].ToolCalls[0].ToolName.Should().Be("bash");
+        _sut.Messages[0].ToolCalls[0].Status.Should().Be(ToolCallStatus.Pending);
+    }
+
+    [Fact]
+    public async Task HandleMessagePartUpdated_WhenToolPartArrivesAgain_UpsertExistingToolCallInfo()
+    {
+        // Arrange — first inject a pending tool part, then update it to completed
+        var existingMessages = new List<MessageWithPartsDto>
+        {
+            BuildMessageDto(id: "msg-1", sessionId: "sess-1", role: "assistant", text: ""),
+        };
+
+        var pendingStateJson = JsonSerializer.SerializeToElement(new { status = "pending" });
+        var pendingPart = new PartDto(
+            Id: "part-tool-1",
+            SessionId: "sess-1",
+            MessageId: "msg-1",
+            Type: "tool",
+            Text: null)
+        {
+            ToolName = "bash",
+            State = pendingStateJson,
+        };
+
+        var completedStateJson = JsonSerializer.SerializeToElement(new
+        {
+            status = "completed",
+            output = "result text",
+            title = "Ran bash",
+            time = new { start = 1000L, end = 1500L }
+        });
+        var completedPart = new PartDto(
+            Id: "part-tool-1",
+            SessionId: "sess-1",
+            MessageId: "msg-1",
+            Type: "tool",
+            Text: null)
+        {
+            ToolName = "bash",
+            State = completedStateJson,
+        };
+
+        var pendingEvent = new MessagePartUpdatedEvent { Part = pendingPart };
+        var completedEvent = new MessagePartUpdatedEvent { Part = completedPart };
+
+        // Act
+        await TriggerSseEvents(new ChatEvent[] { pendingEvent, completedEvent }, existingMessages);
+
+        // Assert — upsert, not duplicate
+        _sut.Messages[0].ToolCalls.Should().HaveCount(1);
+        _sut.Messages[0].ToolCalls[0].Status.Should().Be(ToolCallStatus.Completed);
+        _sut.Messages[0].ToolCalls[0].Output.Should().Be("result text");
+        _sut.Messages[0].ToolCalls[0].Title.Should().Be("Ran bash");
+        _sut.Messages[0].ToolCalls[0].DurationMs.Should().Be(500L);
+    }
+
+    // ─── HandleMessagePartUpdated — reasoning part ────────────────────────────
+
+    [Fact]
+    public async Task HandleMessagePartUpdated_WhenReasoningPartArrives_SetsReasoningText()
+    {
+        // Arrange
+        var existingMessages = new List<MessageWithPartsDto>
+        {
+            BuildMessageDto(id: "msg-1", sessionId: "sess-1", role: "assistant", text: ""),
+        };
+
+        var part = new PartDto(
+            Id: "part-reasoning-1",
+            SessionId: "sess-1",
+            MessageId: "msg-1",
+            Type: "reasoning",
+            Text: "I am thinking about this...");
+        var reasoningEvent = new MessagePartUpdatedEvent { Part = part };
+
+        // Act
+        await TriggerSseEvents(new ChatEvent[] { reasoningEvent }, existingMessages);
+
+        // Assert
+        _sut.Messages[0].ReasoningText.Should().Be("I am thinking about this...");
+        _sut.Messages[0].HasReasoning.Should().BeTrue();
+    }
+
+    // ─── HandleMessagePartDelta — reasoning field ─────────────────────────────
+
+    [Fact]
+    public async Task HandleMessagePartDelta_WhenFieldIsReasoning_AppendsToReasoningText()
+    {
+        // Arrange — message already has some reasoning text
+        var existingMessages = new List<MessageWithPartsDto>
+        {
+            BuildMessageDto(id: "msg-1", sessionId: "sess-1", role: "assistant", text: ""),
+        };
+
+        // First set initial reasoning text via a part update
+        var initialPart = new PartDto(
+            Id: "part-1",
+            SessionId: "sess-1",
+            MessageId: "msg-1",
+            Type: "reasoning",
+            Text: "think");
+        var initialEvent = new MessagePartUpdatedEvent { Part = initialPart };
+
+        var deltaEvent = new MessagePartDeltaEvent
+        {
+            SessionId = "sess-1",
+            MessageId = "msg-1",
+            PartId = "part-1",
+            Field = "reasoning",
+            Delta = "ing more",
+        };
+
+        // Act
+        await TriggerSseEvents(new ChatEvent[] { initialEvent, deltaEvent }, existingMessages);
+
+        // Assert
+        _sut.Messages[0].ReasoningText.Should().Be("thinking more");
+    }
+
+    // ─── HandleMessagePartUpdated — step-start ────────────────────────────────
+
+    [Fact]
+    public async Task HandleMessagePartUpdated_WhenStepStartArrives_IncrementsStepCount()
+    {
+        // Arrange
+        var existingMessages = new List<MessageWithPartsDto>
+        {
+            BuildMessageDto(id: "msg-1", sessionId: "sess-1", role: "assistant", text: ""),
+        };
+
+        var stepStartPart1 = new PartDto(
+            Id: "part-step-1",
+            SessionId: "sess-1",
+            MessageId: "msg-1",
+            Type: "step-start",
+            Text: null);
+        var stepStartPart2 = new PartDto(
+            Id: "part-step-2",
+            SessionId: "sess-1",
+            MessageId: "msg-1",
+            Type: "step-start",
+            Text: null);
+
+        var stepEvent1 = new MessagePartUpdatedEvent { Part = stepStartPart1 };
+        var stepEvent2 = new MessagePartUpdatedEvent { Part = stepStartPart2 };
+
+        // Act
+        await TriggerSseEvents(new ChatEvent[] { stepEvent1, stepEvent2 }, existingMessages);
+
+        // Assert
+        _sut.Messages[0].StepCount.Should().Be(2);
+    }
+
+    // ─── HandleMessagePartUpdated — step-finish ───────────────────────────────
+
+    [Fact]
+    public async Task HandleMessagePartUpdated_WhenStepFinishArrives_SetsLastStepCost()
+    {
+        // Arrange
+        var existingMessages = new List<MessageWithPartsDto>
+        {
+            BuildMessageDto(id: "msg-1", sessionId: "sess-1", role: "assistant", text: ""),
+        };
+
+        var extras = new Dictionary<string, JsonElement>
+        {
+            ["cost"] = JsonSerializer.SerializeToElement(0.0042m)
+        };
+        var stepFinishPart = new PartDto(
+            Id: "part-step-finish-1",
+            SessionId: "sess-1",
+            MessageId: "msg-1",
+            Type: "step-finish",
+            Text: null)
+        {
+            Extras = extras
+        };
+        var stepFinishEvent = new MessagePartUpdatedEvent { Part = stepFinishPart };
+
+        // Act
+        await TriggerSseEvents(new ChatEvent[] { stepFinishEvent }, existingMessages);
+
+        // Assert
+        _sut.Messages[0].LastStepCost.Should().Be(0.0042m);
+    }
+
+    // ─── HandleMessagePartUpdated — subtask part ──────────────────────────────
+
+    [Fact]
+    public async Task HandleMessagePartUpdated_WhenSubtaskPartArrives_AppendsToSubtaskLabels()
+    {
+        // Arrange
+        var existingMessages = new List<MessageWithPartsDto>
+        {
+            BuildMessageDto(id: "msg-1", sessionId: "sess-1", role: "assistant", text: ""),
+        };
+
+        var extras = new Dictionary<string, JsonElement>
+        {
+            ["agent"] = JsonSerializer.SerializeToElement("agent-name"),
+            ["description"] = JsonSerializer.SerializeToElement("task description"),
+        };
+        var part = new PartDto("part-sub-1", "sess-1", "msg-1", "subtask", null) { Extras = extras };
+        var subtaskEvent = new MessagePartUpdatedEvent { Part = part };
+
+        // Act
+        await TriggerSseEvents(new ChatEvent[] { subtaskEvent }, existingMessages);
+
+        // Assert
+        _sut.Messages[0].SubtaskLabels.Should().HaveCount(1);
+        _sut.Messages[0].SubtaskLabels[0].Should().Be("agent-name: task description");
+    }
+
+    // ─── HandleMessagePartUpdated — agent part ────────────────────────────────
+
+    [Fact]
+    public async Task HandleMessagePartUpdated_WhenAgentPartArrives_AppendsAgentNameToSubtaskLabels()
+    {
+        // Arrange
+        var existingMessages = new List<MessageWithPartsDto>
+        {
+            BuildMessageDto(id: "msg-1", sessionId: "sess-1", role: "assistant", text: ""),
+        };
+
+        var extras = new Dictionary<string, JsonElement>
+        {
+            ["name"] = JsonSerializer.SerializeToElement("my-agent"),
+        };
+        var part = new PartDto("part-agent-1", "sess-1", "msg-1", "agent", null) { Extras = extras };
+        var agentEvent = new MessagePartUpdatedEvent { Part = part };
+
+        // Act
+        await TriggerSseEvents(new ChatEvent[] { agentEvent }, existingMessages);
+
+        // Assert
+        _sut.Messages[0].SubtaskLabels.Should().HaveCount(1);
+        _sut.Messages[0].SubtaskLabels[0].Should().Be("my-agent");
+    }
+
+    // ─── HandleMessagePartUpdated — compaction part ───────────────────────────
+
+    [Fact]
+    public async Task HandleMessagePartUpdated_WhenCompactionPartArrives_SetsCompactionNotice()
+    {
+        // Arrange
+        var existingMessages = new List<MessageWithPartsDto>
+        {
+            BuildMessageDto(id: "msg-1", sessionId: "sess-1", role: "assistant", text: ""),
+        };
+
+        var part = new PartDto("part-compact-1", "sess-1", "msg-1", "compaction", null);
+        var compactionEvent = new MessagePartUpdatedEvent { Part = part };
+
+        // Act
+        await TriggerSseEvents(new ChatEvent[] { compactionEvent }, existingMessages);
+
+        // Assert
+        _sut.Messages[0].CompactionNotice.Should().Be("Context compacted");
+    }
+
+    [Fact]
+    public async Task HandleMessagePartUpdated_WhenAutoCompactionPartArrives_SetsAutoCompactionNotice()
+    {
+        // Arrange
+        var existingMessages = new List<MessageWithPartsDto>
+        {
+            BuildMessageDto(id: "msg-1", sessionId: "sess-1", role: "assistant", text: ""),
+        };
+
+        var extras = new Dictionary<string, JsonElement>
+        {
+            ["auto"] = JsonSerializer.SerializeToElement(true),
+        };
+        var part = new PartDto("part-compact-auto-1", "sess-1", "msg-1", "compaction", null) { Extras = extras };
+        var compactionEvent = new MessagePartUpdatedEvent { Part = part };
+
+        // Act
+        await TriggerSseEvents(new ChatEvent[] { compactionEvent }, existingMessages);
+
+        // Assert
+        _sut.Messages[0].CompactionNotice.Should().Be("Context auto-compacted");
+    }
+
+    // ─── HandleMessagePartUpdated — ignored part types ────────────────────────
+
+    [Theory]
+    [InlineData("snapshot")]
+    [InlineData("patch")]
+    [InlineData("retry")]
+    public async Task HandleMessagePartUpdated_WhenIgnoredPartTypeArrives_DoesNotMutateMessage(string partType)
+    {
+        // Arrange
+        var existingMessages = new List<MessageWithPartsDto>
+        {
+            BuildMessageDto(id: "msg-1", sessionId: "sess-1", role: "assistant", text: "Known text"),
+        };
+
+        var part = new PartDto($"part-{partType}-1", "sess-1", "msg-1", partType, null);
+        var ignoredEvent = new MessagePartUpdatedEvent { Part = part };
+
+        // Act
+        await TriggerSseEvents(new ChatEvent[] { ignoredEvent }, existingMessages);
+
+        // Assert
+        _sut.Messages[0].TextContent.Should().Be("Known text");
+        _sut.Messages[0].ToolCalls.Should().BeEmpty();
+        _sut.Messages[0].ReasoningText.Should().BeEmpty();
+        _sut.Messages[0].StepCount.Should().Be(0);
+    }
+
+    // ─── HandleMessageUpdated — tool parts upsert (REQ-018) ──────────────────
+
+    [Fact]
+    public async Task HandleMessageUpdated_WhenMessageHasToolParts_UpsertsToolCallsIntoMessage()
+    {
+        // Arrange
+        var existingMessages = new List<MessageWithPartsDto>
+        {
+            BuildMessageDto(id: "msg-1", sessionId: "sess-1", role: "assistant", text: ""),
+        };
+
+        var stateJson = JsonSerializer.SerializeToElement(new { status = "completed", output = "result", title = "Done" });
+        var toolPart = new PartDto("part-tool-1", "sess-1", "msg-1", "tool", null)
+        {
+            ToolName = "bash",
+            State = stateJson,
+        };
+        var messageDto = new MessageWithPartsDto(
+            Info: new MessageInfoDto("msg-1", "sess-1", "assistant", JsonSerializer.SerializeToElement(new { created = 0L })),
+            Parts: new[] { toolPart });
+        var msgEvent = new MessageUpdatedEvent { Message = messageDto, ProjectDirectory = null };
+
+        // Act
+        await TriggerSseEvents(new ChatEvent[] { msgEvent }, existingMessages);
+
+        // Assert
+        _sut.Messages[0].ToolCalls.Should().HaveCount(1);
+        _sut.Messages[0].ToolCalls[0].Status.Should().Be(ToolCallStatus.Completed);
+        _sut.Messages[0].ToolCalls[0].Output.Should().Be("result");
+    }
+
+    // ─── HandleSessionCreated — empty title fallback ──────────────────────────
+
+    [Fact]
+    public async Task HandleSessionCreated_WhenSessionTitleIsEmpty_PublishesNewSessionFallbackTitle()
+    {
+        // Arrange
+        SessionCreatedMessage? received = null;
+        WeakReferenceMessenger.Default.Register<SessionCreatedMessage>(this, (_, msg) => received = msg);
+
+        var sessionEvent = MakeSessionCreatedEvent("sess-new", "proj-1", title: "");
+
+        // Act
+        await TriggerSseEvents(new ChatEvent[] { sessionEvent });
+
+        // Assert
+        received.Should().NotBeNull();
+        received!.Title.Should().Be("New Session");
+
+        // Cleanup
+        WeakReferenceMessenger.Default.Unregister<SessionCreatedMessage>(this);
+    }
+
+    // ─── HandleMessagePartRemoved — project directory filter ─────────────────
+
+    [Fact]
+    public async Task HandleMessagePartRemoved_WhenProjectDirectoryMismatches_DoesNotRemoveToolCall()
+    {
+        // Arrange — load an assistant message, then deliver both the tool-part creation event
+        // and the mismatching remove event in a SINGLE SSE subscription so that SetSession is
+        // only called once and both events are actually processed by the same handler.
+        var existingMessages = new List<MessageWithPartsDto>
+        {
+            BuildMessageDto(id: "msg-1", sessionId: "sess-1", role: "assistant", text: ""),
+        };
+
+        var stateJson = JsonSerializer.SerializeToElement(new { status = "pending" });
+        var toolPart = new PartDto(
+            Id: "part-tool-1",
+            SessionId: "sess-1",
+            MessageId: "msg-1",
+            Type: "tool",
+            Text: null)
+        {
+            ToolName = "bash",
+            State = stateJson,
+        };
+
+        // toolPartEvent carries the matching project directory — it will be processed
+        var toolPartEvent = new MessagePartUpdatedEvent
+        {
+            Part = toolPart,
+            ProjectDirectory = "/project/a",
+        };
+
+        // removedEvent carries a mismatching project directory — it must be filtered out
+        var removedEvent = MakeMessagePartRemovedEvent("sess-1", "msg-1", "part-tool-1", projectDirectory: "/project/b");
+
+        // Act — both events delivered in a single subscription with project dir = /project/a
+        await TriggerSseEventsWithProjectDirectory(
+            "/project/a",
+            new ChatEvent[] { toolPartEvent, removedEvent },
+            existingMessages);
+
+        // Assert — tool call still present because /project/b ≠ /project/a
+        _sut.Messages.Should().HaveCount(1);
+        _sut.Messages[0].ToolCalls.Should().HaveCount(1);
+    }
+
+    // ─── HandlePermissionReplied — session ID filter ──────────────────────────
+
+    [Fact]
+    public async Task HandlePermissionReplied_WhenSessionIdDiffers_DoesNotResolveCard()
+    {
+        // Arrange — inject a permission request for sess-1, then a replied event for a different session
+        var permissionEvent = BuildPermissionRequestedEvent(id: "req-1", sessionId: "sess-1");
+        var repliedEvent = MakePermissionRepliedEvent("sess-OTHER", "req-1", "once");
+
+        // Act
+        await TriggerSseEvents(new ChatEvent[] { permissionEvent, repliedEvent });
+
+        // Assert — card is still pending because session ID did not match
+        var card = _sut.Messages.Single(m => m.MessageKind == MessageKind.PermissionRequest);
+        card.PermissionStatus.Should().Be(PermissionStatus.Pending);
     }
 
     public void Dispose()

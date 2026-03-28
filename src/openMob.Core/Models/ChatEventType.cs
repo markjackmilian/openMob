@@ -21,11 +21,23 @@ public enum ChatEventType
     /// <summary>The AI is requesting a permission (tool call approval).</summary>
     PermissionRequested,
 
-    /// <summary>The state of a pending permission was updated.</summary>
-    PermissionUpdated,
+    /// <summary>A pending permission request has been replied to (server-side auto-approval, rejection, or reply from another client).</summary>
+    PermissionReplied,
 
     /// <summary>A delta (incremental text chunk) for a message part was received during streaming.</summary>
     MessagePartDelta,
+
+    /// <summary>A message was removed from a session.</summary>
+    MessageRemoved,
+
+    /// <summary>A specific part of a message was removed.</summary>
+    MessagePartRemoved,
+
+    /// <summary>A new session was created on the server.</summary>
+    SessionCreated,
+
+    /// <summary>A session was deleted on the server.</summary>
+    SessionDeleted,
 
     /// <summary>An unrecognised event type was received; raw payload is preserved.</summary>
     Unknown,

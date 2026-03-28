@@ -303,12 +303,12 @@ public sealed class ChatEventParserTests
         permEvent.Metadata.Should().ContainKey("cwd");
     }
 
-    // ─── permission.updated ───────────────────────────────────────────────────
+    // ─── permission.updated (legacy alias → PermissionRepliedEvent) ──────────
 
     [Fact]
-    public void Parse_WhenEventTypeIsPermissionUpdated_WithValidData_ReturnsPermissionUpdatedEvent()
+    public void Parse_WhenEventTypeIsPermissionUpdated_WithValidData_RemapsToPermissionRepliedEvent()
     {
-        // Arrange
+        // Arrange — legacy format uses "permissionID" not "requestID"; no "reply" field
         var data = BuildEnvelope("permission.updated", new
         {
             sessionID = "sess-1",
@@ -319,11 +319,12 @@ public sealed class ChatEventParserTests
         // Act
         var result = ChatEventParser.Parse(dto);
 
-        // Assert
-        result.Should().BeOfType<PermissionUpdatedEvent>();
-        var permEvent = result.As<PermissionUpdatedEvent>();
+        // Assert — permission.updated is now remapped to PermissionRepliedEvent (REQ-002)
+        result.Should().BeOfType<PermissionRepliedEvent>();
+        var permEvent = result.As<PermissionRepliedEvent>();
         permEvent.SessionId.Should().Be("sess-1");
-        permEvent.PermissionId.Should().Be("perm-99");
+        permEvent.RequestId.Should().Be("perm-99");
+        permEvent.Reply.Should().Be("once"); // default when field absent
     }
 
     // ─── unknown event type ───────────────────────────────────────────────────
@@ -513,5 +514,296 @@ public sealed class ChatEventParserTests
         // Assert
         result.Should().BeOfType<ServerConnectedEvent>();
         result.ProjectDirectory.Should().BeNull();
+    }
+
+    // ─── permission.replied (REQ-001) ─────────────────────────────────────────
+
+    [Fact]
+    public void Parse_WhenEventTypeIsPermissionReplied_WithValidData_ReturnsPermissionRepliedEvent()
+    {
+        // Arrange
+        var data = BuildEnvelope("permission.replied", new
+        {
+            sessionID = "sess-1",
+            requestID = "req-1",
+            reply = "once"
+        });
+        var dto = new OpencodeEventDto("unknown", null, data);
+
+        // Act
+        var result = ChatEventParser.Parse(dto);
+
+        // Assert
+        result.Should().BeOfType<PermissionRepliedEvent>();
+        var e = result.As<PermissionRepliedEvent>();
+        e.SessionId.Should().Be("sess-1");
+        e.RequestId.Should().Be("req-1");
+        e.Reply.Should().Be("once");
+    }
+
+    [Theory]
+    [InlineData("once")]
+    [InlineData("always")]
+    [InlineData("reject")]
+    public void Parse_WhenEventTypeIsPermissionReplied_WithVariousReplies_ParsesReplyCorrectly(string reply)
+    {
+        // Arrange
+        var data = BuildEnvelope("permission.replied", new
+        {
+            sessionID = "sess-1",
+            requestID = "req-1",
+            reply
+        });
+        var dto = new OpencodeEventDto("unknown", null, data);
+
+        // Act
+        var result = ChatEventParser.Parse(dto);
+
+        // Assert
+        result.Should().BeOfType<PermissionRepliedEvent>();
+        result.As<PermissionRepliedEvent>().Reply.Should().Be(reply);
+    }
+
+    [Fact]
+    public void Parse_WhenEventTypeIsPermissionReplied_WithMissingSessionId_ReturnsUnknownEvent()
+    {
+        // Arrange — sessionID is absent
+        var data = BuildEnvelope("permission.replied", new { requestID = "req-1", reply = "once" });
+        var dto = new OpencodeEventDto("unknown", null, data);
+
+        // Act
+        var result = ChatEventParser.Parse(dto);
+
+        // Assert
+        result.Should().BeOfType<UnknownEvent>();
+    }
+
+    // ─── permission.updated remapping (REQ-002) ───────────────────────────────
+
+    [Fact]
+    public void Parse_WhenEventTypeIsPermissionUpdated_WithPermissionId_DefaultsReplyToOnce()
+    {
+        // Arrange — legacy format uses "permissionID" not "requestID"; no "reply" field
+        var data = BuildEnvelope("permission.updated", new
+        {
+            sessionID = "sess-1",
+            permissionID = "perm-1"
+        });
+        var dto = new OpencodeEventDto("unknown", null, data);
+
+        // Act
+        var result = ChatEventParser.Parse(dto);
+
+        // Assert
+        result.Should().BeOfType<PermissionRepliedEvent>();
+        var e = result.As<PermissionRepliedEvent>();
+        e.SessionId.Should().Be("sess-1");
+        e.RequestId.Should().Be("perm-1");
+        e.Reply.Should().Be("once"); // default when field absent
+    }
+
+    // ─── message.removed (REQ-006) ────────────────────────────────────────────
+
+    [Fact]
+    public void Parse_WhenEventTypeIsMessageRemoved_WithValidData_ReturnsMessageRemovedEvent()
+    {
+        // Arrange
+        var data = BuildEnvelope("message.removed", new
+        {
+            sessionID = "sess-1",
+            messageID = "msg-1"
+        });
+        var dto = new OpencodeEventDto("unknown", null, data);
+
+        // Act
+        var result = ChatEventParser.Parse(dto);
+
+        // Assert
+        result.Should().BeOfType<MessageRemovedEvent>();
+        var e = result.As<MessageRemovedEvent>();
+        e.SessionId.Should().Be("sess-1");
+        e.MessageId.Should().Be("msg-1");
+    }
+
+    [Fact]
+    public void Parse_WhenEventTypeIsMessageRemoved_WithMissingMessageId_ReturnsUnknownEvent()
+    {
+        // Arrange — messageID is absent
+        var data = BuildEnvelope("message.removed", new { sessionID = "sess-1" });
+        var dto = new OpencodeEventDto("unknown", null, data);
+
+        // Act
+        var result = ChatEventParser.Parse(dto);
+
+        // Assert
+        result.Should().BeOfType<UnknownEvent>();
+    }
+
+    // ─── message.part.removed (REQ-008) ───────────────────────────────────────
+
+    [Fact]
+    public void Parse_WhenEventTypeIsMessagePartRemoved_WithValidData_ReturnsMessagePartRemovedEvent()
+    {
+        // Arrange
+        var data = BuildEnvelope("message.part.removed", new
+        {
+            sessionID = "sess-1",
+            messageID = "msg-1",
+            partID = "part-1"
+        });
+        var dto = new OpencodeEventDto("unknown", null, data);
+
+        // Act
+        var result = ChatEventParser.Parse(dto);
+
+        // Assert
+        result.Should().BeOfType<MessagePartRemovedEvent>();
+        var e = result.As<MessagePartRemovedEvent>();
+        e.SessionId.Should().Be("sess-1");
+        e.MessageId.Should().Be("msg-1");
+        e.PartId.Should().Be("part-1");
+    }
+
+    [Fact]
+    public void Parse_WhenEventTypeIsMessagePartRemoved_WithMissingPartId_ReturnsUnknownEvent()
+    {
+        // Arrange — partID is absent
+        var data = BuildEnvelope("message.part.removed", new { sessionID = "sess-1", messageID = "msg-1" });
+        var dto = new OpencodeEventDto("unknown", null, data);
+
+        // Act
+        var result = ChatEventParser.Parse(dto);
+
+        // Assert
+        result.Should().BeOfType<UnknownEvent>();
+    }
+
+    // ─── session.created (REQ-010) ────────────────────────────────────────────
+
+    [Fact]
+    public void Parse_WhenEventTypeIsSessionCreated_WithValidData_ReturnsSessionCreatedEvent()
+    {
+        // Arrange
+        var data = BuildEnvelope("session.created", new
+        {
+            sessionID = "sess-1",
+            info = new
+            {
+                id = "sess-1",
+                projectID = "proj-1",
+                directory = "/dir",
+                parentID = (string?)null,
+                summary = (object?)null,
+                share = (object?)null,
+                title = "Test Session",
+                version = "1.0",
+                time = new { created = 0L, updated = 0L, compacting = (long?)null },
+                revert = (object?)null
+            }
+        });
+        var dto = new OpencodeEventDto("unknown", null, data);
+
+        // Act
+        var result = ChatEventParser.Parse(dto);
+
+        // Assert
+        result.Should().BeOfType<SessionCreatedEvent>();
+        var e = result.As<SessionCreatedEvent>();
+        e.SessionId.Should().Be("sess-1");
+        e.Session.Should().NotBeNull();
+        e.Session.Id.Should().Be("sess-1");
+        e.Session.ProjectId.Should().Be("proj-1");
+    }
+
+    [Fact]
+    public void Parse_WhenEventTypeIsSessionCreated_WithMissingInfoField_ReturnsUnknownEvent()
+    {
+        // Arrange — "info" object is absent
+        var data = BuildEnvelope("session.created", new { sessionID = "sess-1" });
+        var dto = new OpencodeEventDto("unknown", null, data);
+
+        // Act
+        var result = ChatEventParser.Parse(dto);
+
+        // Assert
+        result.Should().BeOfType<UnknownEvent>();
+    }
+
+    // ─── session.deleted (REQ-011) ────────────────────────────────────────────
+
+    [Fact]
+    public void Parse_WhenEventTypeIsSessionDeleted_WithValidData_ReturnsSessionDeletedEvent()
+    {
+        // Arrange
+        var data = BuildEnvelope("session.deleted", new
+        {
+            sessionID = "sess-1",
+            info = new
+            {
+                id = "sess-1",
+                projectID = "proj-1",
+                directory = "/dir",
+                parentID = (string?)null,
+                summary = (object?)null,
+                share = (object?)null,
+                title = "Test Session",
+                version = "1.0",
+                time = new { created = 0L, updated = 0L, compacting = (long?)null },
+                revert = (object?)null
+            }
+        });
+        var dto = new OpencodeEventDto("unknown", null, data);
+
+        // Act
+        var result = ChatEventParser.Parse(dto);
+
+        // Assert
+        result.Should().BeOfType<SessionDeletedEvent>();
+        var e = result.As<SessionDeletedEvent>();
+        e.SessionId.Should().Be("sess-1");
+        e.ProjectId.Should().Be("proj-1");
+    }
+
+    [Fact]
+    public void Parse_WhenEventTypeIsSessionDeleted_WithMissingProjectId_ReturnsUnknownEvent()
+    {
+        // Arrange — info object is missing projectID
+        var data = BuildEnvelope("session.deleted", new
+        {
+            sessionID = "sess-1",
+            info = new { id = "sess-1" } // no projectID
+        });
+        var dto = new OpencodeEventDto("unknown", null, data);
+
+        // Act
+        var result = ChatEventParser.Parse(dto);
+
+        // Assert
+        result.Should().BeOfType<UnknownEvent>();
+    }
+
+    // ─── ProjectDirectory propagation for new event types ─────────────────────
+
+    [Fact]
+    public void Parse_WhenEventTypeIsPermissionReplied_PropagatesProjectDirectory()
+    {
+        // Arrange
+        var data = JsonSerializer.SerializeToElement(new
+        {
+            directory = "/my/project",
+            payload = new
+            {
+                type = "permission.replied",
+                properties = new { sessionID = "sess-1", requestID = "req-1", reply = "once" }
+            }
+        });
+        var dto = new OpencodeEventDto("unknown", null, data);
+
+        // Act
+        var result = ChatEventParser.Parse(dto);
+
+        // Assert
+        result.Should().BeOfType<PermissionRepliedEvent>();
+        result.ProjectDirectory.Should().Be("/my/project");
     }
 }

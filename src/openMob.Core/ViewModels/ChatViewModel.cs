@@ -1098,6 +1098,32 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
                     case PermissionRequestedEvent e:
                         HandlePermissionRequested(e);
                         break;
+
+                    case PermissionRepliedEvent e:
+                        HandlePermissionReplied(e);
+                        break;
+
+                    case MessageRemovedEvent e:
+                        HandleMessageRemoved(e);
+                        break;
+
+                    case MessagePartRemovedEvent e:
+                        HandleMessagePartRemoved(e);
+                        break;
+
+                    case SessionCreatedEvent e:
+                        HandleSessionCreated(e);
+                        break;
+
+                    case SessionDeletedEvent e:
+                        HandleSessionDeleted(e);
+                        break;
+
+                    case UnknownEvent e:
+#if DEBUG
+                        DebugLogger.WriteAction("OM_SSE", $"[SSE] Unknown event type: '{e.RawType}'");
+#endif
+                        break;
                 }
             }
         }
@@ -1153,6 +1179,18 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
                 }
                 existing.IsStreaming = !existing.IsFromUser && !ChatMessage.HasCompletedTimestamp(e.Message.Info.Time);
                 existing.DeliveryStatus = MessageDeliveryStatus.Sent;
+
+                // Upsert tool calls from the full message parts [REQ-018]
+                if (e.Message.Parts is not null)
+                {
+                    foreach (var part in e.Message.Parts)
+                    {
+                        if (string.Equals(part.Type, "tool", StringComparison.OrdinalIgnoreCase))
+                        {
+                            UpsertToolCall(existing, part);
+                        }
+                    }
+                }
             }
             else
             {
@@ -1194,6 +1232,18 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
                 {
                     Messages.Add(newMessage);
                     existing = newMessage;
+                }
+
+                // Upsert tool calls from the full message parts for the new message [REQ-018]
+                if (e.Message.Parts is not null)
+                {
+                    foreach (var part in e.Message.Parts)
+                    {
+                        if (string.Equals(part.Type, "tool", StringComparison.OrdinalIgnoreCase))
+                        {
+                            UpsertToolCall(existing, part);
+                        }
+                    }
                 }
             }
 
@@ -1242,16 +1292,78 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
         {
             var existing = FindMessageById(e.Part.MessageId);
 
-            if (existing is not null &&
-                string.Equals(e.Part.Type, "text", StringComparison.OrdinalIgnoreCase))
+            if (existing is not null)
             {
-                // The opencode server returns text directly in the "text" field of the part DTO.
-                if (!string.IsNullOrEmpty(e.Part.Text))
+                if (string.Equals(e.Part.Type, "text", StringComparison.OrdinalIgnoreCase))
                 {
-                    existing.TextContent = e.Part.Text;
-                }
+                    // The opencode server returns text directly in the "text" field of the part DTO.
+                    if (!string.IsNullOrEmpty(e.Part.Text))
+                    {
+                        existing.TextContent = e.Part.Text;
+                    }
 
-                existing.IsStreaming = true;
+                    existing.IsStreaming = true;
+                }
+                else if (string.Equals(e.Part.Type, "tool", StringComparison.OrdinalIgnoreCase))
+                {
+                    UpsertToolCall(existing, e.Part);
+                }
+                else if (string.Equals(e.Part.Type, "reasoning", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (!string.IsNullOrEmpty(e.Part.Text))
+                        existing.ReasoningText = e.Part.Text;
+                }
+                else if (string.Equals(e.Part.Type, "step-start", StringComparison.OrdinalIgnoreCase))
+                {
+                    existing.StepCount++;
+                }
+                else if (string.Equals(e.Part.Type, "step-finish", StringComparison.OrdinalIgnoreCase))
+                {
+                    // cost is in Extras["cost"] as a JsonElement
+                    if (e.Part.Extras is not null &&
+                        e.Part.Extras.TryGetValue("cost", out var costEl) &&
+                        costEl.ValueKind == JsonValueKind.Number)
+                    {
+                        existing.LastStepCost = costEl.GetDecimal();
+                    }
+                }
+                else if (string.Equals(e.Part.Type, "subtask", StringComparison.OrdinalIgnoreCase))
+                {
+                    var agent = e.Part.Extras is not null && e.Part.Extras.TryGetValue("agent", out var agentEl)
+                        ? agentEl.GetString() : null;
+                    var description = e.Part.Extras is not null && e.Part.Extras.TryGetValue("description", out var descEl)
+                        ? descEl.GetString() : null;
+                    var label = (agent, description) switch
+                    {
+                        ({ } a, { } d) => $"{a}: {d}",
+                        ({ } a, null) => a,
+                        (null, { } d) => d,
+                        _ => e.Part.Id,
+                    };
+                    existing.SubtaskLabels.Add(label);
+                }
+                else if (string.Equals(e.Part.Type, "agent", StringComparison.OrdinalIgnoreCase))
+                {
+                    var name = e.Part.Extras is not null && e.Part.Extras.TryGetValue("name", out var nameEl)
+                        ? nameEl.GetString() : null;
+                    if (!string.IsNullOrEmpty(name))
+                        existing.SubtaskLabels.Add(name);
+                }
+                else if (string.Equals(e.Part.Type, "compaction", StringComparison.OrdinalIgnoreCase))
+                {
+                    var isAuto = e.Part.Extras is not null &&
+                                 e.Part.Extras.TryGetValue("auto", out var autoEl) &&
+                                 autoEl.ValueKind == JsonValueKind.True;
+                    existing.CompactionNotice = isAuto ? "Context auto-compacted" : "Context compacted";
+                }
+                else if (string.Equals(e.Part.Type, "snapshot", StringComparison.OrdinalIgnoreCase) ||
+                         string.Equals(e.Part.Type, "patch", StringComparison.OrdinalIgnoreCase) ||
+                         string.Equals(e.Part.Type, "retry", StringComparison.OrdinalIgnoreCase))
+                {
+#if DEBUG
+                    DebugLogger.WriteAction("OM_SSE", $"[SSE] Ignored part type: {e.Part.Type} (partId={e.Part.Id})");
+#endif
+                }
             }
         });
     }
@@ -1272,7 +1384,10 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
         if (e.SessionId != CurrentSessionId)
             return;
 
-        if (!string.Equals(e.Field, "text", StringComparison.OrdinalIgnoreCase))
+        var isText = string.Equals(e.Field, "text", StringComparison.OrdinalIgnoreCase);
+        var isReasoning = string.Equals(e.Field, "reasoning", StringComparison.OrdinalIgnoreCase);
+
+        if (!isText && !isReasoning)
             return;
 
         _dispatcher.Dispatch(() =>
@@ -1281,9 +1396,16 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
 
             if (existing is not null)
             {
-                // Append the delta to the existing text content
-                existing.TextContent += e.Delta;
-                existing.IsStreaming = true;
+                if (isText)
+                {
+                    existing.TextContent += e.Delta;
+                    existing.IsStreaming = true;
+                }
+                else // isReasoning
+                {
+                    existing.ReasoningText += e.Delta;
+                    existing.IsStreaming = true;
+                }
             }
             else
             {
@@ -1292,10 +1414,12 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
                     id: e.MessageId,
                     sessionId: e.SessionId,
                     isFromUser: false,
-                    textContent: e.Delta,
+                    textContent: isText ? e.Delta : string.Empty,
                     timestamp: DateTimeOffset.UtcNow,
                     deliveryStatus: MessageDeliveryStatus.Sent,
                     isStreaming: true);
+                if (isReasoning)
+                    placeholder.ReasoningText = e.Delta;
                 Messages.Add(placeholder);
                 RecalculateGrouping();
                 UpdateIsEmpty();
@@ -1384,6 +1508,142 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
             UpdateIsEmpty();
             IncrementPendingPermissions();
         });
+    }
+
+    /// <summary>
+    /// Handles a <see cref="PermissionRepliedEvent"/> from the SSE stream [REQ-003, REQ-004, REQ-005].
+    /// Auto-resolves permission cards when the server replies (e.g. auto-approved by rule or rejected in cascade).
+    /// </summary>
+    private void HandlePermissionReplied(PermissionRepliedEvent e)
+    {
+        if (e.ProjectDirectory is not null &&
+            e.ProjectDirectory != _currentProjectDirectory)
+            return;
+
+        if (e.SessionId != CurrentSessionId)
+            return;
+
+        var replyLabel = e.Reply switch
+        {
+            "always" => "Always",
+            "once" => "Once",
+            "reject" => "Deny",
+            _ => e.Reply,
+        };
+
+        _dispatcher.Dispatch(() =>
+        {
+            if (string.Equals(e.Reply, "reject", StringComparison.OrdinalIgnoreCase))
+            {
+                // Reject cascades to all pending permissions in the session
+                for (var i = 0; i < Messages.Count; i++)
+                {
+                    var msg = Messages[i];
+                    if (msg.MessageKind == MessageKind.PermissionRequest &&
+                        msg.PermissionStatus == PermissionStatus.Pending)
+                    {
+                        msg.PermissionStatus = PermissionStatus.Resolved;
+                        msg.ResolvedReply = e.Reply;
+                        msg.ResolvedReplyLabel = replyLabel;
+                        DecrementPendingPermissions();
+                    }
+                }
+            }
+            else
+            {
+                ResolvePermissionRequest(e.RequestId, e.Reply, replyLabel);
+            }
+        });
+    }
+
+    /// <summary>
+    /// Handles a <see cref="MessageRemovedEvent"/> from the SSE stream [REQ-007].
+    /// Removes the corresponding message from the collection.
+    /// </summary>
+    private void HandleMessageRemoved(MessageRemovedEvent e)
+    {
+        if (e.ProjectDirectory is not null &&
+            e.ProjectDirectory != _currentProjectDirectory)
+            return;
+
+        if (e.SessionId != CurrentSessionId)
+            return;
+
+        _dispatcher.Dispatch(() =>
+        {
+            for (var i = 0; i < Messages.Count; i++)
+            {
+                if (Messages[i].Id == e.MessageId)
+                {
+                    Messages.RemoveAt(i);
+                    RecalculateGrouping();
+                    UpdateIsEmpty();
+                    return;
+                }
+            }
+        });
+    }
+
+    /// <summary>
+    /// Handles a <see cref="MessagePartRemovedEvent"/> from the SSE stream [REQ-009].
+    /// Removes the specified part (tool call or reasoning) from the target message.
+    /// </summary>
+    private void HandleMessagePartRemoved(MessagePartRemovedEvent e)
+    {
+        if (e.ProjectDirectory is not null &&
+            e.ProjectDirectory != _currentProjectDirectory)
+            return;
+
+        if (e.SessionId != CurrentSessionId)
+            return;
+
+        _dispatcher.Dispatch(() =>
+        {
+            var existing = FindMessageById(e.MessageId);
+            if (existing is null)
+                return;
+
+            // Try to remove from ToolCalls first
+            for (var i = 0; i < existing.ToolCalls.Count; i++)
+            {
+                if (existing.ToolCalls[i].PartId == e.PartId)
+                {
+                    existing.ToolCalls.RemoveAt(i);
+                    return;
+                }
+            }
+
+            // Fallback: if no ToolCallInfo matched, the removed part was likely a reasoning part.
+            // Clear the reasoning text if it is non-empty.
+            if (!string.IsNullOrEmpty(existing.ReasoningText))
+            {
+                existing.ReasoningText = string.Empty;
+            }
+        });
+    }
+
+    /// <summary>
+    /// Handles a <see cref="SessionCreatedEvent"/> from the SSE stream [REQ-012].
+    /// Publishes a <see cref="SessionCreatedMessage"/> so FlyoutViewModel can prepend the session.
+    /// No session-ID or project-directory filter — this event is global.
+    /// </summary>
+    private void HandleSessionCreated(SessionCreatedEvent e)
+    {
+        WeakReferenceMessenger.Default.Send(new SessionCreatedMessage(
+            e.Session.Id,
+            e.Session.ProjectId,
+            string.IsNullOrEmpty(e.Session.Title) ? "New Session" : e.Session.Title,
+            DateTimeOffset.FromUnixTimeMilliseconds(e.Session.Time.Updated)));
+    }
+
+    /// <summary>
+    /// Handles a <see cref="SessionDeletedEvent"/> from the SSE stream [REQ-013].
+    /// Publishes a <see cref="SessionDeletedMessage"/> so FlyoutViewModel can remove the session.
+    /// No session-ID or project-directory filter — this event is global.
+    /// </summary>
+    private void HandleSessionDeleted(SessionDeletedEvent e)
+    {
+        WeakReferenceMessenger.Default.Send(new SessionDeletedMessage(e.SessionId, e.ProjectId));
     }
 
     /// <summary>
@@ -1559,6 +1819,78 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Finds or creates a <see cref="ToolCallInfo"/> in the message's <see cref="ChatMessage.ToolCalls"/>
+    /// collection and updates it from the part's <see cref="PartDto.State"/> JSON element.
+    /// Must be called on the UI thread.
+    /// </summary>
+    private static void UpsertToolCall(ChatMessage message, PartDto part)
+    {
+        // Find existing or create new
+        ToolCallInfo? toolCall = null;
+        foreach (var tc in message.ToolCalls)
+        {
+            if (tc.PartId == part.Id)
+            {
+                toolCall = tc;
+                break;
+            }
+        }
+
+        if (toolCall is null)
+        {
+            toolCall = new ToolCallInfo(part.Id, part.ToolName ?? part.Id);
+            message.ToolCalls.Add(toolCall);
+        }
+
+        // Parse state defensively
+        if (part.State is not { } stateEl || stateEl.ValueKind != JsonValueKind.Object)
+            return;
+
+        if (!stateEl.TryGetProperty("status", out var statusEl) ||
+            statusEl.ValueKind != JsonValueKind.String)
+            return;
+
+        var statusStr = statusEl.GetString();
+        toolCall.Status = statusStr switch
+        {
+            "pending" => ToolCallStatus.Pending,
+            "running" => ToolCallStatus.Running,
+            "completed" => ToolCallStatus.Completed,
+            "error" => ToolCallStatus.Error,
+            _ => toolCall.Status,
+        };
+
+        if (stateEl.TryGetProperty("title", out var titleEl) &&
+            titleEl.ValueKind == JsonValueKind.String)
+        {
+            toolCall.Title = titleEl.GetString();
+        }
+
+        if (stateEl.TryGetProperty("output", out var outputEl) &&
+            outputEl.ValueKind == JsonValueKind.String)
+        {
+            toolCall.Output = outputEl.GetString();
+        }
+
+        if (stateEl.TryGetProperty("error", out var errorEl) &&
+            errorEl.ValueKind == JsonValueKind.String)
+        {
+            toolCall.ErrorText = errorEl.GetString();
+        }
+
+        // Compute duration from time.start and time.end
+        if (stateEl.TryGetProperty("time", out var timeEl) &&
+            timeEl.ValueKind == JsonValueKind.Object &&
+            timeEl.TryGetProperty("start", out var startEl) &&
+            timeEl.TryGetProperty("end", out var endEl) &&
+            startEl.ValueKind == JsonValueKind.Number &&
+            endEl.ValueKind == JsonValueKind.Number)
+        {
+            toolCall.DurationMs = endEl.GetInt64() - startEl.GetInt64();
+        }
     }
 
     /// <summary>Finds an inline permission message by request identifier.</summary>

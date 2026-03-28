@@ -164,224 +164,263 @@
                                    Spacing="0">
 
                 <!-- ─────────────────────────────────────────────────────
-                     [REQ-029] SUBTASK CHIPS
-                     Shown above the message when SubtaskLabels has items.
-                     Uses BindableLayout (not nested CollectionView).
+                     FALLBACK CARD — shown when SenderType == Fallback
+                     Hidden by default; DataTrigger makes it visible for
+                     unhandled SSE events. All standard sections are hidden
+                     via the wrapper VerticalStackLayout below.
                      ───────────────────────────────────────────────────── -->
-                <FlexLayout IsVisible="{Binding SubtaskLabels.Count, Converter={StaticResource IntToBoolConverter}}"
-                            Wrap="Wrap"
-                            Direction="Row"
-                            JustifyContent="Start"
-                            AlignItems="Start"
-                            Margin="8,4,8,0">
-                  <BindableLayout.ItemsSource>
-                    <Binding Path="SubtaskLabels" />
-                  </BindableLayout.ItemsSource>
-                  <BindableLayout.ItemTemplate>
-                    <DataTemplate x:DataType="x:String">
-                      <Border StrokeShape="RoundRectangle 12"
-                              StrokeThickness="0"
-                              BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceSecondaryLight},
-                                                               Dark={StaticResource ColorSurfaceSecondaryDark}}"
-                              Padding="8,3"
-                              Margin="0,0,4,4">
-                        <Label Text="{Binding .}"
-                               FontFamily="InterRegular"
-                               FontSize="{StaticResource FontSizeCaption1}"
-                               TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
-                                                           Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
-                               LineBreakMode="TailTruncation" />
-                      </Border>
-                    </DataTemplate>
-                  </BindableLayout.ItemTemplate>
-                </FlexLayout>
+                <controls:FallbackMessageView
+                    RawType="{Binding FallbackRawType, FallbackValue='', TargetNullValue=''}"
+                    RawJson="{Binding FallbackRawJson}"
+                    IsVisible="False"
+                    Margin="0,2,0,0"
+                    AutomationId="FallbackMessageCard"
+                    SemanticProperties.Description="Unhandled server message">
+                  <controls:FallbackMessageView.Triggers>
+                    <DataTrigger TargetType="controls:FallbackMessageView"
+                                 Binding="{Binding SenderType}"
+                                 Value="{x:Static models:SenderType.Fallback}">
+                      <Setter Property="IsVisible" Value="True" />
+                    </DataTrigger>
+                  </controls:FallbackMessageView.Triggers>
+                </controls:FallbackMessageView>
 
                 <!-- ─────────────────────────────────────────────────────
-                     [REQ-023] REASONING BLOCK
-                     Shown above the message text when HasReasoning = true.
-                     Collapsed by default; toggled by tapping the label.
+                     Standard message content — hidden when SenderType == Fallback.
+                     Wraps all existing sections so a single DataTrigger
+                     hides them all atomically.
                      ───────────────────────────────────────────────────── -->
-                <VerticalStackLayout IsVisible="{Binding HasReasoning}"
-                                     Margin="8,4,8,0"
-                                     Spacing="0">
-                  <!-- Toggle label — "Show thinking" / "Hide thinking" -->
-                  <Label Text="{Binding IsReasoningExpanded, Converter={StaticResource BoolToReasoningLabelConverter}}"
-                         FontFamily="InterMedium"
-                         FontSize="{StaticResource FontSizeFootnote}"
-                         TextColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight},
-                                                     Dark={StaticResource ColorPrimaryDark}}"
-                         Margin="4,0"
-                         AutomationId="ReasoningToggleLabel"
-                         SemanticProperties.Hint="Toggle AI reasoning visibility">
-                    <Label.GestureRecognizers>
-                      <TapGestureRecognizer Command="{Binding ToggleReasoningCommand}" />
-                    </Label.GestureRecognizers>
-                  </Label>
-                  <!-- Reasoning text — shown when IsReasoningExpanded = true -->
-                  <Border IsVisible="{Binding IsReasoningExpanded}"
-                          BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceSecondaryLight},
-                                                           Dark={StaticResource ColorSurfaceSecondaryDark}}"
-                          StrokeThickness="0"
-                          StrokeShape="RoundRectangle 6"
-                          Padding="{StaticResource SpacingSm}"
-                          Margin="0,4,0,0">
-                    <Label Text="{Binding ReasoningText, FallbackValue='', TargetNullValue=''}"
-                           FontFamily="InterRegular"
-                           FontSize="{StaticResource FontSizeFootnote}"
-                           FontAttributes="Italic"
-                           TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
-                                                       Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
-                           LineBreakMode="WordWrap" />
-                  </Border>
-                </VerticalStackLayout>
+                <VerticalStackLayout Spacing="0">
+                  <VerticalStackLayout.Triggers>
+                    <DataTrigger TargetType="VerticalStackLayout"
+                                 Binding="{Binding SenderType}"
+                                 Value="{x:Static models:SenderType.Fallback}">
+                      <Setter Property="IsVisible" Value="False" />
+                    </DataTrigger>
+                  </VerticalStackLayout.Triggers>
 
-                <!-- ─────────────────────────────────────────────────────
-                     EXISTING MESSAGE BLOCK (unchanged)
-                     ───────────────────────────────────────────────────── -->
-                <controls:MessageBlockView
-                    TextContent="{Binding TextContent}"
-                    IsFromUser="{Binding IsFromUser}"
-                    Timestamp="{Binding Timestamp}"
-                    DeliveryStatus="{Binding DeliveryStatus}"
-                    IsFirstInGroup="{Binding IsFirstInGroup}"
-                    IsLastInGroup="{Binding IsLastInGroup}"
-                    IsStreaming="{Binding IsStreaming}"
-                    SenderType="{Binding SenderType}"
-                    SenderName="{Binding SenderName}"
-                    MessageKind="{Binding MessageKind}"
-                    PermissionType="{Binding PermissionType}"
-                    PermissionPatterns="{Binding PermissionPatterns}"
-                    RequestId="{Binding RequestId}"
-                    PermissionStatus="{Binding PermissionStatus}"
-                    ResolvedReply="{Binding ResolvedReply}"
-                    ResolvedReplyLabel="{Binding ResolvedReplyLabel}" />
-
-                <!-- ─────────────────────────────────────────────────────
-                     [REQ-019] TOOL CALL CARDS
-                     Shown below the message bubble when HasToolCalls = true.
-                     Uses BindableLayout (not nested CollectionView).
-                     ───────────────────────────────────────────────────── -->
-                <VerticalStackLayout IsVisible="{Binding HasToolCalls}"
-                                     Margin="8,4,8,0"
-                                     Spacing="4">
-                  <BindableLayout.ItemsSource>
-                    <Binding Path="ToolCalls" />
-                  </BindableLayout.ItemsSource>
-                  <BindableLayout.ItemTemplate>
-                    <DataTemplate x:DataType="models:ToolCallInfo">
-                      <Border StrokeShape="RoundRectangle 6"
-                              StrokeThickness="1"
-                              Stroke="{AppThemeBinding Light={StaticResource ColorOutlineLight},
-                                                      Dark={StaticResource ColorOutlineDark}}"
-                              BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceSecondaryLight},
-                                                               Dark={StaticResource ColorSurfaceSecondaryDark}}"
-                              Padding="8,6">
-                        <Grid ColumnDefinitions="20,*,Auto"
-                              ColumnSpacing="8">
-
-                          <!-- Status indicator column — only one of these three is visible at a time -->
-                          <ActivityIndicator Grid.Column="0"
-                                             IsRunning="True"
-                                             IsVisible="{Binding Status, Converter={StaticResource ToolCallStatusToLoadingConverter}}"
-                                             WidthRequest="16"
-                                             HeightRequest="16"
-                                             Color="{AppThemeBinding Light={StaticResource ColorPrimaryLight},
-                                                                    Dark={StaticResource ColorPrimaryDark}}"
-                                             VerticalOptions="Center"
-                                             SemanticProperties.Description="Tool call in progress" />
-                          <Label Grid.Column="0"
-                                 IsVisible="{Binding Status, Converter={StaticResource ToolCallStatusToCompletedConverter}}"
-                                 Text="✓"
-                                 FontSize="{StaticResource FontSizeFootnote}"
-                                 TextColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight},
-                                                            Dark={StaticResource ColorPrimaryDark}}"
-                                 HorizontalTextAlignment="Center"
-                                 VerticalOptions="Center"
-                                 SemanticProperties.Description="Tool call completed" />
-                          <Label Grid.Column="0"
-                                 IsVisible="{Binding Status, Converter={StaticResource ToolCallStatusToErrorConverter}}"
-                                 Text="✕"
-                                 FontSize="{StaticResource FontSizeFootnote}"
-                                 TextColor="{AppThemeBinding Light={StaticResource ColorErrorLight},
-                                                            Dark={StaticResource ColorErrorDark}}"
-                                 HorizontalTextAlignment="Center"
-                                 VerticalOptions="Center"
-                                 SemanticProperties.Description="Tool call failed" />
-
-                          <!-- Tool name + title + output + error -->
-                          <VerticalStackLayout Grid.Column="1"
-                                              Spacing="2">
-                            <Label Text="{Binding ToolName, FallbackValue='', TargetNullValue=''}"
-                                   FontFamily="InterSemiBold"
-                                   FontSize="{StaticResource FontSizeCaption1}"
-                                   TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight},
-                                                              Dark={StaticResource ColorOnBackgroundDark}}"
-                                   LineBreakMode="TailTruncation" />
-                            <Label Text="{Binding Title, FallbackValue='', TargetNullValue=''}"
-                                   IsVisible="{Binding Title, Converter={StaticResource NullToVisibilityConverter}}"
-                                   FontFamily="InterRegular"
-                                   FontSize="{StaticResource FontSizeCaption1}"
-                                   TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
-                                                              Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
-                                   LineBreakMode="TailTruncation" />
-                            <Label Text="{Binding Output, FallbackValue='', TargetNullValue=''}"
-                                   IsVisible="{Binding Output, Converter={StaticResource NullToVisibilityConverter}}"
-                                   FontFamily="InterRegular"
-                                   FontSize="{StaticResource FontSizeCaption1}"
-                                   TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
-                                                              Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
-                                   LineBreakMode="WordWrap"
-                                   MaxLines="3" />
-                            <Label Text="{Binding ErrorText, FallbackValue='', TargetNullValue=''}"
-                                   IsVisible="{Binding ErrorText, Converter={StaticResource NullToVisibilityConverter}}"
-                                   FontFamily="InterRegular"
-                                   FontSize="{StaticResource FontSizeCaption1}"
-                                   TextColor="{AppThemeBinding Light={StaticResource ColorErrorLight},
-                                                              Dark={StaticResource ColorErrorDark}}"
-                                   LineBreakMode="WordWrap" />
-                          </VerticalStackLayout>
-
-                          <!-- Duration (ms) — shown only when available -->
-                          <Label Grid.Column="2"
-                                 IsVisible="{Binding DurationMs, Converter={StaticResource NullToVisibilityConverter}}"
-                                 Text="{Binding DurationMs, StringFormat='{0}ms', FallbackValue='', TargetNullValue=''}"
+                  <!-- ─────────────────────────────────────────────────────
+                       [REQ-029] SUBTASK CHIPS
+                       Shown above the message when SubtaskLabels has items.
+                       Uses BindableLayout (not nested CollectionView).
+                       ───────────────────────────────────────────────────── -->
+                  <FlexLayout IsVisible="{Binding SubtaskLabels.Count, Converter={StaticResource IntToBoolConverter}}"
+                              Wrap="Wrap"
+                              Direction="Row"
+                              JustifyContent="Start"
+                              AlignItems="Start"
+                              Margin="8,4,8,0">
+                    <BindableLayout.ItemsSource>
+                      <Binding Path="SubtaskLabels" />
+                    </BindableLayout.ItemsSource>
+                    <BindableLayout.ItemTemplate>
+                      <DataTemplate x:DataType="x:String">
+                        <Border StrokeShape="RoundRectangle 12"
+                                StrokeThickness="0"
+                                BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceSecondaryLight},
+                                                                 Dark={StaticResource ColorSurfaceSecondaryDark}}"
+                                Padding="8,3"
+                                Margin="0,0,4,4">
+                          <Label Text="{Binding .}"
                                  FontFamily="InterRegular"
                                  FontSize="{StaticResource FontSizeCaption1}"
-                                 TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
-                                                            Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
-                                 VerticalOptions="Start" />
-                        </Grid>
-                      </Border>
-                    </DataTemplate>
-                  </BindableLayout.ItemTemplate>
-                </VerticalStackLayout>
+                                 TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
+                                                             Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
+                                 LineBreakMode="TailTruncation" />
+                        </Border>
+                      </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                  </FlexLayout>
 
-                <!-- ─────────────────────────────────────────────────────
-                     [REQ-026] STEP INDICATOR
-                     Shown below the message bubble when StepCount > 0.
-                     Displays step count and optional last-step cost.
-                     ───────────────────────────────────────────────────── -->
-                <HorizontalStackLayout IsVisible="{Binding StepCount, Converter={StaticResource IntToBoolConverter}}"
-                                       Spacing="4"
-                                       Margin="12,2,8,4">
-                  <Label FontFamily="InterRegular"
-                         FontSize="{StaticResource FontSizeCaption1}"
-                         TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
-                                                     Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
-                         Text="{Binding StepCount, StringFormat='{0} steps'}" />
-                   <Label FontFamily="InterRegular"
-                          FontSize="{StaticResource FontSizeCaption1}"
-                          TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
-                                                      Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
-                          IsVisible="{Binding LastStepCost, Converter={StaticResource NullToVisibilityConverter}}"
-                          Text="·" />
-                  <Label FontFamily="InterRegular"
-                         FontSize="{StaticResource FontSizeCaption1}"
-                         TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
-                                                     Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
-                         IsVisible="{Binding LastStepCost, Converter={StaticResource NullToVisibilityConverter}}"
-                         Text="{Binding LastStepCost, StringFormat='${0:F4}', FallbackValue='', TargetNullValue=''}" />
-                </HorizontalStackLayout>
+                  <!-- ─────────────────────────────────────────────────────
+                       [REQ-023] REASONING BLOCK
+                       Shown above the message text when HasReasoning = true.
+                       Collapsed by default; toggled by tapping the label.
+                       ───────────────────────────────────────────────────── -->
+                  <VerticalStackLayout IsVisible="{Binding HasReasoning}"
+                                       Margin="8,4,8,0"
+                                       Spacing="0">
+                    <!-- Toggle label — "Show thinking" / "Hide thinking" -->
+                    <Label Text="{Binding IsReasoningExpanded, Converter={StaticResource BoolToReasoningLabelConverter}}"
+                           FontFamily="InterMedium"
+                           FontSize="{StaticResource FontSizeFootnote}"
+                           TextColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight},
+                                                       Dark={StaticResource ColorPrimaryDark}}"
+                           Margin="4,0"
+                           AutomationId="ReasoningToggleLabel"
+                           SemanticProperties.Hint="Toggle AI reasoning visibility">
+                      <Label.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding ToggleReasoningCommand}" />
+                      </Label.GestureRecognizers>
+                    </Label>
+                    <!-- Reasoning text — shown when IsReasoningExpanded = true -->
+                    <Border IsVisible="{Binding IsReasoningExpanded}"
+                            BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceSecondaryLight},
+                                                             Dark={StaticResource ColorSurfaceSecondaryDark}}"
+                            StrokeThickness="0"
+                            StrokeShape="RoundRectangle 6"
+                            Padding="{StaticResource SpacingSm}"
+                            Margin="0,4,0,0">
+                      <Label Text="{Binding ReasoningText, FallbackValue='', TargetNullValue=''}"
+                             FontFamily="InterRegular"
+                             FontSize="{StaticResource FontSizeFootnote}"
+                             FontAttributes="Italic"
+                             TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
+                                                         Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
+                             LineBreakMode="WordWrap" />
+                    </Border>
+                  </VerticalStackLayout>
+
+                  <!-- ─────────────────────────────────────────────────────
+                       EXISTING MESSAGE BLOCK (unchanged)
+                       ───────────────────────────────────────────────────── -->
+                  <controls:MessageBlockView
+                      TextContent="{Binding TextContent}"
+                      IsFromUser="{Binding IsFromUser}"
+                      Timestamp="{Binding Timestamp}"
+                      DeliveryStatus="{Binding DeliveryStatus}"
+                      IsFirstInGroup="{Binding IsFirstInGroup}"
+                      IsLastInGroup="{Binding IsLastInGroup}"
+                      IsStreaming="{Binding IsStreaming}"
+                      SenderType="{Binding SenderType}"
+                      SenderName="{Binding SenderName}"
+                      MessageKind="{Binding MessageKind}"
+                      PermissionType="{Binding PermissionType}"
+                      PermissionPatterns="{Binding PermissionPatterns}"
+                      RequestId="{Binding RequestId}"
+                      PermissionStatus="{Binding PermissionStatus}"
+                      ResolvedReply="{Binding ResolvedReply}"
+                      ResolvedReplyLabel="{Binding ResolvedReplyLabel}" />
+
+                  <!-- ─────────────────────────────────────────────────────
+                       [REQ-019] TOOL CALL CARDS
+                       Shown below the message bubble when HasToolCalls = true.
+                       Uses BindableLayout (not nested CollectionView).
+                       ───────────────────────────────────────────────────── -->
+                  <VerticalStackLayout IsVisible="{Binding HasToolCalls}"
+                                       Margin="8,4,8,0"
+                                       Spacing="4">
+                    <BindableLayout.ItemsSource>
+                      <Binding Path="ToolCalls" />
+                    </BindableLayout.ItemsSource>
+                    <BindableLayout.ItemTemplate>
+                      <DataTemplate x:DataType="models:ToolCallInfo">
+                        <Border StrokeShape="RoundRectangle 6"
+                                StrokeThickness="1"
+                                Stroke="{AppThemeBinding Light={StaticResource ColorOutlineLight},
+                                                        Dark={StaticResource ColorOutlineDark}}"
+                                BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceSecondaryLight},
+                                                                 Dark={StaticResource ColorSurfaceSecondaryDark}}"
+                                Padding="8,6">
+                          <Grid ColumnDefinitions="20,*,Auto"
+                                ColumnSpacing="8">
+
+                            <!-- Status indicator column — only one of these three is visible at a time -->
+                            <ActivityIndicator Grid.Column="0"
+                                               IsRunning="True"
+                                               IsVisible="{Binding Status, Converter={StaticResource ToolCallStatusToLoadingConverter}}"
+                                               WidthRequest="16"
+                                               HeightRequest="16"
+                                               Color="{AppThemeBinding Light={StaticResource ColorPrimaryLight},
+                                                                      Dark={StaticResource ColorPrimaryDark}}"
+                                               VerticalOptions="Center"
+                                               SemanticProperties.Description="Tool call in progress" />
+                            <Label Grid.Column="0"
+                                   IsVisible="{Binding Status, Converter={StaticResource ToolCallStatusToCompletedConverter}}"
+                                   Text="✓"
+                                   FontSize="{StaticResource FontSizeFootnote}"
+                                   TextColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight},
+                                                              Dark={StaticResource ColorPrimaryDark}}"
+                                   HorizontalTextAlignment="Center"
+                                   VerticalOptions="Center"
+                                   SemanticProperties.Description="Tool call completed" />
+                            <Label Grid.Column="0"
+                                   IsVisible="{Binding Status, Converter={StaticResource ToolCallStatusToErrorConverter}}"
+                                   Text="✕"
+                                   FontSize="{StaticResource FontSizeFootnote}"
+                                   TextColor="{AppThemeBinding Light={StaticResource ColorErrorLight},
+                                                              Dark={StaticResource ColorErrorDark}}"
+                                   HorizontalTextAlignment="Center"
+                                   VerticalOptions="Center"
+                                   SemanticProperties.Description="Tool call failed" />
+
+                            <!-- Tool name + title + output + error -->
+                            <VerticalStackLayout Grid.Column="1"
+                                                Spacing="2">
+                              <Label Text="{Binding ToolName, FallbackValue='', TargetNullValue=''}"
+                                     FontFamily="InterSemiBold"
+                                     FontSize="{StaticResource FontSizeCaption1}"
+                                     TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight},
+                                                                Dark={StaticResource ColorOnBackgroundDark}}"
+                                     LineBreakMode="TailTruncation" />
+                              <Label Text="{Binding Title, FallbackValue='', TargetNullValue=''}"
+                                     IsVisible="{Binding Title, Converter={StaticResource NullToVisibilityConverter}}"
+                                     FontFamily="InterRegular"
+                                     FontSize="{StaticResource FontSizeCaption1}"
+                                     TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
+                                                                Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
+                                     LineBreakMode="TailTruncation" />
+                              <Label Text="{Binding Output, FallbackValue='', TargetNullValue=''}"
+                                     IsVisible="{Binding Output, Converter={StaticResource NullToVisibilityConverter}}"
+                                     FontFamily="InterRegular"
+                                     FontSize="{StaticResource FontSizeCaption1}"
+                                     TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
+                                                                Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
+                                     LineBreakMode="WordWrap"
+                                     MaxLines="3" />
+                              <Label Text="{Binding ErrorText, FallbackValue='', TargetNullValue=''}"
+                                     IsVisible="{Binding ErrorText, Converter={StaticResource NullToVisibilityConverter}}"
+                                     FontFamily="InterRegular"
+                                     FontSize="{StaticResource FontSizeCaption1}"
+                                     TextColor="{AppThemeBinding Light={StaticResource ColorErrorLight},
+                                                                Dark={StaticResource ColorErrorDark}}"
+                                     LineBreakMode="WordWrap" />
+                            </VerticalStackLayout>
+
+                            <!-- Duration (ms) — shown only when available -->
+                            <Label Grid.Column="2"
+                                   IsVisible="{Binding DurationMs, Converter={StaticResource NullToVisibilityConverter}}"
+                                   Text="{Binding DurationMs, StringFormat='{0}ms', FallbackValue='', TargetNullValue=''}"
+                                   FontFamily="InterRegular"
+                                   FontSize="{StaticResource FontSizeCaption1}"
+                                   TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
+                                                              Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
+                                   VerticalOptions="Start" />
+                          </Grid>
+                        </Border>
+                      </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                  </VerticalStackLayout>
+
+                  <!-- ─────────────────────────────────────────────────────
+                       [REQ-026] STEP INDICATOR
+                       Shown below the message bubble when StepCount > 0.
+                       Displays step count and optional last-step cost.
+                       ───────────────────────────────────────────────────── -->
+                  <HorizontalStackLayout IsVisible="{Binding StepCount, Converter={StaticResource IntToBoolConverter}}"
+                                         Spacing="4"
+                                         Margin="12,2,8,4">
+                    <Label FontFamily="InterRegular"
+                           FontSize="{StaticResource FontSizeCaption1}"
+                           TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
+                                                       Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
+                           Text="{Binding StepCount, StringFormat='{0} steps'}" />
+                     <Label FontFamily="InterRegular"
+                            FontSize="{StaticResource FontSizeCaption1}"
+                            TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
+                                                        Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
+                            IsVisible="{Binding LastStepCost, Converter={StaticResource NullToVisibilityConverter}}"
+                            Text="·" />
+                    <Label FontFamily="InterRegular"
+                           FontSize="{StaticResource FontSizeCaption1}"
+                           TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
+                                                       Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
+                           IsVisible="{Binding LastStepCost, Converter={StaticResource NullToVisibilityConverter}}"
+                           Text="{Binding LastStepCost, StringFormat='${0:F4}', FallbackValue='', TargetNullValue=''}" />
+                  </HorizontalStackLayout>
+
+                </VerticalStackLayout>
+                <!-- End standard message content -->
 
               </VerticalStackLayout>
               <!-- End normal message content -->

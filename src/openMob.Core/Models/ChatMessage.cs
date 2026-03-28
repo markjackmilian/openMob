@@ -68,7 +68,7 @@ public sealed partial class ChatMessage : ObservableObject
     [ObservableProperty]
     private bool _isStreaming;
 
-    /// <summary>Gets or sets the sender type of this message (User, Agent, or Subagent).</summary>
+    /// <summary>Gets or sets the sender type of this message (User, Agent, Subagent, or Fallback).</summary>
     [ObservableProperty]
     private SenderType _senderType;
 
@@ -124,6 +124,14 @@ public sealed partial class ChatMessage : ObservableObject
     [ObservableProperty]
     private string? _compactionNotice;
 
+    /// <summary>Gets or sets the raw SSE event-type string for fallback messages. Null on non-fallback messages.</summary>
+    [ObservableProperty]
+    private string? _fallbackRawType;
+
+    /// <summary>Gets or sets the pretty-printed JSON payload for fallback messages (DEBUG builds only). Null in Release builds and on non-fallback messages.</summary>
+    [ObservableProperty]
+    private string? _fallbackRawJson;
+
     /// <summary>Gets or sets whether the reasoning block is expanded in the UI.</summary>
     [ObservableProperty]
     private bool _isReasoningExpanded;
@@ -150,7 +158,7 @@ public sealed partial class ChatMessage : ObservableObject
     /// <param name="timestamp">The creation timestamp.</param>
     /// <param name="deliveryStatus">The initial delivery status.</param>
     /// <param name="isStreaming">Whether the message is currently being streamed.</param>
-    /// <param name="senderType">The sender type (User, Agent, or Subagent).</param>
+    /// <param name="senderType">The sender type (User, Agent, Subagent, or Fallback).</param>
     /// <param name="senderName">The display name of the sender.</param>
     /// <param name="isOptimistic">Whether this is an optimistic placeholder awaiting server confirmation.</param>
     internal ChatMessage(
@@ -170,7 +178,9 @@ public sealed partial class ChatMessage : ObservableObject
         string requestId = "",
         PermissionStatus permissionStatus = PermissionStatus.Pending,
         string? resolvedReply = null,
-        string? resolvedReplyLabel = null)
+        string? resolvedReplyLabel = null,
+        string? fallbackRawType = null,
+        string? fallbackRawJson = null)
     {
         Id = id;
         SessionId = sessionId;
@@ -189,6 +199,8 @@ public sealed partial class ChatMessage : ObservableObject
         _permissionStatus = permissionStatus;
         _resolvedReply = resolvedReply;
         _resolvedReplyLabel = resolvedReplyLabel;
+        _fallbackRawType = fallbackRawType;
+        _fallbackRawJson = fallbackRawJson;
 
         ToolCalls = new ObservableCollection<ToolCallInfo>();
         SubtaskLabels = new ObservableCollection<string>();
@@ -305,6 +317,55 @@ public sealed partial class ChatMessage : ObservableObject
             senderType: SenderType.User,
             senderName: "You",
             isOptimistic: true);
+    }
+
+    /// <summary>
+    /// Creates a <see cref="ChatMessage"/> representing an unhandled SSE event.
+    /// In DEBUG builds, the raw event type and JSON payload are preserved for diagnostics.
+    /// In Release builds, both fields are always <c>null</c> to prevent data leakage.
+    /// </summary>
+    /// <param name="rawType">The raw SSE event-type string from <see cref="UnknownEvent.RawType"/>.</param>
+    /// <param name="rawJson">The pretty-printed JSON payload, or <c>null</c> if no payload was present.</param>
+    /// <returns>A new fallback <see cref="ChatMessage"/> with <see cref="SenderType.Fallback"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// <see cref="SessionId"/> is intentionally set to <see cref="string.Empty"/> because fallback messages
+    /// are ephemeral in-memory entries that are never persisted to the database. They are not filtered
+    /// by session ID within the ViewModel's <c>Messages</c> collection. If future code needs to associate
+    /// a fallback message with a specific session, thread the session ID through this factory.
+    /// </para>
+    /// </remarks>
+    public static ChatMessage CreateFallback(string rawType, string? rawJson)
+    {
+        ArgumentNullException.ThrowIfNull(rawType);
+
+#if DEBUG
+        return new ChatMessage(
+            id: Guid.NewGuid().ToString(),
+            sessionId: string.Empty, // Intentionally empty — see remarks
+            isFromUser: false,
+            textContent: string.Empty,
+            timestamp: DateTimeOffset.UtcNow,
+            deliveryStatus: MessageDeliveryStatus.Sent,
+            isStreaming: false,
+            senderType: SenderType.Fallback,
+            senderName: string.Empty,
+            fallbackRawType: rawType,
+            fallbackRawJson: rawJson);
+#else
+        return new ChatMessage(
+            id: Guid.NewGuid().ToString(),
+            sessionId: string.Empty, // Intentionally empty — see remarks
+            isFromUser: false,
+            textContent: string.Empty,
+            timestamp: DateTimeOffset.UtcNow,
+            deliveryStatus: MessageDeliveryStatus.Sent,
+            isStreaming: false,
+            senderType: SenderType.Fallback,
+            senderName: string.Empty,
+            fallbackRawType: null,
+            fallbackRawJson: null);
+#endif
     }
 
     /// <summary>

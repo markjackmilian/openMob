@@ -1187,6 +1187,7 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
 #if DEBUG
                         DebugLogger.WriteAction("OM_SSE", $"[SSE] Unknown event type: '{e.RawType}'");
 #endif
+                        HandleUnknownEvent(e);
                         break;
                 }
             }
@@ -1708,6 +1709,33 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     private void HandleSessionDeleted(SessionDeletedEvent e)
     {
         WeakReferenceMessenger.Default.Send(new SessionDeletedMessage(e.SessionId, e.ProjectId));
+    }
+
+    /// <summary>
+    /// Handles an <see cref="UnknownEvent"/> from the SSE stream [REQ-001, REQ-004, REQ-005].
+    /// Creates a fallback <see cref="ChatMessage"/> and appends it to <see cref="Messages"/>
+    /// on the UI thread. In DEBUG builds the raw event type and JSON payload are preserved;
+    /// in Release builds both fields are null.
+    /// </summary>
+    /// <param name="e">The unknown event.</param>
+    private void HandleUnknownEvent(UnknownEvent e)
+    {
+#if DEBUG
+        string? rawJson = null;
+        if (e.RawData.HasValue && e.RawData.Value.ValueKind != JsonValueKind.Undefined)
+        {
+            rawJson = JsonSerializer.Serialize(e.RawData.Value, new JsonSerializerOptions { WriteIndented = true });
+        }
+        var fallback = ChatMessage.CreateFallback(e.RawType, rawJson);
+#else
+        var fallback = ChatMessage.CreateFallback(e.RawType, null);
+#endif
+
+        _dispatcher.Dispatch(() =>
+        {
+            Messages.Add(fallback);
+            RecalculateGrouping();
+        });
     }
 
     /// <summary>

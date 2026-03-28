@@ -328,4 +328,122 @@ public sealed class ChatMessageTests
         // Assert
         result.SenderName.Should().Be("You");
     }
+
+    // ─── CreateFallback ──────────────────────────────────────────────────────────
+
+    [Fact]
+    public void CreateFallback_SetsSenderTypeToFallback()
+    {
+        // Act
+        var result = ChatMessage.CreateFallback("unknown.type", null);
+
+        // Assert
+        result.SenderType.Should().Be(SenderType.Fallback);
+    }
+
+    [Fact]
+    public void CreateFallback_SetsIsFromUserFalse()
+    {
+        // Act
+        var result = ChatMessage.CreateFallback("unknown.type", null);
+
+        // Assert
+        result.IsFromUser.Should().BeFalse();
+    }
+
+    [Fact]
+    public void CreateFallback_SetsIsStreamingFalse()
+    {
+        // Act
+        var result = ChatMessage.CreateFallback("unknown.type", null);
+
+        // Assert
+        result.IsStreaming.Should().BeFalse();
+    }
+
+    [Fact]
+    public void CreateFallback_SetsDeliveryStatusToSent()
+    {
+        // Act
+        var result = ChatMessage.CreateFallback("unknown.type", null);
+
+        // Assert
+        result.DeliveryStatus.Should().Be(MessageDeliveryStatus.Sent);
+    }
+
+    [Fact]
+    public void CreateFallback_GeneratesNonEmptyId()
+    {
+        // Act
+        var result = ChatMessage.CreateFallback("unknown.type", null);
+
+        // Assert
+        result.Id.Should().NotBeNullOrEmpty();
+    }
+
+    [Fact]
+    public void CreateFallback_WithRawType_SetsFallbackRawType()
+    {
+        // NOTE: Tests always run in DEBUG configuration, so FallbackRawType is populated.
+        // Act
+        var result = ChatMessage.CreateFallback("unknown.type", null);
+
+        // Assert
+        result.FallbackRawType.Should().Be("unknown.type");
+    }
+
+    [Fact]
+    public void CreateFallback_WithNullRawJson_SetsFallbackRawJsonToNull()
+    {
+        // NOTE: Tests always run in DEBUG configuration.
+        // Act
+        var result = ChatMessage.CreateFallback("unknown.type", null);
+
+        // Assert
+        result.FallbackRawJson.Should().BeNull();
+    }
+
+    [Fact]
+    public void CreateFallback_WithRawJson_SetsFallbackRawJson()
+    {
+        // NOTE: Tests always run in DEBUG configuration.
+        // Arrange
+        const string json = "{\n  \"foo\": 1\n}";
+
+        // Act
+        var result = ChatMessage.CreateFallback("unknown.type", json);
+
+        // Assert
+        result.FallbackRawJson.Should().Be(json);
+    }
+
+    [Fact]
+    public void CreateFallback_WithNullRawType_ThrowsArgumentNullException()
+    {
+        // Act
+        var act = () => ChatMessage.CreateFallback(null!, null);
+
+        // Assert
+        act.Should().Throw<ArgumentNullException>();
+    }
+
+    [Fact]
+    public void CreateFallback_SetsTimestampCloseToNow()
+    {
+        // Act
+        var result = ChatMessage.CreateFallback("unknown.type", null);
+
+        // Assert
+        result.Timestamp.Should().BeCloseTo(DateTimeOffset.UtcNow, TimeSpan.FromSeconds(5));
+    }
+
+    [Fact]
+    public void CreateFallback_SetsMessageKindToStandard()
+    {
+        // Act
+        var result = ChatMessage.CreateFallback("unknown.type", null);
+
+        // Assert
+        result.MessageKind.Should().Be(MessageKind.Standard);
+    }
 }

@@ -18,6 +18,12 @@ You have access to **context7** and **webfetch** for technical research. You mus
 
 ---
 
+## External References
+
+- **opencode repository:** https://github.com/anomalyco/opencode — source of truth for the opencode server API, endpoints, data models, authentication flows, and changelog. Always consult this repository during Phase 1 Technical Analysis when the spec involves integration with the opencode server. Use **webfetch** to retrieve the latest API documentation, endpoint contracts, or schema definitions directly from the repository.
+
+---
+
 ## Mandate
 
 **You own the technical lifecycle of every feature.** Your responsibilities are:

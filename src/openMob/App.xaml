@@ -25,6 +25,7 @@
       <converters:ToolCallStatusToLoadingConverter x:Key="ToolCallStatusToLoadingConverter" />
       <converters:ToolCallStatusToCompletedConverter x:Key="ToolCallStatusToCompletedConverter" />
       <converters:ToolCallStatusToErrorConverter x:Key="ToolCallStatusToErrorConverter" />
+      <converters:SenderTypeToFallbackVisibilityConverter x:Key="SenderTypeToFallbackVisibilityConverter" />
     </ResourceDictionary>
   </Application.Resources>
 </Application>

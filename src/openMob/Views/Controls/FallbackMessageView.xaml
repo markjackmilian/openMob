@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:openMob.Views.Controls"
+             x:Class="openMob.Views.Controls.FallbackMessageView"
+             x:Name="this"
+             x:DataType="controls:FallbackMessageView">
+
+  <Grid Padding="{StaticResource SpacingXs}"
+        ColumnDefinitions="Auto,*"
+        ColumnSpacing="0">
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         Column 0: Left warning bar (matches MessageBlockView bar pattern)
+         ═══════════════════════════════════════════════════════════════ -->
+    <BoxView Grid.Column="0"
+             WidthRequest="{StaticResource SizeMessageBarWidth}"
+             VerticalOptions="Fill"
+             Color="{AppThemeBinding Light={StaticResource ColorWarningLight},
+                                     Dark={StaticResource ColorWarningDark}}"
+             SemanticProperties.Description="Unhandled message warning indicator" />
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         Column 1: Warning card content area
+         ═══════════════════════════════════════════════════════════════ -->
+    <Border Grid.Column="1"
+            BackgroundColor="{AppThemeBinding Light={StaticResource ColorWarningContainerLight},
+                                              Dark={StaticResource ColorWarningContainerDark}}"
+            StrokeThickness="0"
+            StrokeShape="RoundRectangle 0"
+            Padding="{StaticResource SpacingSm}">
+
+      <VerticalStackLayout Spacing="{StaticResource SpacingXs}">
+
+        <!-- ─────────────────────────────────────────────────────
+             DEBUG layout — shown only in DEBUG builds.
+             Exposes raw event type and JSON payload for diagnostics.
+             ───────────────────────────────────────────────────── -->
+        <VerticalStackLayout IsVisible="{Binding IsDebugBuild, Source={x:Reference this}}"
+                             Spacing="{StaticResource SpacingXs}">
+
+          <!-- Header label -->
+          <Label Text="⚠ Unhandled SSE event"
+                 FontFamily="InterSemiBold"
+                 FontSize="{StaticResource FontSizeSubheadline}"
+                 TextColor="{AppThemeBinding Light={StaticResource ColorOnWarningContainerLight},
+                                             Dark={StaticResource ColorOnWarningContainerDark}}"
+                 SemanticProperties.Description="Unhandled SSE event warning header" />
+
+          <!-- Raw event type -->
+          <Label Text="{Binding RawType, Source={x:Reference this}, StringFormat='Type: {0}', FallbackValue='Type: (unknown)', TargetNullValue='Type: (unknown)'}"
+                 FontFamily="InterRegular"
+                 FontSize="{StaticResource FontSizeCaption1}"
+                 TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
+                                             Dark={StaticResource ColorOnBackgroundSecondaryDark}}" />
+
+          <!-- JSON payload (scrollable, capped at 200pt) -->
+          <ScrollView MaximumHeightRequest="200"
+                      Orientation="Vertical">
+            <Label Text="{Binding RawJson, Source={x:Reference this}, FallbackValue='(no payload)', TargetNullValue='(no payload)'}"
+                   FontFamily="InterRegular"
+                   FontSize="{StaticResource FontSizeCaption1}"
+                   TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
+                                               Dark={StaticResource ColorOnBackgroundTertiaryDark}}"
+                   LineBreakMode="WordWrap"
+                   SemanticProperties.Description="Raw JSON payload of unhandled SSE event" />
+          </ScrollView>
+
+        </VerticalStackLayout>
+
+        <!-- ─────────────────────────────────────────────────────
+             Release layout — shown only in Release builds.
+             Generic user-friendly message; no technical data.
+             ───────────────────────────────────────────────────── -->
+        <Label IsVisible="{Binding IsDebugBuild, Source={x:Reference this}, Converter={StaticResource InvertedBoolConverter}}"
+               Text="Received an unrecognized message from the server."
+               FontFamily="InterRegular"
+               FontSize="{StaticResource FontSizeFootnote}"
+               TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
+                                           Dark={StaticResource ColorOnBackgroundSecondaryDark}}" />
+
+      </VerticalStackLayout>
+    </Border>
+
+  </Grid>
+
+</ContentView>

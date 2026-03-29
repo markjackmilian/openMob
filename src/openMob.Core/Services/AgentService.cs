@@ -31,8 +31,8 @@ internal sealed class AgentService : IAgentService
 
         if (result.Error is not null)
         {
-            SentryHelper.CaptureException(
-                new InvalidOperationException($"Failed to get agents: {result.Error.Message}"),
+            SentryHelper.CaptureOpencodeError(
+                result.Error,
                 new Dictionary<string, object> { ["errorKind"] = result.Error.Kind.ToString() });
         }
 

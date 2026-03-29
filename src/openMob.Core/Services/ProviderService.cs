@@ -32,8 +32,8 @@ internal sealed class ProviderService : IProviderService
 
         if (result.Error is not null)
         {
-            SentryHelper.CaptureException(
-                new InvalidOperationException($"Failed to get providers: {result.Error.Message}"),
+            SentryHelper.CaptureOpencodeError(
+                result.Error,
                 new Dictionary<string, object> { ["errorKind"] = result.Error.Kind.ToString() });
         }
 
@@ -57,8 +57,8 @@ internal sealed class ProviderService : IProviderService
 
         if (result.Error is not null)
         {
-            SentryHelper.CaptureException(
-                new InvalidOperationException($"Failed to set provider auth for '{providerId}': {result.Error.Message}"),
+            SentryHelper.CaptureOpencodeError(
+                result.Error,
                 new Dictionary<string, object>
                 {
                     ["providerId"] = providerId,
@@ -79,8 +79,8 @@ internal sealed class ProviderService : IProviderService
 
         if (result.Error is not null)
         {
-            SentryHelper.CaptureException(
-                new InvalidOperationException($"Failed to get configured providers: {result.Error.Message}"),
+            SentryHelper.CaptureOpencodeError(
+                result.Error,
                 new Dictionary<string, object> { ["errorKind"] = result.Error.Kind.ToString() });
         }
 

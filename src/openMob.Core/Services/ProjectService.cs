@@ -30,8 +30,8 @@ internal sealed class ProjectService : IProjectService
 
         if (result.Error is not null)
         {
-            SentryHelper.CaptureException(
-                new InvalidOperationException($"Failed to get projects: {result.Error.Message}"),
+            SentryHelper.CaptureOpencodeError(
+                result.Error,
                 new Dictionary<string, object> { ["errorKind"] = result.Error.Kind.ToString() });
         }
 
@@ -46,10 +46,10 @@ internal sealed class ProjectService : IProjectService
         if (result.IsSuccess)
             return result.Value;
 
-        if (result.Error is not null && result.Error.Kind != ErrorKind.NotFound)
+        if (result.Error is not null)
         {
-            SentryHelper.CaptureException(
-                new InvalidOperationException($"Failed to get current project: {result.Error.Message}"),
+            SentryHelper.CaptureOpencodeError(
+                result.Error,
                 new Dictionary<string, object> { ["errorKind"] = result.Error.Kind.ToString() });
         }
 
@@ -88,8 +88,8 @@ internal sealed class ProjectService : IProjectService
         {
             if (sessionResult.Error is not null)
             {
-                SentryHelper.CaptureException(
-                    new InvalidOperationException($"Failed to register project for '{worktree}': {sessionResult.Error.Message}"),
+                SentryHelper.CaptureOpencodeError(
+                    sessionResult.Error,
                     new Dictionary<string, object>
                     {
                         ["worktree"] = worktree,

@@ -4,7 +4,7 @@
 | Field   | Value                        |
 |---------|------------------------------|
 | Date    | 2026-03-28                   |
-| Status  | Draft                        |
+| Status  | In Progress                  |
 | Version | 1.0                          |
 
 ---
@@ -92,8 +92,8 @@ The server sends periodic `server.heartbeat` SSE events that are currently unhan
 | `sse-unhandled-message-fallback-card` (in-progress spec) | Dependency | `server.heartbeat` must be excluded from the fallback card logic introduced by that spec |
 
 ### Dependencies
-- `sse-unhandled-message-fallback-card` spec (in-progress): the fallback card spec must be coordinated so that `server.heartbeat` is explicitly excluded from the "unknown event → show card" path before or alongside this feature.
-- `tabler-icons-codepoint-migration` spec (in-progress): references `StatusBannerView.xaml` for an icon migration — that migration step becomes moot if `StatusBannerView` is removed; the two specs must be sequenced or the icon migration step skipped for this file.
+- `sse-unhandled-message-fallback-card` spec (done): the fallback card spec is already merged; `server.heartbeat` must be explicitly excluded from the "unknown event → show card" path.
+- `tabler-icons-codepoint-migration` spec (done): already merged; no conflict with `StatusBannerView` removal.
 - `chat-session-loading-indicator` spec (todo): references the 6-row Grid layout of ChatPage (REQ-006 of that spec); the row index of the loading overlay must be re-verified after this feature changes the Grid structure.
 
 ---
@@ -103,8 +103,8 @@ The server sends periodic `server.heartbeat` SSE events that are currently unhan
 | # | Question | Status | Answer / Decision |
 |---|----------|--------|-------------------|
 | 1 | Should the reconnection modal be implemented as a UXDivers popup sheet (via `IAppPopupService`) or as a native `DisplayAlert`-style overlay? | Resolved | Use `IAppPopupService` with a new dedicated popup sheet — consistent with the established rule that ViewModels never call `DisplayAlert` directly. |
-| 2 | Where does the active server name come from — `IOpencodeConnectionManager`, `IServerConnectionService`, or direct DB read? | Open | To be determined during Technical Analysis. |
-| 3 | Should the periodic heartbeat check timer be owned by `ChatViewModel` or extracted into a dedicated `IHeartbeatMonitorService`? | Open | To be determined during Technical Analysis; a dedicated service is preferred for testability. |
+| 2 | Where does the active server name come from — `IOpencodeConnectionManager`, `IServerConnectionService`, or direct DB read? | Resolved | Add `Task<string?> GetActiveServerNameAsync(CancellationToken ct)` to `IOpencodeConnectionManager` and implement it in `OpencodeConnectionManager` via `IServerConnectionRepository.GetActiveAsync()`. This keeps the pattern consistent with `GetBaseUrlAsync()`. |
+| 3 | Should the periodic heartbeat check timer be owned by `ChatViewModel` or extracted into a dedicated `IHeartbeatMonitorService`? | Resolved | Dedicated `IHeartbeatMonitorService` with `StartAsync(CancellationToken)` / `StopAsync()` for testability. The service owns the `PeriodicTimer` and exposes an `event Action<ConnectionHealthState>? HealthStateChanged`. |
 | 4 | What happens to the `NoProvider` banner path in `UpdateStatusBanner()`? | Resolved | Removed entirely — provider configuration is server-side; the concept no longer applies to the mobile app. |
 | 5 | After the user navigates back from ServerManagementPage, should the reconnection modal reappear automatically? | Resolved | Yes — if the connection is still `Lost`, the modal reappears; if restored, it stays closed. |
 
@@ -152,7 +152,7 @@ The server sends periodic `server.heartbeat` SSE events that are currently unhan
 
 - **Grid layout change:** Current `ChatPage.xaml` outer Grid has `RowDefinitions="Auto,Auto,Auto,*,Auto,Auto"` (Row 0=Header, Row 1=ContextStatusBar, Row 2=StatusBanner, Row 3=Messages, Row 4=SubagentIndicator, Row 5=InputArea — but input is now a modal). Removing Row 2 (`StatusBannerView`) and adding `ConnectionFooterView` at the bottom changes row indices. Re-verify `chat-session-loading-indicator` spec (todo) which references specific row numbers for its overlay.
 
-- **`StatusBannerView` removal cascade:** Check `tabler-icons-codepoint-migration` (in-progress) which lists `StatusBannerView.xaml` as a migration target — coordinate removal to avoid a merge conflict.
+- **`StatusBannerView` removal cascade:** Check `tabler-icons-codepoint-migration` (done) which listed `StatusBannerView.xaml` as a migration target — already merged, no conflict.
 
 - **Navigation pattern:** `"///server-management"` (triple-slash absolute push) is the established pattern for ChatPage → ServerManagementPage with back navigation, as decided in `server-offline-startup-navigation`. No changes needed to `AppShell.xaml` routing.
 
@@ -175,6 +175,101 @@ The server sends periodic `server.heartbeat` SSE events that are currently unhan
 - `src/openMob/Services/MauiPopupService.cs` — new method implementation
 - `src/openMob.Core/Services/IOpencodeConnectionManager.cs` — possible `ActiveServerName` addition
 - `src/openMob.Core/Services/OpencodeConnectionManager.cs` — possible implementation
-- `specs/in-progress/2026-03-28-sse-unhandled-message-fallback-card.md` — coordinate exclusion of `server.heartbeat`
-- `specs/in-progress/2026-03-21-tabler-icons-codepoint-migration.md` — coordinate `StatusBannerView` removal
+- `specs/done/2026-03-28-sse-unhandled-message-fallback-card.md` — coordinate exclusion of `server.heartbeat`
+- `specs/done/2026-03-21-tabler-icons-codepoint-migration.md` — already merged, no conflict
 - `specs/todo/2026-03-25-chat-session-loading-indicator.md` — re-verify row indices after Grid change
+
+---
+
+## Technical Analysis
+
+> Added by: om-orchestrator | Date: 2026-03-30
+
+### Change Classification
+
+| Field | Value |
+|-------|-------|
+| Change type | Feature |
+| Git Flow branch | `feature/heartbeat-monitor-footer` |
+| Branches from | `develop` |
+| Estimated complexity | High |
+| Estimated agents involved | om-mobile-core, om-mobile-ui, om-tester, om-reviewer |
+
+### Layers Involved
+
+| Layer | Agent | Scope |
+|-------|-------|-------|
+| Business logic / Services | om-mobile-core | `src/openMob.Core/Services/` |
+| ViewModels | om-mobile-core | `src/openMob.Core/ViewModels/` |
+| Infrastructure / HTTP | om-mobile-core | `src/openMob.Core/Infrastructure/Http/` |
+| Models | om-mobile-core | `src/openMob.Core/Models/` |
+| XAML Views | om-mobile-ui | `src/openMob/Views/Pages/` |
+| UI Controls | om-mobile-ui | `src/openMob/Views/Controls/` |
+| Popup Sheets | om-mobile-ui | `src/openMob/Views/Popups/` |
+| MAUI Services | om-mobile-ui | `src/openMob/Services/` |
+| Unit Tests | om-tester | `tests/openMob.Tests/` |
+| Code Review | om-reviewer | all of the above |
+
+### Files to Create
+
+- `src/openMob.Core/Services/IHeartbeatMonitorService.cs` — interface for the heartbeat monitor service
+- `src/openMob.Core/Services/HeartbeatMonitorService.cs` — implementation with `PeriodicTimer` + `TimeProvider`, exposes `event Action<ConnectionHealthState>? HealthStateChanged`
+- `src/openMob.Core/Models/ConnectionHealthState.cs` — enum: `Healthy`, `Degraded`, `Lost`
+- `src/openMob.Core/ViewModels/ReconnectingModalViewModel.cs` — ViewModel for the reconnection modal popup; owns the exponential backoff retry loop
+- `src/openMob/Views/Controls/ConnectionFooterView.xaml` + `.xaml.cs` — always-visible footer with server name + traffic-light indicator
+- `src/openMob/Views/Popups/ReconnectingModalSheet.xaml` + `.xaml.cs` — non-dismissible UXDivers popup sheet
+
+### Files to Modify
+
+- `src/openMob.Core/Infrastructure/Http/IOpencodeConnectionManager.cs` — add `Task<string?> GetActiveServerNameAsync(CancellationToken ct)` method
+- `src/openMob.Core/Infrastructure/Http/OpencodeConnectionManager.cs` — implement `GetActiveServerNameAsync` via `IServerConnectionRepository.GetActiveAsync()`
+- `src/openMob.Core/Services/IAppPopupService.cs` — add `Task ShowReconnectingModalAsync(ReconnectingModalViewModel vm, CancellationToken ct)` method
+- `src/openMob/Services/MauiPopupService.cs` — implement `ShowReconnectingModalAsync` using UXDivers `IPopupService.Current.PushAsync`
+- `src/openMob.Core/ViewModels/ChatViewModel.cs` — remove `StatusBanner`, `HasNoProvider`, `IsServerOffline`, `UpdateStatusBanner()`, `NavigateToServerManagementCommand`; add `IHeartbeatMonitorService` dependency, `ConnectionHealthState` property, `ActiveServerName` property, `OnHeartbeatReceived()`, heartbeat SSE case in switch, `OnAppearing`/`OnDisappearing` lifecycle hooks for monitor start/stop
+- `src/openMob/Views/Pages/ChatPage.xaml` — remove Row 2 (`StatusBannerView`), update `RowDefinitions` from `Auto,Auto,Auto,*,Auto,Auto` to `Auto,Auto,*,Auto,Auto`, add `ConnectionFooterView` as Row 4 (new bottom row), shift `SubagentIndicatorView` to Row 3
+- `src/openMob/Views/Pages/ChatPage.xaml.cs` — add `OnAppearing`/`OnDisappearing` overrides to call `ChatViewModel.StartHeartbeatMonitorCommand` / `StopHeartbeatMonitorCommand`
+- `src/openMob/MauiProgram.cs` — register `IHeartbeatMonitorService`, `HeartbeatMonitorService`, `ReconnectingModalSheet`, `ReconnectingModalViewModel` in DI
+- `src/openMob.Core/GlobalUsings.cs` — no change expected
+- **DELETE** `src/openMob/Views/Controls/StatusBannerView.xaml` + `.xaml.cs`
+- **DELETE** `src/openMob.Core/Models/StatusBannerInfo.cs`
+- **DELETE** `src/openMob.Core/Models/StatusBannerType.cs`
+
+### Technical Dependencies
+
+- `IOpencodeConnectionManager.IsServerReachableAsync()` — already exists; used by `ReconnectingModalViewModel` for health probes
+- `IOpencodeConnectionManager.GetActiveServerNameAsync()` — new method to add; reads `ServerConnection.Name` via `IServerConnectionRepository.GetActiveAsync()`
+- `IServerConnectionRepository.GetActiveAsync()` — already exists; returns `ServerConnectionDto` which has `Name` field
+- `INavigationService.GoToAsync("///server-management")` — already exists; used by `ReconnectingModalViewModel`
+- `IAppPopupService.ShowReconnectingModalAsync(...)` — new method; MAUI implementation uses `IPopupService.Current.PushAsync`
+- `TimeProvider` — already used in `SplashViewModel`; inject into `HeartbeatMonitorService` for testability
+- `ServerHeartbeatEvent` — currently falls to `UnknownEvent` in `ChatEventParser`; must add explicit `"server.heartbeat"` case returning a new `ServerHeartbeatEvent` type, OR handle it in `ChatViewModel`'s `UnknownEvent` case by checking `e.RawType == "server.heartbeat"`. **Decision: handle in `ChatViewModel` switch via `UnknownEvent` check to avoid touching `ChatEventParser` and its test coverage.** This is the minimal-risk approach.
+
+### Technical Risks
+
+- **Grid row index shift**: Removing Row 2 (`StatusBannerView`) shifts `SubagentIndicatorView` from Row 4 → Row 3 and the error/suggestion area from Row 5 → Row 4. The new `ConnectionFooterView` occupies a new Row 4 (appended at bottom). The `chat-session-loading-indicator` spec (todo) references specific row numbers — its implementation must be coordinated.
+- **Non-dismissible modal**: UXDivers `PopupPage` supports `CloseWhenBackgroundIsClicked = false` and Android back-button override. Must verify both platforms.
+- **Reconnection modal lifecycle**: When user navigates to `ServerManagementPage` from the modal, the modal must be dismissed first (or the navigation must happen from within the modal's ViewModel). The `ReconnectingModalViewModel` calls `_popupService.PopPopupAsync()` then `_navigationService.GoToAsync("///server-management")`. On return to ChatPage, `OnAppearing` re-evaluates the health state and re-shows the modal if still `Lost`.
+- **`server.heartbeat` exclusion from fallback card**: The `sse-unhandled-message-fallback-card` spec is already done. The current `HandleUnknownEvent` creates a fallback card for ALL unknown events. The heartbeat case must be intercepted **before** `HandleUnknownEvent` is called. Solution: in the `UnknownEvent` case in `ChatViewModel`'s switch, check `e.RawType == "server.heartbeat"` first and call `OnHeartbeatReceived()` instead of `HandleUnknownEvent(e)`.
+- **Thread safety**: `LastHeartbeatAt` is written from the SSE background thread and read from the `PeriodicTimer` callback. Use `volatile DateTime` or `Interlocked`-based pattern.
+
+### Execution Order
+
+> Steps that can run in parallel are marked with ⟳. Steps that must be sequential are numbered.
+
+1. **[Git Flow]** Create branch `feature/heartbeat-monitor-footer`
+2. **[om-mobile-core]** Implement `ConnectionHealthState` enum, `IHeartbeatMonitorService` + `HeartbeatMonitorService`, `ReconnectingModalViewModel`, extend `IOpencodeConnectionManager` + `OpencodeConnectionManager`, extend `IAppPopupService`, update `ChatViewModel`
+3. ⟳ **[om-mobile-ui]** Implement `ConnectionFooterView`, `ReconnectingModalSheet`, update `ChatPage.xaml`, update `MauiPopupService`, delete `StatusBannerView` — can start layout/styles immediately; wire bindings after step 2 publishes ViewModel surface
+4. **[om-tester]** Write unit tests for `HeartbeatMonitorService` and `ReconnectingModalViewModel` — after step 2 completes
+5. **[om-reviewer]** Full review against spec — after steps 2, 3, 4 complete
+6. **[Fix loop if needed]** Address Critical and Major findings
+7. **[Git Flow]** Finish branch and merge
+
+### Definition of Done
+
+- [ ] All `[REQ-001]` through `[REQ-013]` requirements implemented
+- [ ] All `[AC-001]` through `[AC-010]` acceptance criteria satisfied
+- [ ] `StatusBannerView`, `StatusBannerInfo`, `StatusBannerType` fully deleted — zero compilation errors
+- [ ] Unit tests written for `HeartbeatMonitorService` and `ReconnectingModalViewModel`
+- [ ] `om-reviewer` verdict: ✅ Approved or ⚠️ Approved with remarks
+- [ ] Git Flow branch finished and deleted
+- [ ] Spec moved to `specs/done/` with Completed status

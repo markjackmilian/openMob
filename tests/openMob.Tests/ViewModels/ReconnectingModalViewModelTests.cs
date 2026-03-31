@@ -386,9 +386,9 @@ public sealed class ReconnectingModalViewModelTests
         // Act
         await _sut.NavigateToServerManagementCommand.ExecuteAsync(null);
 
-        // Assert
+        // Assert — route changed to push route so back navigation works on both platforms
         await _navigationService.Received(1).GoToAsync(
-            "///server-management",
+            "server-management-push",
             Arg.Any<CancellationToken>());
     }
 

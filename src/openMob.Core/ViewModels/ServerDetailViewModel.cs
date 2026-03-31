@@ -724,9 +724,15 @@ public sealed partial class ServerDetailViewModel : ObservableObject
 
     /// <summary>
     /// Loads the server-side auto-approve state from <c>GET /config</c>.
-    /// Sets <see cref="IsServerAutoApproveEnabled"/> to <see langword="true"/> when
-    /// <c>permission == "allow"</c>, <see langword="false"/> otherwise.
-    /// On failure, sets <see cref="AutoApproveErrorMessage"/> and leaves the toggle disabled.
+    /// <para>
+    /// <b>Known API limitation:</b> the opencode server's <c>GET /config</c> does not
+    /// return the <c>permission</c> field. As a result, the toggle always starts OFF
+    /// when the page loads. The user must explicitly enable it via the toggle, which
+    /// calls <c>PATCH /config</c> and works correctly. This is an accepted limitation
+    /// until the server API exposes <c>permission</c> in the GET response.
+    /// </para>
+    /// On failure (server unreachable), sets <see cref="AutoApproveErrorMessage"/>
+    /// and leaves the toggle disabled.
     /// </summary>
     /// <param name="ct">Cancellation token.</param>
     private async Task LoadAutoApproveConfigAsync(CancellationToken ct)
@@ -740,6 +746,8 @@ public sealed partial class ServerDetailViewModel : ObservableObject
 
             if (result.IsSuccess && result.Value is not null)
             {
+                // GET /config does not return the "permission" field (known server limitation).
+                // IsPermissionAllow will be false when the field is absent — toggle starts OFF.
                 IsServerAutoApproveEnabled = result.Value.IsPermissionAllow;
             }
             else

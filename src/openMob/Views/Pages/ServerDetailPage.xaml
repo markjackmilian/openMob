@@ -201,6 +201,68 @@
           </Grid>
         </Border>
 
+        <!-- ── Auto-Approve section (Edit mode only) ────────────────── -->
+        <Border
+            Style="{StaticResource CardBorder}"
+            Padding="{StaticResource SpacingMd}"
+            IsVisible="{Binding IsEditMode}">
+          <VerticalStackLayout Spacing="{StaticResource SpacingMd}">
+
+            <!-- Toggle row -->
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource SpacingSm}">
+
+              <!-- Label + subtitle -->
+              <VerticalStackLayout
+                  Grid.Column="0"
+                  Spacing="{StaticResource SpacingXs}"
+                  VerticalOptions="Center">
+                <Label
+                    Text="Approva automaticamente (server)"
+                    Style="{StaticResource BodyLabel}"
+                    FontFamily="InterMedium" />
+                <Label
+                    Text="Bypassa le richieste di permesso per tutti gli strumenti. Valido anche quando l'app è offline."
+                    Style="{StaticResource FootnoteLabel}"
+                    TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}" />
+              </VerticalStackLayout>
+
+              <!-- Toggle -->
+              <Switch
+                  x:Name="AutoApproveSwitch"
+                  Grid.Column="1"
+                  IsToggled="{Binding IsServerAutoApproveEnabled, Mode=OneWay}"
+                  Toggled="OnAutoApproveSwitchToggled"
+                  VerticalOptions="Center"
+                  AutomationId="ServerDetailAutoApproveSwitch"
+                  SemanticProperties.Description="Approva automaticamente (server)">
+                <Switch.Triggers>
+                  <DataTrigger TargetType="Switch" Binding="{Binding IsAutoApproveConfigLoaded}" Value="False">
+                    <Setter Property="IsEnabled" Value="False" />
+                  </DataTrigger>
+                  <DataTrigger TargetType="Switch" Binding="{Binding IsTogglingAutoApprove}" Value="True">
+                    <Setter Property="IsEnabled" Value="False" />
+                  </DataTrigger>
+                </Switch.Triggers>
+              </Switch>
+
+            </Grid>
+
+            <!-- Loading indicator (while GET /config is in flight) -->
+            <ActivityIndicator
+                IsRunning="{Binding IsAutoApproveConfigLoaded, Converter={StaticResource InvertedBoolConverter}}"
+                IsVisible="{Binding IsAutoApproveConfigLoaded, Converter={StaticResource InvertedBoolConverter}}"
+                HorizontalOptions="Start" />
+
+            <!-- Error message -->
+            <Label
+                Text="{Binding AutoApproveErrorMessage, FallbackValue='', TargetNullValue=''}"
+                Style="{StaticResource FootnoteLabel}"
+                TextColor="{AppThemeBinding Light={StaticResource ColorErrorLight}, Dark={StaticResource ColorErrorDark}}"
+                IsVisible="{Binding AutoApproveErrorMessage, Converter={StaticResource NullToVisibilityConverter}}" />
+
+          </VerticalStackLayout>
+        </Border>
+
         <!-- ── Action buttons section ────────────────────────────── -->
         <VerticalStackLayout Spacing="{StaticResource SpacingSm}" Margin="0,0,0,32">
 

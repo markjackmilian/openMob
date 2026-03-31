@@ -49,7 +49,18 @@ public sealed record ConfigDto(
     [property: JsonPropertyName("tools")] JsonElement? Tools,
     [property: JsonPropertyName("experimental")] JsonElement? Experimental,
     [property: JsonPropertyName("watcher")] JsonElement? Watcher
-);
+)
+{
+    /// <summary>
+    /// Returns <see langword="true"/> when the <c>permission</c> config field is the string <c>"allow"</c>.
+    /// Returns <see langword="false"/> for any other value (including <c>"ask"</c>, <c>"deny"</c>,
+    /// granular object rules, or when the field is absent).
+    /// </summary>
+    public bool IsPermissionAllow =>
+        Permission.HasValue &&
+        Permission.Value.ValueKind == System.Text.Json.JsonValueKind.String &&
+        Permission.Value.GetString() == "allow";
+}
 
 /// <summary>
 /// Response DTO for <c>GET /config/providers</c>.

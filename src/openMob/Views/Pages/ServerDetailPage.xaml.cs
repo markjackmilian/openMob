@@ -29,6 +29,17 @@ public partial class ServerDetailPage : ContentPage
         await Shell.Current.GoToAsync("..");
     }
 
+    /// <summary>
+    /// Forwards the auto-approve toggle's Toggled event to the ViewModel command.
+    /// Using a code-behind handler instead of EventToCommandBehavior because the
+    /// toolkit namespace is not declared in this project's XAML pages.
+    /// </summary>
+    private void OnAutoApproveSwitchToggled(object? sender, ToggledEventArgs e)
+    {
+        if (_viewModel.ToggleServerAutoApproveCommand.CanExecute(null))
+            _viewModel.ToggleServerAutoApproveCommand.Execute(null);
+    }
+
     /// <summary>Gets or sets the server ID received via query parameter (Edit mode).</summary>
     public string ServerId
     {

@@ -1,11 +1,14 @@
 # Heartbeat Monitor Footer with Reconnection Flow
 
 ## Metadata
-| Field   | Value                        |
-|---------|------------------------------|
-| Date    | 2026-03-28                   |
-| Status  | In Progress                  |
-| Version | 1.0                          |
+| Field       | Value                              |
+|-------------|-----------------------------------|
+| Date        | 2026-03-28                        |
+| Status      | **Completed**                     |
+| Version     | 1.0                               |
+| Completed   | 2026-03-31                        |
+| Branch      | feature/heartbeat-monitor-footer (merged) |
+| Merged into | develop                           |
 
 ---
 

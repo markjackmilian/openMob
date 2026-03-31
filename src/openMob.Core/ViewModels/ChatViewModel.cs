@@ -2425,7 +2425,7 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
             // Outer catch prevents unobserved task exceptions from the fire-and-forget call.
             SentryHelper.CaptureException(ex, new Dictionary<string, object>
             {
-                ["context"] = "ChatViewModel.ReplayPendingPermissionsAsync",
+                ["context"] = "ChatViewModel.ReplayPendingPermissionsAsync.Outer",
             });
         }
     }

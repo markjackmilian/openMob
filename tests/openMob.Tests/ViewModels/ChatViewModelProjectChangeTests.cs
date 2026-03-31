@@ -22,7 +22,6 @@ public sealed class ChatViewModelProjectChangeTests : IDisposable
     private readonly INavigationService _navigationService;
     private readonly IAppPopupService _popupService;
     private readonly IOpencodeConnectionManager _connectionManager;
-    private readonly IProviderService _providerService;
     private readonly IProjectPreferenceService _preferenceService;
     private readonly IChatService _chatService;
     private readonly IOpencodeApiClient _apiClient;
@@ -37,7 +36,6 @@ public sealed class ChatViewModelProjectChangeTests : IDisposable
         _navigationService = Substitute.For<INavigationService>();
         _popupService = Substitute.For<IAppPopupService>();
         _connectionManager = Substitute.For<IOpencodeConnectionManager>();
-        _providerService = Substitute.For<IProviderService>();
         _preferenceService = Substitute.For<IProjectPreferenceService>();
         _chatService = Substitute.For<IChatService>();
         _apiClient = Substitute.For<IOpencodeApiClient>();
@@ -47,9 +45,8 @@ public sealed class ChatViewModelProjectChangeTests : IDisposable
         // CRITICAL: IDispatcherService mock must execute the action synchronously
         _dispatcher.When(d => d.Dispatch(Arg.Any<Action>())).Do(ci => ci.Arg<Action>()());
 
-        // Default: server connected, provider configured
+        // Default: server connected
         _connectionManager.ConnectionStatus.Returns(ServerConnectionStatus.Connected);
-        _providerService.HasAnyProviderConfiguredAsync(Arg.Any<CancellationToken>()).Returns(true);
 
         _sut = new ChatViewModel(
             _projectService,
@@ -57,12 +54,12 @@ public sealed class ChatViewModelProjectChangeTests : IDisposable
             _navigationService,
             _popupService,
             _connectionManager,
-            _providerService,
             _preferenceService,
             _chatService,
             _apiClient,
             _dispatcher,
-            _activeProjectService);
+            _activeProjectService,
+            Substitute.For<IHeartbeatMonitorService>());
     }
 
     public void Dispose()

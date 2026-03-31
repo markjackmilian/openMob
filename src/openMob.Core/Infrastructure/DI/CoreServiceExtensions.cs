@@ -126,6 +126,9 @@ public static class CoreServiceExtensions
         // Chat service (singleton — maintains SSE connection state and IsConnected)
         services.AddSingleton<IChatService, ChatService>();
 
+        // Heartbeat monitor (singleton — tracks server heartbeat health state across the app lifetime)
+        services.AddSingleton<IHeartbeatMonitorService, HeartbeatMonitorService>();
+
         // Markdown parsing (singleton — stateless pipeline, safe to share)
         services.AddSingleton<IMarkdownParser, MarkdigMarkdownParser>();
 
@@ -160,6 +163,9 @@ public static class CoreServiceExtensions
         services.AddTransient<SettingsViewModel>();
         services.AddTransient<ServerManagementViewModel>();
         services.AddTransient<ServerDetailViewModel>();
+
+        // ReconnectingModalViewModel is transient — a new instance is created per reconnection event.
+        services.AddTransient<ReconnectingModalViewModel>();
 
         return services;
     }

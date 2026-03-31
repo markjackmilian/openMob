@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewmodels="clr-namespace:openMob.Core.ViewModels;assembly=openMob.Core"
+             xmlns:models="clr-namespace:openMob.Core.Models;assembly=openMob.Core"
+             x:Class="openMob.Views.Controls.ConnectionFooterView"
+             x:DataType="viewmodels:ChatViewModel">
+
+  <!-- Always-visible connection footer (REQ-004, REQ-012, REQ-013).
+       Thin separator line at top, then a single row with:
+         - traffic-light dot (left)
+         - server name (fills remaining space, truncates)
+       Colours update via AppThemeBinding and DataTriggers. -->
+
+  <VerticalStackLayout Spacing="0">
+
+    <!-- Top separator -->
+    <BoxView HeightRequest="1"
+             HorizontalOptions="Fill"
+             Color="{AppThemeBinding Light={StaticResource ColorOutlineLight},
+                                     Dark={StaticResource ColorOutlineDark}}" />
+
+    <!-- Content row -->
+    <Grid ColumnDefinitions="Auto,*"
+          ColumnSpacing="{StaticResource SpacingSm}"
+          Padding="16,8"
+          BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceLight},
+                                            Dark={StaticResource ColorSurfaceDark}}">
+
+      <!-- Traffic-light indicator dot (10×10, circular).
+           Default: Healthy (green). DataTriggers override for Degraded and Lost. -->
+      <Ellipse x:Name="HealthDot"
+               Grid.Column="0"
+               WidthRequest="10"
+               HeightRequest="10"
+               VerticalOptions="Center"
+               Fill="{AppThemeBinding Light={StaticResource ColorSuccessLight},
+                                      Dark={StaticResource ColorSuccessDark}}"
+               AutomationId="ConnectionHealthDot"
+               SemanticProperties.Description="Connection health indicator">
+        <Ellipse.Triggers>
+
+          <!-- Degraded → yellow -->
+          <DataTrigger TargetType="Ellipse"
+                       Binding="{Binding ConnectionHealthState}"
+                       Value="{x:Static models:ConnectionHealthState.Degraded}">
+            <Setter Property="Fill"
+                    Value="{AppThemeBinding Light={StaticResource ColorWarningLight},
+                                            Dark={StaticResource ColorWarningDark}}" />
+          </DataTrigger>
+
+          <!-- Lost → red -->
+          <DataTrigger TargetType="Ellipse"
+                       Binding="{Binding ConnectionHealthState}"
+                       Value="{x:Static models:ConnectionHealthState.Lost}">
+            <Setter Property="Fill"
+                    Value="{AppThemeBinding Light={StaticResource ColorErrorLight},
+                                            Dark={StaticResource ColorErrorDark}}" />
+          </DataTrigger>
+
+        </Ellipse.Triggers>
+      </Ellipse>
+
+      <!-- Server name — fills remaining space, truncates on overflow -->
+      <Label Grid.Column="1"
+             Text="{Binding ActiveServerName, FallbackValue='Server', TargetNullValue='Server'}"
+             FontFamily="InterRegular"
+             FontSize="{StaticResource FontSizeFootnote}"
+             TextColor="{AppThemeBinding Light={StaticResource ColorOnSurfaceSecondaryLight},
+                                         Dark={StaticResource ColorOnSurfaceSecondaryDark}}"
+             LineBreakMode="TailTruncation"
+             VerticalOptions="Center"
+             AutomationId="ConnectionFooterServerName"
+             SemanticProperties.Description="Active server name" />
+
+    </Grid>
+
+  </VerticalStackLayout>
+
+</ContentView>

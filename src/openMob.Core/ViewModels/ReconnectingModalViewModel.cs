@@ -89,14 +89,21 @@ public sealed partial class ReconnectingModalViewModel : ObservableObject
 
     /// <summary>
     /// Navigates to the Server Management page.
-    /// Pops the reconnection modal first, then navigates using the absolute push route.
+    /// Pops the reconnection modal first, then pushes ServerManagementPage onto the
+    /// navigation stack using the <c>"server-management-push"</c> route so that the
+    /// page's back button returns to ChatPage on both iOS and Android.
     /// </summary>
+    /// <remarks>
+    /// The <c>"server-management-push"</c> route is registered in <c>AppShell.xaml.cs</c>
+    /// as a push route separate from the <c>"server-management"</c> ShellContent root
+    /// declaration. This allows back navigation via <c>".."</c> on both platforms.
+    /// </remarks>
     /// <param name="ct">Cancellation token.</param>
     [RelayCommand]
     private async Task NavigateToServerManagementAsync(CancellationToken ct)
     {
         await _popupService.PopPopupAsync(ct).ConfigureAwait(false);
-        await _navigationService.GoToAsync("///server-management", ct).ConfigureAwait(false);
+        await _navigationService.GoToAsync("server-management-push", ct).ConfigureAwait(false);
     }
 
     // ─── Reconnection Loop ────────────────────────────────────────────────────

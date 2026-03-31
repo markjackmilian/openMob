@@ -14,7 +14,7 @@
 
   <!-- ChatPage uses edge-to-edge layout for the message list (standard chat UI pattern).
        Horizontal padding is applied to the input bar and header, not the message area. -->
-  <Grid RowDefinitions="Auto,Auto,Auto,*,Auto,Auto">
+  <Grid RowDefinitions="Auto,Auto,*,Auto,Auto,Auto">
 
     <!-- ═══════════════════════════════════════════════════════════════
          ROW 0 — Header
@@ -94,19 +94,9 @@
                                     TapCommand="{Binding OpenContextSheetCommand}" />
 
     <!-- ═══════════════════════════════════════════════════════════════
-         ROW 2 — Status Banner (existing, unchanged)
+         ROW 2 — Message area (star row) + FAB overlay
          ═══════════════════════════════════════════════════════════════ -->
-    <controls:StatusBannerView Grid.Row="2"
-                               IsVisible="{Binding StatusBanner, Converter={StaticResource NullToVisibilityConverter}}"
-                               Message="{Binding StatusBanner.Message, FallbackValue='', TargetNullValue=''}"
-                               ActionLabel="{Binding StatusBanner.ActionLabel, FallbackValue='', TargetNullValue=''}"
-                               ActionCommand="{Binding NavigateToServerManagementCommand}"
-                               BannerType="{Binding StatusBanner.Type, FallbackValue=None}" />
-
-    <!-- ═══════════════════════════════════════════════════════════════
-         ROW 3 — Message area (star row) + FAB overlay
-         ═══════════════════════════════════════════════════════════════ -->
-    <Grid Grid.Row="3"
+    <Grid Grid.Row="2"
           RowDefinitions="*,Auto"
           BackgroundColor="{AppThemeBinding Light={StaticResource ColorBackgroundLight},
                                             Dark={StaticResource ColorBackgroundDark}}">
@@ -539,18 +529,18 @@
     </Grid>
 
     <!-- ═══════════════════════════════════════════════════════════════
-         ROW 4 — Subagent indicator (REQ-032)
+         ROW 3 — Subagent indicator (REQ-032)
          ═══════════════════════════════════════════════════════════════ -->
-    <controls:SubagentIndicatorView Grid.Row="4"
+    <controls:SubagentIndicatorView Grid.Row="3"
                                     SubagentName="{Binding SubagentName}"
                                     IsActive="{Binding IsSubagentActive}"
                                     StatusText="Working..."
                                     IsVisible="{Binding IsSubagentActive}" />
 
     <!-- ═══════════════════════════════════════════════════════════════
-         ROW 5 — Error banner + Suggestion chips (existing, unchanged)
+         ROW 4 — Error banner + Suggestion chips
          ═══════════════════════════════════════════════════════════════ -->
-    <VerticalStackLayout Grid.Row="5" Spacing="0">
+    <VerticalStackLayout Grid.Row="4" Spacing="0">
 
       <!-- Pending Permissions Indicator — visible when HasPendingPermissions = true -->
       <Border IsVisible="{Binding HasPendingPermissions}"
@@ -603,6 +593,12 @@
 
 
     </VerticalStackLayout>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         ROW 5 — Connection Footer (REQ-004, REQ-013)
+         Always-visible footer: active server name + traffic-light dot.
+         ═══════════════════════════════════════════════════════════════ -->
+    <controls:ConnectionFooterView Grid.Row="5" />
 
   </Grid>
 

@@ -1,3 +1,5 @@
+using openMob.Core.ViewModels;
+
 namespace openMob.Core.Services;
 
 /// <summary>
@@ -139,4 +141,11 @@ public interface IAppPopupService
     /// <param name="onCommandSelected">Callback invoked with the selected command string.</param>
     /// <param name="ct">Cancellation token.</param>
     Task ShowCommandPaletteAsync(Action<string> onCommandSelected, CancellationToken ct = default);
+
+    /// <summary>
+    /// Shows the non-dismissible reconnection modal sheet.
+    /// </summary>
+    /// <param name="vm">The pre-configured <see cref="ReconnectingModalViewModel"/> to bind to the sheet.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task ShowReconnectingModalAsync(ReconnectingModalViewModel vm, CancellationToken ct = default);
 }

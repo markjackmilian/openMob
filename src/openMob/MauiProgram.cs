@@ -113,6 +113,12 @@ public static class MauiProgram
         builder.Services.AddTransientPopup<FilePickerSheet, FilePickerViewModel>();
         builder.Services.AddTransientPopup<FolderPickerSheet, FolderPickerViewModel>();
 
+        // ReconnectingModalSheet is instantiated directly in MauiPopupService (not via DI popup stack)
+        // because its ViewModel is constructed at runtime by ChatViewModel with a live CancellationToken.
+        // IHeartbeatMonitorService, HeartbeatMonitorService, and ReconnectingModalViewModel are
+        // registered in CoreServiceExtensions.AddOpenMobCore() — do not register them here.
+        builder.Services.AddTransient<ReconnectingModalSheet>();
+
         var app = builder.Build();
 
         // Initialise the shared Markdown parser singleton for MarkdownView.

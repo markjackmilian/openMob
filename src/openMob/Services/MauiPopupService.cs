@@ -353,4 +353,22 @@ internal sealed class MauiPopupService : IAppPopupService
         // Present via UXDivers popup stack
         await IPopupService.Current.PushAsync(sheet);
     }
+
+    /// <inheritdoc />
+    public async Task ShowReconnectingModalAsync(ReconnectingModalViewModel vm, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        var sheet = new ReconnectingModalSheet();
+        sheet.BindingContext = vm;
+
+        // Ensure PushAsync is called on the main thread.
+        // The caller (ChatViewModel.OnHealthStateChanged) dispatches via IDispatcherService,
+        // but we guard here as well to be safe on Android.
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            ct.ThrowIfCancellationRequested();
+            return IPopupService.Current.PushAsync(sheet);
+        });
+    }
 }

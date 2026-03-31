@@ -57,6 +57,9 @@ public partial class ChatPage : ContentPage, IQueryAttributable
             // Sync typing indicator in case IsAiResponding was already true on page re-entry
             if (vm.IsAiResponding)
                 StartTypingAnimation();
+
+            // Start the heartbeat monitor so the connection footer stays up-to-date
+            await vm.StartHeartbeatMonitorCommand.ExecuteAsync(null);
         }
     }
 
@@ -68,6 +71,9 @@ public partial class ChatPage : ContentPage, IQueryAttributable
         if (BindingContext is ChatViewModel vm)
         {
             vm.PropertyChanged -= OnViewModelPropertyChanged;
+
+            // Stop the heartbeat monitor when the page is not visible
+            vm.StopHeartbeatMonitorCommand.Execute(null);
         }
 
         StopTypingAnimation();

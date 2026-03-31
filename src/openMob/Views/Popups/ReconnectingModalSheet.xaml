@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<uxd:PopupPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+               xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+               xmlns:uxd="clr-namespace:UXDivers.Popups.Maui;assembly=UXDivers.Popups.Maui"
+               xmlns:viewmodels="clr-namespace:openMob.Core.ViewModels;assembly=openMob.Core"
+               x:Class="openMob.Views.Popups.ReconnectingModalSheet"
+               x:DataType="viewmodels:ReconnectingModalViewModel"
+               BackgroundColor="{DynamicResource PopupBackdropColor}"
+               CloseWhenBackgroundIsClicked="False">
+
+  <!-- Non-dismissible reconnection modal (REQ-006, AC-005).
+       Centered card with spinner, status message, attempt counter, and
+       a "Gestisci server" secondary button. The Android back button is
+       consumed in code-behind to prevent accidental dismissal. -->
+  <Border VerticalOptions="Center"
+          HorizontalOptions="Center"
+          WidthRequest="300"
+          StrokeThickness="0"
+          Padding="0"
+          BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceLight},
+                                            Dark={StaticResource ColorSurfaceDark}}">
+    <Border.StrokeShape>
+      <RoundRectangle CornerRadius="16" />
+    </Border.StrokeShape>
+    <Border.Shadow>
+      <Shadow Brush="Black"
+              Opacity="0.20"
+              Offset="0,4"
+              Radius="16" />
+    </Border.Shadow>
+
+    <VerticalStackLayout Spacing="{StaticResource SpacingLg}"
+                         Padding="{StaticResource SpacingXl}">
+
+      <!-- 1. Spinner — visible while a probe is in flight -->
+      <ActivityIndicator IsRunning="{Binding IsReconnecting}"
+                         IsVisible="{Binding IsReconnecting}"
+                         WidthRequest="32"
+                         HeightRequest="32"
+                         HorizontalOptions="Center"
+                         Color="{AppThemeBinding Light={StaticResource ColorPrimaryLight},
+                                                 Dark={StaticResource ColorPrimaryDark}}"
+                         AutomationId="ReconnectingSpinner"
+                         SemanticProperties.Description="Reconnection in progress" />
+
+      <!-- 2. Status message -->
+      <Label Text="{Binding StatusMessage, FallbackValue='Connessione al server persa. Tentativo di riconnessione in corso…'}"
+             FontFamily="InterRegular"
+             FontSize="{StaticResource FontSizeBody}"
+             HorizontalTextAlignment="Center"
+             TextColor="{AppThemeBinding Light={StaticResource ColorOnSurfaceLight},
+                                         Dark={StaticResource ColorOnSurfaceDark}}"
+             LineBreakMode="WordWrap"
+             AutomationId="ReconnectingStatusMessage" />
+
+      <!-- 3. Attempt counter — visible while reconnecting -->
+      <Label Text="{Binding AttemptSummary, FallbackValue='Tentativo 1 di 3'}"
+             FontFamily="InterRegular"
+             FontSize="{StaticResource FontSizeFootnote}"
+             HorizontalTextAlignment="Center"
+             TextColor="{AppThemeBinding Light={StaticResource ColorOnSurfaceSecondaryLight},
+                                         Dark={StaticResource ColorOnSurfaceSecondaryDark}}"
+             IsVisible="{Binding IsReconnecting}"
+             AutomationId="ReconnectingAttemptCounter" />
+
+      <!-- 4. "Gestisci server" secondary button -->
+      <Button Text="Gestisci server"
+              Command="{Binding NavigateToServerManagementCommand}"
+              Style="{StaticResource SecondaryButton}"
+              HorizontalOptions="Center"
+              AutomationId="ReconnectingManageServerButton"
+              SemanticProperties.Description="Naviga alla gestione server" />
+
+    </VerticalStackLayout>
+
+  </Border>
+
+</uxd:PopupPage>

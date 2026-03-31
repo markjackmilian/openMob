@@ -37,15 +37,18 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     private readonly INavigationService _navigationService;
     private readonly IAppPopupService _popupService;
     private readonly IOpencodeConnectionManager _connectionManager;
-    private readonly IProviderService _providerService;
     private readonly IProjectPreferenceService _preferenceService;
     private readonly IChatService _chatService;
     private readonly IOpencodeApiClient _apiClient;
     private readonly IDispatcherService _dispatcher;
     private readonly IActiveProjectService _activeProjectService;
+    private readonly IHeartbeatMonitorService _heartbeatMonitor;
 
     /// <summary>Cancellation token source for the active SSE subscription.</summary>
     private CancellationTokenSource? _sseCts;
+
+    /// <summary>Cancellation token source for the active reconnection loop. Cancelled on dispose or state recovery.</summary>
+    private CancellationTokenSource? _reconnectionCts;
 
     /// <summary>
     /// The absolute path of the current project's working directory, used to filter
@@ -69,48 +72,50 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     /// <param name="navigationService">Service for Shell navigation.</param>
     /// <param name="popupService">Service for popup/dialog operations.</param>
     /// <param name="connectionManager">Manages the opencode server connection state.</param>
-    /// <param name="providerService">Service for AI provider operations.</param>
     /// <param name="preferenceService">Service for per-project preference persistence.</param>
     /// <param name="chatService">Service for chat operations (messages, prompts, SSE).</param>
     /// <param name="apiClient">Low-level opencode API client (used for session abort).</param>
     /// <param name="dispatcher">UI thread dispatcher for thread-safe collection updates.</param>
     /// <param name="activeProjectService">Service for managing the client-side active project state.</param>
+    /// <param name="heartbeatMonitor">Service for monitoring server heartbeat health state.</param>
     public ChatViewModel(
         IProjectService projectService,
         ISessionService sessionService,
         INavigationService navigationService,
         IAppPopupService popupService,
         IOpencodeConnectionManager connectionManager,
-        IProviderService providerService,
         IProjectPreferenceService preferenceService,
         IChatService chatService,
         IOpencodeApiClient apiClient,
         IDispatcherService dispatcher,
-        IActiveProjectService activeProjectService)
+        IActiveProjectService activeProjectService,
+        IHeartbeatMonitorService heartbeatMonitor)
     {
         ArgumentNullException.ThrowIfNull(projectService);
         ArgumentNullException.ThrowIfNull(sessionService);
         ArgumentNullException.ThrowIfNull(navigationService);
         ArgumentNullException.ThrowIfNull(popupService);
         ArgumentNullException.ThrowIfNull(connectionManager);
-        ArgumentNullException.ThrowIfNull(providerService);
         ArgumentNullException.ThrowIfNull(preferenceService);
         ArgumentNullException.ThrowIfNull(chatService);
         ArgumentNullException.ThrowIfNull(apiClient);
         ArgumentNullException.ThrowIfNull(dispatcher);
         ArgumentNullException.ThrowIfNull(activeProjectService);
+        ArgumentNullException.ThrowIfNull(heartbeatMonitor);
 
         _projectService = projectService;
         _sessionService = sessionService;
         _navigationService = navigationService;
         _popupService = popupService;
         _connectionManager = connectionManager;
-        _providerService = providerService;
         _preferenceService = preferenceService;
         _chatService = chatService;
         _apiClient = apiClient;
         _dispatcher = dispatcher;
         _activeProjectService = activeProjectService;
+        _heartbeatMonitor = heartbeatMonitor;
+
+        _heartbeatMonitor.HealthStateChanged += OnHealthStateChanged;
 
         // Subscribe to project preference changes published by ContextSheetViewModel [REQ-009]
         WeakReferenceMessenger.Default.Register<ProjectPreferenceChangedMessage>(
@@ -191,17 +196,13 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private string? _currentProjectId;
 
-    /// <summary>Gets or sets whether the opencode server is offline.</summary>
+    /// <summary>Gets or sets the current connection health state, driven by heartbeat events.</summary>
     [ObservableProperty]
-    private bool _isServerOffline;
+    private ConnectionHealthState _connectionHealthState = ConnectionHealthState.Healthy;
 
-    /// <summary>Gets or sets whether no AI provider is configured.</summary>
+    /// <summary>Gets or sets the display name of the currently active server connection.</summary>
     [ObservableProperty]
-    private bool _hasNoProvider;
-
-    /// <summary>Gets or sets the status banner info computed from server/provider state.</summary>
-    [ObservableProperty]
-    private StatusBannerInfo? _statusBanner;
+    private string _activeServerName = string.Empty;
 
     /// <summary>
     /// Gets or sets the currently selected model identifier in "providerId/modelId" format.
@@ -344,8 +345,7 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     // ─── Existing Commands ────────────────────────────────────────────────────
 
     /// <summary>
-    /// Loads the current project and session info, subscribes to connection status changes,
-    /// and evaluates the status banner state.
+    /// Loads the current project and session info and resolves the active server name.
     /// </summary>
     /// <param name="ct">Cancellation token.</param>
     [RelayCommand]
@@ -359,10 +359,6 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
 #endif
         try
         {
-            // Subscribe to connection status changes for status banner updates
-            _connectionManager.StatusChanged -= OnConnectionStatusChanged;
-            _connectionManager.StatusChanged += OnConnectionStatusChanged;
-
             // Load current project from client-side active project state
             var currentProject = await _activeProjectService.GetActiveProjectAsync(ct);
             if (currentProject is not null)
@@ -405,15 +401,8 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
                 }
             }
 
-            // Evaluate provider state
-            HasNoProvider = !await _providerService.HasAnyProviderConfiguredAsync(ct);
-
-            // Evaluate server connection state
-            IsServerOffline = _connectionManager.ConnectionStatus
-                is ServerConnectionStatus.Disconnected
-                or ServerConnectionStatus.Error;
-
-            UpdateStatusBanner();
+            // Resolve the active server display name for the connection footer
+            ActiveServerName = await _connectionManager.GetActiveServerNameAsync(ct).ConfigureAwait(false) ?? string.Empty;
         }
         catch (Exception ex)
         {
@@ -1181,6 +1170,10 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
 
                     case SessionDeletedEvent e:
                         HandleSessionDeleted(e);
+                        break;
+
+                    case UnknownEvent e when string.Equals(e.RawType, "server.heartbeat", StringComparison.OrdinalIgnoreCase):
+                        OnHeartbeatReceived();
                         break;
 
                     case UnknownEvent e:
@@ -2191,82 +2184,96 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
         }
     }
 
-    // ─── Status banner logic ──────────────────────────────────────────────────
+    // ─── Heartbeat Monitor [REQ-001, REQ-002, REQ-003, REQ-006] ─────────────
 
-    /// <summary>Handles connection status changes from <see cref="IOpencodeConnectionManager"/>.</summary>
-    /// <param name="newStatus">The new server connection status.</param>
-    private void OnConnectionStatusChanged(ServerConnectionStatus newStatus)
-    {
-        IsServerOffline = newStatus
-            is ServerConnectionStatus.Disconnected
-            or ServerConnectionStatus.Error;
-
-        UpdateStatusBanner();
-    }
-
-    /// <summary>
-    /// Evaluates the current server and provider state and updates <see cref="StatusBanner"/>.
-    /// Priority: server offline > no provider > clear.
-    /// </summary>
-    private void UpdateStatusBanner()
-    {
-        if (IsServerOffline)
-        {
-            StatusBanner = new StatusBannerInfo(
-                StatusBannerType.ServerOffline,
-                "Server non raggiungibile — modalità offline",
-                ActionLabel: "Gestisci server",
-                IsDismissible: false);
-        }
-        else if (HasNoProvider)
-        {
-            StatusBanner = new StatusBannerInfo(
-                StatusBannerType.NoProvider,
-                "Nessun provider AI configurato",
-                ActionLabel: "Configura",
-                IsDismissible: false);
-        }
-        else
-        {
-            StatusBanner = null;
-        }
-    }
-
-    // ─── Server Management Navigation [REQ-010] ──────────────────────────────
-
-    /// <summary>
-    /// Navigates to the Server Management page to allow the user to verify or update
-    /// the server configuration. Uses <c>"///server-management"</c> (push onto the Shell
-    /// navigation stack) to preserve back navigation to ChatPage (REQ-011).
-    /// </summary>
-    /// <remarks>
-    /// <c>"///server-management"</c> is required because <c>server-management</c> is declared
-    /// as a <c>ShellContent</c> in <c>AppShell.xaml</c>. MAUI does not allow plain relative
-    /// routing to Shell elements — the triple-slash prefix performs a push navigation that
-    /// keeps the back stack intact.
-    /// </remarks>
+    /// <summary>Starts the heartbeat monitor. Called from ChatPage.OnAppearing.</summary>
     /// <param name="ct">Cancellation token.</param>
     [RelayCommand]
-    private async Task NavigateToServerManagementAsync(CancellationToken ct)
+    private async Task StartHeartbeatMonitorAsync(CancellationToken ct)
     {
-#if DEBUG
-        var sw = Stopwatch.StartNew();
-        DebugLogger.LogCommand(nameof(NavigateToServerManagementAsync), "start");
-        try
+        await _heartbeatMonitor.StartAsync(ct).ConfigureAwait(false);
+    }
+
+    /// <summary>Stops the heartbeat monitor. Called from ChatPage.OnDisappearing.</summary>
+    [RelayCommand]
+    private void StopHeartbeatMonitor()
+    {
+        _ = _heartbeatMonitor.StopAsync();
+    }
+
+    /// <summary>Called when a server.heartbeat SSE event is received. Resets the health state to Healthy.</summary>
+    internal void OnHeartbeatReceived()
+    {
+        _heartbeatMonitor.RecordHeartbeat();
+    }
+
+    /// <summary>Handles health state changes from the heartbeat monitor.</summary>
+    /// <remarks>
+    /// The synchronous property update is dispatched to the UI thread immediately.
+    /// When the state transitions to <see cref="ConnectionHealthState.Lost"/>, the modal
+    /// is shown first (via <c>await</c>) before the reconnection loop starts, guaranteeing
+    /// the modal is on the navigation stack before <see cref="ReconnectingModalViewModel.ReconnectionSucceeded"/>
+    /// can fire and call <see cref="IAppPopupService.PopPopupAsync"/>.
+    /// The reconnection loop is scoped to <c>_reconnectionCts</c> so it is cancelled when
+    /// the ViewModel is disposed or a new Lost transition supersedes the current one.
+    /// </remarks>
+    private void OnHealthStateChanged(ConnectionHealthState newState)
+    {
+        // Synchronous property update — must stay on the UI thread.
+        _dispatcher.Dispatch(() =>
         {
-#endif
-        await _navigationService.GoToAsync("///server-management", ct);
-#if DEBUG
-        sw.Stop();
-        DebugLogger.LogCommand(nameof(NavigateToServerManagementAsync), "complete", sw.ElapsedMilliseconds);
-        }
-        catch (Exception ex)
+            ConnectionHealthState = newState;
+        });
+
+        if (newState == ConnectionHealthState.Lost)
         {
-            sw.Stop();
-            DebugLogger.LogCommand(nameof(NavigateToServerManagementAsync), "failed", error: $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
-            throw;
+            // Cancel any previous reconnection loop before starting a new one.
+            _reconnectionCts?.Cancel();
+            _reconnectionCts?.Dispose();
+            _reconnectionCts = new CancellationTokenSource();
+            var ct = _reconnectionCts.Token;
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    var vm = new ReconnectingModalViewModel(
+                        _connectionManager,
+                        _navigationService,
+                        _popupService);
+
+                    vm.ReconnectionSucceeded += () =>
+                    {
+                        _dispatcher.Dispatch(() =>
+                        {
+                            // [M-004] Call RecordHeartbeat() instead of directly setting
+                            // ConnectionHealthState — this resets the monitor's internal
+                            // state AND raises HealthStateChanged(Healthy), which propagates
+                            // to the ViewModel property via OnHealthStateChanged.
+                            // Without this, the next timer tick would fire Lost again.
+                            _heartbeatMonitor.RecordHeartbeat();
+                            _ = _popupService.PopPopupAsync();
+                        });
+                    };
+
+                    // Show modal FIRST so it is guaranteed on the navigation stack
+                    // before StartReconnectionLoopAsync can raise ReconnectionSucceeded.
+                    await _popupService.ShowReconnectingModalAsync(vm, ct).ConfigureAwait(false);
+                    await vm.StartReconnectionLoopAsync(ct).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    // Expected when the ViewModel is disposed or a new Lost transition cancels this loop.
+                }
+                catch (Exception ex)
+                {
+                    SentryHelper.CaptureException(ex, new Dictionary<string, object>
+                    {
+                        ["context"] = "ChatViewModel.OnHealthStateChanged",
+                    });
+                }
+            }, ct);
         }
-#endif
     }
 
     // ─── Active Project Change Handler [REQ-009] ───────────────────────────────
@@ -2319,15 +2326,20 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
 
     /// <summary>
     /// Releases resources held by this ViewModel: cancels the SSE subscription,
-    /// unsubscribes from connection status events, and clears collections.
+    /// cancels any active reconnection loop, unsubscribes from heartbeat monitor events,
+    /// and clears collections.
     /// </summary>
     public void Dispose()
     {
         WeakReferenceMessenger.Default.UnregisterAll(this);
-        _connectionManager.StatusChanged -= OnConnectionStatusChanged;
+        _heartbeatMonitor.HealthStateChanged -= OnHealthStateChanged;
+        _ = _heartbeatMonitor.StopAsync();
         _sseCts?.Cancel();
         _sseCts?.Dispose();
         _sseCts = null;
+        _reconnectionCts?.Cancel();
+        _reconnectionCts?.Dispose();
+        _reconnectionCts = null;
         Messages.Clear();
         SuggestionChips.Clear();
     }

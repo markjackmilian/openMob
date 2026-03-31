@@ -4,7 +4,7 @@
 | Field   | Value                        |
 |---------|------------------------------|
 | Date    | 2026-03-30                   |
-| Status  | Draft                        |
+| Status  | In Progress                  |
 | Version | 1.0                          |
 
 ---
@@ -19,7 +19,7 @@ The existing auto-accept feature (`auto-accept-permission-sse-handler`) intercep
 
 ### In Scope
 - Hook into the existing `IHeartbeatMonitorService.HealthStateChanged` event inside `ChatViewModel` to detect the `Lost → Healthy` transition
-- On reconnect, call `GET /session/:id/permissions` (via a new `GetPendingPermissionsAsync` method on `IOpencodeApiClient`) to retrieve all pending permission requests for the active session
+- On reconnect, call `GET /permission` (via a new `GetPendingPermissionsAsync` method on `IOpencodeApiClient`) to retrieve all pending permission requests for the active session
 - If `AutoAccept == true`, reply `"always"` to each pending permission using the existing `ReplyToPermissionAsync` method
 - Reuse the existing `_inFlightPermissionReplies` guard to prevent duplicate replies
 - Capture any reply failure via `SentryHelper.CaptureException` (silent fail — same policy as the existing auto-accept path)
@@ -76,10 +76,10 @@ The existing auto-accept feature (`auto-accept-permission-sse-handler`) intercep
 | Component | Impact | Notes |
 |-----------|--------|-------|
 | `IOpencodeApiClient.cs` | Modified | Add `GetPendingPermissionsAsync` method signature |
-| `OpencodeApiClient.cs` | Modified | Implement `GetPendingPermissionsAsync` via `GET /session/{id}/permissions` |
-| `ChatViewModel.cs` | Modified | Subscribe to `HealthStateChanged`; add `ReplayPendingPermissionsAsync`; track previous health state |
+| `OpencodeApiClient.cs` | Modified | Implement `GetPendingPermissionsAsync` via `GET /permission` (global endpoint, filtered by sessionId client-side) |
+| `ChatViewModel.cs` | Modified | Add `_previousHealthState` field; extend `OnHealthStateChanged` to track transitions and fire `ReplayPendingPermissionsAsync` |
 | `PermissionRequestDto.cs` | Created | New response DTO for the pending permissions list endpoint |
-| `ChatViewModelReconnectTests.cs` | Created | New test class (or extension of `ChatViewModelSseTests`) covering REQ-003 through REQ-008 |
+| `ChatViewModelReconnectTests.cs` | Created | New test class covering REQ-003 through REQ-008 |
 
 ### Dependencies
 - **`auto-accept-permission-sse-handler`** (done): `ReplyToPermissionAsync`, `_inFlightPermissionReplies`, `AutoAccept`, `HasPendingPermissions` all present in `ChatViewModel`.
@@ -92,7 +92,7 @@ The existing auto-accept feature (`auto-accept-permission-sse-handler`) intercep
 
 | # | Question | Status | Answer / Decision |
 |---|----------|--------|-------------------|
-| 1 | Does `GET /session/:id/permissions` exist in the opencode server API? | Resolved | Confirmed in the opencode server docs: `POST /session/:id/permissions/:permissionID` is listed. The list endpoint `GET /session/:id/permissions` is implied by the server source (`Permission.list()` method exists). Must be verified against the live OpenAPI spec at `/doc`. |
+| 1 | Does `GET /session/:id/permissions` exist in the opencode server API? | Resolved | **CORRECTED**: The actual endpoint is `GET /permission` (global, not session-scoped). Confirmed by reading `packages/opencode/src/server/routes/permission.ts` — the `PermissionRoutes` is mounted at `/permission` and `GET /` returns all pending permissions across all sessions as `Permission.Request[]`. The spec's assumed path `GET /session/:id/permissions` does NOT exist. The implementation must call `GET /permission` and filter client-side by `sessionID`. |
 | 2 | Should the replay also resolve any permission cards already visible in the `Messages` collection (cards that appeared before the disconnect)? | Resolved | Yes — `ReplyToPermissionAsync` already calls `ResolvePermissionRequest` which updates the card state. No additional logic needed. |
 | 3 | Should the replay be triggered on `Degraded → Healthy` as well as `Lost → Healthy`? | Resolved | Yes — both transitions should trigger the replay. During `Degraded` state the SSE connection may have already dropped silently. Replaying on any `→ Healthy` transition (from non-Healthy) is safe because the `_inFlightPermissionReplies` guard prevents duplicate replies. |
 | 4 | What if `CurrentSessionId` changes between the `Lost` event and the `Healthy` event (user switched session while offline)? | Resolved | `ReplayPendingPermissionsAsync` reads `CurrentSessionId` at invocation time. If the session changed, the new session has no pending permissions (it was just loaded), so `GetPendingPermissionsAsync` returns an empty list — no-op. Safe. |
@@ -129,7 +129,7 @@ The existing auto-accept feature (`auto-accept-permission-sse-handler`) intercep
 
 1. **Verify `GET /session/:id/permissions` endpoint**: Before implementing `GetPendingPermissionsAsync`, fetch the live OpenAPI spec from the running server at `GET /doc` (or inspect `packages/opencode/src/server/` in the opencode GitHub repo) to confirm the exact path, HTTP method, and response schema for listing pending permissions. The server source shows `Permission.list()` exists and is exposed via the HTTP layer — confirm the route matches `GET /session/{id}/permissions` or adjust accordingly.
 
-2. **`HealthStateChanged` subscription point in `ChatViewModel`**: The service is already injected (`IHeartbeatMonitorService _heartbeatMonitorService`). The subscription should be added in `StartSseSubscriptionAsync` (alongside the SSE loop start) and removed in `Dispose()`. A `_previousHealthState` field (type `ConnectionHealthState`, default `Healthy`) must be added to track transitions.
+2. **`HealthStateChanged` subscription point in `ChatViewModel`**: The service is already injected (`IHeartbeatMonitorService _heartbeatMonitor`). The subscription should be added in `StartSseSubscriptionAsync` (alongside the SSE loop start) and removed in `Dispose()`. A `_previousHealthState` field (type `ConnectionHealthState`, default `Healthy`) must be added to track transitions.
 
 3. **`ReplayPendingPermissionsAsync` fire-and-forget pattern**: Use `_ = ReplayPendingPermissionsAsync(CancellationToken.None)` from the event handler. The method must be `private async Task` (not `async void`). Wrap the entire body in a `try/catch` to prevent unobserved task exceptions.
 
@@ -157,3 +157,122 @@ The existing auto-accept feature (`auto-accept-permission-sse-handler`) intercep
 - As established in **`heartbeat-monitor-footer`**: `IHeartbeatMonitorService` is injected into `ChatViewModel` and `HealthStateChanged` is the canonical event for health state transitions. No changes to the service are needed.
 - As established in **`permission-request-inline-approval`**: `ResolvePermissionRequest` is called by `ReplyToPermissionAsync` on success — permission cards already visible in `Messages` will be automatically resolved when the replay replies to them.
 - As established in **`sse-project-directory-propagation`**: the `x-opencode-directory` header is injected globally by `OpencodeApiClient.ExecuteAsync` — `GetPendingPermissionsAsync` inherits this automatically.
+
+---
+
+## Technical Analysis
+
+> Added by: om-orchestrator | Date: 2026-03-31
+
+### Change Classification
+
+| Field | Value |
+|-------|-------|
+| Change type | Feature |
+| Git Flow branch | feature/auto-accept-reconnect-replay |
+| Branches from | develop |
+| Estimated complexity | Low |
+| Estimated agents involved | om-mobile-core, om-tester, om-reviewer |
+
+### Layers Involved
+
+| Layer | Agent | Scope |
+|-------|-------|-------|
+| Business logic / Services | om-mobile-core | `src/openMob.Core/Infrastructure/Http/` |
+| ViewModels | om-mobile-core | `src/openMob.Core/ViewModels/ChatViewModel.cs` |
+| Data / DTOs | om-mobile-core | `src/openMob.Core/Infrastructure/Http/Dtos/Opencode/` |
+| Unit Tests | om-tester | `tests/openMob.Tests/ViewModels/` |
+| Code Review | om-reviewer | all of the above |
+
+### Files to Create
+
+- `src/openMob.Core/Infrastructure/Http/Dtos/Opencode/PermissionRequestDto.cs` — new response DTO for `GET /permission`
+
+### Files to Modify
+
+- `src/openMob.Core/Infrastructure/Http/IOpencodeApiClient.cs` — add `GetPendingPermissionsAsync` method signature
+- `src/openMob.Core/Infrastructure/Http/OpencodeApiClient.cs` — implement `GetPendingPermissionsAsync` calling `GET /permission`
+- `src/openMob.Core/ViewModels/ChatViewModel.cs` — add `_previousHealthState` field; extend `OnHealthStateChanged` to track transitions and fire `ReplayPendingPermissionsAsync`; add `ReplayPendingPermissionsAsync` method
+
+### Critical API Endpoint Correction
+
+> **The spec's assumed endpoint `GET /session/:id/permissions` does NOT exist.**
+
+After reading the opencode server source (`packages/opencode/src/server/routes/permission.ts`), the actual endpoint is:
+
+```
+GET /permission
+```
+
+This is a **global** endpoint (mounted at `/permission` in `InstanceRoutes`) that returns **all** pending permissions across all sessions as `Permission.Request[]`. The response includes `sessionID` on each item, so the client must filter by `CurrentSessionId` after fetching.
+
+The `Permission.Request` schema (from `permission/index.ts`):
+```typescript
+{
+  id: PermissionID,       // string
+  sessionID: SessionID,   // string
+  permission: string,
+  patterns: string[],
+  metadata: Record<string, any>,
+  always: string[],
+  tool?: { messageID: MessageID, callID: string }
+}
+```
+
+The `PermissionRequestDto` must map `sessionID` (camelCase) → `SessionId` (PascalCase) using `[JsonPropertyName("sessionID")]`.
+
+### Technical Dependencies
+
+- `auto-accept-permission-sse-handler` (done): `ReplyToPermissionAsync`, `_inFlightPermissionReplies`, `AutoAccept` all present in `ChatViewModel`
+- `heartbeat-monitor-footer` (done/merged): `IHeartbeatMonitorService` injected into `ChatViewModel`; `HealthStateChanged` event already subscribed in constructor (line 126 of `ChatViewModel.cs`)
+- `permission-request-inline-approval` (done): `ReplyToPermissionAsync` handles full reply flow
+- No new NuGet packages required
+
+### Existing Subscription — Important Finding
+
+The `ChatViewModel` constructor **already subscribes** to `HealthStateChanged` at line 126:
+```csharp
+_heartbeatMonitor.HealthStateChanged += OnHealthStateChanged;
+```
+
+And `Dispose()` already unsubscribes:
+```csharp
+_heartbeatMonitor.HealthStateChanged -= OnHealthStateChanged;
+```
+
+**REQ-002 is already satisfied.** The implementation only needs to:
+1. Add a `_previousHealthState` field (default `Healthy`)
+2. Extend the existing `OnHealthStateChanged` method to track the previous state and fire `ReplayPendingPermissionsAsync` on `→ Healthy` transitions from non-Healthy states
+
+### Technical Risks
+
+- **Thread safety of `_previousHealthState`**: The field is written from the `PeriodicTimer` background thread (via `OnHealthStateChanged`). Since `OnHealthStateChanged` is always called from the same timer thread (single-threaded timer), no locking is needed. However, marking it `volatile` is a safe precaution.
+- **Global endpoint returns all sessions**: `GET /permission` returns permissions for all sessions. The client must filter by `CurrentSessionId`. This is safe — the filter is applied before calling `ReplyToPermissionAsync`.
+- **No breaking changes**: This is purely additive — new method on interface, new DTO, new field + method in ViewModel.
+
+### Execution Order
+
+> Steps that can run in parallel are marked with ⟳. Steps that must be sequential are numbered.
+
+1. [Git Flow] Create branch `feature/auto-accept-reconnect-replay`
+2. [om-mobile-core] Implement `PermissionRequestDto`, `GetPendingPermissionsAsync` on interface + client, extend `ChatViewModel` with `_previousHealthState` + `ReplayPendingPermissionsAsync`
+3. [om-tester] Write `ChatViewModelReconnectTests` (after om-mobile-core completes)
+4. [om-reviewer] Full review against spec
+5. [Fix loop if needed] Address Critical and Major findings
+6. [Git Flow] Finish branch and merge
+
+### Definition of Done
+
+- [x] REQ-002 already satisfied (subscription exists in constructor)
+- [ ] REQ-001: `GetPendingPermissionsAsync` added to `IOpencodeApiClient` and implemented in `OpencodeApiClient`
+- [ ] REQ-003, REQ-008: `_previousHealthState` field added; `OnHealthStateChanged` extended to detect `→ Healthy` transitions
+- [ ] REQ-004: `ReplayPendingPermissionsAsync` implemented with all sub-requirements
+- [ ] REQ-005: Sentry capture on `GetPendingPermissionsAsync` failure
+- [ ] REQ-006: Sentry capture per-reply failure with fail-and-continue
+- [ ] REQ-007: Fire-and-forget pattern used
+- [ ] REQ-009: `PermissionRequestDto` created in correct namespace
+- [ ] All `[AC-001]` through `[AC-008]` acceptance criteria satisfied
+- [ ] Unit tests written for all new paths in `ChatViewModelReconnectTests`
+- [ ] `om-reviewer` verdict: ✅ Approved or ⚠️ Approved with remarks
+- [ ] Git Flow branch finished and deleted
+- [ ] Spec moved to `specs/done/` with Completed status

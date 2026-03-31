@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -562,6 +563,27 @@ internal sealed class OpencodeApiClient : IOpencodeApiClient
                 new PermissionReplyRequest(reply),
                 token),
             ct);
+
+    /// <inheritdoc />
+    public async Task<OpencodeResult<IReadOnlyList<PermissionRequestDto>>> GetPendingPermissionsAsync(
+        string sessionId, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sessionId);
+
+        var result = await ExecuteAsync<IReadOnlyList<PermissionRequestDto>>(
+            (client, baseUrl, token) => client.GetAsync($"{baseUrl}/permission", token),
+            ct).ConfigureAwait(false);
+
+        if (!result.IsSuccess || result.Value is null)
+            return result;
+
+        // Filter client-side: the endpoint returns all pending permissions across all sessions.
+        var filtered = result.Value
+            .Where(p => string.Equals(p.SessionId, sessionId, StringComparison.Ordinal))
+            .ToList();
+
+        return OpencodeResult<IReadOnlyList<PermissionRequestDto>>.Success(filtered);
+    }
 
     // ─── Messages ─────────────────────────────────────────────────────────────
 

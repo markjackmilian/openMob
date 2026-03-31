@@ -59,6 +59,13 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     private volatile bool _isReconnectingModalVisible;
 
     /// <summary>
+    /// Tracks the previous health state to detect <c>Lost/Degraded → Healthy</c> transitions.
+    /// Initialised to <see cref="ConnectionHealthState.Healthy"/> so the first heartbeat
+    /// does not trigger a spurious replay.
+    /// </summary>
+    private volatile ConnectionHealthState _previousHealthState = ConnectionHealthState.Healthy;
+
+    /// <summary>
     /// The absolute path of the current project's working directory, used to filter
     /// incoming SSE events by project context (REQ-004). Set once during
     /// <see cref="LoadContextAsync"/> from <see cref="IActiveProjectService.GetCachedWorktree"/>.
@@ -2249,6 +2256,10 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     /// </remarks>
     private void OnHealthStateChanged(ConnectionHealthState newState)
     {
+        // Capture previous state before updating [REQ-008].
+        var previousState = _previousHealthState;
+        _previousHealthState = newState;
+
         // Synchronous property update — must stay on the UI thread.
         _dispatcher.Dispatch(() =>
         {
@@ -2326,6 +2337,96 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
                     });
                 }
             }, ct);
+        }
+
+        // [REQ-003, REQ-008] Replay pending permissions on Lost/Degraded → Healthy transition.
+        // Fire-and-forget: do not block the HealthStateChanged callback thread [REQ-007].
+        if (newState == ConnectionHealthState.Healthy &&
+            previousState != ConnectionHealthState.Healthy)
+        {
+            _ = ReplayPendingPermissionsAsync(CancellationToken.None);
+        }
+    }
+
+    /// <summary>
+    /// Fetches all pending permissions for the active session and replies <c>"always"</c>
+    /// to each one. Called fire-and-forget on <c>Lost/Degraded → Healthy</c> transitions
+    /// when <see cref="AutoAccept"/> is enabled [REQ-003 through REQ-008].
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Calls <see cref="IOpencodeApiClient.GetPendingPermissionsAsync"/> which hits
+    /// <c>GET /permission</c> (global endpoint) and filters by <see cref="CurrentSessionId"/>.
+    /// </para>
+    /// <para>
+    /// Replies are sent sequentially to avoid race conditions on the server's approved ruleset.
+    /// Each reply goes through <see cref="ReplyToPermissionAsync"/> which applies the
+    /// <c>_inFlightPermissionReplies</c> duplicate guard automatically.
+    /// </para>
+    /// </remarks>
+    /// <param name="ct">Cancellation token.</param>
+    private async Task ReplayPendingPermissionsAsync(CancellationToken ct)
+    {
+        try
+        {
+            // [REQ-004a] No-op if AutoAccept is disabled.
+            if (!AutoAccept)
+                return;
+
+            // [REQ-004b] No-op if no active session.
+            var sessionId = CurrentSessionId;
+            if (string.IsNullOrEmpty(sessionId))
+                return;
+
+            // [REQ-004c] Fetch all pending permissions for the active session.
+            var result = await _apiClient.GetPendingPermissionsAsync(sessionId, ct)
+                .ConfigureAwait(false);
+
+            if (!result.IsSuccess)
+            {
+                // [REQ-005] Capture fetch failure silently.
+                SentryHelper.CaptureException(
+                    new InvalidOperationException(result.Error?.Message ?? "GetPendingPermissionsAsync failed"),
+                    new Dictionary<string, object>
+                    {
+                        ["context"] = "ChatViewModel.ReplayPendingPermissionsAsync",
+                        ["sessionId"] = sessionId,
+                    });
+                return;
+            }
+
+            var permissions = result.Value;
+            if (permissions is null || permissions.Count == 0)
+                return;
+
+            // [REQ-004d, REQ-004e] Reply sequentially to avoid server-side race conditions.
+            foreach (var permission in permissions)
+            {
+                try
+                {
+                    // ReplyToPermissionAsync applies _inFlightPermissionReplies guard [REQ-004d, AC-008].
+                    await ReplyToPermissionAsync(permission.Id, "always", ct)
+                        .ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    // [REQ-006] Capture per-reply failure and continue to next permission.
+                    SentryHelper.CaptureException(ex, new Dictionary<string, object>
+                    {
+                        ["context"] = "ChatViewModel.ReplayPendingPermissionsAsync.Reply",
+                        ["requestId"] = permission.Id,
+                        ["sessionId"] = sessionId,
+                    });
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            // Outer catch prevents unobserved task exceptions from the fire-and-forget call.
+            SentryHelper.CaptureException(ex, new Dictionary<string, object>
+            {
+                ["context"] = "ChatViewModel.ReplayPendingPermissionsAsync",
+            });
         }
     }
 

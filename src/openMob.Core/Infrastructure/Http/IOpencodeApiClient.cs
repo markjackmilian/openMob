@@ -231,6 +231,21 @@ public interface IOpencodeApiClient
     /// <param name="ct">Cancellation token.</param>
     Task<OpencodeResult<bool>> ReplyToPermissionAsync(string requestId, string reply, CancellationToken ct = default);
 
+    // ─── Permissions ──────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Lists all pending permission requests across all sessions.
+    /// Maps to <c>GET /permission</c>.
+    /// </summary>
+    /// <remarks>
+    /// The endpoint returns permissions for all sessions. Filter by <paramref name="sessionId"/>
+    /// client-side to obtain only the permissions relevant to the active session.
+    /// </remarks>
+    /// <param name="sessionId">The session identifier to filter results by.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task<OpencodeResult<IReadOnlyList<PermissionRequestDto>>> GetPendingPermissionsAsync(
+        string sessionId, CancellationToken ct = default);
+
     // ─── Messages ─────────────────────────────────────────────────────────────
 
     /// <summary>

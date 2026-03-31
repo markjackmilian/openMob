@@ -1,11 +1,14 @@
 # Auto-Accept — Pending Permission Replay on SSE Reconnect
 
 ## Metadata
-| Field   | Value                        |
-|---------|------------------------------|
-| Date    | 2026-03-30                   |
-| Status  | In Progress                  |
-| Version | 1.0                          |
+| Field       | Value                                        |
+|-------------|----------------------------------------------|
+| Date        | 2026-03-30                                   |
+| Status      | **Completed**                                |
+| Version     | 1.0                                          |
+| Completed   | 2026-03-31                                   |
+| Branch      | feature/auto-accept-reconnect-replay (merged) |
+| Merged into | develop                                      |
 
 ---
 

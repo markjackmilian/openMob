@@ -395,7 +395,7 @@ internal sealed class OpencodeApiClient : IOpencodeApiClient
     /// <inheritdoc />
     public Task<OpencodeResult<ConfigDto>> UpdateConfigAsync(UpdateConfigRequest request, CancellationToken ct = default)
         => ExecuteAsync<ConfigDto>(
-            (client, baseUrl, token) => client.PutAsJsonAsync($"{baseUrl}/config", request.Config, token),
+            (client, baseUrl, token) => client.PatchAsJsonAsync($"{baseUrl}/config", request.Config, token),
             ct);
 
     /// <inheritdoc />

@@ -85,13 +85,21 @@ public sealed partial class ReconnectingModalViewModel : ObservableObject
     /// </summary>
     public event Action? ReconnectionSucceeded;
 
+    /// <summary>
+    /// Raised just before the modal is popped to navigate to ServerManagementPage.
+    /// The caller (<see cref="ChatViewModel"/>) uses this to reset the modal-visible
+    /// guard so the modal can be re-shown when the user returns to ChatPage.
+    /// </summary>
+    public event Action? ModalDismissedForNavigation;
+
     // ─── Commands ─────────────────────────────────────────────────────────────
 
     /// <summary>
     /// Navigates to the Server Management page.
-    /// Pops the reconnection modal first, then pushes ServerManagementPage onto the
-    /// navigation stack using the <c>"server-management-push"</c> route so that the
-    /// page's back button returns to ChatPage on both iOS and Android.
+    /// Raises <see cref="ModalDismissedForNavigation"/> first so the caller can reset
+    /// its guard, then pops the modal and pushes ServerManagementPage onto the navigation
+    /// stack using the <c>"server-management-push"</c> route so that the page's back
+    /// button returns to ChatPage on both iOS and Android.
     /// </summary>
     /// <remarks>
     /// The <c>"server-management-push"</c> route is registered in <c>AppShell.xaml.cs</c>
@@ -102,6 +110,10 @@ public sealed partial class ReconnectingModalViewModel : ObservableObject
     [RelayCommand]
     private async Task NavigateToServerManagementAsync(CancellationToken ct)
     {
+        // Notify ChatViewModel to reset the modal-visible guard BEFORE popping,
+        // so OnAppearing can re-show the modal if the server is still down on return.
+        ModalDismissedForNavigation?.Invoke();
+
         await _popupService.PopPopupAsync(ct).ConfigureAwait(false);
         await _navigationService.GoToAsync("server-management-push", ct).ConfigureAwait(false);
     }

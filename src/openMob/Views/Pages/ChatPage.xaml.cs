@@ -72,8 +72,13 @@ public partial class ChatPage : ContentPage, IQueryAttributable
         {
             vm.PropertyChanged -= OnViewModelPropertyChanged;
 
-            // Stop the heartbeat monitor when the page is not visible
-            vm.StopHeartbeatMonitorCommand.Execute(null);
+            // NOTE: The heartbeat monitor is intentionally NOT stopped here.
+            // OnDisappearing fires both when navigating to child pages (e.g.
+            // ServerManagementPage) and when leaving the chat area entirely.
+            // Stopping the monitor on child-page navigation would lose the
+            // health state and prevent the reconnection modal from reappearing
+            // correctly on return. The monitor is stopped only when the
+            // ChatViewModel is disposed (app shutdown / navigation to Splash).
         }
 
         StopTypingAnimation();

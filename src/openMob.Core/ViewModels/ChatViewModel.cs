@@ -51,6 +51,14 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     private CancellationTokenSource? _reconnectionCts;
 
     /// <summary>
+    /// Guards against showing the reconnection modal twice.
+    /// Set to <c>true</c> when the modal is pushed; reset to <c>false</c> when it is popped
+    /// (either by <see cref="ReconnectingModalViewModel.ReconnectionSucceeded"/> or by the
+    /// user navigating to ServerManagementPage via the "Gestisci server" button).
+    /// </summary>
+    private volatile bool _isReconnectingModalVisible;
+
+    /// <summary>
     /// The absolute path of the current project's working directory, used to filter
     /// incoming SSE events by project context (REQ-004). Set once during
     /// <see cref="LoadContextAsync"/> from <see cref="IActiveProjectService.GetCachedWorktree"/>.
@@ -2186,15 +2194,37 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
 
     // ─── Heartbeat Monitor [REQ-001, REQ-002, REQ-003, REQ-006] ─────────────
 
-    /// <summary>Starts the heartbeat monitor. Called from ChatPage.OnAppearing.</summary>
+    /// <summary>
+    /// Starts the heartbeat monitor and, if the connection is already <c>Lost</c>
+    /// when the page re-appears (e.g. after returning from ServerManagementPage),
+    /// immediately re-shows the reconnection modal without waiting for the next timer tick.
+    /// Called from <c>ChatPage.OnAppearing</c>.
+    /// </summary>
+    /// <remarks>
+    /// The monitor is intentionally NOT stopped when the user navigates to a child page
+    /// (e.g. ServerManagementPage). It keeps running so the health state stays current.
+    /// <see cref="StopHeartbeatMonitor"/> is only called when ChatPage fully disappears
+    /// (e.g. navigation to Splash/Onboarding), not on child-page pushes.
+    /// </remarks>
     /// <param name="ct">Cancellation token.</param>
     [RelayCommand]
     private async Task StartHeartbeatMonitorAsync(CancellationToken ct)
     {
         await _heartbeatMonitor.StartAsync(ct).ConfigureAwait(false);
+
+        // If the connection was already Lost when the page re-appeared (e.g. the user
+        // returned from ServerManagementPage without fixing the server), trigger the
+        // modal immediately — do not wait for the next 5-second timer tick.
+        if (_heartbeatMonitor.HealthState == ConnectionHealthState.Lost)
+        {
+            OnHealthStateChanged(ConnectionHealthState.Lost);
+        }
     }
 
-    /// <summary>Stops the heartbeat monitor. Called from ChatPage.OnDisappearing.</summary>
+    /// <summary>
+    /// Stops the heartbeat monitor. Called from <c>ChatPage.OnDisappearing</c>
+    /// only when navigating away from the chat area entirely (not to child pages).
+    /// </summary>
     [RelayCommand]
     private void StopHeartbeatMonitor()
     {
@@ -2227,6 +2257,12 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
 
         if (newState == ConnectionHealthState.Lost)
         {
+            // Guard: if the modal is already visible (e.g. the user returned from
+            // ServerManagementPage and OnAppearing re-triggered this path), do not
+            // push a second modal on top of the existing one.
+            if (_isReconnectingModalVisible)
+                return;
+
             // Cancel any previous reconnection loop before starting a new one.
             _reconnectionCts?.Cancel();
             _reconnectionCts?.Dispose();
@@ -2246,15 +2282,23 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
                     {
                         _dispatcher.Dispatch(() =>
                         {
-                            // [M-004] Call RecordHeartbeat() instead of directly setting
-                            // ConnectionHealthState — this resets the monitor's internal
-                            // state AND raises HealthStateChanged(Healthy), which propagates
-                            // to the ViewModel property via OnHealthStateChanged.
-                            // Without this, the next timer tick would fire Lost again.
+                            _isReconnectingModalVisible = false;
+                            // Reset the monitor's internal state so the next timer tick
+                            // does not immediately re-fire Lost.
                             _heartbeatMonitor.RecordHeartbeat();
                             _ = _popupService.PopPopupAsync();
                         });
                     };
+
+                    vm.ModalDismissedForNavigation += () =>
+                    {
+                        // The user tapped "Gestisci server" — the modal is being popped
+                        // by the ViewModel before navigating. Mark it as no longer visible
+                        // so OnAppearing can re-show it if the server is still down.
+                        _isReconnectingModalVisible = false;
+                    };
+
+                    _isReconnectingModalVisible = true;
 
                     // Show modal FIRST so it is guaranteed on the navigation stack
                     // before StartReconnectionLoopAsync can raise ReconnectionSucceeded.
@@ -2264,9 +2308,11 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
                 catch (OperationCanceledException)
                 {
                     // Expected when the ViewModel is disposed or a new Lost transition cancels this loop.
+                    _isReconnectingModalVisible = false;
                 }
                 catch (Exception ex)
                 {
+                    _isReconnectingModalVisible = false;
                     SentryHelper.CaptureException(ex, new Dictionary<string, object>
                     {
                         ["context"] = "ChatViewModel.OnHealthStateChanged",

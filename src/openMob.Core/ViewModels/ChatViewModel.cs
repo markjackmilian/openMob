@@ -2288,6 +2288,13 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
                             _heartbeatMonitor.RecordHeartbeat();
                             _ = _popupService.PopPopupAsync();
                         });
+
+                        // Restart the SSE subscription so the app resumes receiving
+                        // real-time events (including heartbeats) from the server.
+                        // The SSE loop exits when the server drops — it is not
+                        // restarted automatically, so we must do it here on recovery.
+                        if (CurrentSessionId is not null)
+                            _ = StartSseSubscriptionAsync();
                     };
 
                     vm.ModalDismissedForNavigation += () =>

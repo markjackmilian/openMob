@@ -15,12 +15,25 @@ public partial class ServerDetailPage : ContentPage
     private string? _discoveredName;
     private bool _initialised;
 
+    /// <summary>
+    /// Guard flag set to <see langword="true"/> while the ViewModel is updating
+    /// <c>IsServerAutoApproveEnabled</c> programmatically (optimistic update or rollback).
+    /// Prevents the resulting <c>Switch.Toggled</c> event from re-invoking the command.
+    /// </summary>
+    private bool _isProgrammaticToggle;
+
     /// <summary>Initialises the server detail page with its ViewModel.</summary>
     public ServerDetailPage(ServerDetailViewModel viewModel)
     {
         InitializeComponent();
         _viewModel = viewModel;
         BindingContext = _viewModel;
+
+        // Subscribe to PropertyChanged so we can set the guard flag before
+        // IsServerAutoApproveEnabled changes propagate to the Switch via OneWay binding.
+        // This prevents the Switch.Toggled event from re-firing when the ViewModel
+        // performs an optimistic update or a rollback.
+        _viewModel.PropertyChanged += OnViewModelPropertyChanged;
     }
 
     /// <summary>Navigates back when the back button is tapped.</summary>
@@ -30,12 +43,33 @@ public partial class ServerDetailPage : ContentPage
     }
 
     /// <summary>
+    /// Intercepts ViewModel property changes to set the programmatic-toggle guard
+    /// before <c>IsServerAutoApproveEnabled</c> propagates to the <c>Switch</c> via
+    /// the OneWay binding. This prevents the Switch from re-firing <c>Toggled</c>
+    /// when the ViewModel performs an optimistic update or a rollback.
+    /// </summary>
+    private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(ServerDetailViewModel.IsServerAutoApproveEnabled))
+        {
+            _isProgrammaticToggle = true;
+        }
+    }
+
+    /// <summary>
     /// Forwards the auto-approve toggle's Toggled event to the ViewModel command.
+    /// Ignores events fired programmatically by the OneWay binding (optimistic update / rollback).
     /// Using a code-behind handler instead of EventToCommandBehavior because the
     /// toolkit namespace is not declared in this project's XAML pages.
     /// </summary>
     private void OnAutoApproveSwitchToggled(object? sender, ToggledEventArgs e)
     {
+        if (_isProgrammaticToggle)
+        {
+            _isProgrammaticToggle = false;
+            return;
+        }
+
         if (_viewModel.ToggleServerAutoApproveCommand.CanExecute(null))
             _viewModel.ToggleServerAutoApproveCommand.Execute(null);
     }

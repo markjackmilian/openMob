@@ -226,11 +226,11 @@
                     TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight}, Dark={StaticResource ColorOnBackgroundTertiaryDark}}" />
               </VerticalStackLayout>
 
-              <!-- Toggle -->
+              <!-- Toggle — NO IsToggled binding. The code-behind syncs the visual
+                   state via PropertyChanged to avoid the MAUI Switch double-fire bug. -->
               <Switch
                   x:Name="AutoApproveSwitch"
                   Grid.Column="1"
-                  IsToggled="{Binding IsServerAutoApproveEnabled, Mode=OneWay}"
                   Toggled="OnAutoApproveSwitchToggled"
                   VerticalOptions="Center"
                   AutomationId="ServerDetailAutoApproveSwitch"

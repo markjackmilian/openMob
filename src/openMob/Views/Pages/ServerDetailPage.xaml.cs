@@ -16,11 +16,10 @@ public partial class ServerDetailPage : ContentPage
     private bool _initialised;
 
     /// <summary>
-    /// Guard flag set to <see langword="true"/> while the ViewModel is updating
-    /// <c>IsServerAutoApproveEnabled</c> programmatically (optimistic update or rollback).
-    /// Prevents the resulting <c>Switch.Toggled</c> event from re-invoking the command.
+    /// Guard flag that suppresses the <c>Switch.Toggled</c> handler while the
+    /// code-behind itself is updating <c>Switch.IsToggled</c> programmatically.
     /// </summary>
-    private bool _isProgrammaticToggle;
+    private bool _updatingSwitch;
 
     /// <summary>Initialises the server detail page with its ViewModel.</summary>
     public ServerDetailPage(ServerDetailViewModel viewModel)
@@ -29,10 +28,9 @@ public partial class ServerDetailPage : ContentPage
         _viewModel = viewModel;
         BindingContext = _viewModel;
 
-        // Subscribe to PropertyChanged so we can set the guard flag before
-        // IsServerAutoApproveEnabled changes propagate to the Switch via OneWay binding.
-        // This prevents the Switch.Toggled event from re-firing when the ViewModel
-        // performs an optimistic update or a rollback.
+        // Sync the Switch visual state with the ViewModel property manually.
+        // This avoids the MAUI Switch double-fire problem entirely:
+        // no IsToggled binding → no programmatic Toggled events.
         _viewModel.PropertyChanged += OnViewModelPropertyChanged;
     }
 
@@ -43,32 +41,31 @@ public partial class ServerDetailPage : ContentPage
     }
 
     /// <summary>
-    /// Intercepts ViewModel property changes to set the programmatic-toggle guard
-    /// before <c>IsServerAutoApproveEnabled</c> propagates to the <c>Switch</c> via
-    /// the OneWay binding. This prevents the Switch from re-firing <c>Toggled</c>
-    /// when the ViewModel performs an optimistic update or a rollback.
+    /// Keeps the <c>AutoApproveSwitch</c> visual state in sync with
+    /// <see cref="ServerDetailViewModel.IsServerAutoApproveEnabled"/> without
+    /// using a XAML binding. This eliminates the MAUI <c>Switch.Toggled</c>
+    /// double-fire problem: the guard flag <see cref="_updatingSwitch"/> ensures
+    /// that programmatic updates to <c>IsToggled</c> do not re-invoke the command.
     /// </summary>
     private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(ServerDetailViewModel.IsServerAutoApproveEnabled))
         {
-            _isProgrammaticToggle = true;
+            _updatingSwitch = true;
+            AutoApproveSwitch.IsToggled = _viewModel.IsServerAutoApproveEnabled;
+            _updatingSwitch = false;
         }
     }
 
     /// <summary>
-    /// Forwards the auto-approve toggle's Toggled event to the ViewModel command.
-    /// Ignores events fired programmatically by the OneWay binding (optimistic update / rollback).
-    /// Using a code-behind handler instead of EventToCommandBehavior because the
-    /// toolkit namespace is not declared in this project's XAML pages.
+    /// Handles user-initiated toggle changes only. Programmatic changes (from
+    /// <see cref="OnViewModelPropertyChanged"/>) are suppressed by the
+    /// <see cref="_updatingSwitch"/> guard flag.
     /// </summary>
     private void OnAutoApproveSwitchToggled(object? sender, ToggledEventArgs e)
     {
-        if (_isProgrammaticToggle)
-        {
-            _isProgrammaticToggle = false;
+        if (_updatingSwitch)
             return;
-        }
 
         if (_viewModel.ToggleServerAutoApproveCommand.CanExecute(null))
             _viewModel.ToggleServerAutoApproveCommand.Execute(null);

@@ -18,6 +18,7 @@ public sealed class ServerDetailViewModelTests
     private readonly INavigationService _navigationService;
     private readonly IAppPopupService _popupService;
     private readonly IProviderService _providerService;
+    private readonly IOpencodeApiClient _apiClient;
 
     public ServerDetailViewModelTests()
     {
@@ -28,10 +29,11 @@ public sealed class ServerDetailViewModelTests
         _navigationService = Substitute.For<INavigationService>();
         _popupService = Substitute.For<IAppPopupService>();
         _providerService = Substitute.For<IProviderService>();
+        _apiClient = Substitute.For<IOpencodeApiClient>();
     }
 
     private ServerDetailViewModel CreateSut()
-        => new(_repository, _credentialStore, _connectionManager, _httpClientFactory, _navigationService, _popupService, _providerService);
+        => new(_repository, _credentialStore, _connectionManager, _httpClientFactory, _navigationService, _popupService, _providerService, _apiClient);
 
     // ─── Fake HTTP helpers ────────────────────────────────────────────────────
 
@@ -86,7 +88,7 @@ public sealed class ServerDetailViewModelTests
     public void Constructor_WhenRepositoryIsNull_ThrowsArgumentNullException()
     {
         // Act
-        var act = () => new ServerDetailViewModel(null!, _credentialStore, _connectionManager, _httpClientFactory, _navigationService, _popupService, _providerService);
+        var act = () => new ServerDetailViewModel(null!, _credentialStore, _connectionManager, _httpClientFactory, _navigationService, _popupService, _providerService, _apiClient);
 
         // Assert
         act.Should().Throw<ArgumentNullException>()
@@ -97,7 +99,7 @@ public sealed class ServerDetailViewModelTests
     public void Constructor_WhenCredentialStoreIsNull_ThrowsArgumentNullException()
     {
         // Act
-        var act = () => new ServerDetailViewModel(_repository, null!, _connectionManager, _httpClientFactory, _navigationService, _popupService, _providerService);
+        var act = () => new ServerDetailViewModel(_repository, null!, _connectionManager, _httpClientFactory, _navigationService, _popupService, _providerService, _apiClient);
 
         // Assert
         act.Should().Throw<ArgumentNullException>()
@@ -108,7 +110,7 @@ public sealed class ServerDetailViewModelTests
     public void Constructor_WhenConnectionManagerIsNull_ThrowsArgumentNullException()
     {
         // Act
-        var act = () => new ServerDetailViewModel(_repository, _credentialStore, null!, _httpClientFactory, _navigationService, _popupService, _providerService);
+        var act = () => new ServerDetailViewModel(_repository, _credentialStore, null!, _httpClientFactory, _navigationService, _popupService, _providerService, _apiClient);
 
         // Assert
         act.Should().Throw<ArgumentNullException>()
@@ -119,7 +121,7 @@ public sealed class ServerDetailViewModelTests
     public void Constructor_WhenHttpClientFactoryIsNull_ThrowsArgumentNullException()
     {
         // Act
-        var act = () => new ServerDetailViewModel(_repository, _credentialStore, _connectionManager, null!, _navigationService, _popupService, _providerService);
+        var act = () => new ServerDetailViewModel(_repository, _credentialStore, _connectionManager, null!, _navigationService, _popupService, _providerService, _apiClient);
 
         // Assert
         act.Should().Throw<ArgumentNullException>()
@@ -130,7 +132,7 @@ public sealed class ServerDetailViewModelTests
     public void Constructor_WhenNavigationServiceIsNull_ThrowsArgumentNullException()
     {
         // Act
-        var act = () => new ServerDetailViewModel(_repository, _credentialStore, _connectionManager, _httpClientFactory, null!, _popupService, _providerService);
+        var act = () => new ServerDetailViewModel(_repository, _credentialStore, _connectionManager, _httpClientFactory, null!, _popupService, _providerService, _apiClient);
 
         // Assert
         act.Should().Throw<ArgumentNullException>()
@@ -141,11 +143,33 @@ public sealed class ServerDetailViewModelTests
     public void Constructor_WhenPopupServiceIsNull_ThrowsArgumentNullException()
     {
         // Act
-        var act = () => new ServerDetailViewModel(_repository, _credentialStore, _connectionManager, _httpClientFactory, _navigationService, null!, _providerService);
+        var act = () => new ServerDetailViewModel(_repository, _credentialStore, _connectionManager, _httpClientFactory, _navigationService, null!, _providerService, _apiClient);
 
         // Assert
         act.Should().Throw<ArgumentNullException>()
             .WithParameterName("popupService");
+    }
+
+    [Fact]
+    public void Constructor_WhenProviderServiceIsNull_ThrowsArgumentNullException()
+    {
+        // Act
+        var act = () => new ServerDetailViewModel(_repository, _credentialStore, _connectionManager, _httpClientFactory, _navigationService, _popupService, null!, _apiClient);
+
+        // Assert
+        act.Should().Throw<ArgumentNullException>()
+            .WithParameterName("providerService");
+    }
+
+    [Fact]
+    public void Constructor_WhenApiClientIsNull_ThrowsArgumentNullException()
+    {
+        // Act
+        var act = () => new ServerDetailViewModel(_repository, _credentialStore, _connectionManager, _httpClientFactory, _navigationService, _popupService, _providerService, null!);
+
+        // Assert
+        act.Should().Throw<ArgumentNullException>()
+            .WithParameterName("apiClient");
     }
 
     // ─── InitialiseAsync — Add mode (null serverId) ───────────────────────────

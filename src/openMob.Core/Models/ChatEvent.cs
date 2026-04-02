@@ -151,6 +151,30 @@ public sealed record PermissionRepliedEvent : ChatEvent
 }
 
 /// <summary>
+/// Raised when the AI asks the user a question via the TUI control mechanism.
+/// </summary>
+public sealed record QuestionRequestedEvent : ChatEvent
+{
+    /// <inheritdoc />
+    public override ChatEventType Type => ChatEventType.QuestionRequested;
+
+    /// <summary>Gets the unique TUI control request identifier.</summary>
+    public required string Id { get; init; }
+
+    /// <summary>Gets the ID of the session this question belongs to.</summary>
+    public required string SessionId { get; init; }
+
+    /// <summary>Gets the question text to display to the user.</summary>
+    public required string Question { get; init; }
+
+    /// <summary>Gets the predefined answer options. May be empty.</summary>
+    public required IReadOnlyList<string> Options { get; init; }
+
+    /// <summary>Gets a value indicating whether the user may type a custom answer.</summary>
+    public required bool AllowFreeText { get; init; }
+}
+
+/// <summary>
 /// Raised when a message is removed from a session.
 /// </summary>
 public sealed record MessageRemovedEvent : ChatEvent

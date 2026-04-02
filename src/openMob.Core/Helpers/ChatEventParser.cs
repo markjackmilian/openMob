@@ -97,6 +97,7 @@ internal sealed class ChatEventParser
             "permission.requested" => ParsePermissionRequested(unwrapped, projectDirectory),
             "permission.updated" => ParsePermissionReplied(unwrapped, projectDirectory, isLegacy: true),
             "permission.replied" => ParsePermissionReplied(unwrapped, projectDirectory, isLegacy: false),
+            "question" => ParseQuestionRequested(unwrapped, projectDirectory),
             "message.removed" => ParseMessageRemoved(unwrapped, projectDirectory),
             "message.part.removed" => ParseMessagePartRemoved(unwrapped, projectDirectory),
             "session.created" => ParseSessionCreated(unwrapped, projectDirectory),
@@ -384,6 +385,50 @@ internal sealed class ChatEventParser
                 SessionId = sessionId,
                 RequestId = requestId,
                 Reply = reply,
+                ProjectDirectory = projectDirectory,
+            };
+        }
+        catch
+        {
+            return MakeUnknown(dto);
+        }
+    }
+
+    private static ChatEvent ParseQuestionRequested(OpencodeEventDto dto, string? projectDirectory)
+    {
+        if (dto.Data is not { } data)
+            return MakeUnknown(dto);
+
+        try
+        {
+            var id = ReadString(data, "id");
+            var sessionId = ReadString(data, "sessionID");
+            var question = ReadString(data, "question");
+
+            if (id is null || sessionId is null || question is null)
+                return MakeUnknown(dto);
+
+            var options = ReadStringArray(data, "options") ?? Array.Empty<string>();
+
+            // allowFreeText is optional — default to true when absent (Open Question 4 resolution)
+            bool allowFreeText = true;
+            if (data.TryGetProperty("allowFreeText", out var allowEl))
+            {
+                if (allowEl.ValueKind == JsonValueKind.True)
+                    allowFreeText = true;
+                else if (allowEl.ValueKind == JsonValueKind.False)
+                    allowFreeText = false;
+                // else: malformed value — keep default true
+            }
+
+            return new QuestionRequestedEvent
+            {
+                RawEventId = dto.EventId,
+                Id = id,
+                SessionId = sessionId,
+                Question = question,
+                Options = options,
+                AllowFreeText = allowFreeText,
                 ProjectDirectory = projectDirectory,
             };
         }

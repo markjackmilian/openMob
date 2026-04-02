@@ -81,6 +81,15 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     /// </summary>
     private readonly HashSet<string> _inFlightPermissionReplies = new(StringComparer.Ordinal);
 
+    /// <summary>Tracks the number of pending question cards in the current message list.</summary>
+    private int _pendingQuestionCount;
+
+    /// <summary>
+    /// Tracks question request IDs for which an API answer call is currently in-flight.
+    /// Prevents duplicate concurrent API calls on rapid double-tap.
+    /// </summary>
+    private readonly HashSet<string> _inFlightQuestionAnswers = new(StringComparer.Ordinal);
+
     /// <summary>Initialises the ChatViewModel with required dependencies.</summary>
     /// <param name="projectService">Service for project operations.</param>
     /// <param name="sessionService">Service for session operations.</param>
@@ -295,6 +304,10 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private bool _hasPendingPermissions;
 
+    /// <summary>Gets or sets whether at least one question card is pending.</summary>
+    [ObservableProperty]
+    private bool _hasPendingQuestions;
+
     // ─── Chat Page Redesign Properties [REQ-019, REQ-022, REQ-028, REQ-032] ──
 
     /// <summary>Gets or sets the current thinking/reasoning level, synced from Context Sheet.</summary>
@@ -364,6 +377,7 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
         Messages.Clear();
         UpdateIsEmpty();
         ResetPermissionState();
+        ResetQuestionState();
 
         LoadMessagesCommand.Execute(null);
     }
@@ -720,6 +734,10 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
                     UpdateIsEmpty();
                 });
 
+                // Recover any pending question for this session [REQ-015].
+                // Use a 2-second timeout to prevent hanging if the server long-polls.
+                await RecoverPendingQuestionAsync(ct).ConfigureAwait(false);
+
                 // Start SSE subscription only after messages loaded successfully [REQ-011].
                 // Fire-and-forget is safe here: the task is lifecycle-managed via _sseCts
                 // (cancelled on session change or Dispose) and all exceptions are caught
@@ -759,6 +777,101 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
             throw;
         }
 #endif
+    }
+
+    /// <summary>
+    /// Checks for a pending TUI control question for the current session and injects
+    /// a question card into <see cref="Messages"/> if one is found [REQ-015].
+    /// Uses a 2-second timeout to prevent hanging if the server long-polls.
+    /// </summary>
+    /// <param name="ct">Caller's cancellation token.</param>
+    private async Task RecoverPendingQuestionAsync(CancellationToken ct)
+    {
+        var sessionId = CurrentSessionId;
+        if (string.IsNullOrEmpty(sessionId))
+            return;
+
+        try
+        {
+            // 2-second timeout linked to the caller's token
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(2));
+
+            var result = await _apiClient.GetNextTuiControlAsync(timeoutCts.Token)
+                .ConfigureAwait(false);
+
+            if (!result.IsSuccess || result.Value is null)
+                return;
+
+            var control = result.Value;
+
+            // Only handle question-type controls for the current session
+            if (!string.Equals(control.Type, "question", StringComparison.OrdinalIgnoreCase))
+                return;
+
+            if (!string.Equals(control.SessionId, sessionId, StringComparison.Ordinal))
+                return;
+
+            // Extract question fields from the Body JsonElement
+            var body = control.Body;
+            var questionText = body.TryGetProperty("question", out var qEl) ? qEl.GetString() : null;
+            if (string.IsNullOrEmpty(questionText))
+                return;
+
+            IReadOnlyList<string> options = Array.Empty<string>();
+            if (body.TryGetProperty("options", out var optEl) && optEl.ValueKind == System.Text.Json.JsonValueKind.Array)
+            {
+                var list = new List<string>();
+                foreach (var item in optEl.EnumerateArray())
+                {
+                    if (item.ValueKind == System.Text.Json.JsonValueKind.String)
+                        list.Add(item.GetString()!);
+                }
+
+                options = list;
+            }
+
+            bool allowFreeText = true;
+            if (body.TryGetProperty("allowFreeText", out var afEl))
+            {
+                if (afEl.ValueKind == System.Text.Json.JsonValueKind.True)
+                    allowFreeText = true;
+                else if (afEl.ValueKind == System.Text.Json.JsonValueKind.False)
+                    allowFreeText = false;
+                // else: malformed value — keep default true
+            }
+
+            _dispatcher.Dispatch(() =>
+            {
+                // Duplicate guard: skip if a card with this ID already exists
+                if (Messages.Any(m => m.MessageKind == MessageKind.QuestionRequest && m.QuestionId == control.Id))
+                    return;
+
+                var card = ChatMessage.CreateQuestionRequest(
+                    control.Id,
+                    sessionId,
+                    questionText,
+                    options,
+                    allowFreeText);
+
+                Messages.Add(card);
+                RecalculateGrouping();
+                UpdateIsEmpty();
+                IncrementPendingQuestions();
+            });
+        }
+        catch (OperationCanceledException)
+        {
+            // Timeout or cancellation — expected, do not surface as error
+        }
+        catch (Exception ex)
+        {
+            SentryHelper.CaptureException(ex, new Dictionary<string, object>
+            {
+                ["context"] = "ChatViewModel.RecoverPendingQuestionAsync",
+                ["sessionId"] = sessionId,
+            });
+        }
     }
 
     /// <summary>
@@ -1183,6 +1296,10 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
 
                     case PermissionRepliedEvent e:
                         HandlePermissionReplied(e);
+                        break;
+
+                    case QuestionRequestedEvent e:
+                        HandleQuestionRequested(e);
                         break;
 
                     case MessageRemovedEvent e:
@@ -1682,6 +1799,40 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     }
 
     /// <summary>
+    /// Handles a <see cref="QuestionRequestedEvent"/> from the SSE stream [REQ-012].
+    /// Injects an inline question card into the message list.
+    /// </summary>
+    /// <param name="e">The question requested event.</param>
+    private void HandleQuestionRequested(QuestionRequestedEvent e)
+    {
+        if (e.ProjectDirectory is not null &&
+            e.ProjectDirectory != _currentProjectDirectory)
+            return;
+
+        if (e.SessionId != CurrentSessionId)
+            return;
+
+        _dispatcher.Dispatch(() =>
+        {
+            // Duplicate guard: if a card with this question ID already exists, ignore [REQ-012]
+            if (Messages.Any(m => m.MessageKind == MessageKind.QuestionRequest && m.QuestionId == e.Id))
+                return;
+
+            var message = ChatMessage.CreateQuestionRequest(
+                e.Id,
+                e.SessionId,
+                e.Question,
+                e.Options,
+                e.AllowFreeText);
+
+            Messages.Add(message);
+            RecalculateGrouping();
+            UpdateIsEmpty();
+            IncrementPendingQuestions();
+        });
+    }
+
+    /// <summary>
     /// Handles a <see cref="MessageRemovedEvent"/> from the SSE stream [REQ-007].
     /// Removes the corresponding message from the collection.
     /// </summary>
@@ -1882,6 +2033,71 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     private async Task ReplyToPermissionDenyAsync(string requestId, CancellationToken ct)
         => await ReplyToPermissionAsync(requestId, "reject", ct);
 
+    /// <summary>
+    /// Submits the user's answer to a pending question card [REQ-014].
+    /// Concurrent calls for the same <paramref name="args"/>[0] (questionId) are silently dropped.
+    /// On success, resolves the card and sets <see cref="IsAiResponding"/> to <c>true</c>.
+    /// On failure, captures the exception via Sentry and leaves the card in Pending state.
+    /// </summary>
+    /// <param name="args">
+    /// A two-element array where <c>args[0]</c> is the question ID and <c>args[1]</c> is the answer text.
+    /// </param>
+    /// <param name="ct">Cancellation token.</param>
+    [RelayCommand]
+    private async Task AnswerQuestionAsync(string[] args, CancellationToken ct)
+    {
+        if (args is not { Length: 2 })
+            return;
+
+        var questionId = args[0];
+        var answer = args[1];
+
+        if (string.IsNullOrWhiteSpace(questionId) || string.IsNullOrWhiteSpace(answer))
+            return;
+
+        // Guard: drop duplicate concurrent calls for the same questionId
+        if (!_inFlightQuestionAnswers.Add(questionId))
+            return;
+
+        try
+        {
+            var result = await _apiClient.RespondToTuiControlAsync(questionId, answer, ct)
+                .ConfigureAwait(false);
+
+            if (!result.IsSuccess)
+            {
+                SentryHelper.CaptureException(
+                    new InvalidOperationException(result.Error?.Message ?? "RespondToTuiControlAsync failed"),
+                    new Dictionary<string, object>
+                    {
+                        ["context"] = "ChatViewModel.AnswerQuestionAsync",
+                        ["questionId"] = questionId,
+                        ["answer"] = answer,
+                    });
+                return;
+            }
+
+            _dispatcher.Dispatch(() =>
+            {
+                ResolveQuestionCard(questionId, answer);
+                IsAiResponding = true; // [REQ-017] agent resumes after answer
+            });
+        }
+        catch (Exception ex)
+        {
+            SentryHelper.CaptureException(ex, new Dictionary<string, object>
+            {
+                ["context"] = "ChatViewModel.AnswerQuestionAsync",
+                ["questionId"] = questionId,
+                ["answer"] = answer,
+            });
+        }
+        finally
+        {
+            _inFlightQuestionAnswers.Remove(questionId);
+        }
+    }
+
     // ─── Grouping [REQ-016] ───────────────────────────────────────────────────
 
     /// <summary>
@@ -1943,6 +2159,50 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
         message.ResolvedReply = reply;
         message.ResolvedReplyLabel = replyLabel;
         DecrementPendingPermissions();
+    }
+
+    /// <summary>Resets the pending question state.</summary>
+    private void ResetQuestionState()
+    {
+        _pendingQuestionCount = 0;
+        HasPendingQuestions = false;
+        _inFlightQuestionAnswers.Clear();
+    }
+
+    /// <summary>Increments the pending question counter and refreshes <see cref="HasPendingQuestions"/>.</summary>
+    private void IncrementPendingQuestions()
+    {
+        _pendingQuestionCount++;
+        HasPendingQuestions = _pendingQuestionCount > 0;
+    }
+
+    /// <summary>Decrements the pending question counter and refreshes <see cref="HasPendingQuestions"/>.</summary>
+    private void DecrementPendingQuestions()
+    {
+        if (_pendingQuestionCount > 0)
+            _pendingQuestionCount--;
+
+        HasPendingQuestions = _pendingQuestionCount > 0;
+    }
+
+    /// <summary>Marks a question card as resolved when the API answer succeeds.</summary>
+    /// <param name="questionId">The question request identifier.</param>
+    /// <param name="answer">The answer submitted by the user.</param>
+    private void ResolveQuestionCard(string questionId, string answer)
+    {
+        for (var i = 0; i < Messages.Count; i++)
+        {
+            var msg = Messages[i];
+            if (msg.MessageKind == MessageKind.QuestionRequest &&
+                msg.QuestionId == questionId &&
+                msg.QuestionStatus == QuestionStatus.Pending)
+            {
+                msg.QuestionStatus = QuestionStatus.Resolved;
+                msg.ResolvedAnswer = answer;
+                DecrementPendingQuestions();
+                return;
+            }
+        }
     }
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -2514,6 +2774,8 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
         _reconnectionCts?.Dispose();
         _reconnectionCts = null;
         Messages.Clear();
+        _inFlightPermissionReplies.Clear();
+        _inFlightQuestionAnswers.Clear();
         SuggestionChips.Clear();
     }
 }

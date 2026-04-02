@@ -564,6 +564,23 @@ internal sealed class OpencodeApiClient : IOpencodeApiClient
                 token),
             ct);
 
+    // ─── TUI Control ──────────────────────────────────────────────────────────
+
+    /// <inheritdoc />
+    public Task<OpencodeResult<bool>> RespondToTuiControlAsync(string requestId, string body, CancellationToken ct = default)
+        => ExecuteAsync<bool>(
+            (client, baseUrl, token) => client.PostAsJsonAsync(
+                $"{baseUrl}/tui/control/response",
+                new TuiControlResponseRequest(requestId, body),
+                token),
+            ct);
+
+    /// <inheritdoc />
+    public Task<OpencodeResult<TuiControlRequestDto?>> GetNextTuiControlAsync(CancellationToken ct = default)
+        => ExecuteAsync<TuiControlRequestDto?>(
+            (client, baseUrl, token) => client.GetAsync($"{baseUrl}/tui/control/next", token),
+            ct);
+
     /// <inheritdoc />
     public async Task<OpencodeResult<IReadOnlyList<PermissionRequestDto>>> GetPendingPermissionsAsync(
         string sessionId, CancellationToken ct = default)

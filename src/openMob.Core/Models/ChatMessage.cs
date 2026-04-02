@@ -14,6 +14,9 @@ public enum MessageKind
 
     /// <summary>An inline permission request card.</summary>
     PermissionRequest,
+
+    /// <summary>An inline question request card.</summary>
+    QuestionRequest,
 }
 
 /// <summary>Tracks the approval state of a permission request card.</summary>
@@ -23,6 +26,16 @@ public enum PermissionStatus
     Pending,
 
     /// <summary>The request has been resolved by the user.</summary>
+    Resolved,
+}
+
+/// <summary>Tracks the answer state of a question request card.</summary>
+public enum QuestionStatus
+{
+    /// <summary>The question is waiting for user input.</summary>
+    Pending,
+
+    /// <summary>The question has been answered by the user.</summary>
     Resolved,
 }
 
@@ -132,6 +145,30 @@ public sealed partial class ChatMessage : ObservableObject
     [ObservableProperty]
     private string? _fallbackRawJson;
 
+    /// <summary>Gets or sets the question text for inline question cards.</summary>
+    [ObservableProperty]
+    private string _questionText = string.Empty;
+
+    /// <summary>Gets or sets the predefined answer options for inline question cards.</summary>
+    [ObservableProperty]
+    private IReadOnlyList<string> _questionOptions = Array.Empty<string>();
+
+    /// <summary>Gets or sets whether free-text entry is shown for inline question cards.</summary>
+    [ObservableProperty]
+    private bool _questionAllowFreeText;
+
+    /// <summary>Gets or sets the TUI control request identifier for inline question cards.</summary>
+    [ObservableProperty]
+    private string _questionId = string.Empty;
+
+    /// <summary>Gets or sets the answer status for inline question cards.</summary>
+    [ObservableProperty]
+    private QuestionStatus _questionStatus = QuestionStatus.Pending;
+
+    /// <summary>Gets or sets the answer submitted by the user for inline question cards.</summary>
+    [ObservableProperty]
+    private string? _resolvedAnswer;
+
     /// <summary>Gets or sets whether the reasoning block is expanded in the UI.</summary>
     [ObservableProperty]
     private bool _isReasoningExpanded;
@@ -161,6 +198,12 @@ public sealed partial class ChatMessage : ObservableObject
     /// <param name="senderType">The sender type (User, Agent, Subagent, or Fallback).</param>
     /// <param name="senderName">The display name of the sender.</param>
     /// <param name="isOptimistic">Whether this is an optimistic placeholder awaiting server confirmation.</param>
+    /// <param name="questionText">The question text for inline question cards.</param>
+    /// <param name="questionOptions">The predefined answer options for inline question cards.</param>
+    /// <param name="questionAllowFreeText">Whether free-text entry is shown for inline question cards.</param>
+    /// <param name="questionId">The TUI control request identifier for inline question cards.</param>
+    /// <param name="questionStatus">The answer status for inline question cards.</param>
+    /// <param name="resolvedAnswer">The answer submitted by the user for inline question cards.</param>
     internal ChatMessage(
         string id,
         string sessionId,
@@ -180,7 +223,13 @@ public sealed partial class ChatMessage : ObservableObject
         string? resolvedReply = null,
         string? resolvedReplyLabel = null,
         string? fallbackRawType = null,
-        string? fallbackRawJson = null)
+        string? fallbackRawJson = null,
+        string questionText = "",
+        IReadOnlyList<string>? questionOptions = null,
+        bool questionAllowFreeText = true,
+        string questionId = "",
+        QuestionStatus questionStatus = QuestionStatus.Pending,
+        string? resolvedAnswer = null)
     {
         Id = id;
         SessionId = sessionId;
@@ -201,6 +250,12 @@ public sealed partial class ChatMessage : ObservableObject
         _resolvedReplyLabel = resolvedReplyLabel;
         _fallbackRawType = fallbackRawType;
         _fallbackRawJson = fallbackRawJson;
+        _questionText = questionText;
+        _questionOptions = questionOptions ?? Array.Empty<string>();
+        _questionAllowFreeText = questionAllowFreeText;
+        _questionId = questionId;
+        _questionStatus = questionStatus;
+        _resolvedAnswer = resolvedAnswer;
 
         ToolCalls = new ObservableCollection<ToolCallInfo>();
         SubtaskLabels = new ObservableCollection<string>();
@@ -291,6 +346,45 @@ public sealed partial class ChatMessage : ObservableObject
             permissionPatterns: patterns,
             requestId: id,
             permissionStatus: PermissionStatus.Pending);
+    }
+
+    /// <summary>
+    /// Creates an inline question request card.
+    /// </summary>
+    /// <param name="id">The TUI control request identifier.</param>
+    /// <param name="sessionId">The session identifier.</param>
+    /// <param name="question">The question text to display.</param>
+    /// <param name="options">The predefined answer options.</param>
+    /// <param name="allowFreeText">Whether the user may type a custom answer.</param>
+    /// <returns>A new question request message with <see cref="QuestionStatus.Pending"/>.</returns>
+    public static ChatMessage CreateQuestionRequest(
+        string id,
+        string sessionId,
+        string question,
+        IReadOnlyList<string> options,
+        bool allowFreeText)
+    {
+        ArgumentNullException.ThrowIfNull(id);
+        ArgumentNullException.ThrowIfNull(sessionId);
+        ArgumentNullException.ThrowIfNull(question);
+        ArgumentNullException.ThrowIfNull(options);
+
+        return new ChatMessage(
+            id: id,
+            sessionId: sessionId,
+            isFromUser: false,
+            textContent: string.Empty,
+            timestamp: DateTimeOffset.UtcNow,
+            deliveryStatus: MessageDeliveryStatus.Sent,
+            isStreaming: false,
+            senderType: SenderType.Agent,
+            senderName: "Question",
+            messageKind: MessageKind.QuestionRequest,
+            questionText: question,
+            questionOptions: options,
+            questionAllowFreeText: allowFreeText,
+            questionId: id,
+            questionStatus: QuestionStatus.Pending);
     }
 
     /// <summary>

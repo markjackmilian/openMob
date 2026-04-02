@@ -1,11 +1,14 @@
 # Hide Unhandled SSE Event Cards — Context Sheet Option
 
 ## Metadata
-| Field   | Value                        |
-|---------|------------------------------|
-| Date    | 2026-03-31                   |
-| Status  | In Progress                  |
-| Version | 1.0                          |
+| Field       | Value                                  |
+|-------------|----------------------------------------|
+| Date        | 2026-03-31                             |
+| Status      | **Completed**                          |
+| Version     | 1.0                                    |
+| Completed   | 2026-04-02                             |
+| Branch      | feature/hide-unhandled-sse-cards (merged) |
+| Merged into | develop                                |
 
 ---
 

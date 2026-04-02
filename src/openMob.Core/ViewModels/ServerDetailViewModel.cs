@@ -6,6 +6,7 @@ using openMob.Core.Data.Repositories;
 using openMob.Core.Infrastructure.Dtos;
 using openMob.Core.Infrastructure.Helpers;
 using openMob.Core.Infrastructure.Http;
+using openMob.Core.Infrastructure.Http.Dtos.Opencode.Requests;
 using openMob.Core.Infrastructure.Logging;
 using openMob.Core.Infrastructure.Monitoring;
 using openMob.Core.Infrastructure.Security;
@@ -39,6 +40,7 @@ public sealed partial class ServerDetailViewModel : ObservableObject
     private readonly INavigationService _navigationService;
     private readonly IAppPopupService _popupService;
     private readonly IProviderService _providerService;
+    private readonly IOpencodeApiClient _apiClient;
 
     // ─── Private non-observable state ─────────────────────────────────────────
 
@@ -58,6 +60,7 @@ public sealed partial class ServerDetailViewModel : ObservableObject
     /// <param name="navigationService">Service for Shell navigation.</param>
     /// <param name="popupService">Service for popup/dialog operations.</param>
     /// <param name="providerService">Service for provider and model operations.</param>
+    /// <param name="apiClient">API client for reading and writing the opencode server configuration.</param>
     /// <exception cref="ArgumentNullException">Thrown when any parameter is <see langword="null"/>.</exception>
     public ServerDetailViewModel(
         IServerConnectionRepository serverConnectionRepository,
@@ -66,7 +69,8 @@ public sealed partial class ServerDetailViewModel : ObservableObject
         IHttpClientFactory httpClientFactory,
         INavigationService navigationService,
         IAppPopupService popupService,
-        IProviderService providerService)
+        IProviderService providerService,
+        IOpencodeApiClient apiClient)
     {
         ArgumentNullException.ThrowIfNull(serverConnectionRepository);
         ArgumentNullException.ThrowIfNull(credentialStore);
@@ -75,6 +79,7 @@ public sealed partial class ServerDetailViewModel : ObservableObject
         ArgumentNullException.ThrowIfNull(navigationService);
         ArgumentNullException.ThrowIfNull(popupService);
         ArgumentNullException.ThrowIfNull(providerService);
+        ArgumentNullException.ThrowIfNull(apiClient);
 
         _serverConnectionRepository = serverConnectionRepository;
         _credentialStore = credentialStore;
@@ -83,6 +88,7 @@ public sealed partial class ServerDetailViewModel : ObservableObject
         _navigationService = navigationService;
         _popupService = popupService;
         _providerService = providerService;
+        _apiClient = apiClient;
     }
 
     // ─── Observable state ─────────────────────────────────────────────────────
@@ -173,6 +179,39 @@ public sealed partial class ServerDetailViewModel : ObservableObject
     /// <summary>The raw default model ID stored on the server connection, or null.</summary>
     private string? _defaultModelId;
 
+    /// <summary>
+    /// Gets or sets whether the server's <c>permission</c> config is currently set to <c>"allow"</c>.
+    /// Loaded from <c>GET /config</c> on page open (Edit mode only).
+    /// Never persisted locally — always read from the live server.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(ToggleServerAutoApproveCommand))]
+    private bool _isServerAutoApproveEnabled;
+
+    /// <summary>
+    /// Gets or sets whether the <see cref="ToggleServerAutoApproveCommand"/> is currently executing.
+    /// Used to disable the toggle during in-flight API calls.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(ToggleServerAutoApproveCommand))]
+    private bool _isTogglingAutoApprove;
+
+    /// <summary>
+    /// Gets or sets whether the auto-approve config has been loaded from the server
+    /// (either successfully or with an error). <see langword="false"/> while the initial
+    /// <c>GET /config</c> call is in flight.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(ToggleServerAutoApproveCommand))]
+    private bool _isAutoApproveConfigLoaded;
+
+    /// <summary>
+    /// Gets or sets the error message shown when <c>GET /config</c> or <c>PUT /config</c> fails.
+    /// <see langword="null"/> when no error is present.
+    /// </summary>
+    [ObservableProperty]
+    private string? _autoApproveErrorMessage;
+
     // ─── Initialisation ───────────────────────────────────────────────────────
 
     /// <summary>
@@ -229,6 +268,9 @@ public sealed partial class ServerDetailViewModel : ObservableObject
             {
                 IsLoading = false;
             }
+
+            // Load server-side auto-approve config (REQ-002)
+            await LoadAutoApproveConfigAsync(ct);
         }
         else if (!string.IsNullOrEmpty(discoveredHost))
         {
@@ -595,6 +637,53 @@ public sealed partial class ServerDetailViewModel : ObservableObject
     }
 
     /// <summary>
+    /// Toggles the server-side auto-approve permission config.
+    /// Optimistically updates <see cref="IsServerAutoApproveEnabled"/>, then calls
+    /// <c>PUT /config</c> with <c>{ "permission": "allow" }</c> or <c>{ "permission": "ask" }</c>.
+    /// On failure, reverts to the previous value and sets <see cref="AutoApproveErrorMessage"/>.
+    /// </summary>
+    /// <param name="ct">Cancellation token.</param>
+    [RelayCommand(CanExecute = nameof(CanToggleServerAutoApprove))]
+    private async Task ToggleServerAutoApproveAsync(CancellationToken ct)
+    {
+        var previousValue = IsServerAutoApproveEnabled;
+        var newValue = !IsServerAutoApproveEnabled;
+
+        IsTogglingAutoApprove = true;
+        IsServerAutoApproveEnabled = newValue;   // optimistic update
+        AutoApproveErrorMessage = null;
+
+        try
+        {
+            var permissionValue = newValue ? "allow" : "ask";
+            var configJson = System.Text.Json.JsonSerializer.SerializeToElement(
+                new { permission = permissionValue });
+            var request = new UpdateConfigRequest(configJson);
+
+            var result = await _apiClient.UpdateConfigAsync(request, ct);
+
+            if (!result.IsSuccess)
+            {
+                IsServerAutoApproveEnabled = previousValue;   // rollback
+                AutoApproveErrorMessage = "Impossibile aggiornare la configurazione del server.";
+            }
+        }
+        catch (Exception ex)
+        {
+            IsServerAutoApproveEnabled = previousValue;   // rollback
+            AutoApproveErrorMessage = "Impossibile aggiornare la configurazione del server.";
+            SentryHelper.CaptureException(ex, new Dictionary<string, object>
+            {
+                ["context"] = "ServerDetailViewModel.ToggleServerAutoApproveAsync",
+            });
+        }
+        finally
+        {
+            IsTogglingAutoApprove = false;
+        }
+    }
+
+    /// <summary>
     /// Opens the model picker popup to change the default model for this server (REQ-011).
     /// On selection, persists the new default model ID via the repository.
     /// </summary>
@@ -634,6 +723,55 @@ public sealed partial class ServerDetailViewModel : ObservableObject
     // ─── Private helpers ─────────────────────────────────────────────────────
 
     /// <summary>
+    /// Loads the server-side auto-approve state from <c>GET /config</c>.
+    /// <para>
+    /// <b>Known API limitation:</b> the opencode server's <c>GET /config</c> does not
+    /// return the <c>permission</c> field. As a result, the toggle always starts OFF
+    /// when the page loads. The user must explicitly enable it via the toggle, which
+    /// calls <c>PATCH /config</c> and works correctly. This is an accepted limitation
+    /// until the server API exposes <c>permission</c> in the GET response.
+    /// </para>
+    /// On failure (server unreachable), sets <see cref="AutoApproveErrorMessage"/>
+    /// and leaves the toggle disabled.
+    /// </summary>
+    /// <param name="ct">Cancellation token.</param>
+    private async Task LoadAutoApproveConfigAsync(CancellationToken ct)
+    {
+        IsAutoApproveConfigLoaded = false;
+        AutoApproveErrorMessage = null;
+
+        try
+        {
+            var result = await _apiClient.GetConfigAsync(ct);
+
+            if (result.IsSuccess && result.Value is not null)
+            {
+                // GET /config does not return the "permission" field (known server limitation).
+                // IsPermissionAllow will be false when the field is absent — toggle starts OFF.
+                IsServerAutoApproveEnabled = result.Value.IsPermissionAllow;
+            }
+            else
+            {
+                IsServerAutoApproveEnabled = false;
+                AutoApproveErrorMessage = "Impossibile leggere la configurazione del server.";
+            }
+        }
+        catch (Exception ex)
+        {
+            IsServerAutoApproveEnabled = false;
+            AutoApproveErrorMessage = "Impossibile leggere la configurazione del server.";
+            SentryHelper.CaptureException(ex, new Dictionary<string, object>
+            {
+                ["context"] = "ServerDetailViewModel.LoadAutoApproveConfigAsync",
+            });
+        }
+        finally
+        {
+            IsAutoApproveConfigLoaded = true;
+        }
+    }
+
+    /// <summary>
     /// Safely persists the selected default model and updates the UI.
     /// Called as fire-and-forget from the <see cref="ShowModelPickerAsync"/> callback
     /// (which accepts <see cref="Action{String}"/> and cannot be async).
@@ -664,6 +802,13 @@ public sealed partial class ServerDetailViewModel : ObservableObject
     }
 
     // ─── CanExecute helpers ───────────────────────────────────────────────────
+
+    /// <summary>
+    /// Returns <see langword="true"/> when the toggle can be interacted with:
+    /// config has been loaded, no toggle operation is in progress.
+    /// </summary>
+    private bool CanToggleServerAutoApprove() =>
+        IsAutoApproveConfigLoaded && !IsTogglingAutoApprove;
 
     /// <summary>Returns <c>true</c> when the URL field is non-empty, enabling the Test Connection button.</summary>
     private bool CanTestConnection() => !string.IsNullOrWhiteSpace(Url);

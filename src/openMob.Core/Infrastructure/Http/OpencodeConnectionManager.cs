@@ -132,4 +132,11 @@ internal sealed class OpencodeConnectionManager : IOpencodeConnectionManager
     {
         ConnectionStatus = status;
     }
+
+    /// <inheritdoc />
+    public async Task<string?> GetActiveServerNameAsync(CancellationToken ct = default)
+    {
+        var dto = await _repository.GetActiveAsync(ct).ConfigureAwait(false);
+        return dto?.Name;
+    }
 }

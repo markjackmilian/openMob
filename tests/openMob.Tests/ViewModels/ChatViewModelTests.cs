@@ -20,7 +20,6 @@ public sealed class ChatViewModelTests : IDisposable
     private readonly INavigationService _navigationService;
     private readonly IAppPopupService _popupService;
     private readonly IOpencodeConnectionManager _connectionManager;
-    private readonly IProviderService _providerService;
     private readonly IProjectPreferenceService _preferenceService;
     private readonly IChatService _chatService;
     private readonly IOpencodeApiClient _apiClient;
@@ -35,7 +34,6 @@ public sealed class ChatViewModelTests : IDisposable
         _navigationService = Substitute.For<INavigationService>();
         _popupService = Substitute.For<IAppPopupService>();
         _connectionManager = Substitute.For<IOpencodeConnectionManager>();
-        _providerService = Substitute.For<IProviderService>();
         _preferenceService = Substitute.For<IProjectPreferenceService>();
         _chatService = Substitute.For<IChatService>();
         _apiClient = Substitute.For<IOpencodeApiClient>();
@@ -45,9 +43,8 @@ public sealed class ChatViewModelTests : IDisposable
         // CRITICAL: IDispatcherService mock must execute the action synchronously
         _dispatcher.When(d => d.Dispatch(Arg.Any<Action>())).Do(ci => ci.Arg<Action>()());
 
-        // Default: server connected, provider configured
+        // Default: server connected
         _connectionManager.ConnectionStatus.Returns(ServerConnectionStatus.Connected);
-        _providerService.HasAnyProviderConfiguredAsync(Arg.Any<CancellationToken>()).Returns(true);
 
         _sut = new ChatViewModel(
             _projectService,
@@ -55,12 +52,12 @@ public sealed class ChatViewModelTests : IDisposable
             _navigationService,
             _popupService,
             _connectionManager,
-            _providerService,
             _preferenceService,
             _chatService,
             _apiClient,
             _dispatcher,
-            _activeProjectService);
+            _activeProjectService,
+            Substitute.For<IHeartbeatMonitorService>());
     }
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -416,57 +413,6 @@ public sealed class ChatViewModelTests : IDisposable
             "Error",
             Arg.Any<string>(),
             Arg.Any<CancellationToken>());
-    }
-
-    // ─── Status banner ────────────────────────────────────────────────────────
-
-    [Fact]
-    public async Task LoadContextCommand_WhenServerOffline_SetsStatusBannerToServerOffline()
-    {
-        // Arrange
-        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>())
-            .Returns((ProjectDto?)null);
-        _connectionManager.ConnectionStatus.Returns(ServerConnectionStatus.Disconnected);
-
-        // Act
-        await _sut.LoadContextCommand.ExecuteAsync(null);
-
-        // Assert
-        _sut.StatusBanner.Should().NotBeNull();
-        _sut.StatusBanner!.Type.Should().Be(StatusBannerType.ServerOffline);
-    }
-
-    [Fact]
-    public async Task LoadContextCommand_WhenNoProviderConfigured_SetsStatusBannerToNoProvider()
-    {
-        // Arrange
-        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>())
-            .Returns((ProjectDto?)null);
-        _connectionManager.ConnectionStatus.Returns(ServerConnectionStatus.Connected);
-        _providerService.HasAnyProviderConfiguredAsync(Arg.Any<CancellationToken>()).Returns(false);
-
-        // Act
-        await _sut.LoadContextCommand.ExecuteAsync(null);
-
-        // Assert
-        _sut.StatusBanner.Should().NotBeNull();
-        _sut.StatusBanner!.Type.Should().Be(StatusBannerType.NoProvider);
-    }
-
-    [Fact]
-    public async Task LoadContextCommand_WhenServerConnectedAndProviderConfigured_StatusBannerIsNull()
-    {
-        // Arrange
-        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>())
-            .Returns((ProjectDto?)null);
-        _connectionManager.ConnectionStatus.Returns(ServerConnectionStatus.Connected);
-        _providerService.HasAnyProviderConfiguredAsync(Arg.Any<CancellationToken>()).Returns(true);
-
-        // Act
-        await _sut.LoadContextCommand.ExecuteAsync(null);
-
-        // Assert
-        _sut.StatusBanner.Should().BeNull();
     }
 
     // ─── SetSession ───────────────────────────────────────────────────────────
@@ -1015,42 +961,6 @@ public sealed class ChatViewModelTests : IDisposable
         // Assert
         _sut.Messages.Should().ContainSingle(m => m.TextContent == "Explain this code");
         _sut.Messages[0].IsFromUser.Should().BeTrue();
-    }
-
-    // ─── Status banner — ActionLabel for server offline states ───────────────
-
-    [Theory]
-    [InlineData(ServerConnectionStatus.Disconnected)]
-    [InlineData(ServerConnectionStatus.Error)]
-    public async Task LoadContextCommand_WhenServerOffline_StatusBannerActionLabelIsGestisciServer(
-        ServerConnectionStatus status)
-    {
-        // Arrange
-        _connectionManager.ConnectionStatus.Returns(status);
-        _activeProjectService.GetActiveProjectAsync(Arg.Any<CancellationToken>())
-            .Returns((ProjectDto?)null);
-
-        // Act
-        await _sut.LoadContextCommand.ExecuteAsync(null);
-
-        // Assert
-        _sut.StatusBanner.Should().NotBeNull();
-        _sut.StatusBanner!.ActionLabel.Should().Be("Gestisci server");
-    }
-
-    // ─── NavigateToServerManagementCommand ───────────────────────────────────
-
-    [Fact]
-    public async Task NavigateToServerManagementCommand_WhenExecuted_CallsNavigationServiceWithShellPushRoute()
-    {
-        // Act
-        await _sut.NavigateToServerManagementCommand.ExecuteAsync(null);
-
-        // Assert
-        // "///server-management" is required because server-management is a ShellContent element.
-        // MAUI does not allow plain relative routing to Shell elements — the triple-slash prefix
-        // performs a push navigation that preserves back navigation to ChatPage (REQ-011).
-        await _navigationService.Received(1).GoToAsync("///server-management", Arg.Any<CancellationToken>());
     }
 
     // ─── OpenContextSheetCommand ──────────────────────────────────────────────────

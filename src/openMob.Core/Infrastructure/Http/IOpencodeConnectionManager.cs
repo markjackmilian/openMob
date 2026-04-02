@@ -63,4 +63,10 @@ public interface IOpencodeConnectionManager
     /// </summary>
     /// <param name="status">The new status to apply.</param>
     void SetConnectionStatus(ServerConnectionStatus status);
+
+    /// <summary>
+    /// Returns the display name of the currently active server connection, or <c>null</c> if none is configured.
+    /// </summary>
+    /// <param name="ct">Cancellation token.</param>
+    Task<string?> GetActiveServerNameAsync(CancellationToken ct = default);
 }

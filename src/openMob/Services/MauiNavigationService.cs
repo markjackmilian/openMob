@@ -16,7 +16,14 @@ internal sealed class MauiNavigationService : INavigationService
 #if DEBUG
         DebugLogger.LogNavigation(route);
 #endif
-        await Shell.Current.GoToAsync(route, true);
+        // Shell.Current.GoToAsync must run on the main thread.
+        // Callers in Core use ConfigureAwait(false), so continuations may resume
+        // on a thread pool thread. We marshal here unconditionally.
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            ct.ThrowIfCancellationRequested();
+            return Shell.Current.GoToAsync(route, true);
+        });
     }
 
     /// <inheritdoc />
@@ -26,7 +33,12 @@ internal sealed class MauiNavigationService : INavigationService
 #if DEBUG
         DebugLogger.LogNavigation(route, parameters);
 #endif
-        await Shell.Current.GoToAsync(route, true, parameters);
+        // Shell.Current.GoToAsync must run on the main thread.
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            ct.ThrowIfCancellationRequested();
+            return Shell.Current.GoToAsync(route, true, parameters);
+        });
     }
 
     /// <inheritdoc />
@@ -36,7 +48,12 @@ internal sealed class MauiNavigationService : INavigationService
 #if DEBUG
         DebugLogger.LogNavigation("..");
 #endif
-        await Shell.Current.GoToAsync("..", true);
+        // Shell.Current.GoToAsync must run on the main thread.
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            ct.ThrowIfCancellationRequested();
+            return Shell.Current.GoToAsync("..", true);
+        });
     }
 
     /// <inheritdoc />

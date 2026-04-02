@@ -57,6 +57,9 @@ public partial class ChatPage : ContentPage, IQueryAttributable
             // Sync typing indicator in case IsAiResponding was already true on page re-entry
             if (vm.IsAiResponding)
                 StartTypingAnimation();
+
+            // Start the heartbeat monitor so the connection footer stays up-to-date
+            await vm.StartHeartbeatMonitorCommand.ExecuteAsync(null);
         }
     }
 
@@ -68,6 +71,14 @@ public partial class ChatPage : ContentPage, IQueryAttributable
         if (BindingContext is ChatViewModel vm)
         {
             vm.PropertyChanged -= OnViewModelPropertyChanged;
+
+            // NOTE: The heartbeat monitor is intentionally NOT stopped here.
+            // OnDisappearing fires both when navigating to child pages (e.g.
+            // ServerManagementPage) and when leaving the chat area entirely.
+            // Stopping the monitor on child-page navigation would lose the
+            // health state and prevent the reconnection modal from reappearing
+            // correctly on return. The monitor is stopped only when the
+            // ChatViewModel is disposed (app shutdown / navigation to Splash).
         }
 
         StopTypingAnimation();

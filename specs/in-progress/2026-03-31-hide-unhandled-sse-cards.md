@@ -4,7 +4,7 @@
 | Field   | Value                        |
 |---------|------------------------------|
 | Date    | 2026-03-31                   |
-| Status  | Draft                        |
+| Status  | In Progress                  |
 | Version | 1.0                          |
 
 ---
@@ -143,3 +143,81 @@ The opencode server emits SSE events and message part types that the app does no
   - `src/openMob/Views/Popups/ContextSheet.xaml`
   - `tests/openMob.Tests/ViewModels/ContextSheetViewModelTests.cs`
   - `tests/openMob.Tests/ViewModels/ChatViewModelSseTests.cs`
+
+---
+
+## Technical Analysis
+
+> Added by: om-orchestrator | Date: 2026-04-02
+
+### Change Classification
+
+| Field | Value |
+|-------|-------|
+| Change type | Feature |
+| Git Flow branch | feature/hide-unhandled-sse-cards |
+| Branches from | develop |
+| Estimated complexity | Low |
+| Estimated agents involved | om-mobile-core, om-mobile-ui, om-tester, om-reviewer |
+
+### Layers Involved
+
+| Layer | Agent | Scope |
+|-------|-------|-------|
+| Data / Entities | om-mobile-core | `src/openMob.Core/Data/Entities/ProjectPreference.cs` |
+| Services | om-mobile-core | `src/openMob.Core/Services/IProjectPreferenceService.cs`, `ProjectPreferenceService.cs` |
+| ViewModels | om-mobile-core | `src/openMob.Core/ViewModels/ContextSheetViewModel.cs`, `ChatViewModel.cs` |
+| XAML Views | om-mobile-ui | `src/openMob/Views/Popups/ContextSheet.xaml` |
+| Unit Tests | om-tester | `tests/openMob.Tests/ViewModels/ContextSheetViewModelTests.cs`, `ChatViewModelSseTests.cs` |
+| Code Review | om-reviewer | all of the above |
+
+### Files to Create
+
+- *(none — all changes are additive modifications to existing files)*
+
+### Files to Modify
+
+- `src/openMob.Core/Data/Entities/ProjectPreference.cs` — add `ShowUnhandledSseEvents bool` property (default `false`)
+- `src/openMob.Core/Services/IProjectPreferenceService.cs` — add `SetShowUnhandledSseEventsAsync` method signature
+- `src/openMob.Core/Services/ProjectPreferenceService.cs` — implement `SetShowUnhandledSseEventsAsync` (upsert pattern, mirrors `SetAutoAcceptAsync`)
+- `src/openMob.Core/ViewModels/ContextSheetViewModel.cs` — add `[ObservableProperty] bool _showUnhandledSseEvents`, `partial void OnShowUnhandledSseEventsChanged`, `SaveShowUnhandledSseEventsAsync`, and load in `InitializeAsync`
+- `src/openMob.Core/ViewModels/ChatViewModel.cs` — add `[ObservableProperty] bool _showUnhandledSseEvents`; update `ProjectPreferenceChangedMessage` handler; update `LoadContextAsync`; guard `HandleUnknownEvent` with `ShowUnhandledSseEvents` check
+- `src/openMob/Views/Popups/ContextSheet.xaml` — add "Show unhandled events" toggle row after the Auto-Accept row
+- `tests/openMob.Tests/ViewModels/ContextSheetViewModelTests.cs` — add tests for new property
+- `tests/openMob.Tests/ViewModels/ChatViewModelSseTests.cs` — add tests for SSE suppression logic
+
+### Technical Dependencies
+
+- `ProjectPreferenceChangedMessage` already carries the full `ProjectPreference` payload — no changes needed to the message type
+- `_isInitializing` guard already exists in `ContextSheetViewModel` — must be applied to the new `OnShowUnhandledSseEventsChanged` partial method
+- `HandleUnknownEvent` at line ~1767 of `ChatViewModel.cs` — the `Messages.Add(fallback)` call inside `_dispatcher.Dispatch` must be gated by `ShowUnhandledSseEvents`
+- The `#if DEBUG` `DebugLogger.WriteAction("OM_SSE", ...)` call at line ~1196 must remain unconditional (outside any `ShowUnhandledSseEvents` guard)
+- No new NuGet packages required
+- No new message types required
+
+### Technical Risks
+
+- **Double-fire guard:** The `AutoAccept` property uses a dedicated `_isTogglingAutoAccept` guard because it has a `ToggleAutoAcceptCommand` that sets the property programmatically. `ShowUnhandledSseEvents` does NOT have a toggle command — it is set directly by the Switch binding. Therefore, only the `_isInitializing` guard is needed; no additional guard is required.
+- **`GetOrDefaultAsync` default:** The existing `GetOrDefaultAsync` returns a transient `ProjectPreference` with `AutoAccept = false`. The new `ShowUnhandledSseEvents = false` default is already the C# default for `bool`, so no explicit initialisation is needed in the default-return branch — but it should be added for clarity and documentation.
+- **`LoadContextAsync` uses `GetAsync` (not `GetOrDefaultAsync`):** The initial load in `ChatViewModel.LoadContextAsync` uses `_preferenceService.GetAsync(...)` which can return `null`. The new `ShowUnhandledSseEvents` must be loaded as `pref?.ShowUnhandledSseEvents ?? false`.
+
+### Execution Order
+
+> Steps that can run in parallel are marked with ⟳. Steps that must be sequential are numbered.
+
+1. [Git Flow] Create branch `feature/hide-unhandled-sse-cards`
+2. [om-mobile-core] Implement entity, service, and ViewModel changes
+3. ⟳ [om-mobile-ui] Implement XAML toggle row in ContextSheet (can start once ViewModel property name is confirmed — `ShowUnhandledSseEvents`)
+4. [om-tester] Write unit tests (after om-mobile-core completes)
+5. [om-reviewer] Full review against spec
+6. [Fix loop if needed] Address Critical and Major findings
+7. [Git Flow] Finish branch and merge
+
+### Definition of Done
+
+- [ ] All `[REQ-001]` through `[REQ-010]` requirements implemented
+- [ ] All `[AC-001]` through `[AC-009]` acceptance criteria satisfied
+- [ ] Unit tests written for `ContextSheetViewModel` (new property) and `ChatViewModel` (SSE suppression)
+- [ ] `om-reviewer` verdict: ✅ Approved or ⚠️ Approved with remarks
+- [ ] Git Flow branch finished and deleted
+- [ ] Spec moved to `specs/done/` with Completed status

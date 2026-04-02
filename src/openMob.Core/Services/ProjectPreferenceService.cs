@@ -57,6 +57,7 @@ public sealed class ProjectPreferenceService : IProjectPreferenceService
             ProjectId = projectId,
             ThinkingLevel = ThinkingLevel.Medium,
             AutoAccept = false,
+            ShowUnhandledSseEvents = false,
         };
     }
 
@@ -263,6 +264,48 @@ public sealed class ProjectPreferenceService : IProjectPreferenceService
                 ["projectId"] = projectId,
                 ["autoAccept"] = autoAccept,
                 ["operation"] = "SetAutoAcceptAsync",
+            });
+            return false;
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> SetShowUnhandledSseEventsAsync(string projectId, bool value, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(projectId);
+
+        try
+        {
+            var existing = await _db.Connection
+                .Table<ProjectPreference>()
+                .Where(p => p.ProjectId == projectId)
+                .FirstOrDefaultAsync()
+                .ConfigureAwait(false);
+
+            if (existing is not null)
+            {
+                existing.ShowUnhandledSseEvents = value;
+                await _db.Connection.UpdateAsync(existing).ConfigureAwait(false);
+            }
+            else
+            {
+                await _db.Connection.InsertAsync(new ProjectPreference
+                {
+                    ProjectId = projectId,
+                    ShowUnhandledSseEvents = value,
+                    ThinkingLevel = ThinkingLevel.Medium,
+                }).ConfigureAwait(false);
+            }
+
+            return true;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            SentryHelper.CaptureException(ex, new Dictionary<string, object>
+            {
+                ["projectId"] = projectId,
+                ["value"] = value,
+                ["operation"] = "SetShowUnhandledSseEventsAsync",
             });
             return false;
         }

@@ -161,6 +161,9 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
                     // Update thinking level and auto-accept [REQ-003, REQ-005]
                     ThinkingLevel = pref.ThinkingLevel;
                     AutoAccept = pref.AutoAccept;
+
+                    // Update show-unhandled-SSE-events toggle [REQ-008]
+                    ShowUnhandledSseEvents = pref.ShowUnhandledSseEvents;
                 });
             });
 
@@ -302,6 +305,14 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private bool _autoAccept;
 
+    /// <summary>
+    /// Gets or sets whether unhandled SSE event debug cards are shown in the chat.
+    /// Updated from <see cref="ProjectPreferenceChangedMessage"/> and on initial load.
+    /// Default is <c>false</c> — cards are hidden until the user enables the toggle.
+    /// </summary>
+    [ObservableProperty]
+    private bool _showUnhandledSseEvents;
+
     /// <summary>Gets or sets whether a subagent is currently active (streaming messages).</summary>
     [ObservableProperty]
     private bool _isSubagentActive;
@@ -398,6 +409,9 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
                 // Load thinking level and auto-accept from preference [REQ-003, REQ-005]
                 ThinkingLevel = pref?.ThinkingLevel ?? ThinkingLevel.Medium;
                 AutoAccept = pref?.AutoAccept ?? false;
+
+                // Load show-unhandled-SSE-events preference [REQ-008]
+                ShowUnhandledSseEvents = pref?.ShowUnhandledSseEvents ?? false;
             }
             else
             {
@@ -1759,13 +1773,18 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
 
     /// <summary>
     /// Handles an <see cref="UnknownEvent"/> from the SSE stream [REQ-001, REQ-004, REQ-005].
-    /// Creates a fallback <see cref="ChatMessage"/> and appends it to <see cref="Messages"/>
-    /// on the UI thread. In DEBUG builds the raw event type and JSON payload are preserved;
-    /// in Release builds both fields are null.
+    /// When <see cref="ShowUnhandledSseEvents"/> is <c>false</c> (the default), the card is
+    /// silently suppressed and no entry is added to <see cref="Messages"/>.
+    /// When <c>true</c>, creates a fallback <see cref="ChatMessage"/> and appends it to
+    /// <see cref="Messages"/> on the UI thread. In DEBUG builds the raw event type and JSON
+    /// payload are preserved; in Release builds both fields are null.
     /// </summary>
     /// <param name="e">The unknown event.</param>
     private void HandleUnknownEvent(UnknownEvent e)
     {
+        if (!ShowUnhandledSseEvents)
+            return;
+
 #if DEBUG
         string? rawJson = null;
         if (e.RawData.HasValue && e.RawData.Value.ValueKind != JsonValueKind.Undefined)

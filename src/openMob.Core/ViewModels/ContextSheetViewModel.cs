@@ -22,6 +22,8 @@ namespace openMob.Core.ViewModels;
 /// can update its state without a page reload.
 /// Also exposes <see cref="DeleteSessionCommand"/> to delete the current session
 /// after user confirmation, dismiss the sheet, and navigate to a new chat.
+/// Also exposes <see cref="ShowUnhandledSseEvents"/> to control whether unhandled SSE event
+/// debug cards are shown in the chat.
 /// </summary>
 /// <remarks>
 /// Registered as Transient — a new instance is created each time the sheet is opened.
@@ -139,6 +141,13 @@ public sealed partial class ContextSheetViewModel : ObservableObject
     /// </summary>
     [ObservableProperty]
     private bool _autoAccept;
+
+    /// <summary>
+    /// Gets or sets whether unhandled SSE event debug cards are shown in the chat.
+    /// Changing this property triggers auto-save via <see cref="OnShowUnhandledSseEventsChanged"/>.
+    /// </summary>
+    [ObservableProperty]
+    private bool _showUnhandledSseEvents;
 
     /// <summary>Gets or sets whether the sheet is currently loading preferences.</summary>
     [ObservableProperty]
@@ -495,6 +504,7 @@ public sealed partial class ContextSheetViewModel : ObservableObject
             SelectedModelId = pref.DefaultModelId;
             ThinkingLevel = pref.ThinkingLevel;
             AutoAccept = pref.AutoAccept;
+            ShowUnhandledSseEvents = pref.ShowUnhandledSseEvents;
 
             // Load subagent list for InvokeSubagentCommand CanExecute evaluation [REQ-009]
             _subagentAgents = await _agentService.GetSubagentAgentsAsync(ct);
@@ -566,6 +576,18 @@ public sealed partial class ContextSheetViewModel : ObservableObject
         _ = SaveAutoAcceptAsync(value);
     }
 
+    /// <summary>
+    /// Invoked by the CommunityToolkit source generator when <see cref="ShowUnhandledSseEvents"/> changes.
+    /// Skipped during <see cref="InitializeAsync"/> via the <c>_isInitializing</c> guard.
+    /// </summary>
+    partial void OnShowUnhandledSseEventsChanged(bool value)
+    {
+        if (_isInitializing || _currentProjectId is null)
+            return;
+
+        _ = SaveShowUnhandledSseEventsAsync(value);
+    }
+
     // ─── Private save helpers ─────────────────────────────────────────────────
 
     /// <summary>Persists the agent name and publishes a change message on success.</summary>
@@ -633,6 +655,20 @@ public sealed partial class ContextSheetViewModel : ObservableObject
             await PublishChangedMessageAsync(projectId);
         else
             ErrorMessage = "Failed to save auto-accept preference.";
+    }
+
+    /// <summary>Persists the show-unhandled-SSE-events setting and publishes a change message on success.</summary>
+    private async Task SaveShowUnhandledSseEventsAsync(bool value)
+    {
+        var projectId = _currentProjectId!;
+        var success = await _preferenceService
+            .SetShowUnhandledSseEventsAsync(projectId, value, CancellationToken.None)
+            ;
+
+        if (success)
+            await PublishChangedMessageAsync(projectId);
+        else
+            ErrorMessage = "Failed to save show-unhandled-events preference.";
     }
 
     /// <summary>

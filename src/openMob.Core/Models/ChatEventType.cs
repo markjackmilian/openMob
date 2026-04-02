@@ -24,6 +24,9 @@ public enum ChatEventType
     /// <summary>A pending permission request has been replied to (server-side auto-approval, rejection, or reply from another client).</summary>
     PermissionReplied,
 
+    /// <summary>The AI is asking the user a question via the TUI control mechanism.</summary>
+    QuestionRequested,
+
     /// <summary>A delta (incremental text chunk) for a message part was received during streaming.</summary>
     MessagePartDelta,
 

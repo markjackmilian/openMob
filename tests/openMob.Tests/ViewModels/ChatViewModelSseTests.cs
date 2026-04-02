@@ -1842,6 +1842,401 @@ public sealed class ChatViewModelSseTests : IDisposable
         await _apiClient.Received(1).ReplyToPermissionAsync("per-1", "always", Arg.Any<CancellationToken>());
     }
 
+    // ─── HandleQuestionRequested — SSE handler ────────────────────────────────
+
+    /// <summary>
+    /// Builds a typed question requested event for the SSE stream.
+    /// </summary>
+    private static QuestionRequestedEvent BuildQuestionRequestedEvent(
+        string id = "q-1",
+        string sessionId = "sess-1",
+        string question = "Which option?",
+        string[]? options = null,
+        bool allowFreeText = true,
+        string? projectDirectory = null)
+    {
+        return new QuestionRequestedEvent
+        {
+            Id = id,
+            SessionId = sessionId,
+            Question = question,
+            Options = options ?? ["Option A", "Option B"],
+            AllowFreeText = allowFreeText,
+            ProjectDirectory = projectDirectory,
+        };
+    }
+
+    [Fact]
+    public async Task QuestionRequestedEvent_WhenEventMatchesCurrentSession_AddsQuestionCardToMessages()
+    {
+        // Arrange
+        var questionEvent = BuildQuestionRequestedEvent(id: "q-1", sessionId: "sess-1");
+
+        // Act
+        await TriggerSseEvents(new ChatEvent[] { questionEvent });
+
+        // Assert
+        _sut.Messages.Should().ContainSingle(m => m.MessageKind == MessageKind.QuestionRequest);
+        var card = _sut.Messages.Single(m => m.MessageKind == MessageKind.QuestionRequest);
+        card.QuestionId.Should().Be("q-1");
+        card.QuestionText.Should().Be("Which option?");
+        card.QuestionStatus.Should().Be(QuestionStatus.Pending);
+    }
+
+    [Fact]
+    public async Task QuestionRequestedEvent_WhenEventMatchesCurrentSession_SetsHasPendingQuestionsTrue()
+    {
+        // Arrange
+        var questionEvent = BuildQuestionRequestedEvent();
+
+        // Act
+        await TriggerSseEvents(new ChatEvent[] { questionEvent });
+
+        // Assert
+        _sut.HasPendingQuestions.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task QuestionRequestedEvent_WhenEventHasDifferentSessionId_IsIgnored()
+    {
+        // Arrange
+        var questionEvent = BuildQuestionRequestedEvent(sessionId: "sess-OTHER");
+
+        // Act
+        await TriggerSseEvents(new ChatEvent[] { questionEvent });
+
+        // Assert
+        _sut.Messages.Should().NotContain(m => m.MessageKind == MessageKind.QuestionRequest);
+        _sut.HasPendingQuestions.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task QuestionRequestedEvent_WhenEventHasDifferentProjectDirectory_IsIgnored()
+    {
+        // Arrange
+        var questionEvent = BuildQuestionRequestedEvent(projectDirectory: "/other/project");
+
+        // Act
+        await TriggerSseEventsWithProjectDirectory("/my/project", new ChatEvent[] { questionEvent });
+
+        // Assert
+        _sut.Messages.Should().NotContain(m => m.MessageKind == MessageKind.QuestionRequest);
+        _sut.HasPendingQuestions.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task QuestionRequestedEvent_WhenDuplicateQuestionIdAlreadyInMessages_IsIgnored()
+    {
+        // Arrange — inject the same question ID twice in a single SSE stream
+        var firstEvent = BuildQuestionRequestedEvent(id: "q-1");
+        var duplicateEvent = BuildQuestionRequestedEvent(id: "q-1");
+
+        // Act
+        await TriggerSseEvents(new ChatEvent[] { firstEvent, duplicateEvent });
+
+        // Assert — only one card added, not two
+        _sut.Messages.Count(m => m.MessageKind == MessageKind.QuestionRequest).Should().Be(1);
+    }
+
+    // ─── AnswerQuestionAsync command ──────────────────────────────────────────
+
+    [Fact]
+    public async Task AnswerQuestionAsync_WhenApiSucceeds_ResolvesQuestionCard()
+    {
+        // Arrange
+        var questionEvent = BuildQuestionRequestedEvent(id: "q-1");
+        await TriggerSseEvents(new ChatEvent[] { questionEvent });
+
+        _apiClient
+            .RespondToTuiControlAsync("q-1", "Option A", Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(OpencodeResult<bool>.Success(true)));
+
+        // Act
+        await _sut.AnswerQuestionCommand.ExecuteAsync(new[] { "q-1", "Option A" });
+
+        // Assert
+        var card = _sut.Messages.Single(m => m.MessageKind == MessageKind.QuestionRequest);
+        card.QuestionStatus.Should().Be(QuestionStatus.Resolved);
+        card.ResolvedAnswer.Should().Be("Option A");
+    }
+
+    [Fact]
+    public async Task AnswerQuestionAsync_WhenApiSucceeds_SetsIsAiRespondingTrue()
+    {
+        // Arrange
+        var questionEvent = BuildQuestionRequestedEvent(id: "q-1");
+        await TriggerSseEvents(new ChatEvent[] { questionEvent });
+
+        _apiClient
+            .RespondToTuiControlAsync("q-1", "Option A", Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(OpencodeResult<bool>.Success(true)));
+
+        // Act
+        await _sut.AnswerQuestionCommand.ExecuteAsync(new[] { "q-1", "Option A" });
+
+        // Assert
+        _sut.IsAiResponding.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task AnswerQuestionAsync_WhenApiSucceeds_DecrementsHasPendingQuestions()
+    {
+        // Arrange
+        var questionEvent = BuildQuestionRequestedEvent(id: "q-1");
+        await TriggerSseEvents(new ChatEvent[] { questionEvent });
+
+        _apiClient
+            .RespondToTuiControlAsync("q-1", "Option A", Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(OpencodeResult<bool>.Success(true)));
+
+        // Act
+        await _sut.AnswerQuestionCommand.ExecuteAsync(new[] { "q-1", "Option A" });
+
+        // Assert
+        _sut.HasPendingQuestions.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task AnswerQuestionAsync_WhenApiFails_CardRemainsInPendingState()
+    {
+        // Arrange
+        var questionEvent = BuildQuestionRequestedEvent(id: "q-1");
+        await TriggerSseEvents(new ChatEvent[] { questionEvent });
+
+        _apiClient
+            .RespondToTuiControlAsync("q-1", "Option A", Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(OpencodeResult<bool>.Failure(
+                new OpencodeApiError(ErrorKind.NetworkUnreachable, "offline", null, new HttpRequestException("offline")))));
+
+        // Act
+        await _sut.AnswerQuestionCommand.ExecuteAsync(new[] { "q-1", "Option A" });
+
+        // Assert
+        var card = _sut.Messages.Single(m => m.MessageKind == MessageKind.QuestionRequest);
+        card.QuestionStatus.Should().Be(QuestionStatus.Pending);
+        card.ResolvedAnswer.Should().BeNull();
+        _sut.HasPendingQuestions.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task AnswerQuestionAsync_WhenCalledConcurrentlyForSameQuestionId_OnlyFirstCallProceedsToApi()
+    {
+        // Arrange
+        var questionEvent = BuildQuestionRequestedEvent(id: "q-1");
+        await TriggerSseEvents(new ChatEvent[] { questionEvent });
+
+        // Use a TaskCompletionSource to hold the first call in-flight while the second arrives
+        var tcs = new TaskCompletionSource<OpencodeResult<bool>>();
+        _apiClient
+            .RespondToTuiControlAsync("q-1", "Option A", Arg.Any<CancellationToken>())
+            .Returns(_ => tcs.Task);
+
+        // Act — fire both calls concurrently; the second must be dropped by the in-flight guard
+        var firstCall = _sut.AnswerQuestionCommand.ExecuteAsync(new[] { "q-1", "Option A" });
+        var secondCall = _sut.AnswerQuestionCommand.ExecuteAsync(new[] { "q-1", "Option A" });
+
+        // Release the first call
+        tcs.SetResult(OpencodeResult<bool>.Success(true));
+        await Task.WhenAll(firstCall, secondCall);
+
+        // Assert — API called exactly once despite two concurrent invocations
+        await _apiClient.Received(1).RespondToTuiControlAsync("q-1", "Option A", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task AnswerQuestionAsync_WhenCalledWithFreeTextAnswer_ResolvesCard()
+    {
+        // Arrange
+        var questionEvent = BuildQuestionRequestedEvent(
+            id: "q-1",
+            sessionId: "sess-1",
+            question: "What is your preference?",
+            options: ["Option A", "Option B"],
+            allowFreeText: true);
+        await TriggerSseEvents(new ChatEvent[] { questionEvent });
+
+        _apiClient
+            .RespondToTuiControlAsync("q-1", "My custom answer", Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(OpencodeResult<bool>.Success(true)));
+
+        // Act
+        await _sut.AnswerQuestionCommand.ExecuteAsync(new[] { "q-1", "My custom answer" });
+
+        // Assert
+        var card = _sut.Messages.Single(m => m.MessageKind == MessageKind.QuestionRequest);
+        card.QuestionStatus.Should().Be(QuestionStatus.Resolved);
+        card.ResolvedAnswer.Should().Be("My custom answer");
+        await _apiClient.Received(1).RespondToTuiControlAsync("q-1", "My custom answer", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task AnswerQuestionAsync_WhenApiThrowsException_CardRemainsInPendingStateAndDoesNotCrash()
+    {
+        // Arrange
+        var questionEvent = BuildQuestionRequestedEvent(id: "q-1", sessionId: "sess-1", question: "Test?");
+        await TriggerSseEvents(new ChatEvent[] { questionEvent });
+
+        _apiClient
+            .RespondToTuiControlAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns<Task<OpencodeResult<bool>>>(_ => throw new HttpRequestException("Network error"));
+
+        // Act — must not throw
+        await _sut.AnswerQuestionCommand.ExecuteAsync(new[] { "q-1", "Yes" });
+
+        // Assert
+        var card = _sut.Messages.Single(m => m.MessageKind == MessageKind.QuestionRequest);
+        card.QuestionStatus.Should().Be(QuestionStatus.Pending);
+        _sut.HasPendingQuestions.Should().BeTrue();
+    }
+
+    // ─── RecoverPendingQuestionAsync — LoadMessages recovery ─────────────────
+
+    [Fact]
+    public async Task LoadMessages_WhenPendingQuestionExistsForCurrentSession_InjectsQuestionCard()
+    {
+        // Arrange
+        var body = JsonSerializer.SerializeToElement(new
+        {
+            question = "Which option?",
+            options = new[] { "Option A", "Option B" },
+            allowFreeText = true,
+        });
+        var dto = new TuiControlRequestDto("q-1", "sess-1", "question", body);
+
+        _apiClient
+            .GetNextTuiControlAsync(Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(OpencodeResult<TuiControlRequestDto?>.Success(dto)));
+
+        _chatService
+            .GetMessagesAsync("sess-1", Arg.Any<int?>(), Arg.Any<CancellationToken>())
+            .Returns(ChatServiceResult<IReadOnlyList<MessageWithPartsDto>>.Ok(new List<MessageWithPartsDto>()));
+
+        _chatService
+            .SubscribeToEventsAsync(Arg.Any<CancellationToken>())
+            .Returns(YieldEvents(Array.Empty<ChatEvent>()));
+
+        // Act
+        _sut.SetSession("sess-1");
+        await Task.Delay(300);
+
+        // Assert
+        _sut.Messages.Should().ContainSingle(m => m.MessageKind == MessageKind.QuestionRequest);
+        var card = _sut.Messages.Single(m => m.MessageKind == MessageKind.QuestionRequest);
+        card.QuestionId.Should().Be("q-1");
+        card.QuestionStatus.Should().Be(QuestionStatus.Pending);
+        _sut.HasPendingQuestions.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task LoadMessages_WhenGetNextTuiControlReturnsNull_NoQuestionCardInjected()
+    {
+        // Arrange
+        _apiClient
+            .GetNextTuiControlAsync(Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(OpencodeResult<TuiControlRequestDto?>.Success(null)));
+
+        _chatService
+            .GetMessagesAsync("sess-1", Arg.Any<int?>(), Arg.Any<CancellationToken>())
+            .Returns(ChatServiceResult<IReadOnlyList<MessageWithPartsDto>>.Ok(new List<MessageWithPartsDto>()));
+
+        _chatService
+            .SubscribeToEventsAsync(Arg.Any<CancellationToken>())
+            .Returns(YieldEvents(Array.Empty<ChatEvent>()));
+
+        // Act
+        _sut.SetSession("sess-1");
+        await Task.Delay(300);
+
+        // Assert
+        _sut.Messages.Should().NotContain(m => m.MessageKind == MessageKind.QuestionRequest);
+        _sut.HasPendingQuestions.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task LoadMessages_WhenGetNextTuiControlReturnsWrongSessionId_NoQuestionCardInjected()
+    {
+        // Arrange
+        var body = JsonSerializer.SerializeToElement(new
+        {
+            question = "Which option?",
+            options = new[] { "Option A", "Option B" },
+            allowFreeText = true,
+        });
+        // DTO belongs to a different session
+        var dto = new TuiControlRequestDto("q-1", "sess-OTHER", "question", body);
+
+        _apiClient
+            .GetNextTuiControlAsync(Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(OpencodeResult<TuiControlRequestDto?>.Success(dto)));
+
+        _chatService
+            .GetMessagesAsync("sess-1", Arg.Any<int?>(), Arg.Any<CancellationToken>())
+            .Returns(ChatServiceResult<IReadOnlyList<MessageWithPartsDto>>.Ok(new List<MessageWithPartsDto>()));
+
+        _chatService
+            .SubscribeToEventsAsync(Arg.Any<CancellationToken>())
+            .Returns(YieldEvents(Array.Empty<ChatEvent>()));
+
+        // Act
+        _sut.SetSession("sess-1");
+        await Task.Delay(300);
+
+        // Assert
+        _sut.Messages.Should().NotContain(m => m.MessageKind == MessageKind.QuestionRequest);
+        _sut.HasPendingQuestions.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task LoadMessages_WhenGetNextTuiControlReturnsNonQuestionType_NoQuestionCardInjected()
+    {
+        // Arrange
+        var body = JsonSerializer.SerializeToElement(new { message = "Confirm?" });
+        // DTO has type "confirm", not "question"
+        var dto = new TuiControlRequestDto("ctrl-1", "sess-1", "confirm", body);
+
+        _apiClient
+            .GetNextTuiControlAsync(Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(OpencodeResult<TuiControlRequestDto?>.Success(dto)));
+
+        _chatService
+            .GetMessagesAsync("sess-1", Arg.Any<int?>(), Arg.Any<CancellationToken>())
+            .Returns(ChatServiceResult<IReadOnlyList<MessageWithPartsDto>>.Ok(new List<MessageWithPartsDto>()));
+
+        _chatService
+            .SubscribeToEventsAsync(Arg.Any<CancellationToken>())
+            .Returns(YieldEvents(Array.Empty<ChatEvent>()));
+
+        // Act
+        _sut.SetSession("sess-1");
+        await Task.Delay(300);
+
+        // Assert
+        _sut.Messages.Should().NotContain(m => m.MessageKind == MessageKind.QuestionRequest);
+        _sut.HasPendingQuestions.Should().BeFalse();
+    }
+
+    // ─── HasPendingQuestions counter ──────────────────────────────────────────
+
+    [Fact]
+    public async Task AnswerQuestionAsync_WhenLastPendingQuestionAnswered_HasPendingQuestionsIsFalse()
+    {
+        // Arrange — inject two question cards, then answer both
+        var firstEvent = BuildQuestionRequestedEvent(id: "q-1", question: "First question?");
+        var secondEvent = BuildQuestionRequestedEvent(id: "q-2", question: "Second question?");
+        await TriggerSseEvents(new ChatEvent[] { firstEvent, secondEvent });
+
+        _apiClient
+            .RespondToTuiControlAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(OpencodeResult<bool>.Success(true)));
+
+        // Act — answer both questions
+        await _sut.AnswerQuestionCommand.ExecuteAsync(new[] { "q-1", "Answer 1" });
+        await _sut.AnswerQuestionCommand.ExecuteAsync(new[] { "q-2", "Answer 2" });
+
+        // Assert — counter reaches zero, flag is false
+        _sut.HasPendingQuestions.Should().BeFalse();
+    }
+
     public void Dispose()
     {
         _sut.Dispose();

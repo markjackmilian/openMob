@@ -231,6 +231,31 @@ public interface IOpencodeApiClient
     /// <param name="ct">Cancellation token.</param>
     Task<OpencodeResult<bool>> ReplyToPermissionAsync(string requestId, string reply, CancellationToken ct = default);
 
+    // ─── TUI Control ──────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Submits an answer to a pending TUI control request.
+    /// Maps to <c>POST /tui/control/response</c> with body <c>{ "requestID": "&lt;id&gt;", "body": "&lt;answer&gt;" }</c>.
+    /// </summary>
+    /// <param name="requestId">The TUI control request identifier.</param>
+    /// <param name="body">The answer text to submit.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task<OpencodeResult<bool>> RespondToTuiControlAsync(string requestId, string body, CancellationToken ct = default);
+
+    /// <summary>
+    /// Waits for and returns the next pending TUI control request.
+    /// Maps to <c>GET /tui/control/next</c>.
+    /// Returns <c>null</c> wrapped in <see cref="OpencodeResult{T}"/> when no control request
+    /// is pending (HTTP 204 or timeout).
+    /// </summary>
+    /// <remarks>
+    /// The server may long-poll this endpoint. Always pass a short-timeout
+    /// <see cref="CancellationToken"/> (≤ 2 seconds) when calling from <c>LoadMessagesAsync</c>
+    /// to prevent the session load from hanging indefinitely.
+    /// </remarks>
+    /// <param name="ct">Cancellation token.</param>
+    Task<OpencodeResult<TuiControlRequestDto?>> GetNextTuiControlAsync(CancellationToken ct = default);
+
     // ─── Permissions ──────────────────────────────────────────────────────────
 
     /// <summary>

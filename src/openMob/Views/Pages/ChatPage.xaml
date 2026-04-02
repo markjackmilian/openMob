@@ -263,6 +263,8 @@
 
                   <!-- ─────────────────────────────────────────────────────
                        EXISTING MESSAGE BLOCK (unchanged)
+                       Hidden when MessageKind == QuestionRequest so the
+                       question card below takes over the rendering slot.
                        ───────────────────────────────────────────────────── -->
                   <controls:MessageBlockView
                       TextContent="{Binding TextContent}"
@@ -280,7 +282,148 @@
                       RequestId="{Binding RequestId}"
                       PermissionStatus="{Binding PermissionStatus}"
                       ResolvedReply="{Binding ResolvedReply}"
-                      ResolvedReplyLabel="{Binding ResolvedReplyLabel}" />
+                      ResolvedReplyLabel="{Binding ResolvedReplyLabel}">
+                    <controls:MessageBlockView.Triggers>
+                      <DataTrigger TargetType="controls:MessageBlockView"
+                                   Binding="{Binding MessageKind}"
+                                   Value="{x:Static models:MessageKind.QuestionRequest}">
+                        <Setter Property="IsVisible" Value="False" />
+                      </DataTrigger>
+                    </controls:MessageBlockView.Triggers>
+                  </controls:MessageBlockView>
+
+                  <!-- ─────────────────────────────────────────────────────
+                       [REQ-016] QUESTION CARD
+                       Shown when MessageKind == QuestionRequest.
+                       Styled like an assistant message bubble.
+                       Hidden by default; DataTrigger makes it visible.
+                       ───────────────────────────────────────────────────── -->
+                  <Border IsVisible="False"
+                          Style="{StaticResource MessageBubbleReceivedBorder}"
+                          Margin="8,4"
+                          AutomationId="QuestionCard"
+                          SemanticProperties.Description="Question from AI assistant">
+                    <Border.Triggers>
+                      <DataTrigger TargetType="Border"
+                                   Binding="{Binding MessageKind}"
+                                   Value="{x:Static models:MessageKind.QuestionRequest}">
+                        <Setter Property="IsVisible" Value="True" />
+                      </DataTrigger>
+                    </Border.Triggers>
+
+                    <VerticalStackLayout Spacing="{StaticResource SpacingSm}">
+
+                      <!-- Question text -->
+                      <Label Text="{Binding QuestionText, FallbackValue='', TargetNullValue=''}"
+                             FontFamily="InterRegular"
+                             FontSize="{StaticResource FontSizeBody}"
+                             TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight},
+                                                         Dark={StaticResource ColorOnBackgroundDark}}"
+                             LineBreakMode="WordWrap"
+                             SemanticProperties.Description="Question text" />
+
+                      <!-- Option chips — wrapping FlexLayout, hidden when Resolved -->
+                      <FlexLayout x:Name="QuestionOptionsLayout"
+                                  Wrap="Wrap"
+                                  Direction="Row"
+                                  JustifyContent="Start"
+                                  AlignItems="Start"
+                                  BindableLayout.ItemsSource="{Binding QuestionOptions}">
+                        <FlexLayout.Triggers>
+                          <DataTrigger TargetType="FlexLayout"
+                                       Binding="{Binding QuestionStatus}"
+                                       Value="{x:Static models:QuestionStatus.Resolved}">
+                            <Setter Property="IsVisible" Value="False" />
+                          </DataTrigger>
+                        </FlexLayout.Triggers>
+                        <BindableLayout.ItemTemplate>
+                          <DataTemplate x:DataType="x:String">
+                            <Button Text="{Binding .}"
+                                    Style="{StaticResource SecondaryButton}"
+                                    FontSize="{StaticResource FontSizeSubheadline}"
+                                    Margin="0,0,4,4"
+                                    MinimumHeightRequest="{StaticResource MinTouchTarget}"
+                                    Clicked="OnOptionChipTapped"
+                                    AutomationId="QuestionOptionChip"
+                                    SemanticProperties.Description="Answer option" />
+                          </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                      </FlexLayout>
+
+                      <!-- Free-text entry + Send button
+                           Default: hidden. Shown when QuestionAllowFreeText == True.
+                           Hidden again when QuestionStatus == Resolved.
+                           Trigger order matters: last matching trigger wins. -->
+                      <Grid x:Name="QuestionFreeTextGrid"
+                            IsVisible="False"
+                            ColumnDefinitions="*,Auto"
+                            ColumnSpacing="{StaticResource SpacingXs}">
+                        <Grid.Triggers>
+                          <!-- Show when free text is allowed -->
+                          <DataTrigger TargetType="Grid"
+                                       Binding="{Binding QuestionAllowFreeText}"
+                                       Value="True">
+                            <Setter Property="IsVisible" Value="True" />
+                          </DataTrigger>
+                          <!-- Keep hidden when free text is not allowed (redundant but explicit) -->
+                          <DataTrigger TargetType="Grid"
+                                       Binding="{Binding QuestionAllowFreeText}"
+                                       Value="False">
+                            <Setter Property="IsVisible" Value="False" />
+                          </DataTrigger>
+                          <!-- Hide again once the question is resolved -->
+                          <DataTrigger TargetType="Grid"
+                                       Binding="{Binding QuestionStatus}"
+                                       Value="{x:Static models:QuestionStatus.Resolved}">
+                            <Setter Property="IsVisible" Value="False" />
+                          </DataTrigger>
+                        </Grid.Triggers>
+
+                        <Entry Grid.Column="0"
+                               x:Name="QuestionFreeTextEntry"
+                               Placeholder="Type your answer..."
+                               FontFamily="InterRegular"
+                               FontSize="{StaticResource FontSizeBody}"
+                               BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceSecondaryLight},
+                                                                 Dark={StaticResource ColorSurfaceSecondaryDark}}"
+                               TextColor="{AppThemeBinding Light={StaticResource ColorOnSurfaceLight},
+                                                           Dark={StaticResource ColorOnSurfaceDark}}"
+                               PlaceholderColor="{AppThemeBinding Light={StaticResource ColorOnSurfaceTertiaryLight},
+                                                                   Dark={StaticResource ColorOnSurfaceTertiaryDark}}"
+                               MinimumHeightRequest="{StaticResource MinTouchTarget}"
+                               AutomationId="QuestionFreeTextEntry"
+                               SemanticProperties.Hint="Type a custom answer to the question" />
+
+                        <Button Grid.Column="1"
+                                Text="Send"
+                                Style="{StaticResource PrimaryButton}"
+                                MinimumHeightRequest="{StaticResource MinTouchTarget}"
+                                MinimumWidthRequest="{StaticResource MinTouchTarget}"
+                                Clicked="OnQuestionSendTapped"
+                                AutomationId="QuestionSendButton"
+                                SemanticProperties.Description="Send answer" />
+                      </Grid>
+
+                      <!-- Resolved answer label — hidden by default, shown when Resolved -->
+                      <Label Text="{Binding ResolvedAnswer, StringFormat='✓ {0}', FallbackValue='', TargetNullValue=''}"
+                             FontFamily="InterMedium"
+                             FontSize="{StaticResource FontSizeBody}"
+                             TextColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight},
+                                                         Dark={StaticResource ColorPrimaryDark}}"
+                             IsVisible="False"
+                             AutomationId="QuestionResolvedLabel"
+                             SemanticProperties.Description="Resolved answer">
+                        <Label.Triggers>
+                          <DataTrigger TargetType="Label"
+                                       Binding="{Binding QuestionStatus}"
+                                       Value="{x:Static models:QuestionStatus.Resolved}">
+                            <Setter Property="IsVisible" Value="True" />
+                          </DataTrigger>
+                        </Label.Triggers>
+                      </Label>
+
+                    </VerticalStackLayout>
+                  </Border>
 
                   <!-- ─────────────────────────────────────────────────────
                        [REQ-019] TOOL CALL CARDS
@@ -589,8 +732,6 @@
           </ImageButton>
         </Grid>
       </Border>
-
-
 
     </VerticalStackLayout>
 

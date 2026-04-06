@@ -74,7 +74,8 @@ public sealed class ContextSheetViewModelTests : IDisposable
         string? agentName = null,
         string? defaultModelId = null,
         ThinkingLevel thinkingLevel = ThinkingLevel.Medium,
-        bool autoAccept = false)
+        bool autoAccept = false,
+        bool showUnhandledSseEvents = false)
         => new()
         {
             ProjectId = projectId,
@@ -82,6 +83,7 @@ public sealed class ContextSheetViewModelTests : IDisposable
             DefaultModelId = defaultModelId,
             ThinkingLevel = thinkingLevel,
             AutoAccept = autoAccept,
+            ShowUnhandledSseEvents = showUnhandledSseEvents,
         };
 
     private static AgentDto BuildSubagentDto(string name = "coder")
@@ -206,6 +208,7 @@ public sealed class ContextSheetViewModelTests : IDisposable
         _sut.SelectedModelId.Should().Be("anthropic/claude-sonnet-4-5");
         _sut.ThinkingLevel.Should().Be(ThinkingLevel.High);
         _sut.AutoAccept.Should().BeTrue();
+        _sut.ShowUnhandledSseEvents.Should().BeFalse();
     }
 
     [Fact]
@@ -304,6 +307,108 @@ public sealed class ContextSheetViewModelTests : IDisposable
             Arg.Any<string>(), Arg.Any<ThinkingLevel>(), Arg.Any<CancellationToken>());
         await _preferenceService.DidNotReceive().SetAutoAcceptAsync(
             Arg.Any<string>(), Arg.Any<bool>(), Arg.Any<CancellationToken>());
+    }
+
+    // ─── InitializeAsync — ShowUnhandledSseEvents ─────────────────────────────
+
+    [Fact]
+    public async Task InitializeAsync_WhenPreferenceHasShowUnhandledSseEventsFalse_SetsPropertyFalse()
+    {
+        // Arrange
+        var project = BuildProject("proj-1");
+        _projectService.GetProjectByIdAsync("proj-1", Arg.Any<CancellationToken>())
+            .Returns(project);
+        _preferenceService.GetOrDefaultAsync("proj-1", Arg.Any<CancellationToken>())
+            .Returns(BuildPreference(showUnhandledSseEvents: false));
+
+        // Act
+        await _sut.InitializeAsync("proj-1", "sess-1");
+
+        // Assert
+        _sut.ShowUnhandledSseEvents.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task InitializeAsync_WhenPreferenceHasShowUnhandledSseEventsTrue_SetsPropertyTrue()
+    {
+        // Arrange
+        var project = BuildProject("proj-1");
+        _projectService.GetProjectByIdAsync("proj-1", Arg.Any<CancellationToken>())
+            .Returns(project);
+        _preferenceService.GetOrDefaultAsync("proj-1", Arg.Any<CancellationToken>())
+            .Returns(BuildPreference(showUnhandledSseEvents: true));
+
+        // Act
+        await _sut.InitializeAsync("proj-1", "sess-1");
+
+        // Assert
+        _sut.ShowUnhandledSseEvents.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ShowUnhandledSseEvents_WhenChangedAfterInit_CallsSetShowUnhandledSseEventsAsync()
+    {
+        // Arrange
+        await InitializeWithDefaultsAsync();
+        _preferenceService.SetShowUnhandledSseEventsAsync("proj-1", true, Arg.Any<CancellationToken>())
+            .Returns(true);
+        _preferenceService.GetOrDefaultAsync("proj-1", Arg.Any<CancellationToken>())
+            .Returns(BuildPreference(showUnhandledSseEvents: true));
+
+        // Act
+        _sut.ShowUnhandledSseEvents = true;
+        await Task.Delay(200); // allow fire-and-forget to complete
+
+        // Assert
+        await _preferenceService.Received(1).SetShowUnhandledSseEventsAsync(
+            "proj-1",
+            true,
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ShowUnhandledSseEvents_WhenChangedAfterInit_PublishesProjectPreferenceChangedMessage()
+    {
+        // Arrange
+        await InitializeWithDefaultsAsync();
+        _preferenceService.SetShowUnhandledSseEventsAsync("proj-1", true, Arg.Any<CancellationToken>())
+            .Returns(true);
+        _preferenceService.GetOrDefaultAsync("proj-1", Arg.Any<CancellationToken>())
+            .Returns(BuildPreference(showUnhandledSseEvents: true));
+
+        ProjectPreferenceChangedMessage? receivedMessage = null;
+        WeakReferenceMessenger.Default.Register<ProjectPreferenceChangedMessage>(
+            this,
+            (_, msg) => receivedMessage = msg);
+
+        // Act
+        _sut.ShowUnhandledSseEvents = true;
+        await Task.Delay(200); // allow fire-and-forget to complete
+
+        // Assert
+        receivedMessage.Should().NotBeNull();
+        receivedMessage!.ProjectId.Should().Be("proj-1");
+        receivedMessage.UpdatedPreference.ShowUnhandledSseEvents.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ShowUnhandledSseEvents_WhenChangedDuringInitialize_DoesNotCallSetShowUnhandledSseEventsAsync()
+    {
+        // Arrange
+        var project = BuildProject("proj-1");
+        _projectService.GetProjectByIdAsync("proj-1", Arg.Any<CancellationToken>())
+            .Returns(project);
+        _preferenceService.GetOrDefaultAsync("proj-1", Arg.Any<CancellationToken>())
+            .Returns(BuildPreference(showUnhandledSseEvents: true));
+
+        // Act
+        await _sut.InitializeAsync("proj-1", "sess-1");
+
+        // Assert
+        await _preferenceService.DidNotReceive().SetShowUnhandledSseEventsAsync(
+            Arg.Any<string>(),
+            Arg.Any<bool>(),
+            Arg.Any<CancellationToken>());
     }
 
     // ─── Auto-save — SelectedAgentName ────────────────────────────────────────

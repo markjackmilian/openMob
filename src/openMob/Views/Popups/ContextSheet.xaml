@@ -340,6 +340,42 @@
                 SemanticProperties.Description="Toggle auto-accept" />
       </Grid>
 
+      <!-- ═══════════════════════════════════════════════════════════════
+           Show Unhandled Events row
+           ═══════════════════════════════════════════════════════════════ -->
+      <Grid Style="{StaticResource SheetRowGrid}"
+            ColumnDefinitions="Auto,*,Auto"
+            ColumnSpacing="{StaticResource SpacingMd}">
+
+        <Label Grid.Column="0"
+               Text="{x:Static helpers:IconKeys.Code}"
+               FontFamily="{StaticResource TablerIconsFont}"
+               FontSize="{StaticResource FontSizeIconXl}"
+               TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
+                                             Dark={StaticResource ColorOnBackgroundSecondaryDark}}"
+               VerticalOptions="Center"
+               SemanticProperties.Description="Show unhandled events icon" />
+
+        <VerticalStackLayout Grid.Column="1"
+                             Spacing="{StaticResource SpacingXxs}"
+                             VerticalOptions="Center">
+          <Label Text="Show unhandled events"
+                 FontFamily="InterRegular"
+                 FontSize="{StaticResource FontSizeBody}" />
+          <Label Text="Show debug cards for unknown SSE events"
+                 FontFamily="InterRegular"
+                 FontSize="{StaticResource FontSizeCaption1}"
+                 TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundSecondaryLight},
+                                              Dark={StaticResource ColorOnBackgroundSecondaryDark}}" />
+        </VerticalStackLayout>
+
+        <Switch Grid.Column="2"
+                IsToggled="{Binding ShowUnhandledSseEvents, Mode=TwoWay}"
+                VerticalOptions="Center"
+                AutomationId="ShowUnhandledSseEventsSwitch"
+                SemanticProperties.Description="Toggle show unhandled events" />
+      </Grid>
+
       <!-- Divider -->
       <BoxView HeightRequest="0.5"
                Color="{AppThemeBinding Light={StaticResource ColorSeparatorLight},

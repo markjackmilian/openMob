@@ -1,5 +1,6 @@
 using System.Text.Json;
 using CommunityToolkit.Mvvm.Messaging;
+using openMob.Core.Data.Entities;
 using openMob.Core.Infrastructure.Http;
 using openMob.Core.Infrastructure.Http.Dtos.Opencode;
 using openMob.Core.Messages;
@@ -1530,12 +1531,26 @@ public sealed class ChatViewModelSseTests : IDisposable
         card.PermissionStatus.Should().Be(PermissionStatus.Pending);
     }
 
+    // ─── ShowUnhandledSseEvents — default state ───────────────────────────────
+
+    [Fact]
+    public void ShowUnhandledSseEvents_OnFreshInstance_IsFalseByDefault()
+    {
+        // Arrange — fresh SUT from constructor (already created in test class constructor)
+
+        // Act — no action needed
+
+        // Assert
+        _sut.ShowUnhandledSseEvents.Should().BeFalse();
+    }
+
     // ─── HandleUnknownEvent ───────────────────────────────────────────────────────
 
     [Fact]
     public async Task HandleUnknownEvent_WhenUnknownEventReceived_AddsFallbackMessageToMessages()
     {
         // Arrange
+        _sut.ShowUnhandledSseEvents = true;
         var unknownEvent = new UnknownEvent
         {
             RawType = "some.unknown.event",
@@ -1555,6 +1570,7 @@ public sealed class ChatViewModelSseTests : IDisposable
     public async Task HandleUnknownEvent_WhenUnknownEventReceived_FallbackMessageHasCorrectRawType()
     {
         // Arrange
+        _sut.ShowUnhandledSseEvents = true;
         var unknownEvent = new UnknownEvent
         {
             RawType = "some.unknown.event",
@@ -1573,6 +1589,7 @@ public sealed class ChatViewModelSseTests : IDisposable
     public async Task HandleUnknownEvent_WhenRawDataIsNull_FallbackRawJsonIsNull()
     {
         // Arrange
+        _sut.ShowUnhandledSseEvents = true;
         var unknownEvent = new UnknownEvent
         {
             RawType = "some.unknown.event",
@@ -1591,6 +1608,7 @@ public sealed class ChatViewModelSseTests : IDisposable
     public async Task HandleUnknownEvent_WhenRawDataPresent_FallbackRawJsonIsPopulated()
     {
         // Arrange
+        _sut.ShowUnhandledSseEvents = true;
         var rawData = System.Text.Json.JsonSerializer.SerializeToElement(new { foo = 1 });
         var unknownEvent = new UnknownEvent
         {
@@ -1611,6 +1629,7 @@ public sealed class ChatViewModelSseTests : IDisposable
     public async Task HandleUnknownEvent_WhenMultipleUnknownEvents_AddsMultipleFallbackMessages()
     {
         // Arrange
+        _sut.ShowUnhandledSseEvents = true;
         var event1 = new UnknownEvent { RawType = "event.one", RawData = null };
         var event2 = new UnknownEvent { RawType = "event.two", RawData = null };
 
@@ -1625,6 +1644,7 @@ public sealed class ChatViewModelSseTests : IDisposable
     public async Task HandleUnknownEvent_FallbackMessage_IsNotFromUser()
     {
         // Arrange
+        _sut.ShowUnhandledSseEvents = true;
         var unknownEvent = new UnknownEvent { RawType = "some.event", RawData = null };
 
         // Act
@@ -1633,6 +1653,64 @@ public sealed class ChatViewModelSseTests : IDisposable
         // Assert
         var fallback = _sut.Messages.Single(m => m.SenderType == SenderType.Fallback);
         fallback.IsFromUser.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task HandleUnknownEvent_WhenShowUnhandledSseEventsFalse_DoesNotAddCardToMessages()
+    {
+        // Arrange
+        _sut.ShowUnhandledSseEvents = false;
+        var unknownEvent = new UnknownEvent
+        {
+            RawType = "unknown.test",
+            RawData = null,
+        };
+
+        // Act
+        await TriggerSseEvents(new ChatEvent[] { unknownEvent });
+
+        // Assert
+        _sut.Messages.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task HandleUnknownEvent_WhenShowUnhandledSseEventsTrue_AddsCardToMessages()
+    {
+        // Arrange
+        _sut.ShowUnhandledSseEvents = true;
+        var unknownEvent = new UnknownEvent
+        {
+            RawType = "unknown.test",
+            RawData = null,
+        };
+
+        // Act
+        await TriggerSseEvents(new ChatEvent[] { unknownEvent });
+
+        // Assert
+        _sut.Messages.Should().HaveCount(1);
+        _sut.Messages.Single().SenderType.Should().Be(SenderType.Fallback);
+    }
+
+    [Fact]
+    public void ProjectPreferenceChangedMessage_WhenReceived_UpdatesShowUnhandledSseEvents()
+    {
+        // Arrange
+        _sut.ShowUnhandledSseEvents = false;
+        _sut.CurrentProjectId = "proj-1";
+
+        var updatedPref = new ProjectPreference
+        {
+            ProjectId = "proj-1",
+            ShowUnhandledSseEvents = true,
+        };
+
+        // Act
+        WeakReferenceMessenger.Default.Send(
+            new ProjectPreferenceChangedMessage("proj-1", updatedPref));
+
+        // Assert
+        _sut.ShowUnhandledSseEvents.Should().BeTrue();
     }
 
     // ─── HandlePermissionRequested — auto-accept ──────────────────────────────

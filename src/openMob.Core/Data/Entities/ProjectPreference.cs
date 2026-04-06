@@ -58,4 +58,11 @@ public sealed class ProjectPreference
     /// Whether auto-accept is enabled for agent tool suggestions. Default is false.
     /// </summary>
     public bool AutoAccept { get; set; }
+
+    /// <summary>
+    /// Whether unhandled SSE event debug cards are shown in the chat. Default is <c>false</c> (hidden).
+    /// When <c>false</c>, <see cref="openMob.Core.ViewModels.ChatViewModel"/> suppresses
+    /// <c>UnknownEvent</c> and <c>UnknownPart</c> cards from the Messages collection.
+    /// </summary>
+    public bool ShowUnhandledSseEvents { get; set; }
 }

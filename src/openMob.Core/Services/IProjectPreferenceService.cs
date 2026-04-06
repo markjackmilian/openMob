@@ -74,4 +74,14 @@ public interface IProjectPreferenceService
     /// <param name="ct">Cancellation token.</param>
     /// <returns><c>true</c> if persisted successfully; <c>false</c> if persistence failed.</returns>
     Task<bool> SetAutoAcceptAsync(string projectId, bool autoAccept, CancellationToken ct = default);
+
+    /// <summary>
+    /// Sets or updates the show-unhandled-SSE-events setting for the specified project.
+    /// Creates a new preference record if one does not exist.
+    /// </summary>
+    /// <param name="projectId">The external project identifier.</param>
+    /// <param name="value">Whether to show unhandled SSE event debug cards.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns><c>true</c> if persisted successfully; <c>false</c> if persistence failed.</returns>
+    Task<bool> SetShowUnhandledSseEventsAsync(string projectId, bool value, CancellationToken ct = default);
 }

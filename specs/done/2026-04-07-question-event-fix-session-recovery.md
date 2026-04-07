@@ -1,11 +1,14 @@
 # Question Event Parsing Fix & Session-Load Recovery
 
 ## Metadata
-| Field   | Value                        |
-|---------|------------------------------|
-| Date    | 2026-04-07                   |
-| Status  | In Progress                  |
-| Version | 1.0                          |
+| Field       | Value                                              |
+|-------------|----------------------------------------------------|
+| Date        | 2026-04-07                                         |
+| Status      | **Completed**                                      |
+| Version     | 1.0                                                |
+| Completed   | 2026-04-08                                         |
+| Branch      | feature/question-event-fix-session-recovery (merged)|
+| Merged into | develop                                            |
 
 ---
 

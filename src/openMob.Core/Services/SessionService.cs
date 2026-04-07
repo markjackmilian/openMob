@@ -31,8 +31,8 @@ internal sealed class SessionService : ISessionService
 
         if (result.Error is not null)
         {
-            SentryHelper.CaptureException(
-                new InvalidOperationException($"Failed to get sessions: {result.Error.Message}"),
+            SentryHelper.CaptureOpencodeError(
+                result.Error,
                 new Dictionary<string, object> { ["errorKind"] = result.Error.Kind.ToString() });
         }
 
@@ -63,10 +63,10 @@ internal sealed class SessionService : ISessionService
         if (result.IsSuccess)
             return result.Value;
 
-        if (result.Error is not null && result.Error.Kind != ErrorKind.NotFound)
+        if (result.Error is not null)
         {
-            SentryHelper.CaptureException(
-                new InvalidOperationException($"Failed to get session '{id}': {result.Error.Message}"),
+            SentryHelper.CaptureOpencodeError(
+                result.Error,
                 new Dictionary<string, object>
                 {
                     ["sessionId"] = id,
@@ -88,8 +88,8 @@ internal sealed class SessionService : ISessionService
 
         if (result.Error is not null)
         {
-            SentryHelper.CaptureException(
-                new InvalidOperationException($"Failed to create session: {result.Error.Message}"),
+            SentryHelper.CaptureOpencodeError(
+                result.Error,
                 new Dictionary<string, object> { ["errorKind"] = result.Error.Kind.ToString() });
         }
 
@@ -110,13 +110,16 @@ internal sealed class SessionService : ISessionService
         var errorMessage = result.Error?.Message ?? "Unknown error";
         var errorKind = result.Error?.Kind.ToString() ?? "Unknown";
 
-        SentryHelper.CaptureException(
-            new InvalidOperationException($"Failed to create session: {errorMessage}"),
-            new Dictionary<string, object>
-            {
-                ["projectId"] = projectId,
-                ["errorKind"] = errorKind,
-            });
+        if (result.Error is not null)
+        {
+            SentryHelper.CaptureOpencodeError(
+                result.Error,
+                new Dictionary<string, object>
+                {
+                    ["projectId"] = projectId,
+                    ["errorKind"] = errorKind,
+                });
+        }
 
         throw new InvalidOperationException($"Failed to create session: {errorMessage}");
     }
@@ -135,8 +138,8 @@ internal sealed class SessionService : ISessionService
 
         if (result.Error is not null)
         {
-            SentryHelper.CaptureException(
-                new InvalidOperationException($"Failed to update session '{id}': {result.Error.Message}"),
+            SentryHelper.CaptureOpencodeError(
+                result.Error,
                 new Dictionary<string, object>
                 {
                     ["sessionId"] = id,
@@ -159,8 +162,8 @@ internal sealed class SessionService : ISessionService
 
         if (result.Error is not null)
         {
-            SentryHelper.CaptureException(
-                new InvalidOperationException($"Failed to delete session '{id}': {result.Error.Message}"),
+            SentryHelper.CaptureOpencodeError(
+                result.Error,
                 new Dictionary<string, object>
                 {
                     ["sessionId"] = id,
@@ -185,8 +188,8 @@ internal sealed class SessionService : ISessionService
 
         if (result.Error is not null)
         {
-            SentryHelper.CaptureException(
-                new InvalidOperationException($"Failed to fork session '{id}': {result.Error.Message}"),
+            SentryHelper.CaptureOpencodeError(
+                result.Error,
                 new Dictionary<string, object>
                 {
                     ["sessionId"] = id,

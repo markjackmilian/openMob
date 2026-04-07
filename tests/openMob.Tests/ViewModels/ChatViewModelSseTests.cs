@@ -2415,7 +2415,7 @@ public sealed class ChatViewModelSseTests : IDisposable
 
         var stateJson = JsonSerializer.SerializeToElement(new { status = "pending" });
         var toolPart = new PartDto(
-            Id: "call-tool-1",
+            Id: "part-tool-1",
             SessionId: "sess-1",
             MessageId: "msg-1",
             Type: "tool",
@@ -2446,7 +2446,7 @@ public sealed class ChatViewModelSseTests : IDisposable
 
         var stateJson = JsonSerializer.SerializeToElement(new { status = "pending" });
         var toolPart = new PartDto(
-            Id: "call-abc",
+            Id: "part-abc",
             SessionId: "sess-1",
             MessageId: "msg-1",
             Type: "tool",
@@ -2458,7 +2458,7 @@ public sealed class ChatViewModelSseTests : IDisposable
         };
         var toolEvent = new MessagePartUpdatedEvent { Part = toolPart };
 
-        // Question event arrives after the tool call, with matching ToolCallId
+        // Question event arrives after the tool call, with ToolCallId matching the part's CallId (NOT Id)
         var questionEvent = BuildQuestionRequestedEvent(
             id: "q-1",
             sessionId: "sess-1",
@@ -2467,9 +2467,46 @@ public sealed class ChatViewModelSseTests : IDisposable
         // Act — tool call arrives first, then question event retroactively hides it
         await TriggerSseEvents(new ChatEvent[] { toolEvent, questionEvent }, existingMessages);
 
-        // Assert — the tool call should be retroactively hidden
+        // Assert — the tool call should be retroactively hidden via CallId correlation
         _sut.Messages[0].ToolCalls.Should().HaveCount(1);
         _sut.Messages[0].ToolCalls[0].IsHidden.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task HandleQuestionRequested_WhenToolCallIdDoesNotMatchAnyCallId_DoesNotHideToolCall()
+    {
+        // Arrange — load a message with a tool call card, then deliver a question event with a non-matching ToolCallId
+        var existingMessages = new List<MessageWithPartsDto>
+        {
+            BuildMessageDto(id: "msg-1", sessionId: "sess-1", role: "assistant", text: ""),
+        };
+
+        var stateJson = JsonSerializer.SerializeToElement(new { status = "pending" });
+        var toolPart = new PartDto(
+            Id: "part-xyz",
+            SessionId: "sess-1",
+            MessageId: "msg-1",
+            Type: "tool",
+            Text: null)
+        {
+            ToolName = "question",
+            State = stateJson,
+            CallId = "call-xyz",
+        };
+        var toolEvent = new MessagePartUpdatedEvent { Part = toolPart };
+
+        // Question event arrives with a ToolCallId that does NOT match the tool part's CallId
+        var questionEvent = BuildQuestionRequestedEvent(
+            id: "q-1",
+            sessionId: "sess-1",
+            toolCallId: "call-different");
+
+        // Act — tool call arrives first, then question event with mismatched ToolCallId
+        await TriggerSseEvents(new ChatEvent[] { toolEvent, questionEvent }, existingMessages);
+
+        // Assert — the tool call should NOT be hidden because CallId does not match
+        _sut.Messages[0].ToolCalls.Should().HaveCount(1);
+        _sut.Messages[0].ToolCalls[0].IsHidden.Should().BeFalse();
     }
 
     public void Dispose()

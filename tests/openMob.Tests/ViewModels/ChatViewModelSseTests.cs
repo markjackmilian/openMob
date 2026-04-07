@@ -33,6 +33,7 @@ public sealed class ChatViewModelSseTests : IDisposable
     private readonly IOpencodeApiClient _apiClient;
     private readonly IDispatcherService _dispatcher;
     private readonly IActiveProjectService _activeProjectService;
+    private readonly IHeartbeatMonitorService _heartbeatMonitor;
     private readonly ChatViewModel _sut;
 
     public ChatViewModelSseTests()
@@ -47,6 +48,7 @@ public sealed class ChatViewModelSseTests : IDisposable
         _apiClient = Substitute.For<IOpencodeApiClient>();
         _dispatcher = Substitute.For<IDispatcherService>();
         _activeProjectService = Substitute.For<IActiveProjectService>();
+        _heartbeatMonitor = Substitute.For<IHeartbeatMonitorService>();
 
         // CRITICAL: IDispatcherService mock must execute the action synchronously
         _dispatcher.When(d => d.Dispatch(Arg.Any<Action>())).Do(ci => ci.Arg<Action>()());
@@ -65,7 +67,7 @@ public sealed class ChatViewModelSseTests : IDisposable
             _apiClient,
             _dispatcher,
             _activeProjectService,
-            Substitute.For<IHeartbeatMonitorService>());
+            _heartbeatMonitor);
     }
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -1853,7 +1855,8 @@ public sealed class ChatViewModelSseTests : IDisposable
         string question = "Which option?",
         string[]? options = null,
         bool allowFreeText = true,
-        string? projectDirectory = null)
+        string? projectDirectory = null,
+        string? toolCallId = null)
     {
         return new QuestionRequestedEvent
         {
@@ -1863,6 +1866,7 @@ public sealed class ChatViewModelSseTests : IDisposable
             Options = options ?? ["Option A", "Option B"],
             AllowFreeText = allowFreeText,
             ProjectDirectory = projectDirectory,
+            ToolCallId = toolCallId,
         };
     }
 
@@ -1948,7 +1952,7 @@ public sealed class ChatViewModelSseTests : IDisposable
         await TriggerSseEvents(new ChatEvent[] { questionEvent });
 
         _apiClient
-            .RespondToTuiControlAsync("q-1", "Option A", Arg.Any<CancellationToken>())
+            .ReplyToQuestionAsync("q-1", Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(OpencodeResult<bool>.Success(true)));
 
         // Act
@@ -1968,7 +1972,7 @@ public sealed class ChatViewModelSseTests : IDisposable
         await TriggerSseEvents(new ChatEvent[] { questionEvent });
 
         _apiClient
-            .RespondToTuiControlAsync("q-1", "Option A", Arg.Any<CancellationToken>())
+            .ReplyToQuestionAsync("q-1", Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(OpencodeResult<bool>.Success(true)));
 
         // Act
@@ -1986,7 +1990,7 @@ public sealed class ChatViewModelSseTests : IDisposable
         await TriggerSseEvents(new ChatEvent[] { questionEvent });
 
         _apiClient
-            .RespondToTuiControlAsync("q-1", "Option A", Arg.Any<CancellationToken>())
+            .ReplyToQuestionAsync("q-1", Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(OpencodeResult<bool>.Success(true)));
 
         // Act
@@ -2004,7 +2008,7 @@ public sealed class ChatViewModelSseTests : IDisposable
         await TriggerSseEvents(new ChatEvent[] { questionEvent });
 
         _apiClient
-            .RespondToTuiControlAsync("q-1", "Option A", Arg.Any<CancellationToken>())
+            .ReplyToQuestionAsync("q-1", Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(OpencodeResult<bool>.Failure(
                 new OpencodeApiError(ErrorKind.NetworkUnreachable, "offline", null, new HttpRequestException("offline")))));
 
@@ -2028,7 +2032,7 @@ public sealed class ChatViewModelSseTests : IDisposable
         // Use a TaskCompletionSource to hold the first call in-flight while the second arrives
         var tcs = new TaskCompletionSource<OpencodeResult<bool>>();
         _apiClient
-            .RespondToTuiControlAsync("q-1", "Option A", Arg.Any<CancellationToken>())
+            .ReplyToQuestionAsync("q-1", Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
             .Returns(_ => tcs.Task);
 
         // Act — fire both calls concurrently; the second must be dropped by the in-flight guard
@@ -2040,7 +2044,7 @@ public sealed class ChatViewModelSseTests : IDisposable
         await Task.WhenAll(firstCall, secondCall);
 
         // Assert — API called exactly once despite two concurrent invocations
-        await _apiClient.Received(1).RespondToTuiControlAsync("q-1", "Option A", Arg.Any<CancellationToken>());
+        await _apiClient.Received(1).ReplyToQuestionAsync("q-1", Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -2056,7 +2060,7 @@ public sealed class ChatViewModelSseTests : IDisposable
         await TriggerSseEvents(new ChatEvent[] { questionEvent });
 
         _apiClient
-            .RespondToTuiControlAsync("q-1", "My custom answer", Arg.Any<CancellationToken>())
+            .ReplyToQuestionAsync("q-1", Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(OpencodeResult<bool>.Success(true)));
 
         // Act
@@ -2066,7 +2070,10 @@ public sealed class ChatViewModelSseTests : IDisposable
         var card = _sut.Messages.Single(m => m.MessageKind == MessageKind.QuestionRequest);
         card.QuestionStatus.Should().Be(QuestionStatus.Resolved);
         card.ResolvedAnswer.Should().Be("My custom answer");
-        await _apiClient.Received(1).RespondToTuiControlAsync("q-1", "My custom answer", Arg.Any<CancellationToken>());
+        await _apiClient.Received(1).ReplyToQuestionAsync(
+            "q-1",
+            Arg.Is<IReadOnlyList<string>>(a => a.Count == 1 && a[0] == "My custom answer"),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -2077,7 +2084,7 @@ public sealed class ChatViewModelSseTests : IDisposable
         await TriggerSseEvents(new ChatEvent[] { questionEvent });
 
         _apiClient
-            .RespondToTuiControlAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .ReplyToQuestionAsync(Arg.Any<string>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
             .Returns<Task<OpencodeResult<bool>>>(_ => throw new HttpRequestException("Network error"));
 
         // Act — must not throw
@@ -2089,23 +2096,35 @@ public sealed class ChatViewModelSseTests : IDisposable
         _sut.HasPendingQuestions.Should().BeTrue();
     }
 
-    // ─── RecoverPendingQuestionAsync — LoadMessages recovery ─────────────────
+    // ─── RecoverPendingQuestionsAsync — LoadMessages recovery ────────────────
+
+    /// <summary>
+    /// Builds a <see cref="QuestionRequestDto"/> for recovery tests.
+    /// </summary>
+    private static QuestionRequestDto BuildQuestionRequestDto(
+        string id = "q-1",
+        string sessionId = "sess-1",
+        string question = "Which option?",
+        string[]? optionLabels = null,
+        bool custom = true,
+        QuestionToolRefDto? tool = null)
+    {
+        var labels = optionLabels ?? new[] { "Option A", "Option B" };
+        var options = labels.Select(l => new QuestionOptionDto(l, "")).ToList();
+        var questionInfo = new QuestionInfoDto(question, "Test", options, null, custom);
+        return new QuestionRequestDto(id, sessionId, new[] { questionInfo }, tool);
+    }
 
     [Fact]
     public async Task LoadMessages_WhenPendingQuestionExistsForCurrentSession_InjectsQuestionCard()
     {
         // Arrange
-        var body = JsonSerializer.SerializeToElement(new
-        {
-            question = "Which option?",
-            options = new[] { "Option A", "Option B" },
-            allowFreeText = true,
-        });
-        var dto = new TuiControlRequestDto("q-1", "sess-1", "question", body);
+        var dto = BuildQuestionRequestDto(id: "q-1", sessionId: "sess-1");
 
         _apiClient
-            .GetNextTuiControlAsync(Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(OpencodeResult<TuiControlRequestDto?>.Success(dto)));
+            .GetPendingQuestionsAsync(Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(OpencodeResult<IReadOnlyList<QuestionRequestDto>>.Success(
+                new List<QuestionRequestDto> { dto })));
 
         _chatService
             .GetMessagesAsync("sess-1", Arg.Any<int?>(), Arg.Any<CancellationToken>())
@@ -2128,12 +2147,13 @@ public sealed class ChatViewModelSseTests : IDisposable
     }
 
     [Fact]
-    public async Task LoadMessages_WhenGetNextTuiControlReturnsNull_NoQuestionCardInjected()
+    public async Task LoadMessages_WhenGetPendingQuestionsReturnsEmptyList_NoQuestionCardInjected()
     {
         // Arrange
         _apiClient
-            .GetNextTuiControlAsync(Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(OpencodeResult<TuiControlRequestDto?>.Success(null)));
+            .GetPendingQuestionsAsync(Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(OpencodeResult<IReadOnlyList<QuestionRequestDto>>.Success(
+                new List<QuestionRequestDto>())));
 
         _chatService
             .GetMessagesAsync("sess-1", Arg.Any<int?>(), Arg.Any<CancellationToken>())
@@ -2153,21 +2173,15 @@ public sealed class ChatViewModelSseTests : IDisposable
     }
 
     [Fact]
-    public async Task LoadMessages_WhenGetNextTuiControlReturnsWrongSessionId_NoQuestionCardInjected()
+    public async Task LoadMessages_WhenGetPendingQuestionsReturnsWrongSessionId_NoQuestionCardInjected()
     {
-        // Arrange
-        var body = JsonSerializer.SerializeToElement(new
-        {
-            question = "Which option?",
-            options = new[] { "Option A", "Option B" },
-            allowFreeText = true,
-        });
-        // DTO belongs to a different session
-        var dto = new TuiControlRequestDto("q-1", "sess-OTHER", "question", body);
+        // Arrange — DTO belongs to a different session
+        var dto = BuildQuestionRequestDto(id: "q-1", sessionId: "sess-OTHER");
 
         _apiClient
-            .GetNextTuiControlAsync(Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(OpencodeResult<TuiControlRequestDto?>.Success(dto)));
+            .GetPendingQuestionsAsync(Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(OpencodeResult<IReadOnlyList<QuestionRequestDto>>.Success(
+                new List<QuestionRequestDto> { dto })));
 
         _chatService
             .GetMessagesAsync("sess-1", Arg.Any<int?>(), Arg.Any<CancellationToken>())
@@ -2187,16 +2201,15 @@ public sealed class ChatViewModelSseTests : IDisposable
     }
 
     [Fact]
-    public async Task LoadMessages_WhenGetNextTuiControlReturnsNonQuestionType_NoQuestionCardInjected()
+    public async Task LoadMessages_WhenGetPendingQuestionsReturnsQuestionWithEmptyQuestionsArray_NoQuestionCardInjected()
     {
-        // Arrange
-        var body = JsonSerializer.SerializeToElement(new { message = "Confirm?" });
-        // DTO has type "confirm", not "question"
-        var dto = new TuiControlRequestDto("ctrl-1", "sess-1", "confirm", body);
+        // Arrange — DTO has empty questions array (no actual question content)
+        var dto = new QuestionRequestDto("q-1", "sess-1", new List<QuestionInfoDto>());
 
         _apiClient
-            .GetNextTuiControlAsync(Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(OpencodeResult<TuiControlRequestDto?>.Success(dto)));
+            .GetPendingQuestionsAsync(Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(OpencodeResult<IReadOnlyList<QuestionRequestDto>>.Success(
+                new List<QuestionRequestDto> { dto })));
 
         _chatService
             .GetMessagesAsync("sess-1", Arg.Any<int?>(), Arg.Any<CancellationToken>())
@@ -2226,7 +2239,7 @@ public sealed class ChatViewModelSseTests : IDisposable
         await TriggerSseEvents(new ChatEvent[] { firstEvent, secondEvent });
 
         _apiClient
-            .RespondToTuiControlAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .ReplyToQuestionAsync(Arg.Any<string>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(OpencodeResult<bool>.Success(true)));
 
         // Act — answer both questions
@@ -2235,6 +2248,228 @@ public sealed class ChatViewModelSseTests : IDisposable
 
         // Assert — counter reaches zero, flag is false
         _sut.HasPendingQuestions.Should().BeFalse();
+    }
+
+    // ─── RecoverPendingQuestionsAsync — multiple questions ──────────────────
+
+    [Fact]
+    public async Task RecoverPendingQuestionsAsync_WhenMultiplePendingQuestions_AddsAllCards()
+    {
+        // Arrange
+        var dto1 = BuildQuestionRequestDto(id: "q-1", sessionId: "sess-1", question: "First?");
+        var dto2 = BuildQuestionRequestDto(id: "q-2", sessionId: "sess-1", question: "Second?");
+
+        _apiClient
+            .GetPendingQuestionsAsync(Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(OpencodeResult<IReadOnlyList<QuestionRequestDto>>.Success(
+                new List<QuestionRequestDto> { dto1, dto2 })));
+
+        _chatService
+            .GetMessagesAsync("sess-1", Arg.Any<int?>(), Arg.Any<CancellationToken>())
+            .Returns(ChatServiceResult<IReadOnlyList<MessageWithPartsDto>>.Ok(new List<MessageWithPartsDto>()));
+
+        _chatService
+            .SubscribeToEventsAsync(Arg.Any<CancellationToken>())
+            .Returns(YieldEvents(Array.Empty<ChatEvent>()));
+
+        // Act
+        _sut.SetSession("sess-1");
+        await Task.Delay(300);
+
+        // Assert
+        _sut.Messages.Count(m => m.MessageKind == MessageKind.QuestionRequest).Should().Be(2);
+        _sut.HasPendingQuestions.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task RecoverPendingQuestionsAsync_WhenQuestionsForDifferentSession_FiltersThemOut()
+    {
+        // Arrange — all questions belong to a different session
+        var dto = BuildQuestionRequestDto(id: "q-1", sessionId: "sess-OTHER", question: "Wrong session?");
+
+        _apiClient
+            .GetPendingQuestionsAsync(Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(OpencodeResult<IReadOnlyList<QuestionRequestDto>>.Success(
+                new List<QuestionRequestDto> { dto })));
+
+        _chatService
+            .GetMessagesAsync("sess-1", Arg.Any<int?>(), Arg.Any<CancellationToken>())
+            .Returns(ChatServiceResult<IReadOnlyList<MessageWithPartsDto>>.Ok(new List<MessageWithPartsDto>()));
+
+        _chatService
+            .SubscribeToEventsAsync(Arg.Any<CancellationToken>())
+            .Returns(YieldEvents(Array.Empty<ChatEvent>()));
+
+        // Act
+        _sut.SetSession("sess-1");
+        await Task.Delay(300);
+
+        // Assert
+        _sut.Messages.Should().NotContain(m => m.MessageKind == MessageKind.QuestionRequest);
+        _sut.HasPendingQuestions.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task RecoverPendingQuestionsAsync_WhenDuplicateQuestionAlreadyInMessages_SkipsIt()
+    {
+        // Arrange — pre-populate Messages with a question card via SSE, then trigger recovery
+        var questionEvent = BuildQuestionRequestedEvent(id: "q-1", sessionId: "sess-1");
+        var dto = BuildQuestionRequestDto(id: "q-1", sessionId: "sess-1");
+
+        _apiClient
+            .GetPendingQuestionsAsync(Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(OpencodeResult<IReadOnlyList<QuestionRequestDto>>.Success(
+                new List<QuestionRequestDto> { dto })));
+
+        // Act — SSE delivers the question first, then recovery runs
+        await TriggerSseEvents(new ChatEvent[] { questionEvent });
+
+        // Assert — only one card, not two
+        _sut.Messages.Count(m => m.MessageKind == MessageKind.QuestionRequest).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task RecoverPendingQuestionsAsync_WhenApiReturnsFailure_CapturesSentryAndContinues()
+    {
+        // Arrange
+        _apiClient
+            .GetPendingQuestionsAsync(Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(OpencodeResult<IReadOnlyList<QuestionRequestDto>>.Failure(
+                new OpencodeApiError(ErrorKind.NetworkUnreachable, "offline", null, new HttpRequestException("offline")))));
+
+        _chatService
+            .GetMessagesAsync("sess-1", Arg.Any<int?>(), Arg.Any<CancellationToken>())
+            .Returns(ChatServiceResult<IReadOnlyList<MessageWithPartsDto>>.Ok(new List<MessageWithPartsDto>()));
+
+        _chatService
+            .SubscribeToEventsAsync(Arg.Any<CancellationToken>())
+            .Returns(YieldEvents(Array.Empty<ChatEvent>()));
+
+        // Act — must not throw
+        _sut.SetSession("sess-1");
+        await Task.Delay(300);
+
+        // Assert — no cards added, no crash
+        _sut.Messages.Should().NotContain(m => m.MessageKind == MessageKind.QuestionRequest);
+        _sut.HasPendingQuestions.Should().BeFalse();
+    }
+
+    // ─── Reconnect recovery ──────────────────────────────────────────────────
+
+    [Fact]
+    public async Task OnHealthStateChanged_WhenTransitionToHealthy_RecoversPendingQuestions()
+    {
+        // Arrange — set up the ViewModel with a current session first
+        _chatService
+            .GetMessagesAsync("sess-1", Arg.Any<int?>(), Arg.Any<CancellationToken>())
+            .Returns(ChatServiceResult<IReadOnlyList<MessageWithPartsDto>>.Ok(new List<MessageWithPartsDto>()));
+
+        _chatService
+            .SubscribeToEventsAsync(Arg.Any<CancellationToken>())
+            .Returns(YieldEvents(Array.Empty<ChatEvent>()));
+
+        // Initially return empty so session loads cleanly
+        _apiClient
+            .GetPendingQuestionsAsync(Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(OpencodeResult<IReadOnlyList<QuestionRequestDto>>.Success(
+                new List<QuestionRequestDto>())));
+
+        // Also mock GetPendingPermissionsAsync since it's called on Healthy transition
+        _apiClient
+            .GetPendingPermissionsAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(OpencodeResult<IReadOnlyList<PermissionRequestDto>>.Success(
+                (IReadOnlyList<PermissionRequestDto>)new List<PermissionRequestDto>())));
+
+        _sut.SetSession("sess-1");
+        await Task.Delay(200);
+
+        // Now set up a pending question for the recovery call
+        var dto = BuildQuestionRequestDto(id: "q-recover", sessionId: "sess-1", question: "Recovered?");
+        _apiClient
+            .GetPendingQuestionsAsync(Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(OpencodeResult<IReadOnlyList<QuestionRequestDto>>.Success(
+                new List<QuestionRequestDto> { dto })));
+
+        // Act — first transition to Degraded to set _previousHealthState, then to Healthy
+        _heartbeatMonitor.HealthStateChanged += Raise.Event<Action<ConnectionHealthState>>(ConnectionHealthState.Degraded);
+        await Task.Delay(50);
+        _heartbeatMonitor.HealthStateChanged += Raise.Event<Action<ConnectionHealthState>>(ConnectionHealthState.Healthy);
+        await Task.Delay(300);
+
+        // Assert — the question card should be recovered
+        _sut.Messages.Should().Contain(m => m.MessageKind == MessageKind.QuestionRequest && m.QuestionId == "q-recover");
+    }
+
+    // ─── Tool call suppression ───────────────────────────────────────────────
+
+    [Fact]
+    public async Task HandleMessagePartUpdated_WhenToolNameIsQuestion_AndQuestionCardExists_HidesToolCall()
+    {
+        // Arrange — load a message, add a question card, then deliver a tool part with toolName "question"
+        var existingMessages = new List<MessageWithPartsDto>
+        {
+            BuildMessageDto(id: "msg-1", sessionId: "sess-1", role: "assistant", text: ""),
+        };
+
+        var questionEvent = BuildQuestionRequestedEvent(id: "q-1", sessionId: "sess-1");
+
+        var stateJson = JsonSerializer.SerializeToElement(new { status = "pending" });
+        var toolPart = new PartDto(
+            Id: "call-tool-1",
+            SessionId: "sess-1",
+            MessageId: "msg-1",
+            Type: "tool",
+            Text: null)
+        {
+            ToolName = "question",
+            State = stateJson,
+            CallId = "call-tool-1",
+        };
+        var toolEvent = new MessagePartUpdatedEvent { Part = toolPart };
+
+        // Act — question card arrives first, then tool part
+        await TriggerSseEvents(new ChatEvent[] { questionEvent, toolEvent }, existingMessages);
+
+        // Assert — the tool call should be hidden
+        _sut.Messages[0].ToolCalls.Should().HaveCount(1);
+        _sut.Messages[0].ToolCalls[0].IsHidden.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task HandleQuestionRequested_WhenToolCallCardAlreadyExists_RetroactivelyHidesIt()
+    {
+        // Arrange — load a message with a tool call card, then deliver a question event with matching ToolCallId
+        var existingMessages = new List<MessageWithPartsDto>
+        {
+            BuildMessageDto(id: "msg-1", sessionId: "sess-1", role: "assistant", text: ""),
+        };
+
+        var stateJson = JsonSerializer.SerializeToElement(new { status = "pending" });
+        var toolPart = new PartDto(
+            Id: "call-abc",
+            SessionId: "sess-1",
+            MessageId: "msg-1",
+            Type: "tool",
+            Text: null)
+        {
+            ToolName = "question",
+            State = stateJson,
+            CallId = "call-abc",
+        };
+        var toolEvent = new MessagePartUpdatedEvent { Part = toolPart };
+
+        // Question event arrives after the tool call, with matching ToolCallId
+        var questionEvent = BuildQuestionRequestedEvent(
+            id: "q-1",
+            sessionId: "sess-1",
+            toolCallId: "call-abc");
+
+        // Act — tool call arrives first, then question event retroactively hides it
+        await TriggerSseEvents(new ChatEvent[] { toolEvent, questionEvent }, existingMessages);
+
+        // Assert — the tool call should be retroactively hidden
+        _sut.Messages[0].ToolCalls.Should().HaveCount(1);
+        _sut.Messages[0].ToolCalls[0].IsHidden.Should().BeTrue();
     }
 
     public void Dispose()

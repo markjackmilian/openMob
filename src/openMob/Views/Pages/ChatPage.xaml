@@ -295,12 +295,19 @@
                   <!-- ─────────────────────────────────────────────────────
                        [REQ-016] QUESTION CARD
                        Shown when MessageKind == QuestionRequest.
-                       Styled like an assistant message bubble.
+                       Styled as a distinct interactive card with primary
+                       border, matching the permission card visual language.
                        Hidden by default; DataTrigger makes it visible.
                        ───────────────────────────────────────────────────── -->
                   <Border IsVisible="False"
-                          Style="{StaticResource MessageBubbleReceivedBorder}"
-                          Margin="8,4"
+                          StrokeThickness="1"
+                          Stroke="{AppThemeBinding Light={StaticResource ColorPrimaryLight},
+                                                    Dark={StaticResource ColorPrimaryDark}}"
+                          BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceSecondaryLight},
+                                                            Dark={StaticResource ColorSurfaceSecondaryDark}}"
+                          StrokeShape="RoundRectangle 16"
+                          Padding="{StaticResource SpacingLg}"
+                          Margin="{StaticResource SpacingLg},{StaticResource SpacingSm}"
                           AutomationId="QuestionCard"
                           SemanticProperties.Description="Question from AI assistant">
                     <Border.Triggers>
@@ -311,16 +318,42 @@
                       </DataTrigger>
                     </Border.Triggers>
 
-                    <VerticalStackLayout Spacing="{StaticResource SpacingSm}">
+                    <VerticalStackLayout Spacing="{StaticResource SpacingMd}">
 
-                      <!-- Question text -->
-                      <Label Text="{Binding QuestionText, FallbackValue='', TargetNullValue=''}"
-                             FontFamily="InterRegular"
-                             FontSize="{StaticResource FontSizeBody}"
-                             TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight},
-                                                         Dark={StaticResource ColorOnBackgroundDark}}"
-                             LineBreakMode="WordWrap"
-                             SemanticProperties.Description="Question text" />
+                      <!-- Header row — icon + "Question" label + pill badge -->
+                      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource SpacingSm}">
+                        <HorizontalStackLayout Spacing="{StaticResource SpacingSm}"
+                                               VerticalOptions="Center">
+                          <Label Text="{x:Static helpers:IconKeys.QuestionMark}"
+                                 FontFamily="{StaticResource TablerIconsFont}"
+                                 FontSize="{StaticResource FontSizeCallout}"
+                                 TextColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight},
+                                                             Dark={StaticResource ColorPrimaryDark}}"
+                                 VerticalOptions="Center"
+                                 SemanticProperties.Description="Question icon" />
+                          <Label Text="{Binding QuestionText, FallbackValue='', TargetNullValue=''}"
+                                 FontFamily="InterSemiBold"
+                                 FontSize="{StaticResource FontSizeBody}"
+                                 TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight},
+                                                             Dark={StaticResource ColorOnBackgroundDark}}"
+                                 LineBreakMode="WordWrap"
+                                 VerticalOptions="Center"
+                                 SemanticProperties.Description="Question text" />
+                        </HorizontalStackLayout>
+                        <Border Grid.Column="1"
+                                StrokeThickness="0"
+                                BackgroundColor="{AppThemeBinding Light={StaticResource ColorPrimaryContainerLight},
+                                                                  Dark={StaticResource ColorPrimaryContainerDark}}"
+                                Padding="10,4"
+                                StrokeShape="RoundRectangle 999"
+                                VerticalOptions="Start">
+                          <Label Text="Question"
+                                 FontFamily="InterSemiBold"
+                                 FontSize="{StaticResource FontSizeCaption2}"
+                                 TextColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight},
+                                                             Dark={StaticResource ColorPrimaryDark}}" />
+                        </Border>
+                      </Grid>
 
                       <!-- Option chips — wrapping FlexLayout, hidden when Resolved -->
                       <FlexLayout x:Name="QuestionOptionsLayout"
@@ -339,9 +372,17 @@
                         <BindableLayout.ItemTemplate>
                           <DataTemplate x:DataType="x:String">
                             <Button Text="{Binding .}"
-                                    Style="{StaticResource SecondaryButton}"
+                                    FontFamily="InterMedium"
                                     FontSize="{StaticResource FontSizeSubheadline}"
-                                    Margin="0,0,4,4"
+                                    TextColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight},
+                                                                 Dark={StaticResource ColorPrimaryDark}}"
+                                    BackgroundColor="Transparent"
+                                    BorderColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight},
+                                                                   Dark={StaticResource ColorPrimaryDark}}"
+                                    BorderWidth="1.5"
+                                    CornerRadius="20"
+                                    Padding="16,8"
+                                    Margin="0,0,6,6"
                                     MinimumHeightRequest="{StaticResource MinTouchTarget}"
                                     Clicked="OnOptionChipTapped"
                                     AutomationId="QuestionOptionChip"
@@ -357,7 +398,7 @@
                       <Grid x:Name="QuestionFreeTextGrid"
                             IsVisible="False"
                             ColumnDefinitions="*,Auto"
-                            ColumnSpacing="{StaticResource SpacingXs}">
+                            ColumnSpacing="{StaticResource SpacingSm}">
                         <Grid.Triggers>
                           <!-- Show when free text is allowed -->
                           <DataTrigger TargetType="Grid"
@@ -384,8 +425,8 @@
                                Placeholder="Type your answer..."
                                FontFamily="InterRegular"
                                FontSize="{StaticResource FontSizeBody}"
-                               BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceSecondaryLight},
-                                                                 Dark={StaticResource ColorSurfaceSecondaryDark}}"
+                               BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceLight},
+                                                                 Dark={StaticResource ColorSurfaceDark}}"
                                TextColor="{AppThemeBinding Light={StaticResource ColorOnSurfaceLight},
                                                            Dark={StaticResource ColorOnSurfaceDark}}"
                                PlaceholderColor="{AppThemeBinding Light={StaticResource ColorOnSurfaceTertiaryLight},

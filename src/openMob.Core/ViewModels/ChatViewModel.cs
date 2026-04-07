@@ -2271,7 +2271,7 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
 
         if (toolCall is null)
         {
-            toolCall = new ToolCallInfo(part.Id, part.ToolName ?? part.Id);
+            toolCall = new ToolCallInfo(part.Id, part.ToolName ?? part.Id, part.CallId);
             message.ToolCalls.Add(toolCall);
         }
 
@@ -2324,11 +2324,11 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     }
 
     /// <summary>
-    /// Hides any tool call card whose <see cref="ToolCallInfo.PartId"/> matches the given call ID
+    /// Hides any tool call card whose <see cref="ToolCallInfo.CallId"/> matches the given call ID
     /// and whose <see cref="ToolCallInfo.ToolName"/> is <c>"question"</c>.
     /// Must be called on the dispatcher thread.
     /// </summary>
-    /// <param name="callId">The tool call identifier to match against <see cref="ToolCallInfo.PartId"/>.</param>
+    /// <param name="callId">The tool call identifier to match against <see cref="ToolCallInfo.CallId"/>.</param>
     private void HideToolCallByCallId(string callId)
     {
         foreach (var msg in Messages)
@@ -2338,7 +2338,7 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
 
             foreach (var tc in msg.ToolCalls)
             {
-                if (string.Equals(tc.PartId, callId, StringComparison.Ordinal) &&
+                if (string.Equals(tc.CallId, callId, StringComparison.Ordinal) &&
                     string.Equals(tc.ToolName, "question", StringComparison.OrdinalIgnoreCase))
                 {
                     tc.IsHidden = true;

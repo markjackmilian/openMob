@@ -151,14 +151,14 @@ public sealed record PermissionRepliedEvent : ChatEvent
 }
 
 /// <summary>
-/// Raised when the AI asks the user a question via the TUI control mechanism.
+/// Raised when the AI asks the user a question via the question mechanism.
 /// </summary>
 public sealed record QuestionRequestedEvent : ChatEvent
 {
     /// <inheritdoc />
     public override ChatEventType Type => ChatEventType.QuestionRequested;
 
-    /// <summary>Gets the unique TUI control request identifier.</summary>
+    /// <summary>Gets the unique question request identifier.</summary>
     public required string Id { get; init; }
 
     /// <summary>Gets the ID of the session this question belongs to.</summary>

@@ -1,7 +1,5 @@
 using System.ComponentModel;
-using System.Linq;
 using Microsoft.Maui.Controls.Shapes;
-using openMob.Core.Models;
 using openMob.Core.ViewModels;
 
 namespace openMob.Views.Pages;
@@ -136,81 +134,6 @@ public partial class ChatPage : ContentPage, IQueryAttributable
                 StartTypingAnimation();
             else
                 StopTypingAnimation();
-        }
-    }
-
-    // ─── Question card event handlers ────────────────────────────────────────
-
-    /// <summary>
-    /// Handles a tap on a predefined option chip inside a question card.
-    /// Walks the visual tree to retrieve the parent <see cref="ChatMessage"/> and
-    /// delegates to <see cref="ChatViewModel.AnswerQuestionCommand"/> with
-    /// <c>[questionId, optionText]</c> as the parameter array.
-    /// </summary>
-    /// <remarks>
-    /// A code-behind handler is used here instead of a XAML Command binding because
-    /// the option chip's <see cref="BindingContext"/> is the option string (from
-    /// <see cref="BindableLayout"/>), while the <c>questionId</c> lives on the parent
-    /// <see cref="ChatMessage"/>. MAUI compiled bindings do not support MultiBinding,
-    /// so walking the visual tree in code-behind is the cleanest idiomatic approach.
-    /// </remarks>
-    private void OnOptionChipTapped(object? sender, EventArgs e)
-    {
-        if (sender is not Button btn)
-            return;
-
-        if (btn.BindingContext is not string optionText)
-            return;
-
-        // Walk up: Button → FlexLayout (BindableLayout host) → VerticalStackLayout → Border → VerticalStackLayout (DataTemplate root)
-        // The ChatMessage is the BindingContext of the DataTemplate root VerticalStackLayout.
-        var parent = btn.Parent;
-        while (parent is not null)
-        {
-            if (parent.BindingContext is ChatMessage msg)
-            {
-                ViewModel.AnswerQuestionCommand.Execute(new[] { msg.QuestionId, optionText });
-                return;
-            }
-
-            parent = parent.Parent;
-        }
-    }
-
-    /// <summary>
-    /// Handles the Send button tap inside the free-text section of a question card.
-    /// Retrieves the sibling <see cref="Entry"/> text, validates it is non-empty,
-    /// and delegates to <see cref="ChatViewModel.AnswerQuestionCommand"/> with
-    /// <c>[questionId, answerText]</c> as the parameter array.
-    /// Clears the entry field after a successful submission.
-    /// </summary>
-    private void OnQuestionSendTapped(object? sender, EventArgs e)
-    {
-        if (sender is not Button btn)
-            return;
-
-        if (btn.Parent is not Grid grid)
-            return;
-
-        var entry = grid.Children.OfType<Entry>().FirstOrDefault();
-        var answer = entry?.Text;
-
-        if (string.IsNullOrWhiteSpace(answer))
-            return;
-
-        // Walk up to find the ChatMessage BindingContext
-        Element? parent = grid.Parent;
-        while (parent is not null)
-        {
-            if (parent.BindingContext is ChatMessage msg)
-            {
-                ViewModel.AnswerQuestionCommand.Execute(new[] { msg.QuestionId, answer });
-                if (entry is not null)
-                    entry.Text = string.Empty;
-                return;
-            }
-
-            parent = parent.Parent;
         }
     }
 

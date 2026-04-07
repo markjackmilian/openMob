@@ -148,4 +148,23 @@ public interface IAppPopupService
     /// <param name="vm">The pre-configured <see cref="ReconnectingModalViewModel"/> to bind to the sheet.</param>
     /// <param name="ct">Cancellation token.</param>
     Task ShowReconnectingModalAsync(ReconnectingModalViewModel vm, CancellationToken ct = default);
+
+    /// <summary>
+    /// Shows the question bottom sheet with the given question details.
+    /// The MAUI implementation resolves <see cref="QuestionSheetViewModel"/>, configures it
+    /// with the provided parameters and callbacks, and presents the popup modally.
+    /// </summary>
+    /// <param name="questionId">The question request identifier.</param>
+    /// <param name="questionText">The full question text.</param>
+    /// <param name="options">The predefined answer options.</param>
+    /// <param name="allowFreeText">Whether free-text input is allowed.</param>
+    /// <param name="onAnswerSubmitted">Callback invoked with (questionId, answer) when the user submits.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task ShowQuestionSheetAsync(
+        string questionId,
+        string questionText,
+        IReadOnlyList<string> options,
+        bool allowFreeText,
+        Func<string, string, Task> onAnswerSubmitted,
+        CancellationToken ct = default);
 }

@@ -564,21 +564,21 @@ internal sealed class OpencodeApiClient : IOpencodeApiClient
                 token),
             ct);
 
-    // ─── TUI Control ──────────────────────────────────────────────────────────
+    // ─── Questions ──────────────────────────────────────────────────────────
 
     /// <inheritdoc />
-    public Task<OpencodeResult<bool>> RespondToTuiControlAsync(string requestId, string body, CancellationToken ct = default)
-        => ExecuteAsync<bool>(
-            (client, baseUrl, token) => client.PostAsJsonAsync(
-                $"{baseUrl}/tui/control/response",
-                new TuiControlResponseRequest(requestId, body),
-                token),
+    public Task<OpencodeResult<IReadOnlyList<QuestionRequestDto>>> GetPendingQuestionsAsync(CancellationToken ct = default)
+        => ExecuteAsync<IReadOnlyList<QuestionRequestDto>>(
+            (client, baseUrl, token) => client.GetAsync($"{baseUrl}/question", token),
             ct);
 
     /// <inheritdoc />
-    public Task<OpencodeResult<TuiControlRequestDto?>> GetNextTuiControlAsync(CancellationToken ct = default)
-        => ExecuteAsync<TuiControlRequestDto?>(
-            (client, baseUrl, token) => client.GetAsync($"{baseUrl}/tui/control/next", token),
+    public Task<OpencodeResult<bool>> ReplyToQuestionAsync(string requestId, IReadOnlyList<string> answers, CancellationToken ct = default)
+        => ExecuteAsync<bool>(
+            (client, baseUrl, token) => client.PostAsJsonAsync(
+                $"{baseUrl}/question/{Uri.EscapeDataString(requestId)}/reply",
+                new QuestionReplyRequest(new[] { answers }),
+                token),
             ct);
 
     /// <inheritdoc />

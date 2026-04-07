@@ -806,4 +806,276 @@ public sealed class ChatEventParserTests
         result.Should().BeOfType<PermissionRepliedEvent>();
         result.ProjectDirectory.Should().Be("/my/project");
     }
+
+    // ─── question.asked / question ────────────────────────────────────────────
+
+    /// <summary>
+    /// Builds a question event properties object matching the server's <c>questions[]</c> format.
+    /// </summary>
+    private static object BuildQuestionProperties(
+        string id = "q_123",
+        string sessionId = "s_456",
+        string question = "Choose an option:",
+        string header = "Test",
+        object[]? options = null,
+        bool? multiple = null,
+        bool? custom = null,
+        object? tool = null,
+        bool includeCustomField = true)
+    {
+        var firstQuestion = new Dictionary<string, object?>
+        {
+            ["question"] = question,
+            ["header"] = header,
+            ["options"] = options ?? new object[]
+            {
+                new { label = "Option A", description = "First" },
+                new { label = "Option B", description = "Second" },
+            },
+        };
+
+        if (multiple is not null)
+            firstQuestion["multiple"] = multiple;
+
+        if (includeCustomField && custom is not null)
+            firstQuestion["custom"] = custom;
+        else if (includeCustomField)
+            firstQuestion["custom"] = true;
+
+        var props = new Dictionary<string, object?>
+        {
+            ["id"] = id,
+            ["sessionID"] = sessionId,
+            ["questions"] = new[] { firstQuestion },
+        };
+
+        if (tool is not null)
+            props["tool"] = tool;
+
+        return props;
+    }
+
+    [Fact]
+    public void Parse_WhenQuestionAskedEvent_ReturnsQuestionRequestedEvent()
+    {
+        // Arrange
+        var data = BuildEnvelope("question.asked", BuildQuestionProperties(
+            id: "q_123",
+            sessionId: "s_456",
+            question: "Choose an option:",
+            header: "Test",
+            custom: true,
+            tool: new { messageID = "msg_789", callID = "call_abc" }));
+        var dto = new OpencodeEventDto("unknown", "evt-q1", data);
+
+        // Act
+        var result = ChatEventParser.Parse(dto);
+
+        // Assert
+        result.Should().BeOfType<QuestionRequestedEvent>();
+        var qEvent = result.As<QuestionRequestedEvent>();
+        qEvent.Id.Should().Be("q_123");
+        qEvent.SessionId.Should().Be("s_456");
+        qEvent.Question.Should().Be("Choose an option:");
+        qEvent.Options.Should().ContainInOrder("Option A", "Option B");
+        qEvent.AllowFreeText.Should().BeTrue();
+        qEvent.ToolCallId.Should().Be("call_abc");
+    }
+
+    [Fact]
+    public void Parse_WhenLegacyQuestionEvent_ReturnsQuestionRequestedEvent()
+    {
+        // Arrange — same payload but with type "question" instead of "question.asked"
+        var data = BuildEnvelope("question", BuildQuestionProperties(
+            id: "q_123",
+            sessionId: "s_456",
+            question: "Choose an option:",
+            custom: true,
+            tool: new { messageID = "msg_789", callID = "call_abc" }));
+        var dto = new OpencodeEventDto("unknown", "evt-q2", data);
+
+        // Act
+        var result = ChatEventParser.Parse(dto);
+
+        // Assert
+        result.Should().BeOfType<QuestionRequestedEvent>();
+        var qEvent = result.As<QuestionRequestedEvent>();
+        qEvent.Id.Should().Be("q_123");
+        qEvent.SessionId.Should().Be("s_456");
+        qEvent.Question.Should().Be("Choose an option:");
+        qEvent.Options.Should().ContainInOrder("Option A", "Option B");
+        qEvent.AllowFreeText.Should().BeTrue();
+        qEvent.ToolCallId.Should().Be("call_abc");
+    }
+
+    [Fact]
+    public void Parse_WhenQuestionAskedWithCustomFalse_AllowFreeTextIsFalse()
+    {
+        // Arrange
+        var data = BuildEnvelope("question.asked", BuildQuestionProperties(
+            custom: false));
+        var dto = new OpencodeEventDto("unknown", null, data);
+
+        // Act
+        var result = ChatEventParser.Parse(dto);
+
+        // Assert
+        result.Should().BeOfType<QuestionRequestedEvent>();
+        result.As<QuestionRequestedEvent>().AllowFreeText.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Parse_WhenQuestionAskedWithNoCustomField_AllowFreeTextDefaultsTrue()
+    {
+        // Arrange — omit the "custom" field entirely
+        var data = BuildEnvelope("question.asked", BuildQuestionProperties(
+            includeCustomField: false));
+        var dto = new OpencodeEventDto("unknown", null, data);
+
+        // Act
+        var result = ChatEventParser.Parse(dto);
+
+        // Assert
+        result.Should().BeOfType<QuestionRequestedEvent>();
+        result.As<QuestionRequestedEvent>().AllowFreeText.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Parse_WhenQuestionAskedWithNoOptions_ReturnsEmptyOptionsList()
+    {
+        // Arrange — empty options array
+        var data = BuildEnvelope("question.asked", BuildQuestionProperties(
+            options: Array.Empty<object>()));
+        var dto = new OpencodeEventDto("unknown", null, data);
+
+        // Act
+        var result = ChatEventParser.Parse(dto);
+
+        // Assert
+        result.Should().BeOfType<QuestionRequestedEvent>();
+        result.As<QuestionRequestedEvent>().Options.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Parse_WhenQuestionAskedWithNoToolField_ToolCallIdIsNull()
+    {
+        // Arrange — no tool object in the payload
+        var data = BuildEnvelope("question.asked", BuildQuestionProperties(
+            tool: null));
+        var dto = new OpencodeEventDto("unknown", null, data);
+
+        // Act
+        var result = ChatEventParser.Parse(dto);
+
+        // Assert
+        result.Should().BeOfType<QuestionRequestedEvent>();
+        result.As<QuestionRequestedEvent>().ToolCallId.Should().BeNull();
+    }
+
+    [Fact]
+    public void Parse_WhenQuestionAskedMissingId_ReturnsUnknownEvent()
+    {
+        // Arrange — payload without "id" field
+        var data = BuildEnvelope("question.asked", new
+        {
+            sessionID = "s_456",
+            questions = new[]
+            {
+                new
+                {
+                    question = "Choose:",
+                    header = "Test",
+                    options = Array.Empty<object>(),
+                    custom = true,
+                }
+            }
+        });
+        var dto = new OpencodeEventDto("unknown", null, data);
+
+        // Act
+        var result = ChatEventParser.Parse(dto);
+
+        // Assert
+        result.Should().BeOfType<UnknownEvent>();
+    }
+
+    [Fact]
+    public void Parse_WhenQuestionAskedMissingSessionId_ReturnsUnknownEvent()
+    {
+        // Arrange — payload without "sessionID" field
+        var data = BuildEnvelope("question.asked", new
+        {
+            id = "q_123",
+            questions = new[]
+            {
+                new
+                {
+                    question = "Choose:",
+                    header = "Test",
+                    options = Array.Empty<object>(),
+                    custom = true,
+                }
+            }
+        });
+        var dto = new OpencodeEventDto("unknown", null, data);
+
+        // Act
+        var result = ChatEventParser.Parse(dto);
+
+        // Assert
+        result.Should().BeOfType<UnknownEvent>();
+    }
+
+    [Fact]
+    public void Parse_WhenQuestionAskedEmptyQuestionsArray_ReturnsUnknownEvent()
+    {
+        // Arrange — questions array is empty
+        var data = BuildEnvelope("question.asked", new
+        {
+            id = "q_123",
+            sessionID = "s_456",
+            questions = Array.Empty<object>(),
+        });
+        var dto = new OpencodeEventDto("unknown", null, data);
+
+        // Act
+        var result = ChatEventParser.Parse(dto);
+
+        // Assert
+        result.Should().BeOfType<UnknownEvent>();
+    }
+
+    [Fact]
+    public void Parse_WhenQuestionAskedMissingQuestionsField_ReturnsUnknownEvent()
+    {
+        // Arrange — no "questions" field at all
+        var data = BuildEnvelope("question.asked", new
+        {
+            id = "q_123",
+            sessionID = "s_456",
+        });
+        var dto = new OpencodeEventDto("unknown", null, data);
+
+        // Act
+        var result = ChatEventParser.Parse(dto);
+
+        // Assert
+        result.Should().BeOfType<UnknownEvent>();
+    }
+
+    [Fact]
+    public void Parse_WhenQuestionAskedWithProjectDirectory_PropagatesProjectDirectory()
+    {
+        // Arrange — envelope with directory field
+        var data = BuildEnvelopeWithDirectory("question.asked", "/test/path",
+            BuildQuestionProperties());
+        var dto = new OpencodeEventDto("unknown", null, data);
+
+        // Act
+        var result = ChatEventParser.Parse(dto);
+
+        // Assert
+        result.Should().BeOfType<QuestionRequestedEvent>();
+        result.ProjectDirectory.Should().Be("/test/path");
+    }
 }

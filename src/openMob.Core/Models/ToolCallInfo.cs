@@ -27,6 +27,9 @@ public sealed partial class ToolCallInfo : ObservableObject
     /// <summary>Gets the unique part identifier for this tool call.</summary>
     public string PartId { get; }
 
+    /// <summary>Gets the tool call identifier from the server (callID), used for question card correlation.</summary>
+    public string? CallId { get; }
+
     /// <summary>Gets the name of the tool being called.</summary>
     public string ToolName { get; }
 
@@ -50,14 +53,20 @@ public sealed partial class ToolCallInfo : ObservableObject
     [ObservableProperty]
     private long? _durationMs;
 
+    /// <summary>Gets or sets whether this tool call card should be visually hidden (e.g., when a question card replaces it).</summary>
+    [ObservableProperty]
+    private bool _isHidden;
+
     /// <summary>
     /// Initialises a new <see cref="ToolCallInfo"/> with the specified immutable identifiers.
     /// </summary>
     /// <param name="partId">The unique part identifier.</param>
     /// <param name="toolName">The name of the tool being called.</param>
-    public ToolCallInfo(string partId, string toolName)
+    /// <param name="callId">The tool call identifier from the server (callID), used for question card correlation.</param>
+    public ToolCallInfo(string partId, string toolName, string? callId = null)
     {
         PartId = partId;
         ToolName = toolName;
+        CallId = callId;
     }
 }

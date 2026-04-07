@@ -132,4 +132,7 @@ public static class IconKeys
 
     /// <summary>CPU / processor icon (for AI model selection). Tabler: cpu.</summary>
     public const string Cpu = "\uef8e";
+
+    /// <summary>Question mark icon (for question cards). Tabler: question-mark.</summary>
+    public const string QuestionMark = "\uec9d";
 }

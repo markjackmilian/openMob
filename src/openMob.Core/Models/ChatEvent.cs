@@ -172,6 +172,9 @@ public sealed record QuestionRequestedEvent : ChatEvent
 
     /// <summary>Gets a value indicating whether the user may type a custom answer.</summary>
     public required bool AllowFreeText { get; init; }
+
+    /// <summary>Gets the tool call identifier for correlation with tool call cards. May be null.</summary>
+    public string? ToolCallId { get; init; }
 }
 
 /// <summary>

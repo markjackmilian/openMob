@@ -50,6 +50,10 @@ public sealed partial class ToolCallInfo : ObservableObject
     [ObservableProperty]
     private long? _durationMs;
 
+    /// <summary>Gets or sets whether this tool call card should be visually hidden (e.g., when a question card replaces it).</summary>
+    [ObservableProperty]
+    private bool _isHidden;
+
     /// <summary>
     /// Initialises a new <see cref="ToolCallInfo"/> with the specified immutable identifiers.
     /// </summary>

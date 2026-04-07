@@ -231,30 +231,23 @@ public interface IOpencodeApiClient
     /// <param name="ct">Cancellation token.</param>
     Task<OpencodeResult<bool>> ReplyToPermissionAsync(string requestId, string reply, CancellationToken ct = default);
 
-    // ─── TUI Control ──────────────────────────────────────────────────────────
+    // ─── Questions ──────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Submits an answer to a pending TUI control request.
-    /// Maps to <c>POST /tui/control/response</c> with body <c>{ "requestID": "&lt;id&gt;", "body": "&lt;answer&gt;" }</c>.
+    /// Returns all pending question requests across all sessions.
+    /// Maps to <c>GET /question</c>.
     /// </summary>
-    /// <param name="requestId">The TUI control request identifier.</param>
-    /// <param name="body">The answer text to submit.</param>
     /// <param name="ct">Cancellation token.</param>
-    Task<OpencodeResult<bool>> RespondToTuiControlAsync(string requestId, string body, CancellationToken ct = default);
+    Task<OpencodeResult<IReadOnlyList<QuestionRequestDto>>> GetPendingQuestionsAsync(CancellationToken ct = default);
 
     /// <summary>
-    /// Waits for and returns the next pending TUI control request.
-    /// Maps to <c>GET /tui/control/next</c>.
-    /// Returns <c>null</c> wrapped in <see cref="OpencodeResult{T}"/> when no control request
-    /// is pending (HTTP 204 or timeout).
+    /// Submits an answer to a pending question request.
+    /// Maps to <c>POST /question/{requestId}/reply</c> with body <c>{ "answers": [["answer"]] }</c>.
     /// </summary>
-    /// <remarks>
-    /// The server may long-poll this endpoint. Always pass a short-timeout
-    /// <see cref="CancellationToken"/> (≤ 2 seconds) when calling from <c>LoadMessagesAsync</c>
-    /// to prevent the session load from hanging indefinitely.
-    /// </remarks>
+    /// <param name="requestId">The question request identifier.</param>
+    /// <param name="answers">The answer labels to submit (single-select: one element).</param>
     /// <param name="ct">Cancellation token.</param>
-    Task<OpencodeResult<TuiControlRequestDto?>> GetNextTuiControlAsync(CancellationToken ct = default);
+    Task<OpencodeResult<bool>> ReplyToQuestionAsync(string requestId, IReadOnlyList<string> answers, CancellationToken ct = default);
 
     // ─── Permissions ──────────────────────────────────────────────────────────
 

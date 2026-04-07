@@ -734,9 +734,9 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
                     UpdateIsEmpty();
                 });
 
-                // Recover any pending question for this session [REQ-015].
-                // Use a 2-second timeout to prevent hanging if the server long-polls.
-                await RecoverPendingQuestionAsync(ct).ConfigureAwait(false);
+                // Recover any pending questions for this session [REQ-010, REQ-011].
+                // Uses GET /question with a 2-second timeout.
+                await RecoverPendingQuestionsAsync(ct).ConfigureAwait(false);
 
                 // Start SSE subscription only after messages loaded successfully [REQ-011].
                 // Fire-and-forget is safe here: the task is lifecycle-managed via _sseCts
@@ -780,12 +780,13 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
     }
 
     /// <summary>
-    /// Checks for a pending TUI control question for the current session and injects
-    /// a question card into <see cref="Messages"/> if one is found [REQ-015].
-    /// Uses a 2-second timeout to prevent hanging if the server long-polls.
+    /// Fetches all pending question requests for the current session and injects
+    /// question cards into <see cref="Messages"/> for any that are not already present.
+    /// Uses a 2-second timeout to prevent hanging. Called from <see cref="LoadMessagesAsync"/>
+    /// and on SSE reconnect transitions [REQ-010, REQ-011, REQ-012].
     /// </summary>
     /// <param name="ct">Caller's cancellation token.</param>
-    private async Task RecoverPendingQuestionAsync(CancellationToken ct)
+    private async Task RecoverPendingQuestionsAsync(CancellationToken ct)
     {
         var sessionId = CurrentSessionId;
         if (string.IsNullOrEmpty(sessionId))
@@ -797,67 +798,58 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             timeoutCts.CancelAfter(TimeSpan.FromSeconds(2));
 
-            var result = await _apiClient.GetNextTuiControlAsync(timeoutCts.Token)
+            var result = await _apiClient.GetPendingQuestionsAsync(timeoutCts.Token)
                 .ConfigureAwait(false);
 
             if (!result.IsSuccess || result.Value is null)
                 return;
 
-            var control = result.Value;
+            var pendingForSession = result.Value
+                .Where(q => string.Equals(q.SessionId, sessionId, StringComparison.Ordinal))
+                .ToList();
 
-            // Only handle question-type controls for the current session
-            if (!string.Equals(control.Type, "question", StringComparison.OrdinalIgnoreCase))
+            if (pendingForSession.Count == 0)
                 return;
-
-            if (!string.Equals(control.SessionId, sessionId, StringComparison.Ordinal))
-                return;
-
-            // Extract question fields from the Body JsonElement
-            var body = control.Body;
-            var questionText = body.TryGetProperty("question", out var qEl) ? qEl.GetString() : null;
-            if (string.IsNullOrEmpty(questionText))
-                return;
-
-            IReadOnlyList<string> options = Array.Empty<string>();
-            if (body.TryGetProperty("options", out var optEl) && optEl.ValueKind == System.Text.Json.JsonValueKind.Array)
-            {
-                var list = new List<string>();
-                foreach (var item in optEl.EnumerateArray())
-                {
-                    if (item.ValueKind == System.Text.Json.JsonValueKind.String)
-                        list.Add(item.GetString()!);
-                }
-
-                options = list;
-            }
-
-            bool allowFreeText = true;
-            if (body.TryGetProperty("allowFreeText", out var afEl))
-            {
-                if (afEl.ValueKind == System.Text.Json.JsonValueKind.True)
-                    allowFreeText = true;
-                else if (afEl.ValueKind == System.Text.Json.JsonValueKind.False)
-                    allowFreeText = false;
-                // else: malformed value — keep default true
-            }
 
             _dispatcher.Dispatch(() =>
             {
-                // Duplicate guard: skip if a card with this ID already exists
-                if (Messages.Any(m => m.MessageKind == MessageKind.QuestionRequest && m.QuestionId == control.Id))
-                    return;
+                foreach (var dto in pendingForSession)
+                {
+                    // Duplicate guard: skip if a card with this ID already exists
+                    if (Messages.Any(m => m.MessageKind == MessageKind.QuestionRequest && m.QuestionId == dto.Id))
+                        continue;
 
-                var card = ChatMessage.CreateQuestionRequest(
-                    control.Id,
-                    sessionId,
-                    questionText,
-                    options,
-                    allowFreeText);
+                    if (dto.Questions is not { Count: > 0 })
+                        continue;
 
-                Messages.Add(card);
+                    var firstQ = dto.Questions[0];
+                    var questionText = firstQ.Question;
+                    if (string.IsNullOrEmpty(questionText))
+                        continue;
+
+                    var options = firstQ.Options?.Select(o => o.Label).ToList()
+                        ?? (IReadOnlyList<string>)Array.Empty<string>();
+                    var allowFreeText = firstQ.Custom ?? true;
+
+                    var card = ChatMessage.CreateQuestionRequest(
+                        dto.Id,
+                        sessionId,
+                        questionText,
+                        options,
+                        allowFreeText);
+
+                    Messages.Add(card);
+
+                    // REQ-016: Retroactively hide tool call cards that match this question
+                    var toolCallId = dto.Tool?.CallId;
+                    if (!string.IsNullOrEmpty(toolCallId))
+                        HideToolCallByCallId(toolCallId);
+
+                    IncrementPendingQuestions();
+                }
+
                 RecalculateGrouping();
                 UpdateIsEmpty();
-                IncrementPendingQuestions();
             });
         }
         catch (OperationCanceledException)
@@ -868,7 +860,7 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
         {
             SentryHelper.CaptureException(ex, new Dictionary<string, object>
             {
-                ["context"] = "ChatViewModel.RecoverPendingQuestionAsync",
+                ["context"] = "ChatViewModel.RecoverPendingQuestionsAsync",
                 ["sessionId"] = sessionId,
             });
         }
@@ -1511,6 +1503,23 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
                 else if (string.Equals(e.Part.Type, "tool", StringComparison.OrdinalIgnoreCase))
                 {
                     UpsertToolCall(existing, e.Part);
+
+                    // REQ-014: Suppress tool call card when toolName is "question" and a question card exists
+                    if (string.Equals(e.Part.ToolName, "question", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var toolCallId = e.Part.CallId;
+                        if (!string.IsNullOrEmpty(toolCallId))
+                        {
+                            // Check if a question card already exists for this tool call
+                            if (Messages.Any(m => m.MessageKind == MessageKind.QuestionRequest))
+                            {
+                                // Find the ToolCallInfo we just upserted and hide it
+                                var toolCall = existing.ToolCalls?.FirstOrDefault(tc => tc.PartId == e.Part.Id);
+                                if (toolCall is not null)
+                                    toolCall.IsHidden = true;
+                            }
+                        }
+                    }
                 }
                 else if (string.Equals(e.Part.Type, "reasoning", StringComparison.OrdinalIgnoreCase))
                 {
@@ -1829,6 +1838,10 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
             RecalculateGrouping();
             UpdateIsEmpty();
             IncrementPendingQuestions();
+
+            // REQ-016: Retroactively hide tool call cards for this question
+            if (!string.IsNullOrEmpty(e.ToolCallId))
+                HideToolCallByCallId(e.ToolCallId);
         });
     }
 
@@ -2061,13 +2074,13 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
 
         try
         {
-            var result = await _apiClient.RespondToTuiControlAsync(questionId, answer, ct)
+            var result = await _apiClient.ReplyToQuestionAsync(questionId, new[] { answer }, ct)
                 .ConfigureAwait(false);
 
             if (!result.IsSuccess)
             {
                 SentryHelper.CaptureException(
-                    new InvalidOperationException(result.Error?.Message ?? "RespondToTuiControlAsync failed"),
+                    new InvalidOperationException(result.Error?.Message ?? "ReplyToQuestionAsync failed"),
                     new Dictionary<string, object>
                     {
                         ["context"] = "ChatViewModel.AnswerQuestionAsync",
@@ -2307,6 +2320,30 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
             endEl.ValueKind == JsonValueKind.Number)
         {
             toolCall.DurationMs = endEl.GetInt64() - startEl.GetInt64();
+        }
+    }
+
+    /// <summary>
+    /// Hides any tool call card whose <see cref="ToolCallInfo.PartId"/> matches the given call ID
+    /// and whose <see cref="ToolCallInfo.ToolName"/> is <c>"question"</c>.
+    /// Must be called on the dispatcher thread.
+    /// </summary>
+    /// <param name="callId">The tool call identifier to match against <see cref="ToolCallInfo.PartId"/>.</param>
+    private void HideToolCallByCallId(string callId)
+    {
+        foreach (var msg in Messages)
+        {
+            if (msg.ToolCalls is null)
+                continue;
+
+            foreach (var tc in msg.ToolCalls)
+            {
+                if (string.Equals(tc.PartId, callId, StringComparison.Ordinal) &&
+                    string.Equals(tc.ToolName, "question", StringComparison.OrdinalIgnoreCase))
+                {
+                    tc.IsHidden = true;
+                }
+            }
         }
     }
 
@@ -2624,6 +2661,7 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
             previousState != ConnectionHealthState.Healthy)
         {
             _ = ReplayPendingPermissionsAsync(CancellationToken.None);
+            _ = RecoverPendingQuestionsAsync(CancellationToken.None);
         }
     }
 

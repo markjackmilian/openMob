@@ -97,6 +97,7 @@ internal sealed class ChatEventParser
             "permission.requested" => ParsePermissionRequested(unwrapped, projectDirectory),
             "permission.updated" => ParsePermissionReplied(unwrapped, projectDirectory, isLegacy: true),
             "permission.replied" => ParsePermissionReplied(unwrapped, projectDirectory, isLegacy: false),
+            "question.asked" => ParseQuestionRequested(unwrapped, projectDirectory),
             "question" => ParseQuestionRequested(unwrapped, projectDirectory),
             "message.removed" => ParseMessageRemoved(unwrapped, projectDirectory),
             "message.part.removed" => ParseMessagePartRemoved(unwrapped, projectDirectory),
@@ -403,22 +404,61 @@ internal sealed class ChatEventParser
         {
             var id = ReadString(data, "id");
             var sessionId = ReadString(data, "sessionID");
-            var question = ReadString(data, "question");
 
-            if (id is null || sessionId is null || question is null)
+            if (id is null || sessionId is null)
                 return MakeUnknown(dto);
 
-            var options = ReadStringArray(data, "options") ?? Array.Empty<string>();
+            // Parse questions array — must exist and have at least one element
+            if (!data.TryGetProperty("questions", out var questionsEl) ||
+                questionsEl.ValueKind != JsonValueKind.Array ||
+                questionsEl.GetArrayLength() == 0)
+                return MakeUnknown(dto);
 
-            // allowFreeText is optional — default to true when absent (Open Question 4 resolution)
-            bool allowFreeText = true;
-            if (data.TryGetProperty("allowFreeText", out var allowEl))
+            var firstQuestion = questionsEl[0];
+
+            // Extract question text
+            string? questionText = null;
+            if (firstQuestion.TryGetProperty("question", out var qTextEl) &&
+                qTextEl.ValueKind == JsonValueKind.String)
+                questionText = qTextEl.GetString();
+
+            if (string.IsNullOrEmpty(questionText))
+                return MakeUnknown(dto);
+
+            // Extract options[].label
+            var options = new List<string>();
+            if (firstQuestion.TryGetProperty("options", out var optionsEl) &&
+                optionsEl.ValueKind == JsonValueKind.Array)
             {
-                if (allowEl.ValueKind == JsonValueKind.True)
-                    allowFreeText = true;
-                else if (allowEl.ValueKind == JsonValueKind.False)
+                foreach (var optionObj in optionsEl.EnumerateArray())
+                {
+                    if (optionObj.TryGetProperty("label", out var labelEl) &&
+                        labelEl.ValueKind == JsonValueKind.String)
+                    {
+                        var label = labelEl.GetString();
+                        if (!string.IsNullOrEmpty(label))
+                            options.Add(label);
+                    }
+                }
+            }
+
+            // Extract custom (allowFreeText) — default true when absent
+            bool allowFreeText = true;
+            if (firstQuestion.TryGetProperty("custom", out var customEl))
+            {
+                if (customEl.ValueKind == JsonValueKind.False)
                     allowFreeText = false;
-                // else: malformed value — keep default true
+                // True or any other value → keep default true
+            }
+
+            // Extract optional tool.callID for correlation
+            string? toolCallId = null;
+            if (data.TryGetProperty("tool", out var toolEl) &&
+                toolEl.ValueKind == JsonValueKind.Object &&
+                toolEl.TryGetProperty("callID", out var callIdEl) &&
+                callIdEl.ValueKind == JsonValueKind.String)
+            {
+                toolCallId = callIdEl.GetString();
             }
 
             return new QuestionRequestedEvent
@@ -426,9 +466,10 @@ internal sealed class ChatEventParser
                 RawEventId = dto.EventId,
                 Id = id,
                 SessionId = sessionId,
-                Question = question,
+                Question = questionText,
                 Options = options,
                 AllowFreeText = allowFreeText,
+                ToolCallId = toolCallId,
                 ProjectDirectory = projectDirectory,
             };
         }

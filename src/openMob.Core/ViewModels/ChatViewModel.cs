@@ -2111,6 +2111,44 @@ public sealed partial class ChatViewModel : ObservableObject, IDisposable
         }
     }
 
+    /// <summary>
+    /// Opens the question bottom sheet for the specified question message.
+    /// Finds the pending question card in <see cref="Messages"/> by <paramref name="questionId"/>,
+    /// then delegates to <see cref="IAppPopupService.ShowQuestionSheetAsync"/> which presents
+    /// the full question text, option chips, and optional free-text input in a modal bottom sheet.
+    /// The answer callback delegates to <see cref="AnswerQuestionAsync"/> which handles the API call,
+    /// Sentry capture, card resolution, and <see cref="IsAiResponding"/> flag.
+    /// </summary>
+    /// <param name="questionId">The question request identifier to open.</param>
+    /// <param name="ct">Cancellation token.</param>
+    [RelayCommand]
+    private async Task OpenQuestionSheetAsync(string questionId, CancellationToken ct)
+    {
+        if (string.IsNullOrEmpty(questionId))
+            return;
+
+        // Find the question card in Messages
+        var questionMsg = Messages.FirstOrDefault(m =>
+            m.MessageKind == MessageKind.QuestionRequest &&
+            m.QuestionId == questionId &&
+            m.QuestionStatus == QuestionStatus.Pending);
+
+        if (questionMsg is null)
+            return;
+
+        await _popupService.ShowQuestionSheetAsync(
+            questionMsg.QuestionId,
+            questionMsg.QuestionText,
+            questionMsg.QuestionOptions,
+            questionMsg.QuestionAllowFreeText,
+            async (qId, answer) =>
+            {
+                // Delegate to the existing answer flow
+                await AnswerQuestionAsync(new[] { qId, answer }, ct);
+            },
+            ct);
+    }
+
     // ─── Grouping [REQ-016] ───────────────────────────────────────────────────
 
     /// <summary>

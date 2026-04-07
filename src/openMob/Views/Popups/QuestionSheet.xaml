@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<uxd:PopupPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+               xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+               xmlns:uxd="clr-namespace:UXDivers.Popups.Maui;assembly=UXDivers.Popups.Maui"
+               xmlns:vm="clr-namespace:openMob.Core.ViewModels;assembly=openMob.Core"
+               xmlns:helpers="clr-namespace:openMob.Helpers"
+               x:Class="openMob.Views.Popups.QuestionSheet"
+               x:DataType="vm:QuestionSheetViewModel"
+               BackgroundColor="{DynamicResource PopupBackdropColor}"
+               CloseWhenBackgroundIsClicked="True"
+               AppearingAnimation="{uxd:MoveInPopupAnimation MoveDirection=Bottom, Duration=300, Easing=CubicOut}"
+               DisappearingAnimation="{uxd:MoveOutPopupAnimation MoveDirection=Bottom, Duration=250, Easing=CubicIn}">
+
+  <Border VerticalOptions="End"
+          HorizontalOptions="Fill"
+          StrokeThickness="0"
+          Padding="0"
+          BackgroundColor="{AppThemeBinding Light={StaticResource ColorBackgroundLight},
+                                            Dark={StaticResource ColorBackgroundDark}}">
+    <Border.StrokeShape>
+      <RoundRectangle CornerRadius="20,20,0,0" />
+    </Border.StrokeShape>
+    <Border.Shadow>
+      <Shadow Brush="Black" Opacity="0.15" Offset="0,-2" Radius="16" />
+    </Border.Shadow>
+
+    <VerticalStackLayout Spacing="0">
+
+      <!-- Handle bar -->
+      <BoxView Style="{StaticResource SheetHandleBar}"
+               Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundTertiaryLight},
+                                        Dark={StaticResource ColorOnBackgroundTertiaryDark}}" />
+
+      <!-- Header with icon, title, and close button -->
+      <Grid ColumnDefinitions="Auto,*,Auto"
+            Padding="16,0,16,12"
+            ColumnSpacing="{StaticResource SpacingSm}">
+        <Label Grid.Column="0"
+               Text="{x:Static helpers:IconKeys.QuestionMark}"
+               FontFamily="{StaticResource TablerIconsFont}"
+               FontSize="{StaticResource FontSizeTitle3}"
+               TextColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight},
+                                           Dark={StaticResource ColorPrimaryDark}}"
+               VerticalOptions="Center"
+               SemanticProperties.Description="Question icon" />
+        <Label Grid.Column="1"
+               Text="Question"
+               Style="{StaticResource Title3Label}"
+               VerticalOptions="Center" />
+        <ImageButton Grid.Column="2"
+                     Clicked="OnCloseButtonTapped"
+                     MinimumHeightRequest="{StaticResource MinTouchTarget}"
+                     MinimumWidthRequest="{StaticResource MinTouchTarget}"
+                     BackgroundColor="Transparent"
+                     AutomationId="QuestionSheetCloseButton"
+                     SemanticProperties.Description="Close question sheet">
+          <ImageButton.Source>
+            <FontImageSource FontFamily="TablerIcons"
+                             Glyph="{x:Static helpers:IconKeys.X}"
+                             Size="{StaticResource FontSizeIconXl}"
+                             Color="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight},
+                                                      Dark={StaticResource ColorOnBackgroundDark}}" />
+          </ImageButton.Source>
+        </ImageButton>
+      </Grid>
+
+      <!-- Question text -->
+      <Label Padding="16,0,16,16"
+             Text="{Binding QuestionText, FallbackValue='', TargetNullValue=''}"
+             FontFamily="InterRegular"
+             FontSize="{StaticResource FontSizeBody}"
+             TextColor="{AppThemeBinding Light={StaticResource ColorOnBackgroundLight},
+                                         Dark={StaticResource ColorOnBackgroundDark}}"
+             LineBreakMode="WordWrap"
+             SemanticProperties.Description="Question text" />
+
+      <!-- Divider -->
+      <BoxView HeightRequest="0.5"
+               Color="{AppThemeBinding Light={StaticResource ColorSeparatorLight},
+                                       Dark={StaticResource ColorSeparatorDark}}"
+               Margin="16,0" />
+
+      <!-- Option chips — wrapping FlexLayout, hidden when no options -->
+      <FlexLayout Padding="16,16"
+                  Wrap="Wrap"
+                  Direction="Row"
+                  JustifyContent="Start"
+                  AlignItems="Start"
+                  IsVisible="{Binding HasOptions}"
+                  BindableLayout.ItemsSource="{Binding Options}">
+        <BindableLayout.ItemTemplate>
+          <DataTemplate x:DataType="x:String">
+            <Button Text="{Binding .}"
+                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:QuestionSheetViewModel}}, Path=SelectOptionCommand}"
+                    CommandParameter="{Binding .}"
+                    FontFamily="InterMedium"
+                    FontSize="{StaticResource FontSizeSubheadline}"
+                    TextColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight},
+                                                 Dark={StaticResource ColorPrimaryDark}}"
+                    BackgroundColor="Transparent"
+                    BorderColor="{AppThemeBinding Light={StaticResource ColorPrimaryLight},
+                                                   Dark={StaticResource ColorPrimaryDark}}"
+                    BorderWidth="1.5"
+                    CornerRadius="20"
+                    Padding="16,8"
+                    Margin="0,0,8,8"
+                    MinimumHeightRequest="{StaticResource MinTouchTarget}"
+                    AutomationId="QuestionOptionChip"
+                    SemanticProperties.Description="Answer option" />
+          </DataTemplate>
+        </BindableLayout.ItemTemplate>
+      </FlexLayout>
+
+      <!-- Free-text input + Send button -->
+      <Grid Padding="16,0,16,16"
+            ColumnDefinitions="*,Auto"
+            ColumnSpacing="{StaticResource SpacingSm}"
+            IsVisible="{Binding AllowFreeText}">
+        <Entry Grid.Column="0"
+               Text="{Binding FreeTextAnswer, Mode=TwoWay}"
+               Placeholder="Type your answer..."
+               FontFamily="InterRegular"
+               FontSize="{StaticResource FontSizeBody}"
+               BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceSecondaryLight},
+                                                 Dark={StaticResource ColorSurfaceSecondaryDark}}"
+               TextColor="{AppThemeBinding Light={StaticResource ColorOnSurfaceLight},
+                                            Dark={StaticResource ColorOnSurfaceDark}}"
+               PlaceholderColor="{AppThemeBinding Light={StaticResource ColorOnSurfaceTertiaryLight},
+                                                  Dark={StaticResource ColorOnSurfaceTertiaryDark}}"
+               MinimumHeightRequest="{StaticResource MinTouchTarget}"
+               ReturnCommand="{Binding SubmitFreeTextCommand}"
+               AutomationId="QuestionFreeTextEntry"
+               SemanticProperties.Hint="Type a custom answer to the question" />
+        <Button Grid.Column="1"
+                Text="Send"
+                Command="{Binding SubmitFreeTextCommand}"
+                Style="{StaticResource PrimaryButton}"
+                MinimumHeightRequest="{StaticResource MinTouchTarget}"
+                MinimumWidthRequest="{StaticResource MinTouchTarget}"
+                AutomationId="QuestionSendButton"
+                SemanticProperties.Description="Send answer" />
+      </Grid>
+
+      <!-- Loading overlay when submitting -->
+      <ActivityIndicator IsRunning="{Binding IsSubmitting}"
+                         IsVisible="{Binding IsSubmitting}"
+                         HorizontalOptions="Center"
+                         Margin="0,0,0,16"
+                         SemanticProperties.Description="Submitting answer" />
+
+      <!-- Bottom safe area padding -->
+      <BoxView HeightRequest="20" Color="Transparent" />
+
+    </VerticalStackLayout>
+  </Border>
+
+</uxd:PopupPage>

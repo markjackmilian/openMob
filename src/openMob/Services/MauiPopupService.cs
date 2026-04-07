@@ -355,6 +355,39 @@ internal sealed class MauiPopupService : IAppPopupService
     }
 
     /// <inheritdoc />
+    public async Task ShowQuestionSheetAsync(
+        string questionId,
+        string questionText,
+        IReadOnlyList<string> options,
+        bool allowFreeText,
+        Func<string, string, Task> onAnswerSubmitted,
+        CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        // QuestionSheet does not need DI-resolved dependencies — the ViewModel takes
+        // callbacks, following the same pattern as ReconnectingModalSheet.
+        var sheet = new QuestionSheet();
+        var vm = new QuestionSheetViewModel(
+            questionId,
+            questionText,
+            options,
+            allowFreeText,
+            onAnswerSubmitted,
+            () => PopPopupAsync(ct));
+        sheet.BindingContext = vm;
+
+        // Ensure PushAsync is called on the main thread.
+        // The caller (ChatViewModel.OpenQuestionSheetAsync) may resume on a thread pool
+        // thread after awaiting service calls with ConfigureAwait(false).
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            ct.ThrowIfCancellationRequested();
+            return IPopupService.Current.PushAsync(sheet);
+        });
+    }
+
+    /// <inheritdoc />
     public async Task ShowReconnectingModalAsync(ReconnectingModalViewModel vm, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();

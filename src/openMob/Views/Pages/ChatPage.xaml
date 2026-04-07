@@ -444,7 +444,8 @@
                                                         Dark={StaticResource ColorOutlineDark}}"
                                 BackgroundColor="{AppThemeBinding Light={StaticResource ColorSurfaceSecondaryLight},
                                                                  Dark={StaticResource ColorSurfaceSecondaryDark}}"
-                                Padding="8,6">
+                                Padding="8,6"
+                                IsVisible="{Binding IsHidden, Converter={StaticResource InvertedBoolConverter}}">
                           <Grid ColumnDefinitions="20,*,Auto"
                                 ColumnSpacing="8">
 
